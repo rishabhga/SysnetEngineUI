@@ -1,0 +1,655 @@
+﻿@using ManageEngineWebApp.Dtos
+@model CompanyHierarchyDto
+@{
+    ViewData["Title"] = $"{Model.CompanyName} - Groups";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.CompanyName = Model.CompanyName;
+    ViewBag.CompanyInitial = Model.CompanyName?.Substring(0, 1).ToUpper();
+    var userRole = Context.Session.GetString("role");
+    var isSuperAdmin = userRole == "SuperAdmin";
+    var username = Context.Session.GetString("username");
+    var activeComputers = ViewBag.ActiveComputers as List<string> ?? new List<string>();
+
+    var totalGroups = Model.Groups?.Count ?? 0;
+    var totalLocations = Model.Groups?.Sum(g => g.Locations?.Count ?? 0) ?? 0;
+    var totalUsers = Model.Groups?.Sum(g => g.Locations?.Sum(l => l.Users?.Count ?? 0) ?? 0) ?? 0;
+    var activeCount = 0;
+    if (Model.Groups != null)
+    {
+        foreach (var grp in Model.Groups)
+        {
+            if (grp.Locations != null)
+            {
+                foreach (var loc in grp.Locations)
+                {
+                    if (loc.Users != null)
+                    {
+                        foreach (var usr in loc.Users)
+                        {
+                            var userDomain = usr.DomainName?.Trim().ToUpper() ?? "";
+                            if (!string.IsNullOrEmpty(userDomain) && activeComputers.Contains(userDomain))
+                            {
+                                activeCount++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+    <div class="mb-4 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            @if (isSuperAdmin)
+            {
+                <a href="@Url.Action("Companies", "Companies")"
+                   class="w-8 h-8 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center justify-center transition shadow-sm">
+                    <i class="fas fa-arrow-left text-gray-600 text-sm"></i>
+                </a>
+            }
+            <div class="flex items-center space-x-2">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    <span class="text-white font-bold text-sm">@Model.CompanyName?.Substring(0, 1).ToUpper()</span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-900">@Model.CompanyName</h1>
+                    <p class="text-xs text-gray-600">Manage groups and locations</p>
+                </div>
+            </div>
+        </div>
+        <button onclick="openAddGroupModal()"
+                class="px-3 py-1.5 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 shadow-sm"
+                style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+            <i class="fas fa-plus text-xs"></i>
+            <span>Add Group</span>
+        </button>
+    </div>
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+        <div class="bg-white rounded-lg border border-gray-200 p-2.5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-medium text-gray-500 uppercase">Groups</p>
+                    <p class="text-lg font-bold text-gray-900 mt-0.5">@totalGroups</p>
+                </div>
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    <i class="fas fa-layer-group text-white text-sm"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 p-2.5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-medium text-gray-500 uppercase">Locations</p>
+                    <p class="text-lg font-bold text-gray-900 mt-0.5">@totalLocations</p>
+                </div>
+                <div class="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-map-marker-alt text-white text-sm"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 p-2.5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-medium text-gray-500 uppercase">Online</p>
+                    <p class="text-lg font-bold text-gray-900 mt-0.5">@activeCount</p>
+                </div>
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);">
+                    <i class="fas fa-check-circle text-white text-sm"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 p-2.5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-medium text-gray-500 uppercase">Total Users</p>
+                    <p class="text-lg font-bold text-gray-900 mt-0.5">@totalUsers</p>
+                </div>
+                <div class="w-9 h-9 bg-purple-500 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-users text-white text-sm"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--Search bar-->
+    <div class="mb-4 flex gap-2">
+        <div class="flex-1 relative">
+            <input type="text" id="searchGroups"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-sm"
+                   placeholder="Search groups, locations, or users...">
+            <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <i class="fas fa-search text-gray-400 text-sm"></i>
+            </div>
+        </div>
+    </div>
+    <!-- Groups Grid -->
+    @if (Model.Groups != null && Model.Groups.Any())
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            @foreach (var group in Model.Groups)
+            {
+                var groupLocations = group.Locations?.Count ?? 0;
+                var groupUsers = group.Locations?.Sum(l => l.Users?.Count ?? 0) ?? 0;
+
+                var groupOnline = 0;
+                if (group.Locations != null)
+                {
+                    foreach (var location in group.Locations)
+                    {
+                        if (location.Users != null)
+                        {
+                            foreach (var user in location.Users)
+                            {
+                                var userDomain = user.DomainName?.Trim().ToUpper() ?? "";
+                                if (!string.IsNullOrEmpty(userDomain) && activeComputers.Contains(userDomain))
+                                {
+                                    groupOnline++;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 h-72 flex flex-col">
+                    <div class="bg-white border-b border-gray-200 p-2.5 flex-shrink-0">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                                    <i class="fas fa-layer-group text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-semibold text-gray-900">@group.GroupName</h3>
+                                    <p class="text-[10px] text-gray-500">@groupOnline/@groupUsers Online</p>
+                                </div>
+                            </div>
+                            <button class="edit-group-btn w-7 h-7 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors"
+                                    data-group-id="@group.GroupId"
+                                    data-group-name="@group.GroupName"
+                                    data-company-id="@Model.CompanyId"
+                                    title="Edit Group">
+                                <i class="fas fa-edit text-gray-600 text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-2.5 bg-white flex-grow overflow-y-auto">
+                        @if (group.Locations != null && group.Locations.Any())
+                        {
+                            <div class="space-y-1.5">
+                                @foreach (var location in group.Locations)
+                                {
+                                    var locationUsers = location.Users?.Count ?? 0;
+
+                                    var locationOnline = 0;
+                                    if (location.Users != null)
+                                    {
+                                        foreach (var usr in location.Users)
+                                        {
+                                            var userDomain = usr.DomainName?.Trim().ToUpper() ?? "";
+                                            if (!string.IsNullOrEmpty(userDomain) && activeComputers.Contains(userDomain))
+                                            {
+                                                locationOnline++;
+                                            }
+                                        }
+                                    }
+
+                                    <div class="flex items-center justify-between p-1.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-1.5">
+                                        <a href="/ComputerSummary/Deshboad?locationId=@location.LocationId&locationName=@location.LocationName&groupid=@group.GroupId&groupName=@group.GroupName&comId=@Model.CompanyId&companyName=@Model.CompanyName"
+                                           class="flex items-center space-x-1.5 flex-1 min-w-0">
+                                            <div class="w-6 h-6 bg-orange-100 rounded flex items-center justify-center">
+                                                <i class="fas fa-map-marker-alt text-orange-600 text-[10px]"></i>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-xs font-semibold text-gray-900 truncate">@location.LocationName</p>
+                                                <p class="text-[10px] text-gray-500">@locationOnline/@locationUsers Online</p>
+                                            </div>
+                                        </a>
+                                        <button onclick="event.preventDefault(); event.stopPropagation(); downloadInstaller(@location.LocationId, @group.GroupId, @Model.CompanyId, '@location.LocationName')"
+                                                class="px-1.5 py-1 text-white rounded text-[10px] font-medium flex-shrink-0 transition-colors"
+                                                style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);"
+                                                title="Download Installer">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="flex items-center justify-center h-full">
+                                <div class="text-center">
+                                    <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-1">
+                                        <i class="fas fa-map-marker-alt text-gray-400 text-sm"></i>
+                                    </div>
+                                    <p class="text-xs text-gray-600">No locations</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <!-- Action Buttons -->
+                    <div class="p-2.5 bg-white border-t border-gray-200 flex-shrink-0">
+                        @if (group.Locations != null && group.Locations.Any())
+                        {
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <div class="relative">
+                                    <select id="locationSelect-@group.GroupId"
+                                            class="w-full px-2 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-medium transition-colors appearance-none cursor-pointer pr-6"
+                                            onchange="editSelectedLocation(@group.GroupId, @Model.CompanyId)">
+                                        <option value="">Edit Location...</option>
+                                        @foreach (var location in group.Locations)
+                                        {
+                                            <option value="@location.LocationId" data-name="@location.LocationName">
+                                                @location.LocationName
+                                            </option>
+                                        }
+                                    </select>
+                                    <i class="fas fa-chevron-down absolute right-2 top-1/2 transform -translate-y-1/2 text-white text-[10px] pointer-events-none"></i>
+                                </div>
+                                <button onclick="openAddLocationModal(@group.GroupId, '@group.GroupName', @Model.CompanyId)"
+                                        class="px-2 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center justify-center space-x-1"
+                                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                                    <i class="fas fa-plus text-[10px]"></i>
+                                    <span>Add Location</span>
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <button onclick="openAddLocationModal(@group.GroupId, '@group.GroupName', @Model.CompanyId)"
+                                    class="w-full px-2 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center justify-center space-x-1"
+                                    style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                                <i class="fas fa-plus text-[10px]"></i>
+                                <span>Add Location</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-12 bg-white rounded-lg border border-gray-200 shadow-sm">
+            <i class="fas fa-layer-group text-4xl text-gray-300 mb-3"></i>
+            <p class="text-gray-500 text-sm">No groups yet</p>
+            <button onclick="openAddGroupModal()"
+                    class="mt-4 px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors"
+                    style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                <i class="fas fa-plus mr-1.5"></i>
+                Add Your First Group
+            </button>
+        </div>
+    }
+</div>
+<!-- Add Group Modal -->
+<div id="addGroupModal" class="modal fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
+        <div class="px-4 py-3 rounded-t-lg" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+            <h3 class="text-sm font-bold text-white">Add New Group</h3>
+        </div>
+        <div class="p-4">
+            <input type="hidden" id="addGroupCompanyId" value="@Model.CompanyId" />
+            <div class="mb-3">
+                <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                    <i class="fas fa-layer-group mr-1" style="color: #00BCEB;"></i> Group Name
+                </label>
+                <input type="text"
+                       id="addGroupName"
+                       class="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                       placeholder="Enter group name" />
+                <p id="addGroupNameError" class="hidden text-red-600 text-[10px] mt-1"></p>
+            </div>
+            <div id="addGroupMessage" class="hidden"></div>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closeAddGroupModal()"
+                        class="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+                    Cancel
+                </button>
+                <button id="addGroupBtn"
+                        onclick="checkAndAddGroup()"
+                        class="flex-1 px-3 py-1.5 text-white rounded-lg text-sm font-medium transition-colors"
+                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    Add
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Edit Group Modal -->
+<div id="editGroupModal" class="modal fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
+        <div class="px-4 py-3 rounded-t-lg" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+            <h3 class="text-sm font-bold text-white">Edit Group</h3>
+        </div>
+        <div class="p-4">
+            <div class="mb-3">
+                <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                    <i class="fas fa-layer-group mr-1" style="color: #00BCEB;"></i> Group Name
+                </label>
+                <input type="text"
+                       id="editGroupNameInput"
+                       class="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                       placeholder="Enter group name" />
+                <p id="editGroupError" class="hidden text-red-600 text-[10px] mt-1"></p>
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closeEditGroupModal()"
+                        class="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+                    Cancel
+                </button>
+                <button id="updateGroupButton"
+                        onclick="saveGroupEdit()"
+                        class="flex-1 px-3 py-1.5 text-white rounded-lg text-sm font-medium transition-colors"
+                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    <span class="button-text">Update</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Add Location Modal -->
+<div id="addLocationModal" class="modal fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
+        <div class="px-4 py-3 rounded-t-lg" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+            <h3 class="text-sm font-bold text-white">Add Location</h3>
+        </div>
+        <div class="p-4">
+            <input type="hidden" id="addLocationGroupId" />
+            <input type="hidden" id="addLocationCompanyId" />
+            <div class="mb-3">
+                <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                    <i class="fas fa-map-marker-alt text-orange-600 mr-1"></i> Location Name
+                </label>
+                <input type="text"
+                       id="addLocationName"
+                       class="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                       placeholder="Enter location name" />
+                <p id="addLocationNameError" class="hidden text-red-600 text-[10px] mt-1"></p>
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closeAddLocationModal()"
+                        class="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+                    Cancel
+                </button>
+                <button id="addLocationBtn"
+                        onclick="addLocation()"
+                        class="flex-1 px-3 py-1.5 text-white rounded-lg text-sm font-medium transition-colors"
+                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    Add
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Edit Location Modal -->
+<div id="editLocationModal" class="modal fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
+        <div class="bg-orange-500 px-4 py-3 rounded-t-lg">
+            <h3 class="text-sm font-bold text-white">Edit Location</h3>
+        </div>
+        <div class="p-4">
+            <input type="hidden" id="editLocationId" />
+            <input type="hidden" id="editLocationGroupId" />
+            <input type="hidden" id="editLocationCompanyId" />
+            <div class="mb-3">
+                <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                    <i class="fas fa-map-marker-alt text-orange-600 mr-1"></i> Location Name
+                </label>
+                <input type="text"
+                       id="editLocationName"
+                       class="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                       placeholder="Enter location name" />
+                <p id="editLocationNameError" class="hidden text-red-600 text-[10px] mt-1"></p>
+            </div>
+            <div class="flex space-x-2 mt-4">
+                <button onclick="closeEditLocationModal()"
+                        class="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+                    Cancel
+                </button>
+                <button id="updateLocationBtn"
+                        onclick="updateLocation()"
+                        class="flex-1 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors">
+                    Update
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/js/groups.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdown = document.querySelector('.dropdown');
+            const dropdownMenu = dropdown?.querySelector('.dropdown-menu');
+
+            if (dropdown && dropdownMenu) {
+                let hideTimeout;
+
+                dropdown.addEventListener('mouseenter', function() {
+                    clearTimeout(hideTimeout);
+                    dropdownMenu.style.display = 'block';
+                    setTimeout(() => {
+                        dropdownMenu.style.opacity = '1';
+                        dropdownMenu.style.transform = 'translateY(0)';
+                    }, 10);
+                });
+
+                dropdown.addEventListener('mouseleave', function() {
+                    hideTimeout = setTimeout(() => {
+                        dropdownMenu.style.opacity = '0';
+                        dropdownMenu.style.transform = 'translateY(-8px)';
+                        setTimeout(() => {
+                            dropdownMenu.style.display = 'none';
+                        }, 200);
+                    }, 100);
+                });
+            }
+        });
+        $(document).ready(function () {
+            $('.edit-group-btn').on('click', function () {
+                const $btn = $(this);
+                const groupId = $btn.data('group-id');
+                const groupName = $btn.data('group-name');
+                const companyId = $btn.data('company-id');
+                $('#updateGroupButton').data('group-id', groupId);
+                $('#updateGroupButton').data('company-id', companyId);
+                $('#editGroupNameInput').val(groupName);
+                $('#editGroupModal').removeClass('hidden').addClass('active');
+            });
+        });
+        $(document).ready(function () {
+            $('#searchGroups').on('keyup', function() {
+                var searchTerm = $(this).val().toLowerCase().trim();
+
+                if (!searchTerm) {
+                    $('.grid > div').show();
+                    return;
+                }
+
+                $('.grid > div').each(function() {
+                    var $card = $(this);
+                    var cardText = $card.text().toLowerCase();
+                    if (cardText.includes(searchTerm)) {
+                        $card.show();
+                    } else {
+                        $card.hide();
+                    }
+                });
+            });
+        });
+        function closeEditGroupModal() {
+            $('#editGroupModal').removeClass('active').addClass('hidden');
+            $('#editGroupNameInput').val('');
+            $('#editGroupError').addClass('hidden');
+        }
+        function saveGroupEdit() {
+            const $btn = $('#updateGroupButton');
+            const groupId = $btn.data('group-id');
+            const companyId = $btn.data('company-id');
+            const newName = $('#editGroupNameInput').val().trim();
+            if (newName === "") {
+                $('#editGroupError').text('Group name cannot be empty').removeClass('hidden');
+                return;
+            }
+            $btn.prop('disabled', true);
+            $btn.find('.button-text').text('Updating...');
+            $.ajax({
+                url: '/Companies/Groupupdate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Id: groupId,
+                    GroupName: newName,
+                    CompanyID: companyId
+                }),
+                success: function (response) {
+                    location.reload();
+                },
+                error: function (xhr) {
+                    $('#editGroupError').text('Error updating group').removeClass('hidden');
+                    $btn.prop('disabled', false);
+                    $btn.find('.button-text').text('Update');
+                }
+            });
+        }
+        function editSelectedLocation(groupId, companyId) {
+            const selectElement = document.getElementById('locationSelect-' + groupId);
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const locationId = selectedOption.value;
+            const locationName = selectedOption.getAttribute('data-name');
+            if (locationId) {
+                openEditLocationModal(locationId, locationName, groupId, companyId);
+                selectElement.selectedIndex = 0;
+            }
+        }
+        function openEditLocationModal(locationId, locationName, groupId, companyId) {
+            document.getElementById('editLocationId').value = locationId;
+            document.getElementById('editLocationGroupId').value = groupId;
+            document.getElementById('editLocationCompanyId').value = companyId;
+            document.getElementById('editLocationName').value = locationName;
+            document.getElementById('editLocationModal').classList.add('active');
+        }
+        function closeEditLocationModal() {
+            document.getElementById('editLocationModal').classList.remove('active');
+            document.getElementById('editLocationName').value = '';
+            document.getElementById('editLocationNameError').classList.add('hidden');
+        }
+        function updateLocation() {
+            const locationId = document.getElementById('editLocationId').value;
+            const locationName = document.getElementById('editLocationName').value.trim();
+            const groupId = document.getElementById('editLocationGroupId').value;
+            const companyId = document.getElementById('editLocationCompanyId').value;
+            if (!locationName) {
+                document.getElementById('editLocationNameError').textContent = 'Location name is required';
+                document.getElementById('editLocationNameError').classList.remove('hidden');
+                return;
+            }
+            $.ajax({
+                url: '/Companies/Locationupdate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Id: parseInt(locationId),
+                    LocationName: locationName,
+                    GroupsID: parseInt(groupId),
+                    CompanyID: parseInt(companyId)
+                }),
+                success: function() {
+                    location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error updating location');
+                }
+            });
+        }
+        function downloadInstaller(locationId, groupId, companyId, locationName) {
+            const clickedButton = event.currentTarget;
+            const originalHtml = clickedButton.innerHTML;
+            clickedButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            clickedButton.disabled = true;
+            $.ajax({
+                url: '/Installer/GenerateInstaller',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    CompanyId: companyId,
+                    GroupId: groupId,
+                    LocationId: locationId,
+                    LocationName: locationName
+                }),
+                xhrFields: { responseType: 'blob' },
+                success: function (blob) {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    const safeLocation = locationName.replace(/[^a-zA-Z0-9]/g, '');
+                    a.href = url;
+                    a.download = `${safeLocation}C${companyId}G${groupId}Installer.exe`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                },
+                error: function (xhr, status, error) {
+                    alert('Download failed: ' + error);
+                },
+                complete: function () {
+                    clickedButton.disabled = false;
+                    clickedButton.innerHTML = originalHtml;
+                }
+            });
+        }
+        function openAddLocationModal(groupId, groupName, companyId) {
+            document.getElementById('addLocationGroupId').value = groupId;
+            document.getElementById('addLocationCompanyId').value = companyId;
+            document.getElementById('addLocationModal').classList.add('active');
+        }
+        function closeAddLocationModal() {
+            document.getElementById('addLocationModal').classList.remove('active');
+            document.getElementById('addLocationName').value = '';
+            document.getElementById('addLocationNameError').classList.add('hidden');
+        }
+        function addLocation() {
+            const locationName = document.getElementById('addLocationName').value.trim();
+            const groupId = document.getElementById('addLocationGroupId').value;
+            const companyId = document.getElementById('addLocationCompanyId').value;
+            if (!locationName) {
+                document.getElementById('addLocationNameError').textContent = 'Location name is required';
+                document.getElementById('addLocationNameError').classList.remove('hidden');
+                return;
+            }
+            $.ajax({
+                url: '/Companies/LocationAdd',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    LocationName: locationName,
+                    GroupsID: parseInt(groupId),
+                    CompanyID: parseInt(companyId)
+                }),
+                success: function() {
+                    location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error adding location');
+                }
+            });
+        }
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                    this.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+    <style>
+        .modal.active {
+            display: flex !important;
+        }
+
+        select {
+            background-image: none;
+        }
+    </style>
+}

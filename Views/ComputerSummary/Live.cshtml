@@ -1,0 +1,728 @@
+﻿@{
+    ViewData["Title"] = $"Remote Access - {ViewBag.Domain}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center space-x-4">
+            <button onclick="history.back()" class="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                <i class="fas fa-arrow-left text-gray-600"></i>
+            </button>
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-desktop text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Remote Monitoring</h1>
+                    <p class="text-sm text-gray-600">Connecting to: <strong class="text-cyan-600">@ViewBag.Domain</strong></p>
+                </div>
+            </div>
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="handleMainAction()" id="mainBtn" class="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 flex items-center space-x-2">
+                <i class="fas fa-satellite-dish" id="mainIcon"></i>
+                <span id="mainText">Request Access</span>
+            </button>
+            <button onclick="toggleFullscreen()" class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 flex items-center space-x-2">
+                <i class="fas fa-expand" id="fullscreenIcon"></i>
+                <span id="fullscreenText">Fullscreen</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Stop Modal -->
+    <div id="stopModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md animate-fadeIn">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-power-off text-white text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Stop Remote Session</h2>
+            </div>
+            <p class="text-gray-600 mb-6">
+                Are you sure you want to stop the remote session?
+            </p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeStopModal()" class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+                <button onclick="confirmRemoteStop()" class="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow">Yes, Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeout Modal -->
+    <div id="timeoutModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md animate-fadeIn">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center shadow-lg" id="timeoutModalIcon">
+                    <i class="fas fa-clock text-white text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800" id="timeoutModalTitle">Request Timeout</h2>
+            </div>
+            <p class="text-gray-600 mb-6" id="timeoutModalMessage">
+                The remote user did not respond within the time limit. Would you like to try again?
+            </p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeTimeoutModal()" class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Close</button>
+                <button onclick="closeTimeoutModal(); requestAccess();" class="px-5 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow">Request Again</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expired Modal -->
+    <div id="expiredModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md animate-fadeIn">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Session Disconnected</h2>
+            </div>
+            <p class="text-gray-600 mb-6">The remote session has been disconnected.</p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeExpiredModal()" class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Close</button>
+                <button onclick="closeExpiredModal(); requestAccess();" class="px-5 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 shadow">Request Again</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen Container -->
+    <div id="screenContainer" class="bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-gray-800 relative" style="min-height: 500px;">
+        <div id="waitingState" class="flex flex-col items-center justify-center py-24 text-white">
+            <div class="w-20 h-20 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mb-6">
+                <i class="fas fa-hand-pointer text-3xl" id="waitingIcon"></i>
+            </div>
+            <p class="text-xl font-semibold mb-2" id="waitingTitle">Ready to Connect</p>
+            <p class="text-gray-400 text-sm" id="waitingMessage">Click "Request Access" button above to start</p>
+
+            <div id="countdownContainer" class="mt-6 hidden">
+                <div class="flex items-center justify-center space-x-2 bg-gray-800 px-6 py-3 rounded-full">
+                    <i class="fas fa-hourglass-half text-yellow-400 animate-pulse"></i>
+                    <span class="text-gray-300">Time remaining:</span>
+                    <span id="countdownTimer" class="text-2xl font-bold text-yellow-400">30</span>
+                    <span class="text-gray-400">sec</span>
+                </div>
+            </div>
+        </div>
+        <img id="remoteImage"
+             src=""
+             class="w-full h-auto object-contain"
+             draggable="false"
+             style="display: none;" />
+    </div>
+
+    <!-- Status Bar -->
+    <div class="mt-6 bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div id="statusDot" class="w-3 h-3 bg-gray-400 rounded-full"></div>
+                <span class="text-sm font-medium text-gray-700">Status:</span>
+                <span id="statusText" class="text-sm font-bold text-gray-600">Not Started</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="text-sm text-gray-500" id="fpsCounter" style="display: none;">
+                    <i class="fas fa-tachometer-alt text-cyan-500 mr-1"></i>
+                    FPS: <span id="fpsValue">0</span>
+                </div>
+                <div class="text-sm text-gray-500" id="lastUpdateTime" style="display: none;">
+                    <i class="fas fa-clock text-cyan-500 mr-1"></i>
+                    Last update: <span id="lastUpdateValue">--</span>
+                </div>
+                <div class="text-sm text-gray-600" id="controlsHint" style="display: none;">
+                    <i class="fas fa-info-circle text-cyan-500"></i>
+                    Mouse and keyboard controls active
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var domain = '@ViewBag.Domain';
+
+    const STORAGE_KEY = `remote_session_${domain}`;
+    const REQUEST_TIMEOUT = 30; 
+    let currentState = 'idle';
+    let pollingInterval = null;
+    let countdownInterval = null;
+    let denialCheckInterval = null;
+    let remainingSeconds = REQUEST_TIMEOUT;
+    let noImageCount = 0;
+    let freshImageCount = 0;
+    let lastImageHash = '';
+    const MIN_FRESH_IMAGES_NEEDED = 2; 
+    const MAX_NO_IMAGE_COUNT = 10; 
+
+    let frameCount = 0;
+    let lastFpsUpdate = Date.now();
+    let isImageLoading = false;
+    let pendingMouseMove = null;
+    let mouseThrottleTimer = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        restoreSessionState();
+    });
+
+    function saveSessionState() {
+        const sessionData = {
+            state: currentState,
+            timestamp: Date.now(),
+            remainingSeconds: remainingSeconds,
+            domain: domain
+        };
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+    }
+
+    function restoreSessionState() {
+        const savedData = sessionStorage.getItem(STORAGE_KEY);
+
+        if (savedData) {
+            try {
+                const session = JSON.parse(savedData);
+                const elapsed = Math.floor((Date.now() - session.timestamp) / 1000);
+
+                if (session.domain === domain) {
+                    if (session.state === 'waiting' || session.state === 'requesting') {
+                        const timeLeft = (session.remainingSeconds || REQUEST_TIMEOUT) - elapsed;
+
+                        if (timeLeft > 0) {
+                            currentState = 'waiting';
+                            remainingSeconds = timeLeft;
+                            showWaitingUI();
+                            startPolling();
+                            startCountdown();
+                            startDenialCheck();
+                            return;
+                        } else {
+                            clearSessionState();
+                        }
+                    } else if (session.state === 'connected') {
+                        currentState = 'waiting';
+                        remainingSeconds = 15;
+                        showReconnectingUI();
+                        startPolling();
+                        startCountdown();
+                        return;
+                    }
+                }
+            } catch (e) {
+                clearSessionState();
+            }
+        }
+
+        resetToIdleState();
+    }
+
+    function clearSessionState() {
+        sessionStorage.removeItem(STORAGE_KEY);
+    }
+
+    function startCountdown() {
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        document.getElementById('countdownContainer').classList.remove('hidden');
+        updateCountdownDisplay();
+
+        countdownInterval = setInterval(() => {
+            remainingSeconds--;
+            updateCountdownDisplay();
+            saveSessionState();
+
+            if (remainingSeconds <= 0) {
+                handleTimeout();
+            }
+        }, 1000);
+    }
+
+    function stopCountdown() {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        document.getElementById('countdownContainer').classList.add('hidden');
+    }
+
+    function updateCountdownDisplay() {
+        const timerEl = document.getElementById('countdownTimer');
+        timerEl.textContent = remainingSeconds;
+
+        if (remainingSeconds <= 10) {
+            timerEl.classList.add('text-red-500');
+            timerEl.classList.remove('text-yellow-400');
+        } else {
+            timerEl.classList.add('text-yellow-400');
+            timerEl.classList.remove('text-red-500');
+        }
+    }
+
+    function handleTimeout() {
+        stopPolling();
+        stopCountdown();
+        stopDenialCheck();
+        clearSessionState();
+
+        showTimeoutModal('Request Timeout', 'The remote user did not respond within 30 seconds.', 'fa-clock', 'bg-yellow-500');
+        resetToIdleState();
+    }
+
+    function handleDenial() {
+        stopPolling();
+        stopCountdown();
+        stopDenialCheck();
+        clearSessionState();
+
+        showTimeoutModal('Access Denied', 'The remote user has denied your access request.', 'fa-ban', 'bg-red-500');
+        resetToIdleState();
+    }
+
+    function showTimeoutModal(title, message, icon, bgClass) {
+        document.getElementById('timeoutModalTitle').textContent = title;
+        document.getElementById('timeoutModalMessage').textContent = message;
+        const iconContainer = document.getElementById('timeoutModalIcon');
+        iconContainer.className = `w-12 h-12 ${bgClass} rounded-xl flex items-center justify-center shadow-lg`;
+        iconContainer.innerHTML = `<i class="fas ${icon} text-white text-2xl"></i>`;
+        document.getElementById('timeoutModal').classList.remove('hidden');
+    }
+
+    function closeTimeoutModal() {
+        document.getElementById('timeoutModal').classList.add('hidden');
+    }
+
+    function startDenialCheck() {
+        if (denialCheckInterval) clearInterval(denialCheckInterval);
+
+        denialCheckInterval = setInterval(() => {
+            fetch(`/ComputerSummary/CheckAccessStatus?domain=${domain}&_t=${Date.now()}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.denied === true) {
+                        handleDenial();
+                    }
+                })
+                .catch(() => {});
+        }, 3000); 
+    }
+
+    function stopDenialCheck() {
+        if (denialCheckInterval) {
+            clearInterval(denialCheckInterval);
+            denialCheckInterval = null;
+        }
+    }
+
+    function showWaitingUI() {
+        const btn = document.getElementById('mainBtn');
+        const icon = document.getElementById('mainIcon');
+        const text = document.getElementById('mainText');
+        btn.disabled = true;
+        btn.classList.remove('from-orange-500', 'to-red-600', 'from-red-500', 'to-red-700');
+        btn.classList.add('from-gray-500', 'to-gray-600');
+        icon.classList.remove('fa-satellite-dish', 'fa-power-off');
+        icon.classList.add('fa-spinner', 'fa-spin');
+        text.textContent = 'Waiting...';
+        updateWaitingState('Request Pending', 'Waiting for user to accept on remote device...', 'fa-clock text-green-400 animate-pulse');
+        updateStatus('orange', 'Waiting for approval');
+    }
+
+    function showReconnectingUI() {
+        const btn = document.getElementById('mainBtn');
+        const icon = document.getElementById('mainIcon');
+        const text = document.getElementById('mainText');
+        btn.disabled = true;
+        btn.classList.remove('from-orange-500', 'to-red-600', 'from-red-500', 'to-red-700');
+        btn.classList.add('from-gray-500', 'to-gray-600');
+        icon.classList.remove('fa-satellite-dish', 'fa-power-off');
+        icon.classList.add('fa-spinner', 'fa-spin');
+        text.textContent = 'Reconnecting...';
+        updateWaitingState('Reconnecting...', 'Attempting to restore session', 'fa-sync text-cyan-400 animate-spin');
+        updateStatus('yellow', 'Reconnecting...');
+    }
+
+    function handleMainAction() {
+        if (currentState === 'idle') {
+            requestAccess();
+        } else if (currentState === 'connected') {
+            openStopModal();
+        }
+    }
+
+    function requestAccess() {
+        if (currentState === 'requesting' || currentState === 'waiting') return;
+        currentState = 'requesting';
+        noImageCount = 0;
+        freshImageCount = 0;
+        lastImageHash = '';
+        remainingSeconds = REQUEST_TIMEOUT;
+        saveSessionState();
+
+        const btn = document.getElementById('mainBtn');
+        const icon = document.getElementById('mainIcon');
+        const text = document.getElementById('mainText');
+        btn.disabled = true;
+        btn.classList.remove('from-orange-500', 'to-red-600', 'from-red-500', 'to-red-700');
+        btn.classList.add('from-gray-500', 'to-gray-600');
+        icon.classList.remove('fa-satellite-dish', 'fa-power-off');
+        icon.classList.add('fa-spinner', 'fa-spin');
+        text.textContent = 'Sending...';
+        updateWaitingState('Sending Request...', 'Contacting remote device', 'fa-paper-plane animate-pulse');
+        updateStatus('yellow', 'Requesting...');
+
+        fetch(`/ComputerSummary/RemoteAccess?domain=${domain}`)
+            .then(response => {
+                currentState = 'waiting';
+                saveSessionState();
+
+                updateWaitingState('Request Sent!', 'Waiting for user to accept...', 'fa-clock text-green-400 animate-pulse');
+                updateStatus('orange', 'Waiting for approval');
+
+                text.textContent = 'Waiting...';
+                startPolling();
+                startCountdown();
+                startDenialCheck();
+            })
+            .catch(error => {
+                updateWaitingState('Request Failed', 'Could not contact device.', 'fa-times-circle text-red-400');
+                updateStatus('red', 'Failed');
+                clearSessionState();
+                setTimeout(() => {
+                    resetToIdleState();
+                }, 3000);
+            });
+    }
+
+    function getImageHash(base64Data) {
+        if (!base64Data || base64Data.length < 200) return '';
+        return base64Data.substring(0, 50) + base64Data.substring(base64Data.length - 50); 
+    }
+
+    function updateFPS() {
+        const now = Date.now();
+        const elapsed = now - lastFpsUpdate;
+        if (elapsed >= 1000) {
+            const fps = Math.round((frameCount * 1000) / elapsed);
+            document.getElementById('fpsValue').textContent = fps;
+            frameCount = 0;
+            lastFpsUpdate = now;
+        }
+    }
+
+    function startPolling() {
+        if (pollingInterval) return;
+        const img = document.getElementById("remoteImage");
+
+        document.getElementById('fpsCounter').style.display = 'block';
+
+        pollingInterval = setInterval(() => {
+            if (isImageLoading) return; 
+
+            isImageLoading = true;
+            fetch(`/ComputerSummary/Remotemonitoring?domain=${domain}&_t=${Date.now()}`)
+                .then(r => r.json())
+                .then(d => {
+                    const imageData = d.image || d.ImageBase64 || d.imageBase64;
+                    if (imageData && imageData.length > 100) {
+                        const currentHash = getImageHash(imageData);
+
+                        if (currentHash !== lastImageHash) {
+                            freshImageCount++;
+                            lastImageHash = currentHash;
+                            noImageCount = 0;
+                            frameCount++;
+                        }
+
+                        if (currentState === 'waiting' && freshImageCount >= MIN_FRESH_IMAGES_NEEDED) {
+                            currentState = 'connected';
+                            stopCountdown();
+                            stopDenialCheck();
+                            saveSessionState();
+                            showRemoteScreen();
+                            switchToStopButton();
+                        }
+
+                        if (currentState === 'connected') {
+                            img.src = "data:image/jpeg;base64," + imageData;
+                            updateLastUpdateTime();
+                            updateFPS();
+                        }
+                    } else {
+                        noImageCount++;
+
+                        if (currentState === 'connected' && noImageCount >= MAX_NO_IMAGE_COUNT) {
+                            handleDisconnect();
+                        }
+                    }
+                    isImageLoading = false;
+                })
+                .catch(error => {
+                    console.error('Polling error:', error);
+                    noImageCount++;
+                    isImageLoading = false;
+
+                    if (currentState === 'connected' && noImageCount >= MAX_NO_IMAGE_COUNT) {
+                        handleDisconnect();
+                    }
+                });
+        }, 150); 
+    }
+
+    function stopPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+        document.getElementById('fpsCounter').style.display = 'none';
+    }
+
+    function handleDisconnect() {
+        stopPolling();
+        stopCountdown();
+        stopDenialCheck();
+        clearSessionState();
+        document.getElementById('expiredModal').classList.remove('hidden');
+        resetToIdleState();
+    }
+
+    function showRemoteScreen() {
+        const img = document.getElementById("remoteImage");
+        document.getElementById("waitingState").style.display = "none";
+        img.style.display = "block";
+        document.getElementById("controlsHint").style.display = "block";
+        document.getElementById("lastUpdateTime").style.display = "block";
+        updateStatus('green', 'Connected');
+    }
+
+    function switchToStopButton() {
+        const btn = document.getElementById('mainBtn');
+        const icon = document.getElementById('mainIcon');
+        const text = document.getElementById('mainText');
+
+        btn.disabled = false;
+        btn.classList.remove('from-gray-500', 'to-gray-600', 'from-orange-500', 'to-red-600');
+        btn.classList.add('from-red-500', 'to-red-700');
+        icon.classList.remove('fa-spinner', 'fa-spin', 'fa-satellite-dish');
+        icon.classList.add('fa-power-off');
+        text.textContent = 'Stop Remote';
+    }
+
+    function updateWaitingState(title, message, iconClass) {
+        document.getElementById('waitingTitle').textContent = title;
+        document.getElementById('waitingMessage').textContent = message;
+        document.getElementById('waitingIcon').className = 'fas ' + iconClass + ' text-3xl';
+    }
+
+    function updateStatus(color, text) {
+        const dot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        dot.className = `w-3 h-3 bg-${color}-500 rounded-full` + (color !== 'gray' && color !== 'red' ? ' animate-pulse' : '');
+        statusText.textContent = text;
+        statusText.className = `text-sm font-bold text-${color}-600`;
+    }
+
+    function updateLastUpdateTime() {
+        document.getElementById('lastUpdateValue').textContent = new Date().toLocaleTimeString();
+    }
+
+    function openStopModal() {
+        document.getElementById("stopModal").classList.remove("hidden");
+    }
+
+    function closeStopModal() {
+        document.getElementById("stopModal").classList.add("hidden");
+    }
+
+    function closeExpiredModal() {
+        document.getElementById("expiredModal").classList.add("hidden");
+    }
+
+    function confirmRemoteStop() {
+        closeStopModal();
+        const btn = document.getElementById('mainBtn');
+        const icon = document.getElementById('mainIcon');
+        const text = document.getElementById('mainText');
+
+        btn.disabled = true;
+        icon.classList.remove('fa-power-off');
+        icon.classList.add('fa-spinner', 'fa-spin');
+        text.textContent = 'Stopping...';
+
+        fetch(`/ComputerSummary/Livestop?domain=${domain}`)
+            .then(r => r.json())
+            .then(res => {
+                stopPolling();
+                stopCountdown();
+                stopDenialCheck();
+                clearSessionState();
+                resetToIdleState();
+            })
+            .catch(err => {
+                stopPolling();
+                stopCountdown();
+                stopDenialCheck();
+                clearSessionState();
+                resetToIdleState();
+            });
+    }
+
+    function resetToIdleState() {
+        currentState = 'idle';
+        noImageCount = 0;
+        freshImageCount = 0;
+        lastImageHash = '';
+        remainingSeconds = REQUEST_TIMEOUT;
+        frameCount = 0;
+        stopPolling();
+        stopCountdown();
+        stopDenialCheck();
+
+        const btn = document.getElementById('mainBtn');
+        const icon = document.getElementById('mainIcon');
+        const text = document.getElementById('mainText');
+        btn.disabled = false;
+        btn.classList.remove('from-gray-500', 'to-gray-600', 'from-red-500', 'to-red-700');
+        btn.classList.add('from-orange-500', 'to-red-600');
+        icon.classList.remove('fa-spinner', 'fa-spin', 'fa-power-off');
+        icon.classList.add('fa-satellite-dish');
+        text.textContent = 'Request Access';
+
+        document.getElementById('waitingState').style.display = 'flex';
+        document.getElementById('countdownContainer').classList.add('hidden');
+        updateWaitingState('Ready to Connect', 'Click "Request Access" button above to start', 'fa-hand-pointer');
+
+        const img = document.getElementById('remoteImage');
+        img.style.display = 'none';
+        img.src = '';
+
+        updateStatus('gray', 'Not Started');
+        document.getElementById('controlsHint').style.display = 'none';
+        document.getElementById('lastUpdateTime').style.display = 'none';
+    }
+
+    const img = document.getElementById("remoteImage");
+    img.addEventListener("mousemove", function (e) {
+        if (currentState !== 'connected') return;
+
+        const rect = img.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;  
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+        pendingMouseMove = { x, y };
+
+        if (!mouseThrottleTimer) {
+            mouseThrottleTimer = setTimeout(() => {
+                if (pendingMouseMove) {
+                    fetch(`/ComputerSummary/SendMouseMove?domain=@ViewBag.Domain&x=${pendingMouseMove.x}&y=${pendingMouseMove.y}`)
+                        .catch(() => {});
+                    pendingMouseMove = null;
+                }
+                mouseThrottleTimer = null;
+            }, 80);
+        }
+    });
+
+    img.addEventListener("click", function () {
+        if (currentState === 'connected') {
+            fetch(`/ComputerSummary/SendLeftClick?domain=@ViewBag.Domain`).catch(() => {});
+        }
+    });
+
+    img.addEventListener("contextmenu", function (e) {
+        e.preventDefault();
+        if (currentState === 'connected') {
+            fetch(`/ComputerSummary/SendRightClick?domain=@ViewBag.Domain`).catch(() => {});
+        }
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (currentState === 'connected') {
+            fetch(`/ComputerSummary/SendKeyPress?domain=@ViewBag.Domain&key=${e.key}`).catch(() => {});
+        }
+    });
+
+    function toggleFullscreen() {
+        const container = document.getElementById('screenContainer');
+        const icon = document.getElementById('fullscreenIcon');
+        const text = document.getElementById('fullscreenText');
+
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().then(() => {
+                icon.classList.replace('fa-expand', 'fa-compress');
+                text.textContent = 'Exit Fullscreen';
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                icon.classList.replace('fa-compress', 'fa-expand');
+                text.textContent = 'Fullscreen';
+            });
+        }
+    }
+
+    document.addEventListener('fullscreenchange', function() {
+        if (!document.fullscreenElement) {
+            document.getElementById('fullscreenIcon').classList.replace('fa-compress', 'fa-expand');
+            document.getElementById('fullscreenText').textContent = 'Fullscreen';
+        }
+    });
+
+    window.addEventListener('beforeunload', function() {
+        stopPolling();
+    });
+</script>
+
+<style>
+    #remoteImage {
+        cursor: default !important;
+        image-rendering: crisp-edges;
+        transform: translateZ(0);
+        will-change: contents;
+    }
+
+    #screenContainer {
+        transform: translateZ(0);
+    }
+
+        #screenContainer:fullscreen {
+            background: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            #screenContainer:fullscreen img {
+                max-width: 100vw;
+                max-height: 100vh;
+                object-fit: contain;
+            }
+
+    .animate-fadeIn {
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    }
+
+    * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    @@media (max-width: 640px) {
+        #screenContainer
+
+    {
+        min-height: 300px;
+        height: 50vh;
+    }
+
+    }
+</style>

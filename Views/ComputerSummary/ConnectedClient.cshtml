@@ -1,0 +1,75 @@
+﻿@model List<ClientConnection>
+@{
+    ViewData["Title"] = "Connected Clients";
+}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Connected Clients</h1>
+        <p class="text-gray-600">Monitor all connected devices in real-time</p>
+    </div>
+    <!-- Search -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div class="relative">
+            <input type="text" id="searchInput" placeholder="Search by computer name or connection ID..."
+                   class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" />
+            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+        </div>
+    </div>
+    <!-- Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full" id="clientsTable">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">S.N</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Computer Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Connection ID</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center">
+                            <i class="fas fa-desktop text-gray-300 text-4xl mb-2"></i>
+                            <p class="text-gray-500">No connected clients found</p>
+                        </td>
+                    </tr>
+                }
+                @foreach (var item in Model)
+                {
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-sm text-gray-900">@item.Id</td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-desktop text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">@item.ComputerName</p>
+                                    <p class="text-xs text-gray-500">Connected Device</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <code class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">@item.ConnectionId</code>
+                        </td>
+                       
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#searchInput').on('keyup', function() {
+                var value = $(this).val().toLowerCase();
+                $('#clientsTable tbody tr').filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+        });
+    </script>
+}

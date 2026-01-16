@@ -1,0 +1,328 @@
+﻿@model List<ManageEngineWebApp.Models.WindowsUserDetails>
+
+@{
+    ViewData["Title"] = "Patch Management - SYSNET";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var companyid = ViewBag.companyid;
+    var groupid = ViewBag.groupid;
+    var locationid = ViewBag.locationid;
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Patch Management</h1>
+                <p class="text-sm text-gray-600 mt-1">Select devices to manage patches and updates</p>
+            </div>
+            <div class="relative inline-block text-left">
+                <button type="button"
+                        id="patchDropdownBtn"
+                        onclick="toggleDropdown()"
+                        class="px-4 py-2 text-white rounded-lg font-medium transition-colors flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"
+                        disabled>
+                    <i class="fas fa-download"></i>
+                    <span>Patch</span>
+                    <i class="fas fa-chevron-down ml-2 text-sm"></i>
+                </button>
+
+                <div id="patchDropdown"
+                     class="hidden absolute right-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                    <div class="py-1" role="menu">
+                        <a onclick="goWinPatch()"
+                           class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors">
+                            <i class="fas fa-windows mr-2 text-cyan-600"></i>
+                            Windows Patch
+                        </a>
+                        <a onclick="goPatchSelection()"
+                           class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors">
+                            <i class="fas fa-cube mr-2 text-cyan-600"></i>
+                            Third-Party Patch
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+
+    <!-- Search and Filter Bar -->
+    <div class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+        <div class="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
+            <div class="relative flex-1 w-full max-w-md">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+                <input type="text"
+                       id="searchInput"
+                       placeholder="Search devices, users, or departments..."
+                       class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                       onkeyup="filterCards()">
+            </div>
+            <select id="statusFilter"
+                    onchange="filterCards()"
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                <option value="">All Status</option>
+                <option value="Enabled">Enabled</option>
+                <option value="Disabled">Disabled</option>
+            </select>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-600">Selected:</span>
+            <span id="selectedCount" class="px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full text-sm font-medium">0</span>
+        </div>
+    </div>
+
+    <!-- Select All -->
+    <div class="mb-4 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+        <label class="flex items-center cursor-pointer">
+            <input type="checkbox"
+                   id="selectAll"
+                   onclick="toggleSelectAll(this)"
+                   class="w-4 h-4 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500">
+            <span class="ml-2 text-sm font-medium text-gray-700">Select All Devices</span>
+        </label>
+    </div>
+
+    <!-- Devices Cards Grid -->
+    @if (Model != null && Model.Any())
+    {
+        <div id="devicesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach (var item in Model)
+            {
+                <div class="device-card bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow">
+                    <!-- Card Header -->
+                    <div class="bg-white border-b border-gray-200 p-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3 flex-1">
+                                <input type="checkbox"
+                                       class="device-checkbox w-5 h-5 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500"
+                                       value="@item.Id"
+                                       data-domain="@item.DomainName"
+                                       onclick="updateSelection()">
+                                <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+                                     style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                                    <i class="fas fa-desktop text-white text-xl"></i>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="font-semibold text-gray-900 truncate">@item.DomainName</h3>
+                                    <p class="text-xs text-gray-500">@item.AccountType</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="p-4 space-y-3">
+                        <!-- Employee Info -->
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-user text-gray-400 mt-1"></i>
+                            </div>
+                            <div class="ml-3 flex-1 min-w-0">
+                                <p class="text-xs text-gray-500 uppercase tracking-wide">Employee</p>
+                                <p class="text-sm font-medium text-gray-900 truncate">@item.UserName</p>
+                            </div>
+                        </div>
+
+                        <!-- Full Name -->
+                        @if (!string.IsNullOrEmpty(item.FullName))
+                        {
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-id-card text-gray-400 mt-1"></i>
+                                </div>
+                                <div class="ml-3 flex-1 min-w-0">
+                                    <p class="text-xs text-gray-500 uppercase tracking-wide">Full Name</p>
+                                    <p class="text-sm font-medium text-gray-900 truncate">@item.FullName</p>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- ID -->
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-hashtag text-gray-400 mt-1"></i>
+                            </div>
+                            <div class="ml-3 flex-1 min-w-0">
+                                <p class="text-xs text-gray-500 uppercase tracking-wide">Device ID</p>
+                                <p class="text-sm font-medium text-gray-900">@item.Id</p>
+                            </div>
+                        </div>
+
+                        <!-- Status Badge -->
+                        <div class="pt-2">
+                            @if (item.Status == "Enabled")
+                            {
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 w-full justify-center">
+                                    <i class="fas fa-check-circle mr-1"></i> Enabled
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 w-full justify-center">
+                                    <i class="fas fa-times-circle mr-1"></i> @item.Status
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer Info -->
+        <div class="mt-6 flex items-center justify-between bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+            <div class="text-sm text-gray-700">
+                Showing <span class="font-medium">@Model.Count</span> devices
+            </div>
+            <div class="text-sm text-gray-500">
+                <i class="fas fa-info-circle mr-1"></i>
+                Select devices to manage their patches and updates
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-20 bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-desktop text-gray-400 text-2xl"></i>
+            </div>
+            <p class="text-gray-500 text-lg">No devices registered for this location yet</p>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        let selectedDevices = [];
+        let selectedDomains = [];
+
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('.device-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+            });
+            updateSelection();
+        }
+        function toggleDropdown() {
+            const dropdown = document.getElementById('patchDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+                document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('patchDropdown');
+            const button = document.getElementById('patchDropdownBtn');
+
+            if (dropdown && button && !button.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        function goWinPatch() {
+            if (selectedDevices.length === 0) {
+                alert('Please select at least one device');
+                return;
+            }
+
+            const companyid = @companyid;
+            const groupid = @groupid;
+            const locationid = @locationid;
+            const selectedIds = selectedDevices.join(',');
+            const domainids = selectedDomains.join(',');
+
+            window.location.href = `/ComputerSummary/BranchWinPatchselection?companyid=${companyid}&groupid=${groupid}&locationid=${locationid}&selectedIds=${selectedIds}&domainids=${domainids}`;
+        }
+
+        function goPatchSelection() {
+            if (selectedDevices.length === 0) {
+                alert('Please select at least one device');
+                return;
+            }
+
+            const companyid = @companyid;
+            const groupid = @groupid;
+            const locationid = @locationid;
+            const selectedIds = selectedDevices.join(',');
+            const domainids = selectedDomains.join(',');
+
+            window.location.href = `/ComputerSummary/BranchPatchselection?companyid=${companyid}&groupid=${groupid}&locationid=${locationid}&selectedIds=${selectedIds}&domainids=${domainids}`;
+        }
+
+
+        function updateSelection() {
+            selectedDevices = [];
+            selectedDomains = [];
+
+            const checkboxes = document.querySelectorAll('.device-checkbox:checked');
+            checkboxes.forEach(cb => {
+                selectedDevices.push(cb.value);
+                selectedDomains.push(cb.dataset.domain);
+            });
+
+            document.getElementById('selectedCount').textContent = selectedDevices.length;
+
+            const btn = document.getElementById('patchDropdownBtn');
+            btn.disabled = selectedDevices.length === 0;
+
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const allCheckboxes = document.querySelectorAll('.device-checkbox');
+            selectAllCheckbox.checked = allCheckboxes.length > 0 && selectedDevices.length === allCheckboxes.length;
+        }
+
+
+        function goToPatchSelection() {
+            if (selectedDevices.length === 0) {
+                alert('Please select at least one device');
+                return;
+            }
+
+            const companyid = @companyid;
+            const groupid = @groupid;
+            const locationid = @locationid;
+            const selectedIds = selectedDevices.join(',');
+            const domainids = selectedDomains.join(',');
+
+            window.location.href = `/ComputerSummary/BranchPatchselection?companyid=${companyid}&groupid=${groupid}&locationid=${locationid}&selectedIds=${selectedIds}`;
+        }
+
+        function filterCards() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+            const cards = document.querySelectorAll('.device-card');
+
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+
+                const matchesSearch = searchInput === '' || text.includes(searchInput);
+                const matchesStatus = statusFilter === '' || text.includes(statusFilter);
+
+                if (matchesSearch && matchesStatus) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+
+    <style>
+        .focus\:ring-cyan-500:focus {
+            --tw-ring-color: #06b6d4;
+        }
+
+        .text-cyan-600 {
+            color: #0891b2;
+        }
+
+        .text-cyan-700 {
+            color: #0e7490;
+        }
+
+        .bg-cyan-100 {
+            background-color: #cffafe;
+        }
+    </style>
+}

@@ -1,0 +1,12 @@
+{
+  "name": "company-hierarchy-ui",
+  "version": "1.0.0",
+  "description": "Company Hierarchy Dashboard",
+  "scripts": {
+    "css:build": "tailwindcss -i ./wwwroot/css/site.css -o ./wwwroot/css/styles.css --minify",
+    "css:watch": "tailwindcss -i ./wwwroot/css/site.css -o ./wwwroot/css/styles.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

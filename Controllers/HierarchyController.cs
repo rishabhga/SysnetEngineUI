@@ -1,0 +1,258 @@
+﻿using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Dtos;
+using ManageEngineWebApp.Models;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
+
+namespace ManageEngineWebApp.Controllers
+{
+    [AuthFilter]
+    public class HierarchyController : Controller
+    {
+        private readonly HttpClient _httpClient;
+
+        public HierarchyController(HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+        }
+
+        public async Task<IActionResult> Index(string searchTerm = "", string filterCompany = "all", string filterLicenseStatus = "all")
+        {
+            try
+            {
+                var hierarchyData = await LoadHierarchyData();
+                var filteredData = ApplyFilters(hierarchyData ?? new List<CompanyHierarchyDto>(), searchTerm, filterCompany, filterLicenseStatus);
+
+                ViewBag.SearchTerm = searchTerm ?? string.Empty;
+                ViewBag.FilterCompany = filterCompany ?? "all";
+                ViewBag.FilterLicenseStatus = filterLicenseStatus ?? "all";
+
+                return View(filteredData);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Index Error: {ex.Message}");
+                return View(new List<CompanyHierarchyDto>());
+            }
+        }
+
+        public async Task<IActionResult> GraphView()
+        {
+            try
+            {
+                var hierarchyData = await LoadHierarchyData();
+                return View(hierarchyData ?? new List<CompanyHierarchyDto>());
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GraphView Error: {ex.Message}");
+                return View(new List<CompanyHierarchyDto>());
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetHierarchyData()
+        {
+            try
+            {
+                var hierarchyData = await LoadHierarchyData();
+                return Json(hierarchyData ?? new List<CompanyHierarchyDto>());
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"API Error: {ex.Message}");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        private async Task<List<CompanyHierarchyDto>> LoadHierarchyData()
+        {
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+            };
+
+            using var httpClient = new HttpClient(handler);
+            httpClient.Timeout = TimeSpan.FromSeconds(60);
+            var hierarchyList = new List<CompanyHierarchyDto>();
+
+            try
+            {
+                var companiesUrl = "https://172.16.15.15:4431/api/CompaniesDetails/Companiesdata";
+                var companiesResponse = await httpClient.GetAsync(companiesUrl);
+
+                if (!companiesResponse.IsSuccessStatusCode)
+                {
+                    return hierarchyList;
+                }
+
+                var companiesJson = await companiesResponse.Content.ReadAsStringAsync();
+                var companies = JsonConvert.DeserializeObject<List<Companies>>(companiesJson);
+
+                if (companies == null || !companies.Any())
+                {
+                    return hierarchyList;
+                }
+
+                foreach (var company in companies)
+                {
+                    var companyDto = new CompanyHierarchyDto
+                    {
+                        CompanyId = company.Id,
+                        CompanyName = company.CompanyName ?? "Unknown",
+                        Groups = new List<GroupHierarchyDto>()
+                    };
+
+                    var groupsUrl = $"https://172.16.15.15:4431/api/CompaniesDetails/Groupdata?id={company.Id}";
+                    var groupsResponse = await httpClient.GetAsync(groupsUrl);
+
+                    if (groupsResponse.IsSuccessStatusCode)
+                    {
+                        var groupsJson = await groupsResponse.Content.ReadAsStringAsync();
+                        var groups = JsonConvert.DeserializeObject<List<Groups>>(groupsJson);
+
+                        if (groups != null)
+                        {
+                            foreach (var group in groups)
+                            {
+                                var groupDto = new GroupHierarchyDto
+                                {
+                                    GroupId = group.Id,
+                                    GroupName = group.GroupName ?? "Unknown",
+                                    Locations = new List<LocationHierarchyDto>()
+                                };
+
+                                var locationsUrl = $"https://172.16.15.15:4431/api/CompaniesDetails/Locationdata?comid={company.Id}&groupid={group.Id}";
+                                var locationsResponse = await httpClient.GetAsync(locationsUrl);
+
+                                if (locationsResponse.IsSuccessStatusCode)
+                                {
+                                    var locationsJson = await locationsResponse.Content.ReadAsStringAsync();
+                                    var locations = JsonConvert.DeserializeObject<List<Locations>>(locationsJson);
+
+                                    if (locations != null)
+                                    {
+                                        foreach (var location in locations)
+                                        {
+                                            var locationDto = new LocationHierarchyDto
+                                            {
+                                                LocationId = location.Id,
+                                                LocationName = location.LocationName ?? "Unknown",
+                                                Users = new List<UserHierarchyDto>()
+                                            };
+
+                                            var usersUrl = $"https://172.16.15.15:4431/api/WindowsUserDetails/allUser?locationId={location.Id}&&groupid={group.Id}&&comId={company.Id}";
+                                            var usersResponse = await httpClient.GetAsync(usersUrl);
+
+                                            if (usersResponse.IsSuccessStatusCode)
+                                            {
+                                                var usersJson = await usersResponse.Content.ReadAsStringAsync();
+                                                var users = JsonConvert.DeserializeObject<List<UserDetails>>(usersJson);
+
+                                                if (users != null && users.Any())
+                                                {
+                                                    foreach (var user in users)
+                                                    {
+                                                        locationDto.Users.Add(new UserHierarchyDto
+                                                        {
+                                                            UserName = user.UserName ?? "Unknown",
+                                                            IpAddress = user.IpAddress ?? "N/A",
+                                                            OsLicenseStatus = user.OsLicenseStatus ?? "Unknown",
+                                                            DomainName = user.domainName ?? "N/A",
+                                                            PrimaryOwner = user.PrimaryOwner ?? "N/A"
+                                                        });
+                                                    }
+                                                }
+                                            }
+
+                                            groupDto.Locations.Add(locationDto);
+                                        }
+                                    }
+                                }
+
+                                companyDto.Groups.Add(groupDto);
+                            }
+                        }
+                    }
+
+                    hierarchyList.Add(companyDto);
+                }
+
+                return hierarchyList;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"LoadHierarchyData Error: {ex.Message}");
+                return hierarchyList;
+            }
+        }
+
+        private List<CompanyHierarchyDto> ApplyFilters(List<CompanyHierarchyDto> companies, string searchTerm, string filterCompany, string filterLicenseStatus)
+        {
+            var filtered = companies.ToList();
+
+            if (!string.IsNullOrEmpty(filterCompany) && filterCompany != "all")
+            {
+                if (int.TryParse(filterCompany, out int companyId))
+                {
+                    filtered = filtered.Where(c => c.CompanyId == companyId).ToList();
+                }
+            }
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                var searchLower = searchTerm.ToLower();
+                filtered = filtered.Select(company => new CompanyHierarchyDto
+                {
+                    CompanyId = company.CompanyId,
+                    CompanyName = company.CompanyName,
+                    Groups = company.Groups.Select(group => new GroupHierarchyDto
+                    {
+                        GroupId = group.GroupId,
+                        GroupName = group.GroupName,
+                        Locations = group.Locations.Select(location => new LocationHierarchyDto
+                        {
+                            LocationId = location.LocationId,
+                            LocationName = location.LocationName,
+                            Users = location.Users.Where(user =>
+                                (user.UserName?.ToLower().Contains(searchLower) ?? false) ||
+                                (user.DomainName?.ToLower().Contains(searchLower) ?? false) ||
+                                (user.IpAddress?.ToLower().Contains(searchLower) ?? false) ||
+                                (location.LocationName?.ToLower().Contains(searchLower) ?? false)
+                            ).ToList()
+                        }).Where(l => l.Users.Any()).ToList()
+                    }).Where(g => g.Locations.Any()).ToList()
+                }).Where(c => c.Groups.Any()).ToList();
+            }
+
+            if (!string.IsNullOrEmpty(filterLicenseStatus) && filterLicenseStatus != "all")
+            {
+                filtered = filtered.Select(company => new CompanyHierarchyDto
+                {
+                    CompanyId = company.CompanyId,
+                    CompanyName = company.CompanyName,
+                    Groups = company.Groups.Select(group => new GroupHierarchyDto
+                    {
+                        GroupId = group.GroupId,
+                        GroupName = group.GroupName,
+                        Locations = group.Locations.Select(location => new LocationHierarchyDto
+                        {
+                            LocationId = location.LocationId,
+                            LocationName = location.LocationName,
+                            Users = location.Users.Where(u =>
+                                u.OsLicenseStatus?.Equals(filterLicenseStatus, StringComparison.OrdinalIgnoreCase) == true
+                            ).ToList()
+                        }).Where(l => l.Users.Any()).ToList()
+                    }).Where(g => g.Locations.Any()).ToList()
+                }).Where(c => c.Groups.Any()).ToList();
+            }
+
+            return filtered;
+        }
+    }
+}

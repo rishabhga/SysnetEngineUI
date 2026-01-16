@@ -1,0 +1,230 @@
+﻿@model ManageEngineWebApp.Dtos.RegisterDto
+
+@{
+    ViewData["Title"] = "Register - SYSNET";
+    Layout = null;
+    var currentRole = Context.Session.GetString("role");
+    var isSuperAdmin = currentRole == "SuperAdmin";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#e6f0ff',
+                            100: '#cce0ff',
+                            200: '#99c2ff',
+                            300: '#66a3ff',
+                            400: '#3385ff',
+                            500: '#0066ff',
+                            600: '#0052cc',
+                            700: '#003d99',
+                            800: '#002966',
+                            900: '#001433'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #001433 0%, #002966 50%, #003d99 100%);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+            transition: all 0.3s ease;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 10px 20px rgba(0, 102, 255, 0.3);
+            }
+
+        .input-field:focus {
+            border-color: #0066ff;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-3">
+
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-0 left-0 w-96 h-96 bg-primary-500 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-primary-700 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="w-full max-w-md relative z-10">
+        <!-- Compact Header -->
+        <div class="text-center mb-4">
+            <a href="/" class="inline-flex flex-col items-center mb-2">
+                <img src="~/images/footer-logo.png" alt="SYSNET Logo" class="h-12 w-auto mb-2" />
+            </a>
+            <h1 class="text-xl font-bold text-white">
+                @if (isSuperAdmin)
+                {
+                    <text>Register a new user and assign role</text>
+                }
+                else
+                {
+                    <text>Join SYSNET today</text>
+                }
+            </h1>
+            <p class="text-slate-400 text-sm mt-1">
+                @if (isSuperAdmin)
+                {
+                    <text>As Super Admin, you can assign roles during registration.</text>
+                }
+                else
+                {
+                    <text>Create your account to get started</text>
+                }
+            </p>
+        </div>
+
+        <!-- Compact Form -->
+        <div class="bg-white rounded-xl shadow-2xl p-6">
+            @if (TempData["msg"] != null)
+            {
+                <div class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-circle text-red-600 mr-2 text-sm"></i>
+                        <p class="text-xs text-red-800">@TempData["msg"]</p>
+                    </div>
+                </div>
+            }
+
+            <form asp-action="Register" method="post">
+                <!-- Username -->
+                <div class="mb-3">
+                    <label asp-for="Username" class="block text-xs font-semibold text-slate-700 mb-1">
+                        <i class="fas fa-user text-primary-600 mr-1"></i> Username
+                    </label>
+                    <input asp-for="Username"
+                           type="text"
+                           class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm"
+                           placeholder="Choose a username"
+                           required />
+                    <span asp-validation-for="Username" class="text-red-600 text-xs mt-0.5 block"></span>
+                </div>
+
+                <!-- Email -->
+                <div class="mb-3">
+                    <label asp-for="Email" class="block text-xs font-semibold text-slate-700 mb-1">
+                        <i class="fas fa-envelope text-primary-600 mr-1"></i> Email
+                    </label>
+                    <input asp-for="Email"
+                           type="email"
+                           class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm"
+                           placeholder="your@email.com"
+                           required />
+                    <span asp-validation-for="Email" class="text-red-600 text-xs mt-0.5 block"></span>
+                </div>
+
+                <!-- Password -->
+                <div class="mb-3">
+                    <label asp-for="Password" class="block text-xs font-semibold text-slate-700 mb-1">
+                        <i class="fas fa-lock text-primary-600 mr-1"></i> Password
+                    </label>
+                    <input asp-for="Password"
+                           type="password"
+                           class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm"
+                           placeholder="Create a strong password"
+                           required />
+                    <span asp-validation-for="Password" class="text-red-600 text-xs mt-0.5 block"></span>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="mb-3">
+                    <label asp-for="ConfirmPassword" class="block text-xs font-semibold text-slate-700 mb-1">
+                        <i class="fas fa-lock text-primary-600 mr-1"></i> Confirm Password
+                    </label>
+                    <input asp-for="ConfirmPassword"
+                           type="password"
+                           class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm"
+                           placeholder="Confirm your password"
+                           required />
+                    <span asp-validation-for="ConfirmPassword" class="text-red-600 text-xs mt-0.5 block"></span>
+                </div>
+
+                <!-- Role Assignment (SuperAdmin only) -->
+                @if (isSuperAdmin)
+                {
+                    <div class="mb-4">
+                        <label asp-for="Role" class="block text-xs font-semibold text-slate-700 mb-1">
+                            <i class="fas fa-user-shield text-primary-600 mr-1"></i> Assign Role
+                        </label>
+                        <select asp-for="Role"
+                                class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm">
+                            <option value="">Select Role</option>
+                            <option value="CompanyAdmin">Company Admin</option>
+                            <option value="User">User</option>
+                        </select>
+                        <span asp-validation-for="Role" class="text-red-600 text-xs mt-0.5 block"></span>
+                    </div>
+                }
+
+                <!-- Create Button -->
+                <button type="submit"
+                        class="btn-primary w-full text-white font-semibold py-2.5 rounded-lg inline-flex items-center justify-center text-sm">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Create Account
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="relative my-4">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-slate-200"></div>
+                </div>
+                <div class="relative flex justify-center text-xs">
+                    <span class="px-3 bg-white text-slate-500">Already have an account?</span>
+                </div>
+            </div>
+
+            <!-- Sign In Link -->
+            <a asp-controller="Auth" asp-action="Login"
+               class="block w-full text-center py-2.5 rounded-lg border-2 border-slate-200 text-slate-700 font-semibold hover:border-primary-500 hover:text-primary-600 transition text-sm">
+                <i class="fas fa-sign-in-alt mr-2"></i>
+                Sign In
+            </a>
+        </div>
+
+        <!-- Back to Home -->
+        <div class="text-center mt-4">
+            <a href="/" class="text-xs text-slate-300 hover:text-white transition">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Home
+            </a>
+        </div>
+    </div>
+
+    @section Scripts {
+        @{
+            await Html.RenderPartialAsync("_ValidationScriptsPartial");
+        }
+    }
+</body>
+</html>

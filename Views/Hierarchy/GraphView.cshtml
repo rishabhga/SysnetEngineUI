@@ -1,0 +1,105 @@
+﻿@model List<ManageEngineWebApp.Dtos.CompanyHierarchyDto>
+@{
+    ViewData["Title"] = "Interactive Hierarchy Explorer";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50">
+    <nav class="bg-white shadow-sm border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-8">
+                    <a href="@Url.Action("Index", "Home")" class="flex items-center space-x-3 group">
+                        <div class="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                            </svg>
+                        </div>
+                        <span class="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">ManageEngine</span>
+                    </a>
+                    
+                    <div class="flex items-center space-x-1">
+                        <a href="@Url.Action("Index", "Hierarchy")" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
+                            Hierarchy View
+                        </a>
+                        <a href="@Url.Action("GraphView", "Hierarchy")" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg">
+                            Interactive Canvas
+                        </a>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <button id="resetBtn" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium text-sm">
+                        Reset View
+                    </button>
+                    <span class="text-sm text-slate-600">Welcome, <span class="font-semibold text-slate-900">Admin</span></span>
+                    <a href="@Url.Action("Logout", "Auth")" class="text-sm text-slate-600 hover:text-slate-900 transition-colors">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-slate-900 mb-2">Interactive Hierarchy Explorer</h1>
+            <p class="text-slate-600">Visualize and navigate your organizational structure</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 p-6">
+                <div class="flex items-center space-x-4">
+                    <label class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Select Company:</label>
+                    <select id="companySelector" class="flex-1 max-w-md px-4 py-2.5 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm font-medium">
+                        <option value="">-- Choose a Company --</option>
+                        @foreach (var company in Model)
+                        {
+                            <option value="@company.CompanyId">@company.CompanyName</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="relative bg-slate-50" style="height: 700px;">
+                <canvas id="explorerCanvas" class="w-full h-full"></canvas>
+
+                <div id="breadcrumb" class="absolute top-4 left-4 bg-white rounded-lg shadow-lg px-4 py-2 border border-slate-200 hidden">
+                    <div class="flex items-center space-x-2 text-sm">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                        <span class="text-slate-500 font-medium">Path:</span>
+                        <div id="breadcrumbPath" class="flex items-center space-x-2"></div>
+                    </div>
+                </div>
+
+                <div id="instructions" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                    <div class="bg-white rounded-2xl shadow-2xl p-10 max-w-md border border-slate-200">
+                        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-900 mb-3">Get Started</h3>
+                        <p class="text-slate-600 leading-relaxed">Select a company from the dropdown above to begin exploring the interactive organizational hierarchy</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var companiesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model, new System.Text.Json.JsonSerializerOptions { 
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase 
+        }));
+    </script>
+    <script src="~/js/interactive-explorer.js" asp-append-version="true"></script>
+</body>
+</html>

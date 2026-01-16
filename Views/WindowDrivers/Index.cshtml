@@ -1,0 +1,464 @@
+﻿@model List<WindowDrivers>
+
+<h2>Window Drivers</h2>
+<style>
+    /* Horizontal Menu Styles */
+    .horizontal-menu ul {
+        list-style-type: none;
+        display: flex;
+       background-color: #333; 
+        padding: 0;
+    }
+
+    .horizontal-menu li {
+        padding: 14px 20px;
+        cursor: pointer;
+        color: white;
+    }
+
+        .horizontal-menu li:hover {
+            background-color: #575757;
+        }
+
+    /* Vertical Menu Styles */
+    .vertical-menu {
+        float: left;
+        width: 100%;
+        background-color: #f4f4f4;
+        padding: 10px;
+        height: 100vh; /* Full screen height */
+    }
+
+        .vertical-menu ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .vertical-menu li {
+            padding: 8px 10px;
+            cursor: pointer;
+            color: #333;
+        }
+
+            .vertical-menu li:hover {
+                background-color: #ddd;
+            }
+
+    /* Content Area */
+    .content-area {
+        margin-left: 21%; /* Align next to the vertical menu */
+        padding: 20px;
+    }
+</style>
+<div class="card">
+<div class="main-container">
+    <!-- Horizontal Menu -->
+    <div class="horizontal-menu">
+        <ul>
+            <li onclick="updateVerticalMenu('summary')">Summary</li>
+            <li onclick="updateVerticalMenu('system')">System</li>
+            <li onclick="updateVerticalMenu('hardware')">Hardware</li>
+            <li onclick="updateVerticalMenu('software')">Software</li>
+            <li onclick="updateVerticalMenu('security')">Security</li>
+        </ul>
+    </div>
+
+
+<div class="row">
+    <div class="col-md-2">
+    <div id="vertical-menu-summary" class="vertical-menu" style="display:none;">
+        <ul>
+            <li onclick="loadContent('Summary')" >Summary</li>
+            
+        </ul>
+    </div>
+
+    <div id="vertical-menu-system" class="vertical-menu" style="display:none;">
+        <ul>
+            <li onclick="loadContent('services')">Service</li>
+            <li onclick="loadContent('users')">Users</li>
+            <li onclick="loadContent('groups')">Groups</li>
+            <li onclick="loadContent('drivers')">Drivers</li>
+            <li onclick="loadContent('Share')">Share</li>
+        </ul>
+    </div>
+     <div id="vertical-menu-hardware" class="vertical-menu" style="display:none;">
+        <ul>
+            <li onclick="loadContent('services')">Service</li>
+            <li onclick="loadContent('users')">Users</li>
+            <li onclick="loadContent('groups')">Groups</li>
+            <li onclick="loadContent('drivers')">Drivers</li>
+            <li onclick="loadContent('drivers')">Share</li>
+        </ul>
+    </div>
+     <div id="vertical-menu-software" class="vertical-menu" style="display:none;">
+        <ul>
+            <li onclick="loadContent('services')">Service</li>
+            <li onclick="loadContent('users')">Users</li>
+            <li onclick="loadContent('groups')">Groups</li>
+            <li onclick="loadContent('drivers')">Drivers</li>
+            <li onclick="loadContent('drivers')">Share</li>
+        </ul>
+    </div>
+
+     <div id="vertical-menu-security" class="vertical-menu" style="display:none;">
+        <ul>
+            <li onclick="loadContent('services')">Service</li>
+            <li onclick="loadContent('users')">Users</li>
+            <li onclick="loadContent('groups')">Groups</li>
+            <li onclick="loadContent('drivers')">Drivers</li>
+            <li onclick="loadContent('drivers')">Share</li>
+        </ul>
+    </div>
+        
+
+    </div>
+    <div class="col-md-10">
+                <div class="content-container">
+
+
+                    <!-- Content Area -->
+                    <div id="vertical-menu-Services" class="table" style="display:none;" @* class="content-area" id="content-area *@">
+
+                        
+
+                        <!-- Display Employees -->
+                       @*  <table id="employeeTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>status</th>
+                                    <th>dateTime</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table> *@
+                       @*  <h2>Welcome</h2>
+                        <p>Select a menu item to load its test content.</p> *@
+                       @*  <div id="employeeList"></div>
+                    </div> *@
+
+
+                    <div class="content-area" id="content-area1" style="display:none;">
+                           @*   <div id="employeeTableContainer"></div>  *@
+                    </div>
+                </div>
+
+
+                    <div id="vertical-menu-users" class="table" style="display:none;" @* class="content-area" id="content-area *@">
+
+
+
+                        <!-- Display Employees -->
+                        @* <table id="employeeTable">
+                            <thead>
+                                <tr>
+                                    <th>ID1</th>
+                                    <th>Name2</th>
+                                    <th>Description3</th>
+                                    <th>status4</th>
+                                    <th>dateTime5</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table> *@
+                        @*  <h2>Welcome</h2>
+                        <p>Select a menu item to load its test content.</p> *@
+                           <div id="employeeTableContainer"></div> 
+                        </div> 
+
+
+                        <div class="content-area" id="content-area1" style="display:none;">
+                            <h2>Welcome</h2>
+                            <p>Select a menu item to load its user data.</p>
+                        </div>
+                    </div>
+    </div>
+  
+    
+</div>
+           
+
+
+                 
+                    
+              
+</div>
+
+
+       @*  @foreach (var item in @ViewBag.WindowDrivers)
+        {
+            
+        } *@
+
+
+
+
+<script>
+    function updateVerticalMenu(menuType) {
+        // Hide all vertical menus
+        const menus = document.querySelectorAll('.vertical-menu');
+        menus.forEach(function (menu) {
+            menu.style.display = 'none';
+        });
+
+        // Show the relevant vertical menu
+        const verticalMenu = document.getElementById('vertical-menu-' + menuType);
+        if (verticalMenu) {
+            verticalMenu.style.display = 'block';
+        }
+    }
+
+    function loadContent(page) {
+        // Hide all vertical menus
+        const menus = document.querySelectorAll('.table');
+        menus.forEach(function (menu) {
+            menu.style.display = 'none';
+        });
+
+        // Show the relevant vertical menu
+            const verticalMenu = document.getElementById('vertical-menu-users');
+        if (verticalMenu) {
+            verticalMenu.style.display = 'block';
+        }
+
+         
+               
+                // $.ajax({
+                //     url: `/WindowDrivers/${page}`,
+                //     //url: '/WindowDrivers/datalist',
+                //     type: 'GET',
+                //     success: function (data) {
+                //         let html = '';
+                //         data.forEach(emp => {
+                //             html += `
+                //                         <tr>
+                //                             <td>${emp.id}</td>
+                //                             <td>${emp.name}</td>
+                //                             <td>${emp.description}</td>
+                //                             <td>${emp.status}</td>
+                //                             <td>${emp.dateTime}</td>
+                //                         </tr>
+                //                     `;
+                //         });
+                //         $('#employeeTable tbody').html(html);
+                //     }
+                // });
+
+
+                // $.ajax({
+                //     url: '/WindowDrivers/users',
+                //     type: 'GET',
+                //     success: function (data) {
+                //         let html = '';
+                //         data.forEach(emp => {
+                //             html += `
+                //                                     <tr>
+                //                                         <td>${emp.id}</td>
+                //                                         <td>${emp.name}</td>
+                //                                         <td>${emp.description}</td>
+                //                                         <td>${emp.status}</td>
+                //                                         <td>${emp.dateTime}</td>
+                //                                     </tr>
+                //                                 `;
+                //         });
+                //         $('#employeeuser tbody').html(html);
+                //     }
+                // });
+
+                // $.ajax({
+                //     url: `/WindowDrivers/${page}`, // Replace with your dynamic URL
+                //     type: 'GET',
+                //     success: function (data) {
+                //         if (data.length > 0) {
+                //             let headers = Object.keys(data[0]); // Extract column names from the first object
+                //             let headerHtml = '';
+                //             let bodyHtml = '';
+
+                //             // Generate table headers dynamically
+                //             headers.forEach(header => {
+                //                 headerHtml += `<th>${header}</th>`;
+                //             });
+
+                //             // Generate table rows dynamically
+                //             data.forEach(row => {
+                //                 bodyHtml += '<tr>';
+                //                 headers.forEach(header => {
+                //                     bodyHtml += `<td>${row[header]}</td>`; // Dynamically add table cells based on the keys
+                //                 });
+                //                 bodyHtml += '</tr>';
+                //             });
+
+                //             // Construct the table with headers and rows
+                //             const table = `
+                //             <table class="table table-bordered">
+                //                 <thead>
+                //                     <tr>${headerHtml}</tr>
+                //                 </thead>
+                //                 <tbody>${bodyHtml}</tbody>
+                //             </table>
+                //         `;
+
+                //             // Append the table to the container
+                //             $('#employeeTableContainer').html(table);
+                //         } else {
+                //             $('#employeeTableContainer').html('<p>No data available</p>');
+                //         }
+                //     },
+                //     error: function (err) {
+                //         console.error('Error fetching data:', err);
+                //         $('#employeeTableContainer').html('<p>Error loading data</p>');
+                //     }
+                // });
+
+            $.ajax({
+                url: `/WindowDrivers/${page}`, // Replace with your dynamic URL
+                type: 'GET',
+                success: function (data) {
+                    if (data.length > 0) {
+                        let headers = Object.keys(data[0]); // Extract column names
+                        let columnsToHide = ["userCode"]; // List of column names to hide
+                        //let columnsToHide = ["id", "status"]; // List of column names to hide
+                        let headerHtml = '';
+                        let bodyHtml = '';
+
+                        // Generate table headers dynamically, skipping hidden columns
+                        headers.forEach(header => {
+                            if (!columnsToHide.includes(header)) {
+                                headerHtml += `<th>${header}</th>`;
+                            }
+                        });
+
+                        // Generate table rows dynamically, skipping hidden columns
+                        data.forEach(row => {
+                            bodyHtml += '<tr>';
+                            headers.forEach(header => {
+                                if (!columnsToHide.includes(header)) {
+                                    bodyHtml += `<td>${row[header]}</td>`; // Add table cells only for visible columns
+                                }
+                            });
+                            bodyHtml += '</tr>';
+                        });
+
+                        // Construct the table with headers and rows
+                        const table = `
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>${headerHtml}</tr>
+                            </thead>
+                            <tbody>${bodyHtml}</tbody>
+                        </table>
+                    `;
+
+                        // Append the table to the container
+                        $('#employeeTableContainer').html(table);
+                    } else {
+                        $('#employeeTableContainer').html('<p>No data available</p>');
+                    }
+                },
+                error: function (err) {
+                    console.error('Error fetching data:', err);
+                    $('#employeeTableContainer').html('<p>Error loading data</p>');
+                }
+            });
+
+
+            
+        //}
+
+
+
+    }
+
+
+
+
+
+
+
+
+    // function loadContent(page) {
+    //     debugger;
+    //     // if (page == "services") 
+    //     // { 
+    //             const contentArea = document.getElementById("content-area");
+                
+    //             // Simulate loading content for the selected page
+
+    //             // contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
+    //             //                          <p>Loading content for ${page}...</p>`;
+
+    //             // Example: Fetch content dynamically from a server
+    //             fetch(`${page}`)
+    //                 .then(response => response.json())
+    //                 .then(data => {
+
+
+    //             // Generate table HTML from fetched data
+    //             let tableHtml = '<table border="1" cellspacing="0" cellpadding="5">';
+    //             tableHtml += '<thead>';
+
+    //             // Assuming the first object contains the keys (column headers)
+    //             const keys = Object.keys(data[0]);
+    //             tableHtml += '<tr>';
+    //             keys.forEach(key => {
+    //                 tableHtml += `<th>${key}</th>`;
+    //             });
+    //             tableHtml += '</tr>';
+    //             tableHtml += '</thead>';
+
+    //             tableHtml += '<tbody>';
+
+    //             // Populate rows with data
+    //             data.forEach(row => {
+    //                 tableHtml += '<tr>';
+    //                 keys.forEach(key => {
+    //                     tableHtml += `<td>${row[key]}</td>`;
+    //                 });
+    //                 tableHtml += '</tr>';
+    //             });
+
+    //             tableHtml += '</tbody>';
+    //             tableHtml += '</table>';
+
+
+
+    //             contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>${tableHtml}`;
+    //             // contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
+    //                     //                          <pre>${JSON.stringify(data, null, 2)}</pre>`;
+    //                 })
+    //                 .catch(error => {
+    //                     contentArea.innerHTML = `<h2>Error</h2><p>Could not load content for ${page}.</p>`;
+    //                     console.error(error);
+    //                 });
+    //     // }
+    //     // if (page == "users") {
+    //     //     const contentArea = document.getElementById("content-area1");
+
+    //     //     // Simulate loading content for the selected page
+    //     //     contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
+    //     //                                      <p>Loading content for ${page}...</p>`;
+
+    //     //     // Example: Fetch content dynamically from a server
+    //     //     fetch(`/api/${page}`)
+    //     //         .then(response => response.json())
+    //     //         .then(data => {
+    //     //             contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
+    //     //                                              <pre>${JSON.stringify(data, null, 2)}</pre>`;
+    //     //         })
+    //     //         .catch(error => {
+    //     //             contentArea.innerHTML = `<h2>Error</h2><p>Could not load content for ${page}.</p>`;
+    //     //             console.error(error);
+    //     //         });
+    //     // }
+    // }
+
+</script>
+
+

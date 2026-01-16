@@ -1,0 +1,133 @@
+﻿@model List<WindowsUserDetails>
+
+<h3> User Account Details</h3>
+
+</br>
+<style>
+    /* Container Styling */
+    .container {
+        display: flex;
+        font-family: Arial, sans-serif;
+    }
+
+    /* Menu Bar Styling */
+    .menu-bar {
+        width: 250px;
+        background-color: #f4f4f4;
+        border-right: 1px solid #ddd;
+        padding: 10px;
+    }
+
+        .menu-bar ul {
+            list-style: none;
+            padding: 0;
+        }
+
+            .menu-bar ul li {
+                margin: 10px 0;
+            }
+
+                .menu-bar ul li a {
+                    text-decoration: none;
+                    color: #333;
+                    font-weight: bold;
+                    display: block;
+                    padding: 10px;
+                    border-radius: 5px;
+                    transition: background-color 0.3s;
+                }
+
+                    .menu-bar ul li a:hover {
+                        background-color: #ddd;
+                    }
+
+    /* Content Area Styling */
+    .content-area {
+        flex-grow: 1;
+        padding: 20px;
+    }
+
+        .content-area h2 {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+</style>
+ Last Scan : <b> 2024-10-12 </b> User Current Login : <b> abc </b> </br>
+ Last Login User : <b> 2024-10-12 </b>  Last boot Time : <b> abc </b>
+
+<p></p>
+<div class="container">
+    <!-- Left Menu -->
+    <div class="menu-bar">
+        <ul>
+            <li><a href="#summary">Summary</a></li>
+            <li><a href="#system">System</a></li>
+            <li><a href="#hardware">Hardware</a></li>
+            <li><a href="#software">Software</a></li>
+            <li><a href="#security">Security</a></li>
+            <!-- Add more menu items as needed -->
+        </ul>
+    </div>
+
+    <!-- Right Content -->
+    <div class="content-area">
+        <div id="summary">
+            <h2>Summary</h2>
+            <p>Details about the summary section.</p>
+        </div>
+        <div id="system">
+            <h2>System</h2>
+            <p>Details about the system section.</p>
+        </div>
+        <div id="hardware">
+            <h2>Hardware</h2>
+            <p>Details about the hardware section.</p>
+        </div>
+        <!-- Add more content sections as needed -->
+    </div>
+</div>
+
+
+
+<table class="table table-bordered font-monospace">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>User Name</th>
+            <th>Domain Name</th>
+            <th>SID</th>
+            <th>Account Type</th>
+            <th>Full Name</th>
+            <th>Status</th>            
+            <th>Date Time</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {           
+            <tr>
+            <td>@item.Id</td>
+            <td>@item.UserName</td>
+            <td>@item.DomainName</td>
+            <td>@item.SID</td>
+            <td>@item.AccountType</td>
+            <td>@item.FullName</td>
+            <td>@item.Status</td>            
+            <td>@item.DateTime</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<script>
+    document.querySelectorAll('.menu-bar a').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+
+</script>

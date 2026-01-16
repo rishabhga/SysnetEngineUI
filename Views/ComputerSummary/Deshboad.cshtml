@@ -1,0 +1,1353 @@
+﻿@using ManageEngineWebApp.Dtos
+@model List<WindowsUserDetails>
+@{
+    ViewData["Title"] = $"{ViewBag.locationName} - Devices";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var username = Context.Session.GetString("username");
+    var userRole = Context.Session.GetString("role");
+    var activeComputers = ViewBag.ActiveComputers as List<string> ?? new List<string>();
+    var totalDevices = Model.Count;
+    var onlineDevices = Model.Count(x => activeComputers.Contains(x.DomainName));
+    var offlineDevices = totalDevices - onlineDevices;
+    var activeUsers = Model.Count(x =>
+        activeComputers.Contains(x.DomainName) &&
+        !string.IsNullOrEmpty(x.UserName) &&
+        x.UserName != "N/A");
+}
+
+<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+   <!-- Compact Header -->
+<div class="mb-3 flex items-center justify-between">
+    <div class="flex items-center space-x-2">
+        <a href="/Companies/GroupsDetails?id=@ViewBag.companyid&companyName=@ViewBag.CompanyName"
+           class="w-7 h-7 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center justify-center transition shadow-sm">
+            <i class="fas fa-arrow-left text-gray-600 text-xs"></i>
+        </a>
+        <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                <i class="fas fa-map-marker-alt text-white text-xs"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold text-gray-900">@ViewBag.locationName</h1>
+                <p class="text-[10px] text-gray-600">@ViewBag.CompanyName › @ViewBag.groupName</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex items-center space-x-2">
+       <button onclick="window.location.href='@Url.Action("VIPClient", "ComputerSummary", new {
+            comId = ViewBag.companyid,
+            groupId = ViewBag.groupid,
+            locationId = ViewBag.locationid,
+            companyName = ViewBag.CompanyName  
+        })'"
+                class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center space-x-1.5 shadow-sm"
+                style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+            <i class="fas fa-crown text-[10px]"></i>
+            <span>Critical Client</span>
+        </button>
+
+        <button onclick="window.location.href='./BranchPatchMangnment?companyid=@ViewBag.companyid&groupid=@ViewBag.groupid&locationId=@ViewBag.locationid'"
+                class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center space-x-1.5 shadow-sm"
+                style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+            <i class="fas fa-shield-alt text-[10px]"></i>
+            <span>Patch Management</span>
+        </button>
+    </div>
+ </div>
+
+
+
+    <!-- Compact Stats Cards -->
+    <div class="grid grid-cols-4 gap-2 mb-3">
+        <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[9px] font-medium text-gray-500 uppercase">Total</p>
+                    <p class="text-base font-bold text-gray-900 mt-0.5">@totalDevices</p>
+                </div>
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    <i class="fas fa-desktop text-white text-[10px]"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[9px] font-medium text-gray-500 uppercase">Online</p>
+                    <p class="text-base font-bold text-gray-900 mt-0.5" id="onlineCount">@onlineDevices</p>
+                </div>
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);">
+                    <i class="fas fa-check-circle text-white text-[10px]"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[9px] font-medium text-gray-500 uppercase">Remote</p>
+                    <p class="text-base font-bold text-gray-900 mt-0.5" id="remoteSessionCount">@(ViewBag.RemoteSessions ?? 0)</p>
+                </div>
+                <div class="w-7 h-7 bg-orange-500 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-broadcast-tower text-white text-[10px]"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[9px] font-medium text-gray-500 uppercase">Offline</p>
+                    <p class="text-base font-bold text-gray-900 mt-0.5" id="offlineCount">@offlineDevices</p>
+                </div>
+                <div class="w-7 h-7 bg-gray-700 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-power-off text-white text-[10px]"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compact Search & Filter -->
+    <div class="mb-3 flex gap-2">
+        <div class="flex-1">
+            <input type="text" id="searchDevices"
+                   class="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-xs"
+                   placeholder="Search devices, employees, or departments...">
+        </div>
+        <select id="statusFilter" class="px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-xs font-medium">
+            <option value="all">All Status</option>
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+        </select>
+    </div>
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5" id="devicesGrid">
+            @foreach (var item in Model)
+            {
+                bool isActive = activeComputers.Contains(item.DomainName);
+                var deviceIcon = item.DomainName.ToUpper().Contains("LAPTOP") ? "fa-laptop" :
+                item.DomainName.ToUpper().Contains("DESKTOP") ? "fa-desktop" : "fa-computer";
+
+                <div class="device-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-300"
+                     data-domain="@item.DomainName"
+                     data-status="@(isActive ? "online" : "offline")"
+                     data-device-id="@item.Id">
+
+                    <!-- Compact Card Header -->
+                    <div class="bg-white border-b border-gray-100 p-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-1.5 min-w-0 flex-1">
+                                <div class="relative flex-shrink-0">
+                                    <div class="w-7 h-7 rounded-lg flex items-center justify-center @(isActive ? "" : "bg-gray-200")"
+                                         style="@(isActive ? "background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);" : "")">
+                                        <i class="fas @deviceIcon @(isActive ? "text-white" : "text-gray-600") text-[10px]"></i>
+                                    </div>
+                                    <span class="temp-protection-badge hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border border-white"
+                                          title="Temporary Protection Enabled">
+                                    </span>
+                                </div>
+                                <div class="min-w-0 flex-1 deshboard-name-cell" data-id="@item.Id" data-domain-id="@item.DomainName"
+                                     data-company-id="@item.CompanyId" data-group-id="@item.GroupId" data-location-id="@item.LocationId">
+                                    <div class="display-name-section">
+                                        <a href="/ComputerSummary/Index?domain=@item.DomainName"
+                                           class="text-xs font-bold text-gray-900 hover:text-blue-600 transition-colors block truncate"
+                                           title="@item.UserName">
+                                            @(string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName)
+                                        </a>
+                                        <div class="flex items-center">
+                                            <p class="text-[9px] text-gray-500 truncate">@item.AccountType</p>
+                                            <button class="edit-name-btn ml-1 text-gray-400 hover:text-blue-500 transition-colors" title="Edit Name">
+                                                <i class="fas fa-edit text-[9px]"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="edit-section hidden mt-1">
+                                        <input type="text" class="edit-name w-full px-1.5 py-1 border border-gray-300 rounded text-[10px] mb-1" value="@item.UserName" />
+                                        <div class="flex gap-1">
+                                            <button class="update-btn flex-1 px-2 py-1 text-white rounded text-[9px] font-medium"
+                                                    style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                                                Save
+                                            </button>
+                                            <button class="cancel-edit-btn flex-1 px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-[9px] font-medium">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-1 flex-shrink-0">
+                                @if (isActive)
+                                {
+                                    <span class="status-badge px-1.5 py-0.5 text-white text-[9px] font-bold rounded-full flex items-center" style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);">
+                                        <span class="w-1 h-1 bg-white rounded-full mr-0.5 animate-pulse"></span>
+                                        online
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge px-1.5 py-0.5 bg-gray-200 text-gray-700 text-[9px] font-semibold rounded-full">
+                                        offline
+                                    </span>
+                                }
+                                @if (userRole == "SuperAdmin" || userRole == "CompanyAdmin")
+                                {
+                                    <div class="relative device-menu">
+                                        <button class="menu-toggle w-5 h-5 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
+                                                onclick="toggleMenu(this)">
+                                            <i class="fas fa-ellipsis-v text-gray-600 text-[9px]"></i>
+                                        </button>
+                                        <div class="menu-dropdown hidden absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                                            <div class="py-0.5">
+                                                <button class="temp-protection-toggle w-full px-2.5 py-1.5 text-left text-[10px] hover:bg-gray-50 flex items-center justify-between transition-colors @(isActive ? "text-gray-700" : "text-gray-400 cursor-not-allowed")"
+                                                        onclick="toggleTempProtection(this, '@item.DomainName', '@item.Id')"
+                                                        @(isActive ? "" : "disabled")>
+                                                    <span class="flex items-center">
+                                                        <i class="fas fa-shield-alt text-orange-500 mr-1.5 text-[9px]"></i>
+                                                        <span>Temp Protection</span>
+                                                    </span>
+                                                    <span class="protection-status text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600">OFF</span>
+                                                </button>
+                                                <button class="view-otp-btn w-full px-2.5 py-1.5 text-left text-[10px] text-blue-600 hover:bg-blue-50 flex items-center transition-colors hidden"
+                                                        onclick="viewOtpCode('@item.DomainName')">
+                                                    <i class="fas fa-eye mr-1.5 text-[9px]"></i>
+                                                    <span>View OTP Code</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compact Card Body -->
+                    <div class="p-2 bg-white">
+                        <div class="mb-2 pb-2 border-b border-gray-100">
+                            <p class="text-[9px] font-medium text-gray-500 uppercase tracking-wide mb-0.5">Domain</p>
+                            <p class="text-[10px] font-semibold text-gray-900 truncate" title="@item.DomainName">@item.DomainName</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-1.5 text-[9px] mb-2">
+                        
+                            <div>
+                                <p class="text-gray-500 mb-0.5">IP Address</p>
+                                <p class="font-semibold text-gray-900 ip-address-value">
+                                    <i class="fas fa-circle-notch fa-spin text-gray-400 text-[9px]"></i>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- System Usage - ONLY for Online Devices -->
+                        @if (isActive)
+                        {
+                            <div class="space-y-1.5 mb-2">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-[9px] font-semibold text-gray-700 uppercase tracking-wide">System Usage</span>
+                                    <button class="refresh-usage-btn w-5 h-5 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+                                            title="Refresh Usage Data">
+                                        <i class="fas fa-sync-alt text-gray-500 text-[9px]"></i>
+                                    </button>
+                                </div>
+
+                                <!-- CPU -->
+                                <div>
+                                    <div class="flex justify-between text-[9px] mb-0.5">
+                                        <span class="text-gray-600 font-medium">
+                                            <i class="fas fa-microchip mr-0.5" style="color: #00BCEB;"></i>CPU
+                                        </span>
+                                        <span class="font-bold text-gray-900 cpu-value">--</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1">
+                                        <div class="cpu-bar h-1 rounded-full transition-all duration-300"
+                                             style="width: 0%; background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"></div>
+                                    </div>
+                                </div>
+
+                                <!-- RAM -->
+                                <div>
+                                    <div class="flex justify-between text-[9px] mb-0.5">
+                                        <span class="text-gray-600 font-medium">
+                                            <i class="fas fa-memory mr-0.5 text-orange-500"></i>RAM
+                                        </span>
+                                        <span class="font-bold text-gray-900 ram-value">--</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1">
+                                        <div class="ram-bar bg-orange-500 h-1 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Disk -->
+                                <div>
+                                    <div class="flex justify-between text-[9px] mb-0.5">
+                                        <span class="text-gray-600 font-medium">
+                                            <i class="fas fa-hdd mr-0.5" style="color: #B4D334;"></i>Disk
+                                        </span>
+                                        <span class="font-bold text-gray-900 disk-value">--</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1">
+                                        <div class="disk-bar h-1 rounded-full transition-all duration-300"
+                                             style="width: 0%; background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Offline State - NO System Usage -->
+                            <div class="text-center py-3 bg-gray-50 rounded-lg border border-gray-100 mb-2">
+                                <i class="fas fa-moon text-gray-300 text-base mb-1"></i>
+                                <p class="text-[9px] text-gray-500 font-medium">Device Offline</p>
+                                <p class="last-seen-section text-[9px] text-gray-400 mt-1" data-domain="@item.DomainName">
+                                    <i class="fas fa-clock mr-0.5"></i>
+                                    <span class="last-seen-text">Loading...</span>
+                                </p>
+                            </div>
+                        }
+
+                        <!-- Compact Action Buttons -->
+                        <div class="flex gap-1">
+                            <button class="rescan-link flex-1 px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[9px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
+                                    data-domain="@item.DomainName"
+                                    @(isActive ? "" : "disabled")>
+                                <span class="rescan-text">
+                                    <i class="fas fa-sync-alt mr-0.5"></i>@(isActive ? "Re-Scan" : "Offline")
+                                </span>
+                            </button>
+                            <button class="remote-link flex-1 px-2 py-1 text-white rounded-lg text-[9px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
+                                    style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"
+                                    data-domain="@item.DomainName"
+                                    @(isActive ? "" : "disabled")>
+                                <span class="remote-text">
+                                    <i class="fas fa-desktop mr-0.5"></i>@(isActive ? "Remote" : "Offline")
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-12 bg-white rounded-lg border border-gray-200 shadow-sm">
+            <i class="fas fa-desktop text-4xl text-gray-300 mb-3"></i>
+            <p class="text-gray-500 text-sm">No devices registered for this location yet</p>
+        </div>
+    }
+</div>
+
+<!-- Temporary Protection Modal -->
+<div id="tempProtectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs overflow-hidden">
+        <div class="px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-2">
+                        <i class="fas fa-shield-alt text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">Protection Code</h3>
+                        <p id="modalDeviceName" class="text-[10px] text-white/80 truncate max-w-[140px]"></p>
+                    </div>
+                </div>
+                <button onclick="closeProtectionModal()" class="w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
+                    <i class="fas fa-times text-white text-xs"></i>
+                </button>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="bg-gradient-to-br from-gray-50 to-orange-50 rounded-lg p-4 mb-3 border border-orange-100 text-center">
+                <p class="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Verification Code</p>
+                <div id="accessCode" class="text-2xl font-bold text-gray-900 tracking-[0.3em] font-mono min-h-[32px] flex items-center justify-center">
+                </div>
+                <div id="timerSection" class="mt-2 hidden">
+                    <div class="flex items-center justify-center space-x-1">
+                        <i class="fas fa-clock text-orange-500 text-[10px]"></i>
+                        <span id="countdownTimer" class="text-xs font-bold text-orange-600">01:00</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-1 mt-1.5">
+                        <div id="timerBar" class="bg-gradient-to-r from-orange-500 to-red-500 h-1 rounded-full transition-all" style="width: 100%"></div>
+                    </div>
+                </div>
+                <p id="expiryInfo" class="text-[10px] text-gray-500 mt-1.5"></p>
+                <p class="text-[10px] text-orange-600 mt-1 font-medium">
+                    <i class="fas fa-shield-alt mr-1"></i>
+                    Protection: <span id="protectionStatusText">Active</span>
+                </p>
+            </div>
+
+            <button id="generateBtn" onclick="generateOrRegenerateOtp()"
+                    class="w-full mb-3 px-3 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed">
+                <i class="fas fa-key mr-2"></i>Generate OTP
+            </button>
+
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <button onclick="copyCode()"
+                        id="copyCodeBtn"
+                        class="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        disabled>
+                    <i class="fas fa-copy mr-1"></i>Copy
+                </button>
+                <button onclick="closeProtectionModal()"
+                        class="px-3 py-2 text-white rounded-lg text-xs font-semibold"
+                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    <i class="fas fa-check mr-1"></i>Done
+                </button>
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-gray-200">
+                <p class="text-[10px] text-gray-600 text-center">
+                    <i class="fas fa-info-circle mr-1 text-blue-500"></i>
+                    Temporary Protection remains active until manually turned off
+                </p>
+            </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var currentProtectionDomain = null;
+        var countdownInterval = null;
+        var connectedDevicesList = @Html.Raw(Json.Serialize(ViewBag.ActiveComputers ?? new List<string>()));
+        var tempProtectionStates = {};
+        // Notification Bar on top
+        var domainUserMap = {
+        @foreach (var item in Model)
+        {
+            var domain = item.DomainName?.Trim().ToUpper() ?? "";
+            var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
+            if (!string.IsNullOrEmpty(domain))
+            {
+                @: "@domain": "@name",
+            }
+        }
+        };
+
+        function getUserNameFromDomain(domain) {
+            if (!domain) return "";
+            var key = domain.toUpperCase().trim();
+            return domainUserMap[key] || "";
+        }
+
+
+        $(document).on('click', '#notificationBell', function (e) {
+            e.stopPropagation();
+            $('#notificationPanel').toggleClass('hidden');
+        });
+
+        $(document).on('click', function () {
+            $('#notificationPanel').addClass('hidden');
+        });
+
+        function getCurrentMachineId() {
+            var card = $('.device-card').first();
+            return card.data('domain'); 
+        }
+
+        $(document).ready(function () {
+            loadNotifications();
+        });
+
+        function loadNotifications() {
+            var machineId = getCurrentMachineId();
+            if (!machineId) return;
+
+            $.get('@Url.Action("GetNotifications", "ComputerSummary")',
+                { machineId: machineId },
+                function (list) {
+                    renderNotifications(list);
+                });
+        }
+
+        function renderNotifications(list) {
+                var $list = $('#notificationList');
+                var $badge = $('#notificationBadge');
+                var $countLabel = $('#notificationCountLabel');
+
+                $list.empty();
+
+                if (!list || list.length === 0) {
+                    $list.append('<div class="px-3 py-3 text-gray-400 text-center">No notifications.</div>');
+                    $badge.addClass('hidden');
+                    $countLabel.text('0 new');
+                    return;
+                }
+
+                var unreadCount = 0;
+
+                list.forEach(function (n) {
+                    var isUnread = !n.isRead;
+                    if (isUnread) unreadCount++;
+
+                    var type = (n.msNotificationType || n.mSNotificationType || '').toUpperCase();
+                    var typeClass = type === 'ALERT'
+                        ? 'bg-red-50 border-red-100'
+                        : 'bg-yellow-50 border-yellow-100';
+
+                    var iconClass = type === 'ALERT'
+                        ? 'fa-exclamation-circle text-red-500'
+                        : 'fa-exclamation-triangle text-yellow-500';
+
+                    var createdAt = n.createdAt || '';
+                    var userName = getUserNameFromDomain(n.machineId);
+
+                    var row =
+                        '<button class="w-full text-left px-3 py-2 border-b last:border-b-0 ' + typeClass +
+                        ' notification-item" data-id="' + n.id + '" data-unread="' + (isUnread ? '1' : '0') + '">' +
+                            '<div class="flex items-start space-x-2">' +
+                                '<div class="mt-0.5"><i class="fas ' + iconClass + ' text-xs"></i></div>' +
+                                '<div class="flex-1">' +
+                                    '<div class="flex items-center justify-between">' +
+                                        '<span class="font-semibold text-[11px] text-gray-800">' + (type || '') + '</span>' +
+                                        '<span class="text-[10px] text-gray-400">' + createdAt + '</span>' +
+                                    '</div>' +
+                                    (userName
+                                        ? '<p class="text-[10px] text-gray-500">User: ' + userName +
+                                          ' (' + (n.machineId || '') + ')</p>'
+                                        : '<p class="text-[10px] text-gray-500">Machine: ' + (n.machineId || '') + '</p>') +
+                                    '<p class="text-[11px] text-gray-700 mt-0.5">' + (n.message || '') + '</p>' +
+                                '</div>' +
+                                (isUnread ? '<span class="w-2 h-2 rounded-full bg-blue-500 mt-1"></span>' : '') +
+                            '</div>' +
+                        '</button>';
+
+                    $list.append(row);
+                });
+
+                if (unreadCount > 0) {
+                    $badge.removeClass('hidden').text(unreadCount);
+                    $countLabel.text(unreadCount + ' new');
+                } else {
+                    $badge.addClass('hidden');
+                    $countLabel.text('0 new');
+                }
+            }
+
+
+        $(document).on('click', '.notification-item', function (e) {
+            e.stopPropagation();
+            var id = $(this).data('id');
+            var isUnread = $(this).data('unread') === 1 || $(this).data('unread') === '1';
+
+            if (!isUnread) return;
+
+            $.post('@Url.Action("MarkNotificationRead", "ComputerSummary")',
+                { id: id },
+                function () {
+                    loadNotifications();
+                });
+        });
+
+        setInterval(function() {
+            fetch('@Url.Action("GetConnectedDevices", "ComputerSummary")')
+                .then(r => {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.text();
+                })
+                .then(text => {
+                    if (!text || text.trim() === '' || text === 'null') return [];
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        return [];
+                    }
+                })
+                .then(devices => {
+                    if (Array.isArray(devices)) {
+                        updateDeviceStatuses(devices);
+                    }
+                })
+                .catch(err => {});
+        }, 5000);
+
+        function updateDeviceStatuses(connectedDevices) {
+            let onlineCount = 0;
+            let offlineCount = 0;
+
+            $('.device-card').each(function() {
+                const card = $(this);
+                const domain = card.data('domain');
+                const wasOnline = card.data('status') === 'online';
+                const isOnline = connectedDevices.some(d => d.toUpperCase() === domain.toUpperCase());
+
+                if (isOnline !== wasOnline) {
+                    location.reload();
+                    return false;
+                }
+
+                if (isOnline) onlineCount++;
+                else offlineCount++;
+            });
+
+            $('#onlineCount').text(onlineCount);
+            $('#offlineCount').text(offlineCount);
+        }
+
+        function updateCardUI(card, protectionEnabled) {
+            var $card = $(card);
+            var $badge = $card.find('.protection-status');
+            var $viewBtn = $card.find('.view-otp-btn');
+            var $protectionBadge = $card.find('.temp-protection-badge');
+            var domain = $card.data('domain');
+
+            if (protectionEnabled) {
+                $badge.text('ON').removeClass('bg-gray-200 text-gray-600').addClass('bg-orange-500 text-white');
+                $protectionBadge.removeClass('hidden');
+                $viewBtn.removeClass('hidden');
+                tempProtectionStates[domain] = true;
+            } else {
+                $badge.text('OFF').removeClass('bg-orange-500 text-white').addClass('bg-gray-200 text-gray-600');
+                $protectionBadge.addClass('hidden');
+                $viewBtn.addClass('hidden');
+                delete tempProtectionStates[domain];
+            }
+        }
+
+        function updateToggleButtonState(card, protectionEnabled) {
+            var $card = $(card);
+            var $toggleBtn = $card.find('.temp-protection-toggle');
+            var $statusBadge = $toggleBtn.find('.protection-status');
+
+            if (protectionEnabled) {
+                $statusBadge.text('ON')
+                    .removeClass('bg-gray-200 text-gray-600')
+                    .addClass('bg-orange-500 text-white');
+            } else {
+                $statusBadge.text('OFF')
+                    .removeClass('bg-orange-500 text-white')
+                    .addClass('bg-gray-200 text-gray-600');
+            }
+        }
+
+        async function checkOtpStatusOnLoad() {
+            var onlineDevices = $('.device-card[data-status="online"]');
+
+            for (let i = 0; i < onlineDevices.length; i++) {
+                var $card = $(onlineDevices[i]);
+                var domain = $card.data('domain');
+
+                try {
+                    var response = await fetch(`@Url.Action("GetOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
+                    var result = await response.json();
+
+                    if (result.success && result.otp && !result.isUsed) {
+                        var expireTime;
+                        if (result.expireAt) {
+                            var dateStr = result.expireAt.toString();
+                            expireTime = Date.parse(dateStr);
+
+                            if (isNaN(expireTime)) {
+                                var d = new Date(dateStr);
+                                expireTime = d.getTime();
+                            }
+
+                            if (isNaN(expireTime)) {
+                                dateStr = dateStr.replace(' ', 'T');
+                                expireTime = Date.parse(dateStr);
+                            }
+                        }
+
+                        if (!isNaN(expireTime) && expireTime > Date.now()) {
+                            updateCardUI($card, true);
+                            updateToggleButtonState($card, true);
+                        }
+                    }
+                } catch (e) {
+                }
+            }
+        }
+
+        setInterval(function() {
+            Object.keys(tempProtectionStates).forEach(async function(domain) {
+                try {
+                    var response = await fetch(`@Url.Action("GetOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
+                    var result = await response.json();
+
+                    var $card = $(`.device-card[data-domain="${domain}"]`);
+
+                    if (!result.success || !result.otp || result.isUsed) {
+                        updateCardUI($card, false);
+                        updateToggleButtonState($card, false);
+                        return;
+                    }
+
+                    if (result.expireAt) {
+                        var dateStr = result.expireAt.toString();
+                        var expireTime = Date.parse(dateStr);
+
+                        if (isNaN(expireTime)) {
+                            var d = new Date(dateStr);
+                            expireTime = d.getTime();
+                        }
+
+                        if (isNaN(expireTime)) {
+                            dateStr = dateStr.replace(' ', 'T');
+                            expireTime = Date.parse(dateStr);
+                        }
+
+                        if (!isNaN(expireTime) && expireTime <= Date.now()) {
+                            updateCardUI($card, false);
+                            updateToggleButtonState($card, false);
+                        }
+                    }
+                } catch (e) {
+                }
+            });
+        }, 30000);
+
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.device-menu').length) {
+                $('.menu-dropdown').addClass('hidden');
+            }
+        });
+
+        function toggleMenu(button) {
+            var evt = window.event;
+            if (evt) evt.stopPropagation();
+
+            var menu = $(button).next('.menu-dropdown');
+            $('.menu-dropdown').not(menu).addClass('hidden');
+            menu.toggleClass('hidden');
+        }
+
+        async function toggleTempProtection(button, domain, deviceId) {
+            var evt = window.event;
+            if (evt) evt.stopPropagation();
+
+            var $card = $(button).closest('.device-card');
+            var isOnline = $card.data('status') === 'online';
+
+            if (!isOnline) {
+                alert('Protection only available for ONLINE devices');
+                $(button).closest('.menu-dropdown').addClass('hidden');
+                return;
+            }
+
+            var $statusBadge = $(button).find('.protection-status');
+            var isEnabled = $statusBadge.text().trim() === 'ON';
+
+            $(button).closest('.menu-dropdown').addClass('hidden');
+
+            if (isEnabled) {
+                if (confirm(`Disable Temporary Protection for ${domain}?`)) {
+                    try {
+                        var response = await fetch(`@Url.Action("ClearOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
+                        var result = await response.json();
+
+                        if (result.success) {
+                            updateCardUI($card, false);
+                            updateToggleButtonState($card, false);
+                            alert('Temporary Protection disabled');
+                        } else {
+                            alert('Failed to disable protection: ' + (result.error || 'Unknown error'));
+                        }
+                    } catch (e) {
+                        alert('Error: ' + e.message);
+                    }
+                }
+            } else {
+                try {
+                    var response = await fetch(`@Url.Action("EnableTempProtection", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
+                    var result = await response.json();
+
+                    if (result.success || result.message) {
+                        updateCardUI($card, true);
+                        updateToggleButtonState($card, true);
+                        showProtectionModal(domain);
+                    } else {
+                        alert('Failed to enable protection: ' + (result.error || 'Client not connected'));
+                    }
+                } catch (e) {
+                    alert('Error: ' + e.message);
+                }
+            }
+        }
+
+        function viewOtpCode(domain) {
+            var evt = window.event;
+            if (evt) evt.stopPropagation();
+            $('.menu-dropdown').addClass('hidden');
+            showProtectionModal(domain);
+        }
+
+        async function showProtectionModal(domain) {
+            currentProtectionDomain = domain;
+            $('#modalDeviceName').text(domain);
+            $('#tempProtectionModal').removeClass('hidden').addClass('flex');
+            updateProtectionStatusText();
+            resetGenerateButton();
+            await fetchOtpCode(domain);
+        }
+
+        function updateProtectionStatusText() {
+            if (tempProtectionStates[currentProtectionDomain]) {
+                $('#protectionStatusText').text('Active').removeClass('text-red-600').addClass('text-green-600');
+            } else {
+                $('#protectionStatusText').text('Inactive').removeClass('text-green-600').addClass('text-red-600');
+            }
+        }
+
+        function closeProtectionModal() {
+            $('#tempProtectionModal').addClass('hidden').removeClass('flex');
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            currentProtectionDomain = null;
+        }
+
+        async function generateOrRegenerateOtp() {
+            if (!currentProtectionDomain) return;
+
+            var btn = $('#generateBtn');
+            if (!btn.prop('disabled')) {
+                await generateNewCode();
+            }
+        }
+
+        async function generateNewCode() {
+            if (!currentProtectionDomain) return;
+
+            var btn = $('#generateBtn');
+            var originalHtml = btn.html();
+
+            btn.html('<i class="fas fa-spinner fa-spin mr-2"></i>Generating...').prop('disabled', true);
+
+            try {
+                var response = await fetch(`@Url.Action("GenerateOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(currentProtectionDomain)}`);
+                var result = await response.json();
+
+                if (result.success && result.otp) {
+                    var expireAt = result.expiry ? new Date(result.expiry).getTime() : (Date.now() + 60000);
+
+                    displayOtp(result.otp, expireAt, false);
+                    updateGenerateButtonWithTimer();
+                    startCountdownTimer(expireAt);
+
+                    $('#expiryInfo').text('New OTP generated! Valid for 1 hour.').addClass('text-green-600');
+                    setTimeout(function() {
+                        $('#expiryInfo').removeClass('text-green-600').text('');
+                    }, 3000);
+                } else {
+                    $('#expiryInfo').text('Failed: ' + (result.error || 'Unknown error')).addClass('text-red-500');
+                    resetGenerateButton();
+                }
+            } catch (e) {
+                $('#expiryInfo').text('Error: ' + e.message).addClass('text-red-500');
+                resetGenerateButton();
+            }
+        }
+
+        async function fetchOtpCode(domain) {
+            $('#accessCode').html('<i class="fas fa-spinner fa-spin text-gray-400"></i>');
+            $('#expiryInfo').text('Checking for existing code...');
+            $('#timerSection').addClass('hidden');
+            $('#copyCodeBtn').addClass('opacity-50 cursor-not-allowed').prop('disabled', true);
+
+            try {
+                var response = await fetch(`@Url.Action("GetOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
+                var result = await response.json();
+
+                if (result.success && result.otp) {
+                    var isUsed = result.isUsed || false;
+
+                    if (isUsed) {
+                        showNoOtpState();
+                        return;
+                    }
+
+                    var expireTime;
+                    if (result.expireAt) {
+                        var dateStr = result.expireAt.toString();
+                        expireTime = Date.parse(dateStr);
+
+                        if (isNaN(expireTime)) {
+                            var d = new Date(dateStr);
+                            expireTime = d.getTime();
+                        }
+
+                        if (isNaN(expireTime)) {
+                            dateStr = dateStr.replace(' ', 'T');
+                            expireTime = Date.parse(dateStr);
+                        }
+                    }
+
+                    if (!isNaN(expireTime) && expireTime > Date.now()) {
+                        displayOtp(result.otp, expireTime, false);
+                        updateGenerateButtonWithTimer();
+                        startCountdownTimer(expireTime);
+
+                        $('#expiryInfo').text('Code loaded from server').addClass('text-green-600');
+                        setTimeout(function() {
+                            $('#expiryInfo').removeClass('text-green-600').text('');
+                        }, 2000);
+                        return;
+                    }
+                }
+
+                showNoOtpState();
+            } catch (e) {
+                showNoOtpState();
+            }
+        }
+
+        function showNoOtpState() {
+            $('#accessCode').html('<span class="text-gray-400 text-sm">No active code</span>');
+            $('#expiryInfo').text('Generate OTP when needed');
+            $('#timerSection').addClass('hidden');
+            $('#copyCodeBtn').addClass('opacity-50 cursor-not-allowed').prop('disabled', true);
+            resetGenerateButton();
+        }
+
+        function displayOtp(otp, expireAt, isExpired) {
+            var accessCodeEl = $('#accessCode');
+            var copyBtn = $('#copyCodeBtn');
+
+            if (isExpired) {
+                accessCodeEl.html('<span class="text-red-500 text-sm">Code Expired</span>');
+                copyBtn.addClass('opacity-50 cursor-not-allowed').prop('disabled', true);
+                $('#expiryInfo').text('OTP expired. Generate new code when needed.').addClass('text-red-500');
+                resetGenerateButton();
+            } else {
+                accessCodeEl.text(otp).addClass('text-2xl font-bold tracking-widest');
+                copyBtn.removeClass('opacity-50 cursor-not-allowed').prop('disabled', false);
+                $('#expiryInfo').text('').removeClass('text-red-500 text-green-600');
+            }
+        }
+
+        function updateGenerateButtonWithTimer() {
+            $('#generateBtn')
+                .html('<i class="fas fa-clock mr-2"></i><span class="timer-text">01:00</span>')
+                .prop('disabled', true)
+                .removeClass('bg-green-500 hover:bg-green-600 bg-orange-500 hover:bg-orange-600')
+                .addClass('bg-blue-500 hover:bg-blue-600 cursor-not-allowed');
+        }
+
+        function updateButtonTimerText(mins, secs) {
+            var timerText = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            $('#generateBtn').find('.timer-text').text(timerText);
+        }
+
+        function resetGenerateButton() {
+            $('#generateBtn')
+                .html('<i class="fas fa-key mr-2"></i>Generate OTP')
+                .prop('disabled', false)
+                .removeClass('bg-blue-500 hover:bg-blue-600 cursor-not-allowed bg-orange-500 hover:bg-orange-600')
+                .addClass('bg-green-500 hover:bg-green-600');
+        }
+
+        function startCountdownTimer(expireAt) {
+            var endTime = new Date(expireAt).getTime();
+            var totalMs = 3600000;
+
+            $('#timerSection').removeClass('hidden');
+
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            if (endTime - Date.now() <= 0) {
+                handleOtpExpired();
+                return;
+            }
+
+            countdownInterval = setInterval(function() {
+                var remaining = endTime - Date.now();
+
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                    handleOtpExpired();
+                    return;
+                }
+
+                var mins = Math.floor(remaining / 60000);
+                var secs = Math.floor((remaining % 60000) / 1000);
+
+                $('#countdownTimer').text(String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0'));
+
+                var percentage = (remaining / totalMs) * 100;
+                $('#timerBar').css('width', percentage + '%');
+
+                updateButtonTimerText(mins, secs);
+            }, 1000);
+        }
+
+        function handleOtpExpired() {
+            displayOtp(null, null, true);
+            $('#expiryInfo').text('Code expired. Generate new code when needed.').addClass('text-red-500');
+            $('#timerSection').addClass('hidden');
+            resetGenerateButton();
+        }
+
+        function copyCode() {
+            var code = $('#accessCode').text().trim();
+            if (/^\d{6}$/.test(code)) {
+                navigator.clipboard.writeText(code).then(function() {
+                    var btn = $('#copyCodeBtn');
+                    btn.html('<i class="fas fa-check mr-1"></i>Copied!')
+                        .addClass('bg-green-500')
+                        .removeClass('bg-orange-500');
+
+                    setTimeout(function() {
+                        btn.html('<i class="fas fa-copy mr-1"></i>Copy')
+                            .removeClass('bg-green-500')
+                            .addClass('bg-orange-500');
+                    }, 1500);
+                });
+            }
+        }
+
+        function loadSystemUsageData(card, domain) {
+                if (!domain) {
+                    setErrorState(card);
+                    return;
+                }
+
+                var cpuValue  = card.find('.cpu-value');
+                var ramValue  = card.find('.ram-value');
+                var diskValue = card.find('.disk-value');
+
+                cpuValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
+                ramValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
+                diskValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
+
+                $.ajax({
+                    url: '@Url.Action("GetRamCpuDiskData", "ComputerSummary")',
+                    type: 'GET',
+                    data: { domain: domain },
+                    timeout: 25000,
+                    success: function (response) {
+                        if (response.status === 'success' && response.data) {
+                            var data = response.data;
+
+                            var cpuPercent  = parseFloat(data.cpuUsage);
+                            var ramPercent  = parseFloat(data.ramUsage);
+                            var diskPercent = parseFloat(data.diskUsage);
+
+                            if (!isNaN(cpuPercent)) {
+                                cpuValue.text(cpuPercent.toFixed(1) + '%');
+                                card.find('.cpu-bar').css('width', cpuPercent + '%');
+                            } else {
+                                cpuValue.text('N/A');
+                                card.find('.cpu-bar').css('width', '0%');
+                            }
+
+                            if (!isNaN(ramPercent)) {
+                                ramValue.text(ramPercent.toFixed(1) + '%');
+                                card.find('.ram-bar').css('width', ramPercent + '%');
+                            } else {
+                                ramValue.text('N/A');
+                                card.find('.ram-bar').css('width', '0%');
+                            }
+
+                            if (!isNaN(diskPercent)) {
+                                diskValue.text(diskPercent.toFixed(1) + '%');
+                                card.find('.disk-bar').css('width', diskPercent + '%');
+                            } else {
+                                diskValue.text('N/A');
+                                card.find('.disk-bar').css('width', '0%');
+                            }
+                        } else if (response.status === 'timeout') {
+                            setTimeoutState(card);
+                        } else {
+                            setErrorState(card);
+                        }
+                    },
+                    error: function (xhr, status) {
+                        if (status === 'timeout') {
+                            setTimeoutState(card);
+                        } else {
+                            setErrorState(card);
+                        }
+                    }
+                });
+            }
+
+
+        function setErrorState(card) {
+            card.find('.cpu-value').text('N/A');
+            card.find('.ram-value').text('N/A');
+            card.find('.disk-value').text('N/A');
+            card.find('.cpu-bar').css('width', '0%');
+            card.find('.ram-bar').css('width', '0%');
+            card.find('.disk-bar').css('width', '0%');
+        }
+
+        function setTimeoutState(card) {
+            card.find('.cpu-value').html('<i class="fas fa-clock text-orange-500 text-xs" title="Timeout"></i>');
+            card.find('.ram-value').html('<i class="fas fa-clock text-orange-500 text-xs" title="Timeout"></i>');
+            card.find('.disk-value').html('<i class="fas fa-clock text-orange-500 text-xs" title="Timeout"></i>');
+            card.find('.cpu-bar').css('width', '0%');
+            card.find('.ram-bar').css('width', '0%');
+            card.find('.disk-bar').css('width', '0%');
+        }
+
+        $(document).on('click', '.refresh-usage-btn', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            var btn = $(this);
+            var card = btn.closest('.device-card');
+            var domain = card.data('domain');
+            var isOnline = card.data('status') === 'online';
+
+            if (!isOnline) {
+                alert('Cannot refresh - device is offline');
+                return;
+            }
+
+            var originalHtml = btn.html();
+            btn.html('<i class="fas fa-sync-alt fa-spin text-gray-500 text-xs"></i>')
+                .prop('disabled', true);
+
+            loadSystemUsageData(card, domain);
+
+            setTimeout(function() {
+                btn.html(originalHtml).prop('disabled', false);
+            }, 2000);
+        });
+
+        function loadLastSeenTime(card, domain) {
+            var lastSeenText = card.find('.last-seen-text');
+
+            $.ajax({
+                url: '@Url.Action("GetConnectedDevices", "ComputerSummary")',
+                type: 'GET',
+                timeout: 5000,
+                success: function(devices) {
+                    var isOnline = devices.some(d => d.toUpperCase() === domain.toUpperCase());
+                    if (isOnline) {
+                        lastSeenText.html('<span class="text-green-600 font-semibold">Online Now</span>');
+                        return;
+                    }
+                    fetchLastSeenFromServer(lastSeenText, domain);
+                },
+                error: function() {
+                    fetchLastSeenFromServer(lastSeenText, domain);
+                }
+            });
+        }
+
+        function fetchLastSeenFromServer(lastSeenText, domain) {
+            $.ajax({
+                url: '@Url.Action("GetLastSeenTime", "ComputerSummary")',
+                type: 'GET',
+                data: { domain: domain },
+                timeout: 10000,
+                success: function(response) {
+                    if (response.success && response.lastSeen) {
+                        var lastSeenDate = new Date(response.lastSeen);
+                        var formattedText = formatTimeAgo(lastSeenDate);
+                        lastSeenText.html('Last seen: ' + formattedText);
+                    } else {
+                        lastSeenText.text('Last seen: Never');
+                    }
+                },
+                error: function() {
+                    lastSeenText.text('Last seen: Unknown');
+                }
+            });
+        }
+
+        function formatTimeAgo(date) {
+            var now = new Date();
+            var diffMs = now - date;
+            var diffMins = Math.floor(diffMs / 60000);
+            var diffHours = Math.floor(diffMs / 3600000);
+            var diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) {
+                return 'Just now';
+            } else if (diffMins < 60) {
+                return diffMins + ' minute' + (diffMins !== 1 ? 's' : '') + ' ago';
+            } else if (diffHours < 24) {
+                return diffHours + ' hour' + (diffHours !== 1 ? 's' : '') + ' ago';
+            } else if (diffDays < 7) {
+                return diffDays + ' day' + (diffDays !== 1 ? 's' : '') + ' ago';
+            } else {
+                var options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                return date.toLocaleDateString('en-US', options);
+            }
+        }
+
+        $('#searchDevices').on('keyup', function() {
+            var value = $(this).val().toLowerCase();
+            $('#devicesGrid .device-card').each(function() {
+                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+            });
+        });
+
+        $('#statusFilter').on('change', function() {
+            var status = $(this).val();
+            $('#devicesGrid .device-card').each(function() {
+                if (status === 'all') {
+                    $(this).show();
+                } else {
+                    $(this).toggle($(this).data('status') === status);
+                }
+            });
+        });
+
+        $(document).ready(function() {
+            checkOtpStatusOnLoad();
+
+            $('.device-card').each(function() {
+                var card = $(this);
+                var domain = card.data('domain');
+                var isOnline = card.data('status') === 'online';
+
+                $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")',
+                    { domain: domain },
+                    function(r) {
+                        card.find('.ip-address-value').text(r.success ? r.ipAddress : 'N/A');
+                    }
+                ).fail(function() {
+                    card.find('.ip-address-value').text('N/A');
+                });
+
+                if (isOnline) {
+                    loadSystemUsageData(card, domain);
+                } else {
+                    loadLastSeenTime(card, domain);
+                }
+            });
+        });
+
+        $(document).on('click', '.edit-name-btn', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var cell = $(this).closest('.deshboard-name-cell');
+            cell.find('.display-name-section').hide();
+            cell.find('.edit-section').removeClass('hidden');
+        });
+
+        $(document).on('click', '.cancel-edit-btn', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var cell = $(this).closest('.deshboard-name-cell');
+            cell.find('.edit-section').addClass('hidden');
+            cell.find('.display-name-section').show();
+        });
+
+        $(document).on('click', '.update-btn', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            var cell = $(this).closest('.deshboard-name-cell');
+            var newName = cell.find('.edit-name').val().trim();
+
+            if (!newName) {
+                alert('Name cannot be empty.');
+                return;
+            }
+
+            var btn = $(this);
+            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+
+            $.ajax({
+                url: '@Url.Action("deshboardupdate", "ComputerSummary")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Id: cell.data('id'),
+                    DomainName: cell.data('domain-id'),
+                    CompanyId: cell.data('company-id'),
+                    GroupId: cell.data('group-id'),
+                    LocationId: cell.data('location-id'),
+                    UserName: newName
+                }),
+                success: function() {
+                    cell.find('.display-name-section a').text(newName);
+                    cell.find('.edit-section').addClass('hidden');
+                    cell.find('.display-name-section').show();
+                },
+                error: function() {
+                    alert('Error updating name');
+                },
+                complete: function() {
+                    btn.html('Save').prop('disabled', false);
+                }
+            });
+        });
+
+        $('.rescan-link').on('click', function() {
+            if ($(this).prop('disabled')) return;
+
+            var link = $(this);
+            var domain = link.data('domain');
+
+            link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin mr-0.5"></i>...');
+            link.prop('disabled', true);
+
+            $.post('@Url.Action("Comanddata", "ComputerSummary")?domain=' + domain, function() {
+                var interval = setInterval(function() {
+                    $.get('@Url.Action("CheckScanResult", "ComputerSummary")?domain=' + domain, function(r) {
+                        if (r.status === 'success' || r.status === 'failed') {
+                            clearInterval(interval);
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        }
+                    });
+                }, 5000);
+            });
+        });
+
+        $('.remote-link').on('click', function() {
+            if (!$(this).prop('disabled')) {
+                window.location.href = '@Url.Action("Live", "ComputerSummary")?domain=' + $(this).data('domain');
+            }
+        });
+    </script>
+
+
+    <style>
+        .device-card {
+            transition: all 0.3s ease;
+        }
+
+            .device-card:hover {
+                transform: translateY(-2px);
+            }
+
+        .hidden {
+            display: none !important;
+        }
+        @@keyframes pulse {
+            0%, 100%
+
+        {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
+
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .menu-dropdown {
+            animation: slideDown 0.2s ease-out;
+        }
+        @@keyframes slideDown {
+            from
+
+        {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        }
+    </style>
+}
