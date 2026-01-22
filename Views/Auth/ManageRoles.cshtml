@@ -1,174 +1,183 @@
-﻿@model List<ManageEngineWebApp.Datacontext.UserRoleDto>
+@model List<ManageEngineWebApp.Datacontext.UserRoleDto>
 @{
     ViewData["Title"] = "Manage User Roles";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var username = Context.Session.GetString("username");
 }
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="mb-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div class="flex items-center space-x-3 w-full sm:w-auto">
+
+@functions {
+    public string formatRoleName(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "";
+        return System.Text.RegularExpressions.Regex.Replace(name, "([A-Z])", " $1").Trim();
+    }
+}
+<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+    <!-- Compact Header -->
+    <div class="mb-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div class="flex items-center space-x-2 w-full sm:w-auto">
             <a href="@Url.Action("Companies", "Companies")"
-               class="w-8 h-8 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center justify-center transition shadow-sm text-sm">
-                <i class="fas fa-arrow-left text-gray-600"></i>
+               class="w-6 h-6 bg-white border border-gray-200 hover:bg-gray-50 rounded flex items-center justify-center transition shadow-sm">
+                <i class="fas fa-arrow-left text-gray-500 text-xs"></i>
             </a>
-            <div class="flex items-center space-x-3">
-                <div class="w-9 h-9 rounded-lg flex items-center justify-center shadow-md bg-gradient-to-br from-cyan-500 to-blue-600">
-                    <i class="fas fa-user-shield text-white text-base"></i>
+            <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 rounded flex items-center justify-center shadow bg-gradient-to-br from-cyan-500 to-blue-600">
+                    <i class="fas fa-user-shield text-white text-xs"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold text-gray-900 leading-tight">Role Management</h1>
-                    <p class="text-xs text-gray-600 hidden sm:block">Manage user roles and permissions</p>
+                    <h1 class="text-sm font-bold text-gray-900 leading-tight">Role Management</h1>
+                    <p class="text-[10px] text-gray-500 hidden sm:block">Manage user roles and permissions</p>
                 </div>
             </div>
         </div>
-        <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+        <div class="flex items-center space-x-1.5 w-full sm:w-auto justify-end">
+            <button onclick="openCreateRoleModal()"
+                    class="px-2 py-1 text-white rounded text-[10px] font-semibold uppercase tracking-wide transition-colors flex items-center space-x-1 shadow-sm bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700">
+                <i class="fas fa-plus-circle text-[10px]"></i>
+                <span>New Role</span>
+            </button>
             <a href="@Url.Action("Register", "Auth")"
-               class="px-3 py-1.5 text-white rounded-md text-xs font-semibold uppercase tracking-wide transition-colors flex items-center space-x-1 shadow-sm bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700">
-                <i class="fas fa-user-plus"></i>
+               class="px-2 py-1 text-white rounded text-[10px] font-semibold uppercase tracking-wide transition-colors flex items-center space-x-1 shadow-sm bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700">
+                <i class="fas fa-user-plus text-[10px]"></i>
                 <span>Register</span>
             </a>
             <button onclick="openAssignRoleModal()"
-                    class="px-3 py-1.5 text-white rounded-md text-xs font-semibold uppercase tracking-wide transition-colors flex items-center space-x-1 shadow-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700">
-                <i class="fas fa-plus"></i>
+                    class="px-2 py-1 text-white rounded text-[10px] font-semibold uppercase tracking-wide transition-colors flex items-center space-x-1 shadow-sm bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700">
+                <i class="fas fa-user-tag text-[10px]"></i>
                 <span>Assign</span>
             </button>
         </div>
     </div>
 
-    <!-- Stats Cards - Compact -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Super Admin</p>
-                    <p class="text-xl font-bold text-gray-900 mt-0.5">1</p>
-                </div>
-                <div class="w-8 h-8 rounded-md flex items-center justify-center bg-gradient-to-br from-red-500 to-red-600 shadow-sm">
-                    <i class="fas fa-crown text-white text-sm"></i>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Company Admins</p>
-                    <p class="text-xl font-bold text-gray-900 mt-0.5">@Model.Count(u => u.Role == "CompanyAdmin")</p>
-                </div>
-                <div class="w-8 h-8 rounded-md flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 shadow-sm">
-                    <i class="fas fa-building text-white text-sm"></i>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Company Users</p>
-                    <p class="text-xl font-bold text-gray-900 mt-0.5">@Model.Count(u => u.Role == "CompanyUser")</p>
-                </div>
-                <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center shadow-sm">
-                    <i class="fas fa-user text-white text-sm"></i>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">No Role</p>
-                    <p class="text-xl font-bold text-gray-900 mt-0.5">@Model.Count(u => string.IsNullOrEmpty(u.Role))</p>
-                </div>
-                <div class="w-8 h-8 bg-gray-500 rounded-md flex items-center justify-center shadow-sm">
-                    <i class="fas fa-user-clock text-white text-sm"></i>
-                </div>
-            </div>
+    <!-- Stats Cards - Dynamic Container -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-3" id="roleStatsContainer">
+        <!-- Rendered via renderStats() -->
+        <div class="col-span-full py-4 text-center text-gray-400 text-xs italic">
+            <i class="fas fa-circle-notch fa-spin mr-2"></i>Loading dynamic stats...
         </div>
     </div>
 
-    <!-- Data Table - Density Compact -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden text-sm">
+    <!-- Data Table - Ultra Compact -->
+    <div class="bg-white rounded shadow-sm border border-gray-200 overflow-hidden text-xs">
         <div class="overflow-x-auto">
             <table class="w-full whitespace-nowrap">
                 <thead class="bg-slate-50 border-b border-gray-200">
                     <tr>
-                        <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Username</th>
-                        <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Role</th>
-                        <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Company</th>
-                        <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Device</th>
-                        <th class="px-4 py-3 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Username</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Role</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Company</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Group</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Location</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Device</th>
+                        <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @foreach (var user in Model)
                     {
                         <tr class="hover:bg-cyan-50/30 transition-colors group">
-                            <td class="px-4 py-2.5">
+                            
+                            <td class="px-3 py-1.5 align-top">
                                 <div class="flex items-center">
-                                    <div class="w-7 h-7 rounded bg-gray-100 flex items-center justify-center mr-2 text-gray-500 group-hover:bg-cyan-100 group-hover:text-cyan-600 transition">
-                                        <i class="fas fa-user text-xs"></i>
+                                    <div class="w-5 h-5 rounded bg-gray-100 flex items-center justify-center mr-1.5 text-gray-500 group-hover:bg-cyan-100 group-hover:text-cyan-600 transition">
+                                        <i class="fas fa-user text-[9px]"></i>
                                     </div>
-                                    <span class="font-semibold text-gray-700">@user.Username</span>
+                                    <span class="font-semibold text-gray-700 text-[11px]">@user.Username</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-2.5">
-                                @if (user.Role == "SuperAdmin")
-                                {
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 border border-red-200">
-                                        <i class="fas fa-crown mr-1"></i>Super Admin
-                                    </span>
-                                }
-                                else if (user.Role == "CompanyAdmin")
-                                {
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-cyan-100 text-cyan-700 border border-cyan-200">
-                                        <i class="fas fa-building mr-1"></i>Company Admin
-                                    </span>
-                                }
-                                else if (user.Role == "CompanyUser")
-                                {
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">
-                                        <i class="fas fa-user mr-1"></i>Company User
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="inline-flex items-center px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-medium border border-gray-200">
-                                        <i class="fas fa-user-clock mr-1"></i>No Role
-                                    </span>
-                                }
+                            <td class="px-3 py-1.5 align-top">
+                                <div class="flex flex-wrap gap-1">
+                                    @if (user.Roles != null && user.Roles.Any())
+                                    {
+                                        foreach (var role in user.Roles)
+                                        {
+                                            var colorHue = Math.Abs(role.GetHashCode() % 360);
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide border transition-all hover:scale-105" 
+                                                  style="background-color: hsl(@colorHue, 70%, 96%); color: hsl(@colorHue, 70%, 35%); border-color: hsl(@colorHue, 70%, 90%); shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                                <i class="fas @(role.Contains("Admin") ? "fa-shield-alt" : "fa-tag") mr-1 text-[8px]"></i>@formatRoleName(role)
+                                            </span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded text-[9px] font-medium border border-gray-200">
+                                            <i class="fas fa-user-slash mr-0.5 text-[8px]"></i>No Identity Role
+                                        </span>
+                                    }
+                                </div>
                             </td>
-                            <td class="px-4 py-2.5 text-gray-600 text-xs">
-                                @if (user.CompanyId.HasValue)
-                                {
-                                    <div class="flex flex-col">
-                                        <span class="font-medium text-gray-700">@user.CompanyName</span>
-                                        <span class="text-[10px] text-gray-400">ID: @user.CompanyId</span>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <span class="text-gray-400">-</span>
-                                }
+                            <td class="px-3 py-1.5 align-top">
+                                <div class="space-y-1">
+                                    @if (user.Mappings != null)
+                                    {
+                                        foreach (var m in user.Mappings.Where(m => m.ScopeType == "Company" || m.CompanyId.HasValue).GroupBy(m => m.CompanyId ?? m.ScopeId).Select(g => g.First()))
+                                        {
+                                            <div class="flex items-center space-x-1 text-[9px]">
+                                                <span class="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded text-blue-600 font-medium">
+                                                    <i class="fas fa-building mr-1"></i>@(m.ScopeType == "Company" ? m.ScopeName : $"Comp {m.CompanyId}")
+                                                </span>
+                                            </div>
+                                        }
+                                    }
+                                </div>
                             </td>
-                            <td class="px-4 py-2.5 text-gray-600 text-xs">
-                                @if (!string.IsNullOrEmpty(user.DomainName))
-                                {
-                                    <span class="font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">@user.DomainName</span>
-                                }
-                                else
-                                {
-                                    <span class="text-gray-400">-</span>
-                                }
+                            <td class="px-3 py-1.5 align-top">
+                                <div class="space-y-1">
+                                    @if (user.Mappings != null)
+                                    {
+                                        foreach (var m in user.Mappings.Where(m => m.ScopeType == "Group" || m.GroupId.HasValue).GroupBy(m => m.GroupId ?? m.ScopeId).Select(g => g.First()))
+                                        {
+                                            <div class="flex items-center space-x-1 text-[9px]">
+                                                <span class="px-1.5 py-0.5 bg-orange-50 border border-orange-100 rounded text-orange-600 font-medium">
+                                                    <i class="fas fa-layer-group mr-1"></i>@(m.ScopeType == "Group" ? m.ScopeName : $"Grp {m.GroupId}")
+                                                </span>
+                                            </div>
+                                        }
+                                    }
+                                </div>
                             </td>
-                            <td class="px-4 py-2.5 text-right">
-                                @if (user.Role != "SuperAdmin")
+                            <td class="px-3 py-1.5 align-top">
+                                <div class="space-y-1">
+                                    @if (user.Mappings != null)
+                                    {
+                                        foreach (var m in user.Mappings.Where(m => m.ScopeType == "Location" || m.LocationId.HasValue).GroupBy(m => m.LocationId ?? m.ScopeId).Select(g => g.First()))
+                                        {
+                                            <div class="flex items-center space-x-1 text-[9px]">
+                                                <span class="px-1.5 py-0.5 bg-emerald-50 border border-emerald-100 rounded text-emerald-600 font-medium">
+                                                    <i class="fas fa-map-marker-alt mr-1"></i>@(m.ScopeType == "Location" ? m.ScopeName : $"Loc {m.LocationId}")
+                                                </span>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                            <td class="px-3 py-1.5 align-top">
+                                <div class="space-y-1">
+                                    @if (user.Mappings != null)
+                                    {
+                                        foreach (var m in user.Mappings.Where(m => m.ScopeType == "Device"))
+                                        {
+                                            <div class="flex items-center space-x-1 text-[9px]">
+                                                <span class="px-1.5 py-0.5 bg-purple-50 border border-purple-100 rounded text-purple-600 font-medium">
+                                                    <i class="fas fa-desktop mr-1"></i>@(m.ScopeName ?? "N/A")
+                                                </span>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                            <td class="px-3 py-1.5 text-right align-top">
+                                @if (user.Roles == null || !user.Roles.Contains("SuperAdmin"))
                                 {
-                                    <div class="flex items-center justify-end space-x-2">
-                                        <button onclick="editRole('@user.Username', '@user.Role', @(user.CompanyId?.ToString() ?? "null"), '@(user.DomainName ?? "")')"
-                                                class="inline-flex items-center px-2.5 py-1 text-white rounded-md hover:opacity-90 text-[11px] font-bold uppercase tracking-wide shadow-sm transition-all"
+                                    <div class="flex items-center justify-end space-x-1">
+                                        <button onclick="editRole('@user.Username', '@(user.Roles?.FirstOrDefault() ?? "")', @(user.CompanyId?.ToString() ?? "null"), '@(user.Mappings?.FirstOrDefault(m => !string.IsNullOrEmpty(m.ScopeName))?.ScopeName ?? "")')"
+                                                class="inline-flex items-center px-1.5 py-0.5 text-white rounded hover:opacity-90 text-[9px] font-bold uppercase tracking-wide shadow-sm transition-all"
                                                 style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                                            <i class="fas fa-edit mr-1"></i>Edit
+                                            <i class="fas fa-edit mr-0.5 text-[8px]"></i>Edit
                                         </button>
                                         <button onclick="removeRole('@user.Username')"
-                                                class="inline-flex items-center px-2.5 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-[11px] font-bold uppercase tracking-wide shadow-sm transition-all">
-                                            <i class="fas fa-trash mr-1"></i>Remove
+                                                class="inline-flex items-center px-1.5 py-0.5 bg-red-500 text-white rounded hover:bg-red-600 text-[9px] font-bold uppercase tracking-wide shadow-sm transition-all">
+                                            <i class="fas fa-trash mr-0.5 text-[8px]"></i>Del
                                         </button>
                                     </div>
                                 }
@@ -184,55 +193,140 @@
         </div>
     </div>
 </div>
-<!-- Assign Role Modal -->
+<!-- Assign Role Modal - Compact -->
 <div id="assignRoleModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 hidden items-center justify-center">
-    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
-        <div class="px-6 py-4 rounded-t-xl flex items-center justify-between" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-            <h3 class="text-lg font-bold text-white">Assign Role</h3>
-            <button onclick="closeAssignRoleModal()" class="text-white hover:text-gray-200 text-xl">
+    <div class="bg-white rounded-lg shadow-2xl max-w-sm w-full mx-3">
+        <div class="px-4 py-3 rounded-t-lg flex items-center justify-between" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+            <h3 class="text-sm font-bold text-white"><i class="fas fa-user-tag mr-2"></i>Assign Role</h3>
+            <button onclick="closeAssignRoleModal()" class="text-white hover:text-gray-200 text-sm">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="p-6">
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Username *</label>
+        <div class="p-4">
+            <div class="mb-3">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Username *</label>
                 <input type="text" id="assignUsername"
-                       class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                        placeholder="Enter username" required>
             </div>
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Role *</label>
-                <select id="assignRole" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:border-transparent">
-                    <option value="">-- Select Role --</option>
-                    <option value="CompanyAdmin">Company Admin</option>
-                    <option value="CompanyUser">Company User</option>
+            <div class="mb-3">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Role *</label>
+                <select id="assignRole" class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                    <option value="">-- Loading roles... --</option>
                 </select>
-                <small class="text-gray-500">Super Admin role is hardcoded.</small>
+                <small class="text-gray-400 text-[10px]">Roles are loaded dynamically from the system.</small>
             </div>
-            <div class="mb-4 hidden" id="companySelectDiv">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Company *</label>
-                <select id="assignCompany" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:border-transparent">
+            <div class="mb-3 hidden" id="companySelectDiv">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Company *</label>
+                <select id="assignCompany" class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                     <option value="">Loading...</option>
                 </select>
             </div>
-            <!-- NEW: Device Dropdown for CompanyUser -->
-            <div class="mb-4 hidden" id="domainSelectDiv">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Assign Device *</label>
-                <select id="assignDomain" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:border-transparent">
+            <div class="mb-3 hidden" id="groupSelectDiv">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Group *</label>
+                <select id="assignGroup" class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                     <option value="">-- Select Company First --</option>
                 </select>
             </div>
-            <div id="assignMessage" class="mt-4 p-3 rounded-lg text-sm font-medium hidden"></div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button onclick="closeAssignRoleModal()" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
+            <div class="mb-3 hidden" id="locationSelectDiv">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Location *</label>
+                <select id="assignLocation" class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                    <option value="">-- Select Group First --</option>
+                </select>
+            </div>
+            <div class="mb-3 hidden" id="domainSelectDiv">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Assign Device *</label>
+                <select id="assignDomain" class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                    <option value="">-- Select Location First --</option>
+                </select>
+            </div>
+            <div id="assignMessage" class="mt-3 p-2 rounded text-xs font-medium hidden"></div>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button onclick="closeAssignRoleModal()" class="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 font-medium">
                     Cancel
                 </button>
                 <button onclick="submitAssignRole()" id="assignRoleBtn"
-                        class="px-5 py-2.5 text-white rounded-lg hover:opacity-90 font-medium shadow-sm"
+                        class="px-3 py-1.5 text-xs text-white rounded hover:opacity-90 font-medium shadow-sm"
                         style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                    <i class="fas fa-check mr-2"></i>Assign Role
+                    <i class="fas fa-check mr-1"></i>Assign Role
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create New Role Modal - Simplified -->
+<div id="createRoleModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-lg shadow-2xl max-w-sm w-full mx-3">
+        <div class="px-4 py-3 rounded-t-lg flex items-center justify-between bg-gradient-to-r from-cyan-500 to-blue-600">
+            <h3 class="text-sm font-bold text-white"><i class="fas fa-plus-circle mr-2"></i>Create New Role</h3>
+            <button onclick="closeCreateRoleModal()" class="text-white hover:text-gray-200 text-sm">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-4">
+            <div class="mb-3">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Role Name *</label>
+                <input type="text" id="newRoleName"
+                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                       placeholder="e.g., LocationAdmin, Engineer, TechSupport" required>
+                <small class="text-gray-400 text-[10px]">No spaces allowed. Use CamelCase format (e.g., LocationAdmin).</small>
+            </div>
+            <div class="mb-3">
+                <label class="block text-xs font-semibold text-gray-700 mb-1">Description</label>
+                <textarea id="newRoleDescription"
+                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                       placeholder="Brief description of this role's purpose..." rows="2"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="block text-xs font-semibold text-gray-700 mb-2">Role Requirements</label>
+                <div class="space-y-2">
+                    <label class="flex items-center text-xs text-gray-600">
+                        <input type="checkbox" id="roleRequiresCompany" class="mr-2 rounded text-cyan-500 focus:ring-cyan-500">
+                        <span>Requires Company assignment</span>
+                    </label>
+                    <label class="flex items-center text-xs text-gray-600">
+                        <input type="checkbox" id="roleRequiresLocation" class="mr-2 rounded text-cyan-500 focus:ring-cyan-500">
+                        <span>Requires Location assignment</span>
+                    </label>
+                    <label class="flex items-center text-xs text-gray-600">
+                        <input type="checkbox" id="roleRequiresDevice" class="mr-2 rounded text-cyan-500 focus:ring-cyan-500">
+                        <span>Requires Device assignment</span>
+                    </label>
+                </div>
+            </div>
+            <div id="createRoleMessage" class="mt-3 p-2 rounded text-xs font-medium hidden"></div>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button onclick="closeCreateRoleModal()" class="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 font-medium">
+                    Cancel
+                </button>
+                <button onclick="submitCreateRole()" id="createRoleBtn"
+                        class="px-3 py-1.5 text-xs text-white rounded hover:opacity-90 font-medium shadow-sm bg-gradient-to-r from-cyan-500 to-blue-600">
+                    <i class="fas fa-plus mr-1"></i>Create Role
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Roles List Modal -->
+<div id="manageRolesListModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div class="bg-white rounded-lg shadow-2xl max-w-lg w-full mx-3">
+        <div class="px-4 py-3 rounded-t-lg flex items-center justify-between bg-gradient-to-r from-amber-500 to-orange-600">
+            <h3 class="text-sm font-bold text-white"><i class="fas fa-list mr-2"></i>System Roles</h3>
+            <button onclick="closeManageRolesListModal()" class="text-white hover:text-gray-200 text-sm">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-4 max-h-[60vh] overflow-y-auto">
+            <div id="rolesListContainer" class="space-y-2">
+                <p class="text-gray-500 text-xs text-center py-4">Loading roles...</p>
+            </div>
+        </div>
+        <div class="px-4 py-3 border-t flex justify-end">
+            <button onclick="closeManageRolesListModal()" class="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 font-medium">
+                Close
+            </button>
         </div>
     </div>
 </div>
@@ -240,11 +334,124 @@
 
 @section Scripts {
     <script>
+        // Cached roles data
+        var systemRoles = [];
+        var roleConfigs = {
+            'SuperAdmin': { requiresCompany: false, requiresDevice: false, requiresLocation: false, isSystem: true },
+            'CompanyAdmin': { requiresCompany: true, requiresDevice: false, requiresLocation: false, isSystem: true },
+            'CompanyUser': { requiresCompany: true, requiresDevice: true, requiresLocation: false, isSystem: true }
+        };
+
+        // Initialize on page load
+        $(document).ready(function() {
+            loadSystemRoles();
+        });
+
+        // Inject User List from Model to JS for client-side stats
+        var allUsers = @Html.Raw(Json.Serialize(Model));
+
+        function renderStats() {
+            var container = $('#roleStatsContainer');
+            container.empty();
+
+            // 1. Total Users
+            addStatCard(container, "Total Users", allUsers.length, "bg-emerald-500", "fa-users");
+
+            // 2. Super Admin (Always show)
+            var saCount = allUsers.filter(u => (u.Roles || u.roles || []).includes("SuperAdmin")).length;
+            addStatCard(container, "Super Admin", saCount, "bg-red-500", "fa-crown");
+
+            // 3. Dynamic Roles from systemRoles
+            systemRoles.forEach(function(role) {
+                if(role.name === 'SuperAdmin') return;
+                var count = allUsers.filter(u => (u.Roles || u.roles || []).includes(role.name)).length;
+                // Only show cards for roles that either have users or are defined
+                addStatCard(container, role.name, count, "bg-cyan-500", "fa-tag");
+            });
+
+            // 4. No Role
+            var nrCount = allUsers.filter(u => !(u.Roles || u.roles) || (u.Roles || u.roles).length === 0).length;
+            addStatCard(container, "No Role", nrCount, "bg-gray-400", "fa-user-slash");
+        }
+
+        function addStatCard(container, title, value, colorClass, icon) {
+            var card = `
+                <div class="bg-white rounded border border-gray-200 p-2 shadow-sm hover:shadow transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">${formatRoleName(title)}</p>
+                            <p class="text-base font-bold text-gray-900 mt-0.5">${value}</p>
+                        </div>
+                        <div class="w-6 h-6 rounded flex items-center justify-center ${colorClass} shadow-sm">
+                            <i class="fas ${icon} text-white text-[10px]"></i>
+                        </div>
+                    </div>
+                </div>`;
+            container.append(card);
+        }
+
+        // Load available roles from system
+        function loadSystemRoles() {
+            $.ajax({
+                url: '@Url.Action("GetAllSystemRoles", "Auth")',
+                type: 'GET',
+                success: function (roles) {
+                    systemRoles = roles || [];
+                    
+                    // Reset roleConfigs
+                    roleConfigs = {
+                        'SuperAdmin': { requiresCompany: false, requiresDevice: false, requiresLocation: false, isSystem: true }
+                    };
+
+                    // Build roleConfigs dynamically from metadata
+                    systemRoles.forEach(function(r) {
+                        roleConfigs[r.name] = {
+                            requiresCompany: r.requiresCompany,
+                            requiresDevice: r.requiresDevice,
+                            requiresLocation: r.requiresLocation,
+                            isSystem: r.isSystem
+                        };
+                    });
+
+                    updateRoleDropdown();
+                    renderStats();
+                },
+                error: function () {
+                    console.error('Failed to load system roles');
+                    renderStats(); // Still render basic stats
+                }
+            });
+        }
+
+        function updateRoleDropdown() {
+            var options = '<option value="">-- Select Role --</option>';
+            
+            // Filter out SuperAdmin from assignment dropdown
+            var displayRoles = systemRoles.filter(r => r.name !== 'SuperAdmin');
+
+            if (displayRoles.length > 0) {
+                displayRoles.forEach(function(role) {
+                    options += '<option value="' + role.name + '">' + formatRoleName(role.name) + '</option>';
+                });
+            } else {
+                options = '<option value="">No custom roles created</option>';
+            }
+            $('#assignRole').html(options);
+        }
+
+        function formatRoleName(roleName) {
+            if (!roleName) return "";
+            // Convert CamelCase to Title Case with spaces
+            return roleName.replace(/([A-Z])/g, ' $1').trim();
+        }
+
+        // ===================== ASSIGN ROLE MODAL =====================
         function openAssignRoleModal() {
             document.getElementById('assignRoleModal').classList.remove('hidden');
             document.getElementById('assignRoleModal').classList.add('flex');
             document.getElementById('assignMessage').classList.add('hidden');
             loadCompaniesForModal();
+            loadSystemRoles(); // Refresh roles list
         }
 
         function closeAssignRoleModal() {
@@ -254,34 +461,119 @@
             document.getElementById('assignRole').value = '';
             document.getElementById('assignCompany').value = '';
             document.getElementById('assignDomain').value = '';
+            document.getElementById('assignLocation').value = '';
             $('#companySelectDiv').addClass('hidden');
+            $('#groupSelectDiv').addClass('hidden');
+            $('#locationSelectDiv').addClass('hidden');
             $('#domainSelectDiv').addClass('hidden');
         }
-        // Role change handler - Show/hide dropdowns
+
         $('#assignRole').on('change', function () {
             var role = $(this).val();
-            if (role === 'CompanyAdmin') {
+            var config = roleConfigs[role] || { requiresCompany: false, requiresDevice: false, requiresLocation: false };
+
+            // Logic: All scoped roles require Company selection first
+            if (config.requiresCompany || config.requiresDevice || config.requiresLocation) {
                 $('#companySelectDiv').removeClass('hidden');
-                $('#domainSelectDiv').addClass('hidden');
-                $('#assignDomain').val('');
-            } else if (role === 'CompanyUser') {
-                $('#companySelectDiv').removeClass('hidden');
-                $('#domainSelectDiv').removeClass('hidden');
             } else {
                 $('#companySelectDiv').addClass('hidden');
-                $('#domainSelectDiv').addClass('hidden');
-                $('#assignDomain').val('');
             }
+            
+            // These stay hidden until nested selection is made
+            $('#groupSelectDiv').addClass('hidden');
+            $('#locationSelectDiv').addClass('hidden');
+            $('#domainSelectDiv').addClass('hidden');
         });
-        // Company change handler - Load devices for CompanyUser
+
+        // Company change handler - Load Groups
         $('#assignCompany').on('change', function () {
             var companyId = $(this).val();
             var role = $('#assignRole').val();
-            if (companyId && role === 'CompanyUser') {
-                $('#assignDomain').html('<option value="">Loading devices...</option>');
+            var config = roleConfigs[role] || {};
 
+            if (!companyId) {
+                $('#groupSelectDiv').addClass('hidden');
+                return;
+            }
+
+            // Always load groups next if any scoped field is required
+            if (config.requiresCompany || config.requiresDevice || config.requiresLocation) {
+                $('#groupSelectDiv').removeClass('hidden');
+                $('#assignGroup').html('<option value="">Loading groups...</option>');
                 $.ajax({
-                    url: '/ComputerSummary/GetDevicesByCompany?companyId=' + companyId,
+                    url: '/Companies/GetGroupsByCompany?companyId=' + companyId,
+                    type: 'GET',
+                    success: function (data) {
+                        var options = '<option value="">-- Select Group --</option>';
+                        if (data && data.length > 0) {
+                            data.forEach(function (group) {
+                                options += '<option value="' + group.id + '">' + group.groupName + '</option>';
+                            });
+                        } else {
+                            options = '<option value="">No groups found</option>';
+                        }
+                        $('#assignGroup').html(options);
+                    }
+                });
+            }
+            
+            // Reset downstreams
+            $('#locationSelectDiv').addClass('hidden');
+            $('#domainSelectDiv').addClass('hidden');
+        });
+
+        // Group change handler - Load Locations
+        $('#assignGroup').on('change', function () {
+            var companyId = $('#assignCompany').val();
+            var groupId = $(this).val();
+            var role = $('#assignRole').val();
+            var config = roleConfigs[role] || {};
+
+            if (!groupId) {
+                $('#locationSelectDiv').addClass('hidden');
+                return;
+            }
+
+            if (config.requiresLocation || config.requiresDevice) {
+                $('#locationSelectDiv').removeClass('hidden');
+                $('#assignLocation').html('<option value="">Loading locations...</option>');
+                $.ajax({
+                    url: '/Companies/GetLocationsByGroup?companyId=' + companyId + '&groupId=' + groupId,
+                    type: 'GET',
+                    success: function (data) {
+                        var options = '<option value="">-- Select Location --</option>';
+                        if (data && data.length > 0) {
+                            data.forEach(function (loc) {
+                                options += '<option value="' + loc.id + '">' + loc.locationName + '</option>';
+                            });
+                        } else {
+                            options = '<option value="">No locations found</option>';
+                        }
+                        $('#assignLocation').html(options);
+                    }
+                });
+            }
+            $('#domainSelectDiv').addClass('hidden');
+        });
+
+        // Location change handler - Load Devices
+        $('#assignLocation').on('change', function () {
+            var companyId = $('#assignCompany').val();
+            var groupId = $('#assignGroup').val();
+            var locationId = $(this).val();
+            var role = $('#assignRole').val();
+            var config = roleConfigs[role] || {};
+
+            if (!locationId) {
+                $('#domainSelectDiv').addClass('hidden');
+                return;
+            }
+
+            if (config.requiresDevice) {
+                $('#domainSelectDiv').removeClass('hidden');
+                $('#assignDomain').html('<option value="">Loading devices...</option>');
+                $.ajax({
+                    url: '/ComputerSummary/GetDevicesByLocation?companyId=' + companyId + '&groupId=' + groupId + '&locationId=' + locationId,
                     type: 'GET',
                     success: function (data) {
                         var options = '<option value="">-- Select Device --</option>';
@@ -294,13 +586,11 @@
                             options = '<option value="">No devices found</option>';
                         }
                         $('#assignDomain').html(options);
-                    },
-                    error: function () {
-                        $('#assignDomain').html('<option value="">Error loading devices</option>');
                     }
                 });
             }
         });
+
         function loadCompaniesForModal() {
             $.ajax({
                 url: '/Companies/GetCompaniesForDropdown',
@@ -320,13 +610,17 @@
                 }
             });
         }
+
         function submitAssignRole() {
             const username = $('#assignUsername').val().trim();
             const role = $('#assignRole').val();
             const companyId = $('#assignCompany').val();
+            const groupId = $('#assignGroup').val();
             const domainName = $('#assignDomain').val();
+            const locationId = $('#assignLocation').val();
             const messageEl = $('#assignMessage');
             const btn = $('#assignRoleBtn');
+            
             if (!username) {
                 showMessage(messageEl, 'Please enter a username!', 'error');
                 return false;
@@ -335,15 +629,22 @@
                 showMessage(messageEl, 'Please select a role!', 'error');
                 return false;
             }
-            if ((role === 'CompanyAdmin' || role === 'CompanyUser') && !companyId) {
+            
+            var config = roleConfigs[role] || {};
+            if (config.requiresCompany && !companyId) {
                 showMessage(messageEl, 'Please select a company!', 'error');
                 return false;
             }
-            if (role === 'CompanyUser' && !domainName) {
-                showMessage(messageEl, 'Please select a device for Company User!', 'error');
+            if (config.requiresDevice && !domainName) {
+                showMessage(messageEl, 'Please select a device!', 'error');
                 return false;
             }
-            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Assigning...');
+            if (config.requiresLocation && !locationId) {
+                showMessage(messageEl, 'Please select a location!', 'error');
+                return false;
+            }
+            
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Assigning...');
             $.ajax({
                 url: '@Url.Action("AssignRole", "Auth")',
                 type: 'POST',
@@ -351,44 +652,48 @@
                 data: JSON.stringify({
                     Username: username,
                     Role: role,
-                    CompanyId: companyId ? parseInt(companyId) : null,
-                    DomainName: domainName || null
+                    CompanyId: companyId,
+                    GroupId: groupId,
+                    LocationId: locationId,
+                    DomainName: domainName
                 }),
                 success: function (response) {
                     if (response.success) {
                         showMessage(messageEl, response.message, 'success');
-                        setTimeout(() => location.reload(), 1500);
+                        setTimeout(() => location.reload(), 1000);
                     } else {
                         showMessage(messageEl, response.message, 'error');
-                        btn.prop('disabled', false).html('<i class="fas fa-check mr-2"></i>Assign Role');
+                        btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i>Assign Role');
                     }
                 },
                 error: function (xhr, status, error) {
                     showMessage(messageEl, 'Network error: ' + error, 'error');
-                    btn.prop('disabled', false).html('<i class="fas fa-check mr-2"></i>Assign Role');
+                    btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i>Assign Role');
                 }
             });
         }
+
         function editRole(username, currentRole, companyId, domainName) {
-            $('#assignUsername').val(username);
-            $('#assignRole').val(currentRole).trigger('change');
-            setTimeout(function() {
-                if (companyId) {
-                    $('#assignCompany').val(companyId);
-                    if (currentRole === 'CompanyUser') {
-                        $('#assignCompany').trigger('change');
-
-                        setTimeout(function() {
-                            if (domainName) {
-                                $('#assignDomain').val(domainName);
-                            }
-                        }, 1500);
-                    }
-                }
-            }, 800);
-
             openAssignRoleModal();
+            setTimeout(function() {
+                $('#assignUsername').val(username);
+                $('#assignRole').val(currentRole).trigger('change');
+                setTimeout(function() {
+                    if (companyId) {
+                        $('#assignCompany').val(companyId);
+                        if (roleConfigs[currentRole]?.requiresCompany || roleConfigs[currentRole]?.requiresDevice || roleConfigs[currentRole]?.requiresLocation) {
+                            $('#assignCompany').trigger('change');
+                            setTimeout(function() {
+                                if (domainName) {
+                                    $('#assignDomain').val(domainName);
+                                }
+                            }, 1000);
+                        }
+                    }
+                }, 500);
+            }, 300);
         }
+
         function removeRole(username) {
             if (!confirm('Remove role from user "' + username + '"?')) return;
             $.ajax({
@@ -398,17 +703,185 @@
                 data: JSON.stringify({ Username: username }),
                 success: function (response) {
                     if (response.success) {
-                        alert(response.message);
-                        location.reload();
+                        showToast('Role removed successfully', 'success');
+                        setTimeout(() => location.reload(), 800);
                     } else {
-                        alert(response.message);
+                        showToast(response.message, 'error');
                     }
                 },
                 error: function () {
-                    alert('Error removing role');
+                    showToast('Error removing role', 'error');
                 }
             });
         }
+
+        // ===================== CREATE ROLE MODAL =====================
+        function openCreateRoleModal() {
+            document.getElementById('createRoleModal').classList.remove('hidden');
+            document.getElementById('createRoleModal').classList.add('flex');
+            document.getElementById('createRoleMessage').classList.add('hidden');
+            // Reset form
+            $('#newRoleName').val('');
+            $('#newRoleDescription').val('');
+            $('#selectedRoleColor').val('cyan');
+            selectRoleColor('cyan');
+            $('#roleRequiresCompany').prop('checked', false);
+            $('#roleRequiresDevice').prop('checked', false);
+            $('#roleRequiresLocation').prop('checked', false);
+        }
+
+        function closeCreateRoleModal() {
+            document.getElementById('createRoleModal').classList.add('hidden');
+            document.getElementById('createRoleModal').classList.remove('flex');
+        }
+
+        function selectRoleColor(color) {
+            $('#selectedRoleColor').val(color);
+            $('.role-color-btn').removeClass('ring-2 ring-offset-2 ring-gray-500');
+            $('.role-color-btn[data-color="' + color + '"]').addClass('ring-2 ring-offset-2 ring-gray-500');
+        }
+
+        function submitCreateRole() {
+            const roleName = $('#newRoleName').val().trim();
+            const description = $('#newRoleDescription').val().trim();
+            const requiresCompany = $('#roleRequiresCompany').is(':checked');
+            const requiresDevice = $('#roleRequiresDevice').is(':checked');
+            const requiresLocation = $('#roleRequiresLocation').is(':checked');
+            const messageEl = $('#createRoleMessage');
+            const btn = $('#createRoleBtn');
+
+            if (!roleName) {
+                showMessage(messageEl, 'Please enter a role name!', 'error');
+                return;
+            }
+
+            // Validate role name format (no spaces, CamelCase)
+            if (/\s/.test(roleName)) {
+                showMessage(messageEl, 'Role name cannot contain spaces. Use CamelCase format.', 'error');
+                return;
+            }
+
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Creating...');
+
+            $.ajax({
+                url: '@Url.Action("CreateRole", "Auth")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    RoleName: roleName,
+                    Description: description,
+                    RequiresCompany: requiresCompany,
+                    RequiresDevice: requiresDevice,
+                    RequiresLocation: requiresLocation
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        showMessage(messageEl, 'Role created successfully!', 'success');
+                        // Add to local config
+                        roleConfigs[roleName] = {
+                            requiresCompany: requiresCompany,
+                            requiresDevice: requiresDevice,
+                            requiresLocation: requiresLocation,
+                            isSystem: false
+                        };
+                        setTimeout(() => {
+                            closeCreateRoleModal();
+                            loadSystemRoles();
+                        }, 1000);
+                    } else {
+                        showMessage(messageEl, response.message || 'Failed to create role', 'error');
+                    }
+                    btn.prop('disabled', false).html('<i class="fas fa-plus mr-1"></i>Create Role');
+                },
+                error: function(xhr) {
+                    var errorMsg = 'Error creating role';
+                    try {
+                        var resp = JSON.parse(xhr.responseText);
+                        errorMsg = resp.message || errorMsg;
+                    } catch(e) {}
+                    showMessage(messageEl, errorMsg, 'error');
+                    btn.prop('disabled', false).html('<i class="fas fa-plus mr-1"></i>Create Role');
+                }
+            });
+        }
+
+        // ===================== MANAGE ROLES LIST MODAL =====================
+        function openManageRolesListModal() {
+            document.getElementById('manageRolesListModal').classList.remove('hidden');
+            document.getElementById('manageRolesListModal').classList.add('flex');
+            loadRolesList();
+        }
+
+        function closeManageRolesListModal() {
+            document.getElementById('manageRolesListModal').classList.add('hidden');
+            document.getElementById('manageRolesListModal').classList.remove('flex');
+        }
+
+        function loadRolesList() {
+            $('#rolesListContainer').html('<p class="text-gray-500 text-xs text-center py-4">Loading roles...</p>');
+            $.ajax({
+                url: '@Url.Action("GetAllSystemRoles", "Auth")',
+                type: 'GET',
+                success: function(roles) {
+                    var html = '';
+                    // Add SuperAdmin first (system role)
+                    html += createRoleListItem({ name: 'SuperAdmin', description: 'Full system access', isSystem: true, userCount: 1 }, 'red');
+                    
+                    if (roles && roles.length > 0) {
+                        roles.forEach(function(role) {
+                            html += createRoleListItem(role, role.color || 'cyan');
+                        });
+                    }
+                    $('#rolesListContainer').html(html);
+                },
+                error: function() {
+                    $('#rolesListContainer').html('<p class="text-red-500 text-xs text-center py-4">Error loading roles</p>');
+                }
+            });
+        }
+
+        function createRoleListItem(role, color) {
+            var colorClass = 'bg-' + color + '-100 text-' + color + '-700 border-' + color + '-200';
+            var isSystem = role.isSystem ? '<span class="text-[8px] bg-gray-200 text-gray-600 px-1 rounded ml-1">SYSTEM</span>' : '';
+            var deleteBtn = !role.isSystem ? 
+                '<button onclick="deleteRole(\'' + role.name + '\')" class="text-red-500 hover:text-red-700 text-xs"><i class="fas fa-trash"></i></button>' : '';
+            
+            return '<div class="flex items-center justify-between p-2 bg-gray-50 rounded border">' +
+                   '<div class="flex items-center space-x-2">' +
+                   '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ' + colorClass + '">' +
+                   '<i class="fas ' + (role.icon || 'fa-user') + ' mr-0.5 text-[8px]"></i>' + formatRoleName(role.name) +
+                   '</span>' + isSystem +
+                   '</div>' +
+                   '<div class="flex items-center space-x-2">' +
+                   '<span class="text-[10px] text-gray-500">' + (role.userCount || 0) + ' users</span>' +
+                   deleteBtn +
+                   '</div></div>';
+        }
+
+        function deleteRole(roleName) {
+            if (!confirm('Are you sure you want to delete the role "' + roleName + '"? Users with this role will lose access.')) return;
+            
+            $.ajax({
+                url: '@Url.Action("DeleteRole", "Auth")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ RoleName: roleName }),
+                success: function(response) {
+                    if (response.success) {
+                        showToast('Role deleted successfully', 'success');
+                        loadRolesList();
+                        loadSystemRoles();
+                    } else {
+                        showToast(response.message || 'Failed to delete role', 'error');
+                    }
+                },
+                error: function() {
+                    showToast('Error deleting role', 'error');
+                }
+            });
+        }
+
+        // ===================== UTILITY FUNCTIONS =====================
         function showMessage(el, message, type) {
             el.removeClass('hidden bg-red-50 text-red-700 bg-green-50 text-green-700');
             if (type === 'success') {
@@ -417,6 +890,15 @@
                 el.addClass('bg-red-50 text-red-700');
             }
             el.text(message).removeClass('hidden');
+        }
+
+        function showToast(message, type) {
+            // Simple toast using alert for now - can be enhanced later
+            if (type === 'error') {
+                alert('Error: ' + message);
+            } else {
+                alert(message);
+            }
         }
     </script>
 }

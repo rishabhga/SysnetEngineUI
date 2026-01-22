@@ -1,4 +1,4 @@
-﻿using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -46,7 +46,8 @@ namespace ManageEngineWebApp.Controllers
             {
                 try
                 {
-                    var response = await httpClient.GetAsync("https://172.16.15.15:4431/api/Command/GetConnectedDevices");
+                    var response = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices");
+                    //var response = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices");
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStringAsync();
@@ -82,8 +83,8 @@ namespace ManageEngineWebApp.Controllers
             var data = new List<Companies>();
             using (var httpClient = new HttpClient(handler))
             {
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/CompaniesDetails/Companiesdata");
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Companiesdata");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Companiesdata");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -95,6 +96,95 @@ namespace ManageEngineWebApp.Controllers
                 return Json(data);
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetGroupsByCompany(int companyId)
+        {
+            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (m, c, ch, e) => true };
+            using var client = new HttpClient(handler);
+            var response = await client.GetAsync($"https://localhost:7225/api/CompaniesDetails/Groupdata?id={companyId}");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return Content(content, "application/json");
+            }
+            return Json(new List<object>());
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetLocationsByGroup(int companyId, int groupId)
+        {
+            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (m, c, ch, e) => true };
+            using var client = new HttpClient(handler);
+            var response = await client.GetAsync($"https://localhost:7225/api/CompaniesDetails/Locationdata?comid={companyId}&groupid={groupId}");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return Content(content, "application/json");
+            }
+            return Json(new List<object>());
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetLocationsByCompany(int companyId)
+        {
+            HttpClientHandler handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+            };
+            var locations = new List<Locations>();
+            using (var httpClient = new HttpClient(handler))
+            {
+                try
+                {
+                    // Get all locations for this company via API (Unified endpoint)
+                    var locationsUrl = $"https://localhost:7225/api/CompaniesDetails/LocationdataByCompany?comid={companyId}";
+                    var response = await httpClient.GetAsync(locationsUrl);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync();
+                        var data = JsonConvert.DeserializeObject<List<Locations>>(json);
+                        if (data != null) locations.AddRange(data);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"GetLocationsByCompany Error: {ex.Message}");
+                }
+                return Json(locations);
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetLocations()
+        {
+            // Keeping original GetLocations for other parts of app if needed, 
+            // but ensuring it uses localhost
+            HttpClientHandler handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+            };
+            var locations = new List<Locations>();
+            using (var httpClient = new HttpClient(handler))
+            {
+                try
+                {
+                    var response = await httpClient.GetAsync("https://localhost:7225/api/CompaniesDetails/AllLocations");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync();
+                        var data = JsonConvert.DeserializeObject<List<Locations>>(json);
+                        if (data != null) locations.AddRange(data);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"GetLocations Error: {ex.Message}");
+                }
+                return Json(locations);
+            }
+        }
+
 
         private async Task<List<CompanyHierarchyDto>> LoadHierarchyData()
         {
@@ -109,7 +199,8 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var companiesUrl = "https://172.16.15.15:4431/api/CompaniesDetails/Companiesdata";
+                var companiesUrl = "https://localhost:7225/api/CompaniesDetails/Companiesdata";
+                //var companiesUrl = "https://localhost:7225/api/CompaniesDetails/Companiesdata";
                 var companiesResponse = await httpClient.GetAsync(companiesUrl);
 
                 if (!companiesResponse.IsSuccessStatusCode)
@@ -134,8 +225,8 @@ namespace ManageEngineWebApp.Controllers
                         Groups = new List<GroupHierarchyDto>()
                     };
 
-                    var groupsUrl = $"https://172.16.15.15:4431/api/CompaniesDetails/Groupdata?id={company.Id}";
                     //var groupsUrl = $"https://localhost:7225/api/CompaniesDetails/Groupdata?id={company.Id}";
+                    var groupsUrl = $"https://localhost:7225/api/CompaniesDetails/Groupdata?id={company.Id}";
 
                     var groupsResponse = await httpClient.GetAsync(groupsUrl);
 
@@ -155,7 +246,8 @@ namespace ManageEngineWebApp.Controllers
                                     Locations = new List<LocationHierarchyDto>()
                                 };
 
-                                var locationsUrl = $"https://172.16.15.15:4431/api/CompaniesDetails/Locationdata?comid={company.Id}&groupid={group.Id}";
+                                var locationsUrl = $"https://localhost:7225/api/CompaniesDetails/Locationdata?comid={company.Id}&groupid={group.Id}";
+                                //var locationsUrl = $"https://localhost:7225/api/CompaniesDetails/Locationdata?comid={company.Id}&groupid={group.Id}";
                                 var locationsResponse = await httpClient.GetAsync(locationsUrl);
 
                                 if (locationsResponse.IsSuccessStatusCode)
@@ -174,7 +266,7 @@ namespace ManageEngineWebApp.Controllers
                                                 Users = new List<UserHierarchyDto>()
                                             };
 
-                                            var usersUrl = $"https://172.16.15.15:4431/api/WindowsUserDetails/allUser?locationId={location.Id}&&groupid={group.Id}&&comId={company.Id}";
+                                            var usersUrl = $"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={location.Id}&&groupid={group.Id}&&comId={company.Id}";
                                             var usersResponse = await httpClient.GetAsync(usersUrl);
 
                                             if (usersResponse.IsSuccessStatusCode)
@@ -231,9 +323,9 @@ namespace ManageEngineWebApp.Controllers
 
         //    using (var httpClient = new HttpClient(handler))
         //    {
-        //        httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/CompaniesDetails/Companycheck?Name={name}");
-        //        //httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/CompaniesDetails/Companycheck?Name={name}");
-        //        //httpClient.BaseAddress = new Uri($"https://Localhost:7225/api/CompaniesDetails/Companycheck?Name={name}");
+        //        httpClient.BaseAddress = new Uri($"https://localhost:7225/api/CompaniesDetails/Companycheck?Name={name}");
+        //        //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/CompaniesDetails/Companycheck?Name={name}");
+        //        //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/CompaniesDetails/Companycheck?Name={name}");
 
         //        // Send POST request to the server
         //        var response = await httpClient.GetAsync("");
@@ -268,7 +360,7 @@ namespace ManageEngineWebApp.Controllers
         //    {
 
         //       // client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Companyadd");
-        //        client.BaseAddress = new Uri("https://172.16.15.15:4431/api/CompaniesDetails/Companyadd");
+        //        client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Companyadd");
         //        string jsonData = JsonConvert.SerializeObject(company);
         //        var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -280,7 +372,7 @@ namespace ManageEngineWebApp.Controllers
         //        var jsonResponse = JsonConvert.DeserializeObject<object>(result);
         //        return Json(jsonResponse);
         //        //return Json(result);
-        //       // Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+        //       // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
         //    }
 
 
@@ -301,7 +393,7 @@ namespace ManageEngineWebApp.Controllers
         //    {
 
         //        //client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Companyupdate");
-        //        client.BaseAddress = new Uri("https://172.16.15.15:4431/api/CompaniesDetails/Companyupdate");
+        //        client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Companyupdate");
         //        string jsonData = JsonConvert.SerializeObject(company);
         //        var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -313,7 +405,7 @@ namespace ManageEngineWebApp.Controllers
         //        var jsonResponse = JsonConvert.DeserializeObject<object>(result);
         //        return Json(jsonResponse);
         //        //return Json(result);
-        //        // Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+        //        // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
         //    }
         //}
 
@@ -330,7 +422,8 @@ namespace ManageEngineWebApp.Controllers
 
             using (var httpClient = new HttpClient(handler))
             {
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/CompaniesDetails/Companycheck?Name={name}");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/CompaniesDetails/Companycheck?Name={name}");
+                //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/CompaniesDetails/Companycheck?Name={name}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -360,7 +453,8 @@ namespace ManageEngineWebApp.Controllers
             {
                 using (HttpClient client = new HttpClient(handler))
                 {
-                    client.BaseAddress = new Uri("https://172.16.15.15:4431/api/CompaniesDetails/Companyadd");
+                    client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Companyadd");
+                    //client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Companyadd");
                     string jsonData = JsonConvert.SerializeObject(company);
                     var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -398,7 +492,8 @@ namespace ManageEngineWebApp.Controllers
             {
                 using (HttpClient client = new HttpClient(handler))
                 {
-                    client.BaseAddress = new Uri("https://172.16.15.15:4431/api/CompaniesDetails/Companyupdate");
+                    client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Companyupdate");
+                    //client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Companyupdate");
                     string jsonData = JsonConvert.SerializeObject(company);
                     var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -437,7 +532,8 @@ namespace ManageEngineWebApp.Controllers
             {
                 try
                 {
-                    var response = await httpClient.GetAsync("https://172.16.15.15:4431/api/Command/GetConnectedDevices");
+                    //var response = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices");
+                    var response = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices");
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStringAsync();
@@ -476,7 +572,8 @@ namespace ManageEngineWebApp.Controllers
             httpClient.Timeout = TimeSpan.FromSeconds(60);
 
             // Get the company info
-            var companyResponse = await httpClient.GetAsync($"https://172.16.15.15:4431/api/CompaniesDetails/CompanyById?id={companyId}");
+            //var companyResponse = await httpClient.GetAsync($"https://localhost:7225/api/CompaniesDetails/CompanyById?id={companyId}");
+            var companyResponse = await httpClient.GetAsync($"https://localhost:7225/api/CompaniesDetails/CompanyById?id={companyId}");
             var companyJson = await companyResponse.Content.ReadAsStringAsync();
             var company = !string.IsNullOrEmpty(companyJson) ? JsonConvert.DeserializeObject<Companies>(companyJson) : null;
 
@@ -488,7 +585,8 @@ namespace ManageEngineWebApp.Controllers
             };
 
             // Get groups for company
-            var groupsResponse = await httpClient.GetAsync($"https://172.16.15.15:4431/api/CompaniesDetails/Groupdata?id={companyId}");
+            var groupsResponse = await httpClient.GetAsync($"https://localhost:7225/api/CompaniesDetails/Groupdata?id={companyId}");
+            //var groupsResponse = await httpClient.GetAsync($"https://localhost:7225/api/CompaniesDetails/Groupdata?id={companyId}");
             var groupsJson = await groupsResponse.Content.ReadAsStringAsync();
             var groups = !string.IsNullOrEmpty(groupsJson) ? JsonConvert.DeserializeObject<List<Groups>>(groupsJson) : null;
 
@@ -504,7 +602,8 @@ namespace ManageEngineWebApp.Controllers
                     };
 
                     // Get locations for group
-                    var locationsResponse = await httpClient.GetAsync($"https://172.16.15.15:4431/api/CompaniesDetails/Locationdata?comid={companyId}&groupid={group.Id}");
+                    //var locationsResponse = await httpClient.GetAsync($"https://localhost:7225/api/CompaniesDetails/Locationdata?comid={companyId}&groupid={group.Id}");
+                    var locationsResponse = await httpClient.GetAsync($"https://localhost:7225/api/CompaniesDetails/Locationdata?comid={companyId}&groupid={group.Id}");
                     var locationsJson = await locationsResponse.Content.ReadAsStringAsync();
                     var locations = !string.IsNullOrEmpty(locationsJson) ? JsonConvert.DeserializeObject<List<Locations>>(locationsJson) : null;
 
@@ -520,7 +619,8 @@ namespace ManageEngineWebApp.Controllers
                             };
 
                             // Get users for location
-                            var usersResponse = await httpClient.GetAsync($"https://172.16.15.15:4431/api/WindowsUserDetails/allUser?locationId={location.Id}&&groupid={group.Id}&&comId={companyId}");
+                            var usersResponse = await httpClient.GetAsync($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={location.Id}&&groupid={group.Id}&&comId={companyId}");
+                            //var usersResponse = await httpClient.GetAsync($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={location.Id}&&groupid={group.Id}&&comId={companyId}");
                             var usersJson = await usersResponse.Content.ReadAsStringAsync();
                             var users = !string.IsNullOrEmpty(usersJson) ? JsonConvert.DeserializeObject<List<UserDetails>>(usersJson) : null;
 
@@ -560,8 +660,8 @@ namespace ManageEngineWebApp.Controllers
             using (HttpClient client = new HttpClient(handler))
             {
 
+                client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Groupadd");
                 //client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Groupadd");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/CompaniesDetails/Groupadd");
                 string jsonData = JsonConvert.SerializeObject(groups);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -573,7 +673,7 @@ namespace ManageEngineWebApp.Controllers
                 var jsonResponse = JsonConvert.DeserializeObject<object>(result);
                 return Json(jsonResponse);
                 //return Json(result);
-                // Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
 
 
@@ -595,7 +695,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Groupupdate");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/CompaniesDetails/Groupupdate");
+                client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Groupupdate");
                     string jsonData = JsonConvert.SerializeObject(groups);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -607,7 +707,7 @@ namespace ManageEngineWebApp.Controllers
                 var jsonResponse = JsonConvert.DeserializeObject<object>(result);
                 return Json(jsonResponse);
                 //return Json(result);
-                // Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
 
 
@@ -632,8 +732,8 @@ namespace ManageEngineWebApp.Controllers
 
             using (var httpClient = new HttpClient(handler))
             {
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/CompaniesDetails/Locationdata?comid={ComId}&groupid={id}");
-               // httpClient.BaseAddress = new Uri($"https://Localhost:7225/api/CompaniesDetails/Locationdata?comid={ComId}&groupid={id}");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/CompaniesDetails/Locationdata?comid={ComId}&groupid={id}");
+               // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/CompaniesDetails/Locationdata?comid={ComId}&groupid={id}");
 
                 // Send POST request to the server
                 var response = await httpClient.GetAsync("");
@@ -663,7 +763,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Locationadd");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/CompaniesDetails/Locationadd");
+                client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Locationadd");
                 string jsonData = JsonConvert.SerializeObject(locations);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -675,7 +775,7 @@ namespace ManageEngineWebApp.Controllers
                 var jsonResponse = JsonConvert.DeserializeObject<object>(result);
                 return Json(jsonResponse);
                 //return Json(result);
-                // Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
 
 
@@ -696,7 +796,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                // client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Locationupdate");
-             client.BaseAddress = new Uri("https://172.16.15.15:4431/api/CompaniesDetails/Locationupdate");
+             client.BaseAddress = new Uri("https://localhost:7225/api/CompaniesDetails/Locationupdate");
                 string jsonData = JsonConvert.SerializeObject(locations);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -734,7 +834,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                // client.BaseAddress = new Uri("https://localhost:4436/api/ClientSetup/softwareinstaller");
-               client.BaseAddress = new Uri("https://172.16.15.15:4431/api/ClientSetup/softwareinstaller");
+               client.BaseAddress = new Uri("https://localhost:7225/api/ClientSetup/softwareinstaller");
                 string jsonData = JsonConvert.SerializeObject(installer);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 

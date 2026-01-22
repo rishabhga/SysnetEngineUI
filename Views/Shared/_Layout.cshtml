@@ -1,10 +1,15 @@
-﻿@{
+@{
     var username = Context.Session.GetString("username");
     var userRole = Context.Session.GetString("role");
     var isSuperAdmin = userRole == "SuperAdmin";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
-    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? ""; ;
-
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    
+    // Permission Helpers
+    bool CanManageRoles = ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ManageRoles");
+    bool CanViewCompanies = ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ViewCompanies");
+    bool CanViewClients = ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ViewClients");
+    bool CanManageProtection = ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ManageProtection");
 }
 
 <!DOCTYPE html>
@@ -354,20 +359,29 @@
                         </div>
 
                         <div class="py-2">
-                            @if (isSuperAdmin)
+                            @if (CanViewCompanies)
                             {
                                 <a asp-controller="Companies" asp-action="Companies">
                                     <i class="fas fa-building"></i>
                                     <span>Companies</span>
                                 </a>
+                            }
+                            @if (CanManageRoles)
+                            {
                                 <a asp-controller="Auth" asp-action="ManageRoles">
                                     <i class="fas fa-user-shield"></i>
                                     <span>Manage Roles</span>
                                 </a>
+                            }
+                            @if (CanViewClients)
+                            {
                                 <a asp-controller="ComputerSummary" asp-action="ConnectedClient">
                                     <i class="fas fa-network-wired"></i>
                                     <span>Connected Clients</span>
                                 </a>
+                            }
+                            @if (CanViewCompanies || CanManageRoles || CanViewClients)
+                            {
                                 <div class="dropdown-divider"></div>
                             }
 

@@ -1,4 +1,4 @@
-﻿using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Models;
 using ManageEngineWebApp.UpdatesModels;
@@ -53,8 +53,8 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}");
-                //httpClient.BaseAddress = new Uri($"https://172.16.15.15/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}");
+                //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}");
                 //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}"); // Replace with your server's URL
 
                 //var jsonContent = JsonConvert.SerializeObject(systemInfometion);
@@ -73,7 +73,7 @@ namespace ManageEngineWebApp.Controllers
 
                 //var response2 = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices");
 
-                var response2 = await httpClient.GetAsync("https://172.16.15.15:4431/api/Command/GetConnectedDevices");
+                var response2 = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices");
 
 
 
@@ -125,7 +125,7 @@ namespace ManageEngineWebApp.Controllers
                     Timeout = TimeSpan.FromSeconds(10)
                 };
                 httpClient.BaseAddress = new Uri(
-                    $"https://172.16.15.15:4431/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupId}&&comId={companyId}"
+                    $"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupId}&&comId={companyId}"
                 );
                 var response = await httpClient.GetAsync("");
                 if (response != null && response.IsSuccessStatusCode)
@@ -156,6 +156,54 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> GetDevicesByCompany(int companyId)
+        {
+            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (m, c, ch, e) => true };
+            try
+            {
+                using var client = new HttpClient(handler);
+                var response = await client.GetAsync($"https://localhost:7225/api/WindowsUserDetails/allUserByCompany?comId={companyId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var data = JsonConvert.DeserializeObject<List<dynamic>>(content);
+                    var deviceList = data.Select(x => new
+                    {
+                        domainName = (string)(x.DomainName ?? x.domainName),
+                        userName = (string)(x.UserName ?? x.userName)
+                    }).ToList();
+                    return Json(deviceList);
+                }
+                return Json(new List<object>());
+            }
+            catch { return Json(new List<object>()); }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDevicesByLocation(int companyId, int groupId, int locationId)
+        {
+            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (m, c, ch, e) => true };
+            try
+            {
+                using var client = new HttpClient(handler);
+                var response = await client.GetAsync($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&groupid={groupId}&comId={companyId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var data = JsonConvert.DeserializeObject<List<dynamic>>(content);
+                    var deviceList = data.Select(x => new
+                    {
+                        domainName = (string)(x.DomainName ?? x.domainName),
+                        userName = (string)(x.UserName ?? x.userName)
+                    }).ToList();
+                    return Json(deviceList);
+                }
+                return Json(new List<object>());
+            }
+            catch { return Json(new List<object>()); }
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetCriticalClients(int companyId, int? groupId, int? locationId)
         {
             var handler = new HttpClientHandler
@@ -168,7 +216,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     Timeout = TimeSpan.FromSeconds(10)
                 };
-                string url = "https://172.16.15.15:4431/api/RamCpuDiskData/list";
+                string url = "https://localhost:7225/api/RamCpuDiskData/list";
                 var response = await client.GetAsync(url);
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -206,7 +254,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     Timeout = TimeSpan.FromSeconds(10)
                 };
-                string url = "https://172.16.15.15:4431/api/RamCpuDiskData/add";
+                string url = "https://localhost:7225/api/RamCpuDiskData/add";
                 var dto = new
                 {
                     ClientId = criticalClient.ClientId,
@@ -248,7 +296,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     Timeout = TimeSpan.FromSeconds(10)
                 };
-                string url = "https://172.16.15.15:4431/api/RamCpuDiskData/remove";
+                string url = "https://localhost:7225/api/RamCpuDiskData/remove";
                 string jsonData = JsonConvert.SerializeObject(clientId);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(url, content);
@@ -283,7 +331,7 @@ namespace ManageEngineWebApp.Controllers
                 using (HttpClient client = new HttpClient(handler))
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);
-                    string url = $"https://172.16.15.15:4431/api/RamCpuDiskData/notifications/{Uri.EscapeDataString(machineId)}";
+                    string url = $"https://localhost:7225/api/RamCpuDiskData/notifications/{Uri.EscapeDataString(machineId)}";
                     HttpResponseMessage response = await client.GetAsync(url);
                     if (response != null && response.IsSuccessStatusCode)
                     {
@@ -315,7 +363,7 @@ namespace ManageEngineWebApp.Controllers
                 using (HttpClient client = new HttpClient(handler))
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);
-                    string url = $"https://172.16.15.15:4431/api/RamCpuDiskData/notification/read/{id}";
+                    string url = $"https://localhost:7225/api/RamCpuDiskData/notification/read/{id}";
                     HttpResponseMessage response = await client.PostAsync(url, null);
                     if (response != null && response.IsSuccessStatusCode)
                     {
@@ -351,7 +399,7 @@ namespace ManageEngineWebApp.Controllers
                 using (HttpClient client = new HttpClient(handler))
                 {
                     client.Timeout = TimeSpan.FromSeconds(25);
-                    string url = $"https://172.16.15.15:4431/api/RamCpuDiskData/{Uri.EscapeDataString(domain)}";
+                    string url = $"https://localhost:7225/api/RamCpuDiskData/{Uri.EscapeDataString(domain)}";
 
                     HttpResponseMessage response = await client.GetAsync(url);
                     if (response != null && response.IsSuccessStatusCode)
@@ -399,7 +447,7 @@ namespace ManageEngineWebApp.Controllers
         //        using (HttpClient client = new HttpClient(handler))
         //        {
         //            client.Timeout = TimeSpan.FromSeconds(25);
-        //            string url = $"https://172.16.15.15:4431/api/RamCpuDiskData/{Uri.EscapeDataString(domain)}";
+        //            string url = $"https://localhost:7225/api/RamCpuDiskData/{Uri.EscapeDataString(domain)}";
 
         //            HttpResponseMessage response = await client.GetAsync(url);
 
@@ -507,7 +555,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);
 
-                    string url = "https://172.16.15.15:4431/api/Client";
+                    string url = "https://localhost:7225/api/Client";
 
                     HttpResponseMessage response = await client.GetAsync(url);
 
@@ -565,7 +613,7 @@ namespace ManageEngineWebApp.Controllers
                 using (HttpClient client = new HttpClient(handler))
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);
-                    string url = $"https://172.16.15.15:4431/api/OtpVerification/OtpCode?Massage=ON&machineId={Uri.EscapeDataString(machineId)}";
+                    string url = $"https://localhost:7225/api/OtpVerification/OtpCode?Massage=ON&machineId={Uri.EscapeDataString(machineId)}";
 
                     HttpResponseMessage response = await client.GetAsync(url);
 
@@ -579,7 +627,7 @@ namespace ManageEngineWebApp.Controllers
                             if (result.status == "success")
                             {
                                 await Task.Delay(2000);
-                                var otpResponse = await client.GetAsync($"https://172.16.15.15:4431/api/OtpVerification/get-otp?machineId={Uri.EscapeDataString(machineId)}");
+                                var otpResponse = await client.GetAsync($"https://localhost:7225/api/OtpVerification/get-otp?machineId={Uri.EscapeDataString(machineId)}");
                                 if (otpResponse.IsSuccessStatusCode)
                                 {
                                     var otpContent = await otpResponse.Content.ReadAsStringAsync();
@@ -655,7 +703,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);
 
-                    string url = $"https://172.16.15.15:4431/api/OtpVerification/get-otp?machineId={Uri.EscapeDataString(machineId)}";
+                    string url = $"https://localhost:7225/api/OtpVerification/get-otp?machineId={Uri.EscapeDataString(machineId)}";
 
                     HttpResponseMessage response = await client.GetAsync(url);
 
@@ -733,7 +781,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);
 
-                    string otpUrl = $"https://172.16.15.15:4431/api/OtpVerification/OtpCode?Massage=ON&machineId={Uri.EscapeDataString(machineId)}";
+                    string otpUrl = $"https://localhost:7225/api/OtpVerification/OtpCode?Massage=ON&machineId={Uri.EscapeDataString(machineId)}";
                     HttpResponseMessage response = await client.GetAsync(otpUrl);
 
                     if (response != null && response.IsSuccessStatusCode)
@@ -786,7 +834,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);
 
-                    string url = $"https://172.16.15.15:4431/api/OtpVerification/OtpGanrate?Massage=GENERATE&machineId={Uri.EscapeDataString(machineId)}";
+                    string url = $"https://localhost:7225/api/OtpVerification/OtpGanrate?Massage=GENERATE&machineId={Uri.EscapeDataString(machineId)}";
 
                     HttpResponseMessage response = await client.GetAsync(url);
 
@@ -846,7 +894,7 @@ namespace ManageEngineWebApp.Controllers
                 using (HttpClient client = new HttpClient(handler))
                 {
                     client.Timeout = TimeSpan.FromSeconds(10);
-                    string url = $"https://172.16.15.15:4431/api/OtpVerification/OtpCode?Massage=OFF&machineId={Uri.EscapeDataString(machineId)}";
+                    string url = $"https://localhost:7225/api/OtpVerification/OtpCode?Massage=OFF&machineId={Uri.EscapeDataString(machineId)}";
 
                     HttpResponseMessage response = await client.GetAsync(url);
 
@@ -895,8 +943,8 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/WindowsUserDetails/allUser?locationId={locationid}&&groupid={groupid}&&comId={companyid}");
-                //httpClient.BaseAddress = new Uri($"https://172.16.15.15/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationid}&&groupid={groupid}&&comId={companyid}");
+                //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}");
                 //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}"); // Replace with your server's URL
 
                 //var jsonContent = JsonConvert.SerializeObject(systemInfometion);
@@ -914,8 +962,8 @@ namespace ManageEngineWebApp.Controllers
                 }
 
                 //var response2 = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices"); // Replace with actual path
-                //var response2 = await httpClient.GetAsync("https://172.16.15.15/api/Command/GetConnectedDevices"); // Replace with actual path
-                var response2 = await httpClient.GetAsync("https://172.16.15.15:4431/api/Command/GetConnectedDevices"); // Replace with actual path
+                //var response2 = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices"); // Replace with actual path
+                var response2 = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices"); // Replace with actual path
 
 
 
@@ -966,7 +1014,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/MissingPatch");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -989,7 +1037,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient2 = new HttpClient(handler1))
             {
                 // httpClient2.BaseAddress = new Uri("https://localhost:7225/api/SoftwareRepoDetails");
-                httpClient2.BaseAddress = new Uri("https://172.16.15.15:4431/api/SoftwareRepoDetails");
+                httpClient2.BaseAddress = new Uri("https://localhost:7225/api/SoftwareRepoDetails");
 
                 var response1 = await httpClient2.GetAsync("");
                 //var response1 = await httpClient2.GetAsync("https://localhost:7225/api/SoftwareRepoDetails");
@@ -1032,7 +1080,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //  httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/MissingPatch/windowpatch");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -1096,7 +1144,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
+                client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
 
                 string jsonData = JsonConvert.SerializeObject(updatePatchselectiondto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
@@ -1109,7 +1157,7 @@ namespace ManageEngineWebApp.Controllers
                 var jsonResponse = JsonConvert.DeserializeObject<object>(result);
                 return Json(jsonResponse);
                 //return Json(result);
-                // Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
 
             return View();
@@ -1136,7 +1184,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
+                client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
 
                 string jsonData = JsonConvert.SerializeObject(updatewinPatchselectiondto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
@@ -1149,7 +1197,7 @@ namespace ManageEngineWebApp.Controllers
                 var jsonResponse = JsonConvert.DeserializeObject<object>(result);
                 return Json(jsonResponse);
                 //return Json(result);
-                // Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
 
             return View();
@@ -1176,7 +1224,7 @@ namespace ManageEngineWebApp.Controllers
             using (HttpClient client = new HttpClient(handler))
             {
 
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsUserDetails/dashboardupdate");
+                client.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails/dashboardupdate");
 
                 string jsonData = JsonConvert.SerializeObject(windowsUserDetailsupdateName);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
@@ -1189,7 +1237,7 @@ namespace ManageEngineWebApp.Controllers
                 var jsonResponse = JsonConvert.DeserializeObject<object>(result);
                 return Json(jsonResponse);
                 //return Json(result);
-                // Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
 
 
@@ -1217,8 +1265,8 @@ namespace ManageEngineWebApp.Controllers
 
 
                 //  httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
-                // httpClient.BaseAddress = new Uri("https://172.16.15.15/api/UserDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/UserDetails");
+                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
 
 
 
@@ -1258,54 +1306,54 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-        [HttpGet]
-        public async Task<IActionResult> GetDevicesByCompany(int companyId)
-        {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
+        //[HttpGet]
+        //public async Task<IActionResult> GetDevicesByCompany(int companyId)
+        //{
+        //    HttpClientHandler handler = new HttpClientHandler
+        //    {
+        //        ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+        //    };
 
-            try
-            {
-                using (var httpClient = new HttpClient(handler))
-                {
-                    // Try calling the UserDetails API which has all devices
-                    httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/UserDetails");
+        //    try
+        //    {
+        //        using (var httpClient = new HttpClient(handler))
+        //        {
+        //            // Try calling the UserDetails API which has all devices
+        //            httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
 
-                    var response = await httpClient.GetAsync("");
+        //            var response = await httpClient.GetAsync("");
 
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var content = await response.Content.ReadAsStringAsync();
+        //            if (response.IsSuccessStatusCode)
+        //            {
+        //                var content = await response.Content.ReadAsStringAsync();
 
-                        if (!string.IsNullOrEmpty(content))
-                        {
-                            var allDevices = JsonConvert.DeserializeObject<List<UserDetails>>(content);
-                            if (allDevices != null && allDevices.Any())
-                            {
-                                // Filter devices by companyId if UserDetails has CompanyId field
-                                // Or just return all devices
-                                var deviceList = allDevices
-                                    .Select(x => new {
-                                        domainName = x.domainName,
-                                        userName = x.UserName ?? "Unknown"
-                                    })
-                                    .Where(x => !string.IsNullOrEmpty(x.domainName))
-                                    .Distinct()
-                                    .ToList();
-                                return Json(deviceList);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[GetDevicesByCompany] Error: {ex.Message}");
-            }
-            return Json(new List<object>());
-        }
+        //                if (!string.IsNullOrEmpty(content))
+        //                {
+        //                    var allDevices = JsonConvert.DeserializeObject<List<UserDetails>>(content);
+        //                    if (allDevices != null && allDevices.Any())
+        //                    {
+        //                        // Filter devices by companyId if UserDetails has CompanyId field
+        //                        // Or just return all devices
+        //                        var deviceList = allDevices
+        //                            .Select(x => new {
+        //                                domainName = x.domainName,
+        //                                userName = x.UserName ?? "Unknown"
+        //                            })
+        //                            .Where(x => !string.IsNullOrEmpty(x.domainName))
+        //                            .Distinct()
+        //                            .ToList();
+        //                        return Json(deviceList);
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"[GetDevicesByCompany] Error: {ex.Message}");
+        //    }
+        //    return Json(new List<object>());
+        //}
 
 
         public async Task<IActionResult> ConnectedClient()
@@ -1322,10 +1370,10 @@ namespace ManageEngineWebApp.Controllers
 
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/Client");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/Client");
-                // httpClient.BaseAddress = new Uri("https://172.16.15.15/api/Client");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Client");
+                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/Client");
                 httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                //httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsUserDetails");
+                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
 
                 //var requestData = new { DomainName = domain }; // Include domain variable
                 //  var jsonContent = new StringContent(JsonConvert.SerializeObject(), System.Text.Encoding.UTF8, "application/json");
@@ -1357,14 +1405,14 @@ namespace ManageEngineWebApp.Controllers
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/Command/" + domain + "");
 
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/Command/" + domain + "");
+                client.BaseAddress = new Uri("https://localhost:7225/api/Command/" + domain + "");
 
                 var content = new StringContent($"\"{"Scan"}\"", Encoding.UTF8, "application/json");
 
                 HttpResponseMessage response = await client.PostAsync("", content);
 
                 string result = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
             return Redirect("Deshboad");
 
@@ -1392,8 +1440,8 @@ namespace ManageEngineWebApp.Controllers
 
                 // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/SendScanStatus?domain={domain}");
                 //
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/Command/SendScanStatus?domain={domain}");
-                //httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/Command/SendScanStatus/" + domain + "");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/SendScanStatus?domain={domain}");
+                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/SendScanStatus/" + domain + "");
 
 
 
@@ -1430,14 +1478,14 @@ namespace ManageEngineWebApp.Controllers
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/" + domain + "");
 
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/RemoteAccess/" + domain + "");
+                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/" + domain + "");
 
                 var content = new StringContent($"\"{"Remote"}\"", Encoding.UTF8, "application/json");
 
                 HttpResponseMessage response = await client.PostAsync("", content);
 
                 string result = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
             return Redirect("Deshboad");
 
@@ -1461,7 +1509,7 @@ namespace ManageEngineWebApp.Controllers
 
                 // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/SendScanStatus?domain={domain}");
 
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/Command/SendScanStatus?domain={domain}");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/SendScanStatus?domain={domain}");
 
 
 
@@ -1493,7 +1541,7 @@ namespace ManageEngineWebApp.Controllers
             };
             using (var httpClient = new HttpClient(handler))
             {
-                string url = $"https://172.16.15.15:4431/api/RemoteAccess/CheckStatus?domain={domain}";
+                string url = $"https://localhost:7225/api/RemoteAccess/CheckStatus?domain={domain}";
 
                 try
                 {
@@ -1520,7 +1568,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
                 // string url = $"https://localhost:7225/api/RemoteAccess/monitor?domain={domain}";
-                string url = $"https://172.16.15.15:4431/api/RemoteAccess/monitor?domain={domain}";
+                string url = $"https://localhost:7225/api/RemoteAccess/monitor?domain={domain}";
 
                 var response = await httpClient.GetAsync(url);
 
@@ -1561,12 +1609,12 @@ namespace ManageEngineWebApp.Controllers
 
 
                 //  client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseEvent/" + domain + "");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/RemoteAccess/MouseEvent/" + domain + "");
+                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseEvent/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject(Mousedata);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-                // 🔥 **POST Request Send Karein**
+                // ?? **POST Request Send Karein**
                 HttpResponseMessage response = await client.PostAsync("", content);
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
@@ -1581,7 +1629,7 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
-        // 🟦 Send Left Click
+        // ?? Send Left Click
         public async Task<IActionResult> SendLeftClick(string domain)
         {
 
@@ -1598,13 +1646,13 @@ namespace ManageEngineWebApp.Controllers
 
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseLeftClick/" + domain + "");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/RemoteAccess/MouseLeftClick/" + domain + "");
+                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseLeftClick/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject("");
                 //var content = new StringContent($"\"{"Scan"}\"", Encoding.UTF8, "application/json");
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-                // 🔥 **POST Request Send Karein**
+                // ?? **POST Request Send Karein**
                 HttpResponseMessage response = await client.PostAsync("", content);
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
@@ -1621,7 +1669,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
-        // 🟦 Send Right Click
+        // ?? Send Right Click
         public async Task<IActionResult> SendRightClick(string domain)
         {
             HttpClientHandler handler = new HttpClientHandler
@@ -1636,13 +1684,13 @@ namespace ManageEngineWebApp.Controllers
 
 
                 //client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseRightClick/" + domain + "");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/RemoteAccess/MouseRightClick/" + domain + "");
+                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseRightClick/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject("");
                 //var content = new StringContent($"\"{"Scan"}\"", Encoding.UTF8, "application/json");
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-                // 🔥 **POST Request Send Karein**
+                // ?? **POST Request Send Karein**
                 HttpResponseMessage response = await client.PostAsync("", content);
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
@@ -1658,7 +1706,7 @@ namespace ManageEngineWebApp.Controllers
 
         }
 
-        // 🟦 Send Key Press
+        // ?? Send Key Press
         public async Task<IActionResult> SendKeyPress(string domain, string key)
         {
             HttpClientHandler handler = new HttpClientHandler
@@ -1673,13 +1721,13 @@ namespace ManageEngineWebApp.Controllers
 
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/KeyEvent/" + domain + "");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/RemoteAccess/KeyEvent?domain="+domain+"&key="+key+"");
+                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/KeyEvent?domain="+domain+"&key="+key+"");
 
                 string jsonData = JsonConvert.SerializeObject("");
                 var content = new StringContent($"\"{key}\"", Encoding.UTF8, "application/json");
                 //var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-                // 🔥 **POST Request Send Karein**
+                // ?? **POST Request Send Karein**
                 HttpResponseMessage response = await client.PostAsync("", content);
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
@@ -1717,7 +1765,7 @@ namespace ManageEngineWebApp.Controllers
             };
             using (HttpClient client = new HttpClient(handler))
             {
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/RemoteAccess/StopRemopte/" + domain + "");
+                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/StopRemopte/" + domain + "");
                 var content = new StringContent($"\"{"StopRemote"}\"", Encoding.UTF8, "application/json");
                 HttpResponseMessage response = await client.PostAsync("", content);
                 return Json(new { success = response.IsSuccessStatusCode });
@@ -1734,7 +1782,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
                 //string url = $"https://localhost:7225/api/RemoteAccess/monitor?domain={domain}";
-                string url = $"https://172.16.15.15:4431/api/RemoteAccess/monitor?domain={domain}";
+                string url = $"https://localhost:7225/api/RemoteAccess/monitor?domain={domain}";
 
                 var response = await httpClient.GetAsync(url);
 
@@ -1779,12 +1827,12 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //client.BaseAddress = new Uri("https://localhost:7225/api/Command/update/" + domain + "");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/Command/update/" + domain + "");
+                client.BaseAddress = new Uri("https://localhost:7225/api/Command/update/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject(patchUpdateRequest);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-                // 🔥 **POST Request Send Karein**
+                // ?? **POST Request Send Karein**
                 HttpResponseMessage response = await client.PostAsync("", content);
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
@@ -1796,7 +1844,7 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { status = "failed", message = result });
                 }
 
-                // Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
             // return Redirect("Deshboad");
 
@@ -1838,7 +1886,7 @@ namespace ManageEngineWebApp.Controllers
             using (HttpClient client = new HttpClient(handler))
             {
                 //string apiUrl = $"https://localhost:7225/api/PatchDetails/DeleteSoftware/{fileName}";
-                string apiUrl = $"https://172.16.15.15:4431/api/PatchDetails/DeleteSoftware/{fileName}";
+                string apiUrl = $"https://localhost:7225/api/PatchDetails/DeleteSoftware/{fileName}";
 
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, apiUrl);
 
@@ -1876,20 +1924,20 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //client.BaseAddress = new Uri("https://localhost:7225/api/Command/softwareName/" + domain + "");
-                client.BaseAddress = new Uri("https://172.16.15.15:4431/api/Command/softwareName/" + domain + "");
+                client.BaseAddress = new Uri("https://localhost:7225/api/Command/softwareName/" + domain + "");
 
                 //var content = new StringContent($"\"{"Update"}\"", Encoding.UTF8, "application/json");
 
                 //HttpResponseMessage response = await client.PostAsync("", content);
 
                 //string result = await response.Content.ReadAsStringAsync();
-                //Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                //Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
 
-                // 📌 **Model ko JSON String me Convert karein**
+                // ?? **Model ko JSON String me Convert karein**
                 string jsonData = JsonConvert.SerializeObject(patchUpdateRequest);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-                // 🔥 **POST Request Send Karein**
+                // ?? **POST Request Send Karein**
                 HttpResponseMessage response = await client.PostAsync("", content);
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
@@ -1900,7 +1948,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     return Json(new { status = "failed", message = result });
                 }
-                //Console.WriteLine(response.IsSuccessStatusCode ? $"✅ Success: {result}" : $"❌ Error: {result}");
+                //Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
             // return Redirect("Deshboad");
 
@@ -1920,8 +1968,8 @@ namespace ManageEngineWebApp.Controllers
 
 
                 //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/uninstallstatus?softwareName={softwareName}&domain={domain}");
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/Command/uninstallstatus?softwareName={softwareName}&domain={domain}");
-                // httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/Command/uninstallstatus/" + domain + "");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/uninstallstatus?softwareName={softwareName}&domain={domain}");
+                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/uninstallstatus/" + domain + "");
 
 
                 var response = await httpClient.GetAsync("");
@@ -1958,8 +2006,8 @@ namespace ManageEngineWebApp.Controllers
 
 
                 // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/installstatus?softwareName={softwareName}&domain={domain}");
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/Command/installstatus?softwareName={softwareName}&domain={domain}");
-                // httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/Command/installstatus/" + domain + "");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/installstatus?softwareName={softwareName}&domain={domain}");
+                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/installstatus/" + domain + "");
 
 
                 var response = await httpClient.GetAsync("");
@@ -1997,10 +2045,10 @@ namespace ManageEngineWebApp.Controllers
 
 
                 // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/installers/");
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/Command/installers/");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/installers/");
 
                 //httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                //httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsUserDetails");
+                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
 
                 //var requestData = new { DomainName = domain }; // Include domain variable
                 //  var jsonContent = new StringContent(JsonConvert.SerializeObject(), System.Text.Encoding.UTF8, "application/json");
@@ -2048,7 +2096,7 @@ namespace ManageEngineWebApp.Controllers
 
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsUserDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2090,7 +2138,7 @@ namespace ManageEngineWebApp.Controllers
 
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/Summary");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/Summary");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Summary");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2137,7 +2185,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/OSSummary");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/OSSummary");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/OSSummary");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2184,7 +2232,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/DeviceSummary");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/DeviceSummary");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/DeviceSummary");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2236,7 +2284,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/DiskUsage");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/DiskUsage");
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/DiskUsage");
 
                 var response = await httpClient.GetAsync("");
@@ -2285,7 +2333,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsService");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsService");
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsService");
 
                 var response = await httpClient.GetAsync("");
@@ -2327,7 +2375,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsGroupDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsGroupDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsGroupDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2361,7 +2409,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowDrivers");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowDrivers");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowDrivers");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2397,7 +2445,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/BIOSDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/BIOSDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/BIOSDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2448,7 +2496,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/HardDiskDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/HardDiskDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/HardDiskDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2482,7 +2530,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/LogicalDiskDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/LogicalDiskDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/LogicalDiskDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2521,7 +2569,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/KeyboardDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/KeyboardDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/KeyboardDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2554,7 +2602,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/MonitorInfo");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/MonitorInfo");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MonitorInfo");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2603,7 +2651,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/MotherboardDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/MotherboardDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MotherboardDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2638,7 +2686,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/NetworkAdapterDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/NetworkAdapterDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/NetworkAdapterDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2671,7 +2719,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/PhysicalMemoryDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/PhysicalMemoryDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/PhysicalMemoryDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2717,7 +2765,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/MemorySlotDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/MemorySlotDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MemorySlotDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2755,7 +2803,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/PointingDeviceInfo");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/PointingDeviceInfo");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/PointingDeviceInfo");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2791,7 +2839,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/PrinterDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/PrinterDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/PrinterDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2825,7 +2873,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/ProcessorDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/ProcessorDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/ProcessorDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2872,7 +2920,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/SoundDeviceDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/SoundDeviceDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/SoundDeviceDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2909,7 +2957,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/VideoDeviceInfo");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/VideoDeviceInfo");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/VideoDeviceInfo");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2943,7 +2991,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/USBControllerInfo");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/USBControllerInfo");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/USBControllerInfo");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -2976,7 +3024,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/USBHubDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/USBHubDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/USBHubDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3013,7 +3061,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication/DesktopApps");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/InstalledApplication/DesktopApps");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication/DesktopApps");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3084,7 +3132,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/InstalledApplication");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3118,7 +3166,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication/MeteredSoftware");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/InstalledApplication/MeteredSoftware");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication/MeteredSoftware");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3151,7 +3199,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/InstalledApplication/InstallationSoftlist?domain={domain}");
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/InstalledApplication/InstallationSoftlist?domain={domain}");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/InstalledApplication/InstallationSoftlist?domain={domain}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3182,7 +3230,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/AntivirusDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/AntivirusDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3213,7 +3261,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/MissingPatch");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch");
 
                 var response = await httpClient.GetAsync("");
 
@@ -3246,7 +3294,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/MissingPatch/windowpatch");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3277,7 +3325,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/AntivirusDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/AntivirusDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3309,7 +3357,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/PatchDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/PatchDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/PatchDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3354,7 +3402,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/DeviceRestrictionDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/DeviceRestrictionDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/DeviceRestrictionDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3395,7 +3443,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/RestrictionOnDevice/RestrictiononNetwork?domain={domain}");
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/RestrictionOnDevice/RestrictiononNetwork?domain={domain}");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/RestrictionOnDevice/RestrictiononNetwork?domain={domain}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3436,7 +3484,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/RestrictionOnDevice/BluetoothDetails?domain={domain}");
-                httpClient.BaseAddress = new Uri($"https://172.16.15.15:4431/api/RestrictionOnDevice/BluetoothDetails?domain={domain}");
+                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/RestrictionOnDevice/BluetoothDetails?domain={domain}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3481,7 +3529,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/SecurityPrivacyDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/SecurityPrivacyDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/SecurityPrivacyDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3524,7 +3572,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/ApplicationSettings");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/ApplicationSettings");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/ApplicationSettings");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3565,7 +3613,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/SocialSearchSettings");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/SocialSearchSettings");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/SocialSearchSettings");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3606,7 +3654,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/UsbDeviceInfo");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/UsbDeviceInfo");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UsbDeviceInfo");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3639,7 +3687,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserAuditHistory");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/UserAuditHistory");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserAuditHistory");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3674,7 +3722,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserLogonHistory");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/UserLogonHistory");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserLogonHistory");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3708,7 +3756,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/UpdateLogs");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/UpdateLogs");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UpdateLogs");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3743,7 +3791,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/Battery");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/Battery");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Battery");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3790,7 +3838,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Summarydata/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/Summarydata/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Summarydata/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3824,7 +3872,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/OSSummarydata/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/OSSummarydata/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/OSSummarydata/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3861,7 +3909,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/DeviceSummarylist/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/DeviceSummarylist/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/DeviceSummarylist/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3895,7 +3943,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Bioslist/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/Bioslist/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Bioslist/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3931,7 +3979,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Harddisklist/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/Harddisklist/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Harddisklist/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -3966,7 +4014,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Keyboardlist/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/Keyboardlist/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Keyboardlist/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4001,7 +4049,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Monitorlist/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/Monitorlist/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Monitorlist/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4036,7 +4084,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/MotherboardSummaryChangeAudit/" + UCode +"");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/MotherboardSummaryChangeAudit/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/MotherboardSummaryChangeAudit/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4074,7 +4122,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Networkadhapterlist/" + UCode +"");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/Networkadhapterlist/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Networkadhapterlist/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4109,7 +4157,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/ProcessorChangeAuditlist/"+UCode+"");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/ProcessorChangeAuditlist/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/ProcessorChangeAuditlist/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4146,7 +4194,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/physicalMemoryDetailsChangeAudit/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/physicalMemoryDetailsChangeAudit/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/physicalMemoryDetailsChangeAudit/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4181,7 +4229,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/SoundDeviceChangeAuditlist/" + UCode +"");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/SoundDeviceChangeAuditlist/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/SoundDeviceChangeAuditlist/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4216,7 +4264,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/USBControllerChangeAuditlist/" + UCode+"");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/USBControllerChangeAuditlist/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/USBControllerChangeAuditlist/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4253,7 +4301,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowsUserChangeAudit/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/WindowsUserChangeAudit/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowsUserChangeAudit/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4288,7 +4336,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowsGroupChangeAudit/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/WindowsGroupChangeAudit/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowsGroupChangeAudit/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4323,7 +4371,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowDriversChangeAudit/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/WindowDriversChangeAudit/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowDriversChangeAudit/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4358,7 +4406,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/DesktopAppsChangeAudit/ " + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/DesktopAppsChangeAudit/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/DesktopAppsChangeAudit/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4394,7 +4442,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/MSStoreAppChangeAudit/"  + UCode +"");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/MSStoreAppChangeAudit/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/MSStoreAppChangeAudit/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4430,7 +4478,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/AntivirusChangeAudit/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/TableChangesAudit/AntivirusChangeAudit/" + UCode + "");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/AntivirusChangeAudit/" + UCode + "");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -4460,7 +4508,7 @@ namespace ManageEngineWebApp.Controllers
                 };
 
                 using var httpClient = new HttpClient(handler);
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/UserDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
 
                 var response = await httpClient.GetAsync("");
 
@@ -4503,7 +4551,7 @@ namespace ManageEngineWebApp.Controllers
                 };
 
                 using var httpClient = new HttpClient(handler);
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/DiskUsage");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/DiskUsage");
 
                 var response = await httpClient.GetAsync("");
 
@@ -4553,7 +4601,7 @@ namespace ManageEngineWebApp.Controllers
                 };
 
                 using var httpClient = new HttpClient(handler);
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/Summary");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Summary");
 
                 var response = await httpClient.GetAsync("");
 
@@ -4594,7 +4642,7 @@ namespace ManageEngineWebApp.Controllers
                 };
 
                 using var httpClient = new HttpClient(handler);
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/Command/GetConnectedDevices");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/GetConnectedDevices");
 
                 var response = await httpClient.GetAsync("");
 

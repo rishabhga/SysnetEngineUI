@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 namespace ManageEngineWebApp.Datacontext
 {
     public class AuthFilter : ActionFilterAttribute
     {
         public string AllowedRoles { get; set; }
+        public string? RequiredPermission { get; set; }
         public bool VerifyCompanyAccess { get; set; } = false;
         public override void OnActionExecuting(ActionExecutingContext context)
         {
@@ -31,7 +32,17 @@ namespace ManageEngineWebApp.Datacontext
                     return;
                 }
             }
-            if (VerifyCompanyAccess && role == "CompanyAdmin")
+            if (!string.IsNullOrEmpty(RequiredPermission) && role != "SuperAdmin")
+            {
+                var userPermissions = session.GetString("permissions") ?? "";
+                var permissionList = userPermissions.Split(',').Select(p => p.Trim()).ToList();
+                if (!permissionList.Contains(RequiredPermission))
+                {
+                    context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
+                    return;
+                }
+            }
+            if (VerifyCompanyAccess && role != "SuperAdmin")
             {
                 var sessionCompanyId = session.GetString("companyId");
 

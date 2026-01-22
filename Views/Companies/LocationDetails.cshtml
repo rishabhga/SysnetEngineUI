@@ -1,4 +1,4 @@
-﻿@model IEnumerable<Locations>
+@model IEnumerable<Locations>
 @{
     ViewData["Title"] = $"{ViewBag.CompanyName} - {ViewBag.groupName} - Locations";
     Layout = "~/Views/Shared/_Layout.cshtml"; 
@@ -160,7 +160,7 @@
             const groupid = $("#locationgroupIdHidden").val();
             const comid = $("#locationIdHidden").val();
             if (locatioName === "" && groupid === "" && comid ==="") {
-                alert("❗ Please enter a company name.");
+                alert("? Please enter a company name.");
                 return;
             }
 
@@ -170,11 +170,11 @@
                 contentType: 'application/json',
                 data: JSON.stringify({ LocationName: locatioName, GroupsID: groupid, CompanyID: comid }),
                 success: function (response) {
-                    alert("✅ Location added successfully!");
+                    alert("? Location added successfully!");
                     location.reload(); // Or append new row without reloading
                 },
                 error: function () {
-                    alert("❌ Error adding company.");
+                    alert("? Error adding company.");
                 }
             });
         });
@@ -200,7 +200,7 @@
                 const compId = $cell.data("company-id");
 
                 if (newName === "") {
-                    alert("❗ location name cannot be empty.");
+                    alert("? location name cannot be empty.");
                     return;
                 }
                 
@@ -213,10 +213,10 @@
                     success: function (response) {
                         $cell.find(".display-name").text(newName).show();
                         $cell.find(".edit-name, .update-btn").addClass("d-none");
-                        alert("✅ Location updated successfully!");
+                        alert("? Location updated successfully!");
                     },
                     error: function () {
-                        alert("❌ Error updating Locationupdate.");
+                        alert("? Error updating Locationupdate.");
                     }
                 });
             });
@@ -259,7 +259,7 @@
                     const a = document.createElement('a');
                     a.href = url;
 
-                    // 🔽 Use dynamic filename based on LocationName
+                    // ?? Use dynamic filename based on LocationName
                     const safeLocation = locationName.replace(/[^a-zA-Z0-9]/g, '_'); // optional: sanitize filename
                     a.download = `${safeLocation + '_C' + companyId + '_G' + groupId}_Installer.exe`;
 
@@ -302,7 +302,7 @@
                 contentType: 'application/json',
                 data: JSON.stringify(requestData),
                 xhrFields: {
-                    responseType: 'blob'  // 👈 important for binary file
+                    responseType: 'blob'  // ?? important for binary file
                 },
                 success: function (blob) {
                     const url = window.URL.createObjectURL(blob);

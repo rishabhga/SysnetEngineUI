@@ -23,6 +23,7 @@ builder.Services.AddSession(options =>
 //     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
+ManageEngineWebApp.Datacontext.RoleHelper.Configure(app.Configuration);
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsProduction())
