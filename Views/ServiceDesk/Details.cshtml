@@ -1,0 +1,337 @@
+@model ManageEngineWebApp.Models.HelpdeskTicket
+@{
+    ViewData["Title"] = "Ticket Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="bg-gray-50 min-h-screen p-8 font-sans">
+    <!-- Header: Navigation & Title -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <nav class="flex text-sm text-slate-500 mb-1">
+                <a href="@Url.Action("Tickets", "ServiceDesk")" class="hover:text-sky-600 transition-colors">Tickets</a>
+                <span class="mx-2">/</span>
+                <span class="text-slate-800 font-medium">@Model.TicketNo</span>
+            </nav>
+            <h1 class="text-3xl font-bold text-slate-800 flex items-center gap-3">
+                <span id="ticketTitle">@Model.Subject</span>
+                <span id="statusBadge" class="px-3 py-1 text-sm rounded-full font-semibold bg-sky-100 text-sky-700">
+                    @Model.Status
+                </span>
+            </h1>
+        </div>
+        <div class="flex gap-3">
+             <a href="@Url.Action("Tickets", "ServiceDesk")" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+                <i class="fas fa-arrow-left mr-2"></i> Back
+            </a>
+          
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+         <div class="lg:col-span-1 space-y-6">
+            <div class="bg-white/80 backdrop-blur-md border border-white/20 rounded-2xl shadow-lg p-6 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+                
+                <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                    <i class="fas fa-info-circle text-sky-500 mr-2"></i> Ticket Info
+                </h2>
+
+                <div class="space-y-4">
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <p class="text-xs text-slate-400 uppercase font-semibold mb-1">Requester</p>
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-lg">
+                                @(Model.RequesterName?.Substring(0,1) ?? "U")
+                            </div>
+                            <div>
+                                <p class="text-slate-800 font-medium">@Model.RequesterName</p>
+                                <p class="text-slate-500 text-sm">@Model.RequesterEmail</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <p class="text-xs text-slate-400 uppercase font-semibold">Priority</p>
+                            <p class="text-slate-800 font-medium flex items-center mt-1">
+                                <i class="fas fa-flag mr-2 
+                                   @(Model.Priority == "Urgent" ? "text-red-500" : 
+                                     Model.Priority == "High" ? "text-orange-500" : "text-sky-500")"></i>
+                                @Model.Priority
+                            </p>
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <p class="text-xs text-slate-400 uppercase font-semibold">Category</p>
+                            <p class="text-slate-800 font-medium mt-1">@Model.Category</p>
+                        </div>
+                    </div>
+
+                     <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <p class="text-xs text-slate-400 uppercase font-semibold">Assigned To</p>
+                         <div class="mt-1 flex items-center gap-2">
+                             @if(!string.IsNullOrEmpty(Model.AssignedToName)) {
+                                <div class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">
+                                    @Model.AssignedToName.Substring(0,1)
+                                </div>
+                                <span class="text-slate-800 font-medium">@Model.AssignedToName</span>
+                             } else {
+                                 <span class="text-slate-400 italic">Unassigned</span>
+                             }
+                         </div>
+                    </div>
+                     <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <p class="text-xs text-slate-400 uppercase font-semibold">Description</p>
+                        <p class="text-slate-600 mt-1 text-sm leading-relaxed">@Model.Remark</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dates Card -->
+             <div class="bg-white/80 backdrop-blur-md border border-white/20 rounded-2xl shadow-lg p-6">
+                <h3 class="text-sm font-bold text-slate-800 mb-3">Timestamps</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Created:</span>
+                        <span class="text-slate-800 font-medium">@Model.CreatedOn?.ToString("MMM dd, yyyy HH:mm")</span>
+                    </div>
+                     <div class="flex justify-between">
+                        <span class="text-slate-500">Due Date:</span>
+                        <span class="text-slate-800 font-medium">@Model.DueDate?.ToString("MMM dd, yyyy")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 2: Ticket Parts (Main Content) -->
+        <div class="lg:col-span-1 space-y-6">
+             <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden flex flex-col h-full">
+                <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
+                    <h2 class="text-lg font-bold text-slate-800">
+                        <i class="fas fa-tools text-slate-400 mr-2"></i> Spare Parts Used
+                    </h2>
+                    <button onclick="openPartModal()" class="text-sm bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add Part
+                    </button>
+                </div>
+                
+                <div class="p-0 flex-grow overflow-auto max-h-[500px]">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-xs text-slate-500 uppercase font-semibold sticky top-0">
+                            <tr>
+                                <th class="px-6 py-3">Part Name</th>
+                                <th class="px-6 py-3 text-center">Qty</th>
+                                <th class="px-6 py-3 text-right">Cost</th>
+                                <th class="px-6 py-3 text-right">Total</th>
+                                <th class="px-6 py-3 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partsTableBody" class="divide-y divide-slate-100 text-sm">
+                            <tr><td colspan="5" class="p-6 text-center text-slate-400">Loading parts...</td></tr>
+                        </tbody>
+                        <tfoot class="bg-slate-50 font-bold text-slate-800 border-t border-slate-200">
+                            <tr>
+                                <td colspan="3" class="px-6 py-3 text-right">Grand Total:</td>
+                                <td id="grandTotal" class="px-6 py-3 text-right text-sky-600">$0.00</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+             </div>
+        </div>
+
+        <!-- COLUMN 3: Activity Log & Chat -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 h-full flex flex-col">
+                <h2 class="text-lg font-bold text-slate-800 mb-4">
+                    <i class="fas fa-history text-slate-400 mr-2"></i> Activity Log
+                </h2>
+                
+                <div class="relative pl-4 border-l-2 border-slate-200 space-y-8 flex-grow overflow-auto max-h-[600px] pr-2 custom-scrollbar">
+                    
+                    <!-- Simulating Logs dynamically -->
+                    <div id="activityLogContainer">
+                        <!-- JS will populate this -->
+                        <div class="text-center text-slate-400 py-4">Fetching history...</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Part Modal -->
+<div id="partModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center transition-opacity duration-300 opacity-0">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm transform scale-95 transition-transform duration-300" id="partModalContent">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-slate-800">Add Spare Part</h3>
+             <button onclick="closePartModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <input type="hidden" id="ticketIdForPart" value="@Model.Id">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Part Name</label>
+                <input type="text" id="partName" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. SSD 500GB">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                 <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantity</label>
+                    <input type="number" id="partQty" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all" value="1" min="1">
+                </div>
+                 <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Unit Cost ($)</label>
+                    <input type="number" id="partCost" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-sky-500 outline-none transition-all" placeholder="0.00" step="0.01">
+                </div>
+            </div>
+            <button onclick="submitPart()" class="w-full py-3 bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-700 hover:to-sky-600 text-white font-bold rounded-xl shadow-lg shadow-sky-500/30 transition-all transform hover:scale-[1.02]">
+                Insert Part Record
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { bg: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>
+
+<script>
+    const ticketId = "@Model.Id";
+    const ticketNo = "@Model.TicketNo";
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadParts();
+        loadLogs(); // Assuming you will build an endpoint for logs, or we can use existing data
+    });
+
+    function openPartModal() {
+        const modal = document.getElementById('partModal');
+        const content = document.getElementById('partModalContent');
+        modal.classList.remove('hidden');
+        // Small delay to allow display:block to apply before opacity transition
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closePartModal() {
+        const modal = document.getElementById('partModal');
+        const content = document.getElementById('partModalContent');
+        modal.classList.add('opacity-0');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    async function loadParts() {
+        try {
+            const res = await fetch(`/ServiceDesk/GetParts?ticketId=${ticketId}`);
+            const parts = await res.json();
+            const tbody = document.getElementById('ticketsTableBody'); // Make sure ID matches
+            // Wait, ID in HTML above is partsTableBody. Correcting.
+            const partsBody = document.getElementById('partsTableBody');
+            
+            if(parts.length === 0) {
+                partsBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 italic">No parts added yet.</td></tr>`;
+                updateTotal(0);
+                return;
+            }
+
+            let html = '';
+            let grandTotal = 0;
+
+            parts.forEach(p => {
+                const total = p.quantity * p.unitCost;
+                grandTotal += total;
+                html += `
+                    <tr class="hover:bg-slate-50 transition-colors group">
+                        <td class="px-6 py-4 font-medium text-slate-700">${p.partName}</td>
+                        <td class="px-6 py-4 text-center text-slate-600">${p.quantity}</td>
+                        <td class="px-6 py-4 text-right text-slate-600">$${p.unitCost.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right font-medium text-slate-800">$${total.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="deletePart(${p.id})" class="text-red-400 hover:text-red-600 transition-colors" title="Remove Part">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            partsBody.innerHTML = html;
+            updateTotal(grandTotal);
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function updateTotal(amount) {
+        document.getElementById('grandTotal').innerText = '$' + amount.toFixed(2);
+    }
+
+    async function submitPart() {
+        const data = {
+            ticketId: parseInt(ticketId),
+            partName: document.getElementById('partName').value,
+            quantity: parseInt(document.getElementById('partQty').value),
+            unitCost: parseFloat(document.getElementById('partCost').value)
+        };
+
+        if(!data.partName || data.quantity < 1) return alert("Please fill all fields");
+
+        try {
+            const res = await fetch('/ServiceDesk/AddPart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if(res.ok) {
+                closePartModal();
+                document.getElementById('partName').value = ''; 
+                loadParts(); // Refresh list
+            } else {
+                alert("Failed to add part");
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    async function deletePart(id) {
+        if(!confirm("Remove this part record?")) return;
+        await fetch(`/ServiceDesk/DeletePart?id=${id}`, { method: 'DELETE' });
+        loadParts();
+    }
+
+    // Placeholder for logs (fetch from endpoint if available, or simulate)
+    async function loadLogs() {
+        // Since we don't have a direct logs endpoint yet for specific ticket History view, 
+        // we might leave this as a future enhancement or fetch basic logs if endpoint exists.
+        // For now, let's show a "Created" log.
+        const container = document.getElementById('activityLogContainer');
+        const createdDate = "@Model.CreatedOn?.ToString("MMM dd, yyyy HH:mm")";
+        
+        container.innerHTML = `
+            <div class="relative pb-8">
+                <span class="absolute -left-[25px] top-1 w-4 h-4 rounded-full bg-sky-100 border-2 border-sky-500"></span>
+                <p class="text-xs text-slate-400 font-semibold uppercase">${createdDate}</p>
+                <p class="text-slate-800 font-medium mt-1">Ticket Created</p>
+                <p class="text-slate-500 text-sm">System / @Model.RequesterName</p>
+            </div>
+        `;
+    }
+</script>

@@ -121,6 +121,20 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        public async Task<IActionResult> UpdateTicketDetails()
+        {
+            try
+            {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/UpdateDetails", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
         public async Task<IActionResult> UpdateStatus()
         {
             try
@@ -197,6 +211,45 @@ namespace ManageEngineWebApp.Controllers
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+        [AuthFilter]
+        public async Task<IActionResult> Details(int id)
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{id}");
+                if (!response.IsSuccessStatusCode) return NotFound();
+                
+                var content = await response.Content.ReadAsStringAsync();
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var ticket = System.Text.Json.JsonSerializer.Deserialize<ManageEngineWebApp.Models.HelpdeskTicket>(content, options);
+                return View(ticket);
+            }
+            catch { return NotFound(); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetLocations()
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Locations");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetUsersByLocation(int locationId)
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/UsersByLocation/{locationId}");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
         }
     }
 }

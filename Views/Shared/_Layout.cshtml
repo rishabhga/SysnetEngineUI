@@ -5,7 +5,6 @@
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
 }
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,9 +21,6 @@
     <link rel="stylesheet" href="~/ManageEngineWebApp.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-    <link href="~/css/prettify.css" rel="stylesheet" />
-    <link href="~/css/datepicker.css" rel="stylesheet" />
-    <link href="~/css/Custom.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
 
     <style>
@@ -33,393 +29,334 @@
         }
 
         body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-color: #f9fafb;
+            background-color: #f8fafc;
+            color: #1e293b;
         }
 
-        main {
-            flex: 1;
-            padding-top: 2rem;
-            padding-bottom: 2rem;
+        /* Sidebar Custom Styles */
+        .sidebar {
+            background-color: #ffffff;
+            color: #64748b;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 280px;
+            border-right: 1px solid #e2e8f0;
         }
 
-        /* Navigation Styles */
-        .nav-gradient {
-            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 50%, #0369a1 100%);
-            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.1), 0 2px 4px -1px rgba(14, 165, 233, 0.06);
+        .sidebar.collapsed {
+            width: 0;
+            padding: 0;
+            border: none;
         }
 
-        .logo-container {
-            transition: transform 0.3s ease;
-        }
-
-            .logo-container:hover {
-                transform: translateY(-2px);
-            }
-
-            .logo-container img {
-                filter: brightness(0) invert(1);
-                height: 32px;
-                width: auto;
-            }
-
-        /* Dropdown Styles */
-        .dropdown {
-            position: relative;
-        }
-
-        .dropdown-menu {
+        .sidebar.collapsed .sidebar-item span,
+        .sidebar.collapsed .sidebar-category,
+        .sidebar.collapsed .sidebar-profile .profile-details,
+        .sidebar.collapsed .logo-text {
             display: none;
-            position: absolute;
-            right: 0;
-            top: 100%;
-            margin-top: 0.5rem;
-            min-width: 280px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            z-index: 50;
-            opacity: 0;
-            transform: translateY(-8px);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
         }
 
-        .dropdown:hover .dropdown-menu {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
+        .sidebar.collapsed .sidebar-item {
+            justify-content: center;
+            padding: 0.75rem 0;
+            margin: 0.5rem auto;
+            width: 44px;
         }
 
-        .dropdown-header {
-            padding: 1.25rem;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border-bottom: 1px solid #e0e7ff;
+        .sidebar.collapsed .sidebar-item i {
+            margin-right: 0;
+            font-size: 1.25rem;
         }
 
-        .dropdown-menu a {
+        .sidebar-item {
             display: flex;
             align-items: center;
             padding: 0.75rem 1.25rem;
-            font-size: 0.875rem;
+            border-radius: 0.75rem;
+            margin: 0.25rem 1rem;
             font-weight: 500;
-            color: #374151;
-            transition: all 0.15s ease;
-            text-decoration: none;
-            border-left: 3px solid transparent;
-        }
-
-            .dropdown-menu a:hover {
-                background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%);
-                color: #0369a1;
-                border-left-color: #0ea5e9;
-            }
-
-            .dropdown-menu a i {
-                width: 20px;
-                margin-right: 0.875rem;
-                font-size: 1rem;
-                transition: transform 0.2s;
-            }
-
-            .dropdown-menu a:hover i {
-                transform: scale(1.15);
-            }
-
-        .dropdown-divider {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
-            margin: 0.5rem 0;
-        }
-
-        .logout-btn {
-            color: #dc2626 !important;
-        }
-
-            .logout-btn:hover {
-                background: linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%) !important;
-                border-left-color: #dc2626 !important;
-            }
-
-        /* Profile Button */
-        .profile-btn {
-            background: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
+            font-size: 0.875rem;
             transition: all 0.2s ease;
+            text-decoration: none;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
-            .profile-btn:hover {
-                background: rgba(255, 255, 255, 0.95);
-                border-color: rgba(14, 165, 233, 0.3);
-                box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
-                transform: translateY(-1px);
-            }
+        .sidebar-item:hover {
+            background-color: #f1f5f9;
+            color: #0ea5e9;
+        }
 
-        .profile-avatar {
+        .sidebar-item.active {
+            background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .sidebar-item i {
+            width: 24px;
+            font-size: 1.125rem;
+            margin-right: 0.75rem;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .sidebar-item:hover i, .sidebar-item.active i {
+            transform: scale(1.1);
+        }
+
+        .sidebar-category {
+            font-size: 0.625rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #94a3b8;
+            margin: 1.5rem 1.75rem 0.5rem;
+            white-space: nowrap;
+        }
+
+        /* Profile Section */
+        .sidebar-profile {
+            border-top: 1px solid #f1f5f9;
+            padding: 1.25rem 1rem;
+            margin-top: auto;
+            background-color: #ffffff;
+        }
+
+        .avatar-initial {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+        }
+
+        .sidebar.collapsed .avatar-initial {
             width: 36px;
             height: 36px;
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            border-radius: 10px;
+            margin: 0 auto;
+        }
+
+        /* Header / Top Bar */
+        .top-bar {
+            height: 64px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: white;
-            font-size: 0.875rem;
-            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 40;
         }
 
-        .dropdown-avatar {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: white;
-            font-size: 1.125rem;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-        }
-
-        /* Badge Styles */
-        .badge-superadmin {
-            background: linear-gradient(135deg, #b4d334 0%, #8fb829 100%);
-            color: white;
-            padding: 0.375rem 0.875rem;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(180, 211, 52, 0.3);
-            letter-spacing: 0.025em;
-        }
-
-        .badge-role {
-            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-            color: white;
-            padding: 0.375rem 0.875rem;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
-        }
-
-        /* Footer Styles */
-        .footer-gradient {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #94a3b8;
-        }
-
-        .footer-logo {
+        .toggle-btn {
+            width: 36px;
             height: 36px;
-            width: auto;
-            opacity: 0.9;
-            transition: opacity 0.3s ease;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-            .footer-logo:hover {
-                opacity: 1;
-            }
-
-        .footer-link {
-            color: #94a3b8;
-            transition: color 0.2s ease;
-            text-decoration: none;
+        .toggle-btn:hover {
+            background-color: #f1f5f9;
+            color: #0ea5e9;
         }
 
-            .footer-link:hover {
-                color: #0ea5e9;
-            }
-
-        /* DataTables Styling */
-        .dataTables_length,
-        .dataTables_filter {
-            display: none !important;
+        /* Content Area Transition */
+        .main-content {
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .no-footer {
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            background-color: white;
+        /* Logo Logic */
+        .nav-logo {
+            display: none;
         }
 
-        .dataTables_info {
-            margin-left: 10px;
-            font-size: 0.875rem;
-            color: #6b7280;
+        #sidebar.collapsed ~ .flex-grow .nav-logo {
+            display: flex;
         }
 
-        .paginate_button {
-            font-size: 0.875rem;
+        #sidebar.collapsed .sidebar-logo-container {
+            display: none;
         }
 
-        .bhead {
-            text-align: center;
-            padding: 0.75rem;
-            background-color: #f9fafb;
-            border-radius: 8px;
-        }
-
-        .table_head_color {
-            background-color: #f9fafb;
-        }
-
-        table.dataTable thead th,
-        table.dataTable thead td {
-            padding: 0.75rem;
-        }
+        /* Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 20px; }
     </style>
     @RenderSection("Styles", required: false)
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="nav-gradient sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <a href="@Url.Action("Companies", "Companies")" class="logo-container flex items-center space-x-3">
-                    <img src="~/images/footer-logo.png" alt="SYSNET Logo" />
+<body class="flex h-screen overflow-hidden">
+    <aside id="sidebar" class="sidebar flex-shrink-0 flex flex-col h-full z-50">
+        <!-- Logo -->
+        <div class="px-5 py-6 flex items-center justify-center sidebar-logo-container">
+            <div class="flex-shrink-0 flex items-center justify-center">
+                <img src="~/images/footer-logo.png" alt="Sysnet" class="w-32 h-auto" />
+            </div>
+        </div>
+
+        <!-- Scrollable Menu -->
+        <div class="flex-grow overflow-y-auto custom-scrollbar pb-6 mt-2">
+            <div class="sidebar-category text-blue-600/50">Main Menu</div>
+            <nav>
+                <a href="@Url.Action("Companies", "Companies")" class="sidebar-item @(currentController == "Companies" ? "active" : "")">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
                 </a>
-                <div class="flex items-center space-x-4">
-                    @if (currentController == "ComputerSummary" && currentAction == "Deshboad")
-                    {
-                        <div class="relative">
-                            <button id="notificationBell"
-                                    class="w-9 h-9 rounded-full bg-white shadow flex items-center justify-center hover:bg-sky-50 border border-gray-200 relative">
-                                <i class="fas fa-bell text-gray-600 text-sm"></i>
-                                <span id="notificationBadge"
-                                      class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                    0
-                                </span>
-                            </button>
+                
+                @{
+                    var dynamicMenus = await ManageEngineWebApp.Datacontext.RoleHelper.GetDynamicMenusAsync();
+                    var authorizedMenus = dynamicMenus.Where(m => ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, m.RequiredPermissionCode)).OrderBy(m => m.SortOrder).ToList();
+                }
 
-                            <div id="notificationPanel"
-                                 class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50">
-                                <div class="px-3 py-2 border-b flex items-center justify-between">
-                                    <span class="text-xs font-semibold text-gray-700">Notifications</span>
-                                    <span class="text-[10px] text-gray-400" id="notificationCountLabel">0 new</span>
-                                </div>
-                                <div id="notificationList" class="max-h-80 overflow-y-auto text-xs">
-                                </div>
-                            </div>
-                        </div>
-                    }
+                @foreach (var menu in authorizedMenus)
+                {
+                    <a href="@Url.Action(menu.RouteAction, menu.RouteController)"
+                       class="sidebar-item @(currentController == menu.RouteController && currentAction == menu.RouteAction ? "active" : "")">
+                        <i class="@menu.MenuIcon"></i>
+                        <span>@menu.MenuName</span>
+                    </a>
+                }
+            </nav>
 
-                    <!-- User Menu (same for all pages, including groups and dashboard) -->
-                    <div class="dropdown">
-                        <button class="profile-btn flex items-center space-x-3">
-                            <div class="profile-avatar">
-                                @(username?.Substring(0, 1).ToUpper() ?? "U")
-                            </div>
-                            <div class="text-left hidden sm:block">
-                                <p class="text-sm font-semibold text-gray-900">@username</p>
-                                <p class="text-xs text-gray-500">@(isSuperAdmin ? "Super Admin" : userRole)</p>
-                            </div>
-                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
-                        </button>
-                    <div class="dropdown-menu">
-                        <div class="dropdown-header">
-                            <div class="flex items-center space-x-3 mb-3">
-                                <div class="dropdown-avatar">
-                                    @(username?.Substring(0, 1).ToUpper() ?? "U")
-                                </div>
-                                <div>
-                                    <p class="text-xs text-gray-500 font-medium">Signed in as</p>
-                                    <p class="font-bold text-gray-900">@username</p>
-                                </div>
-                            </div>
-                            @if (isSuperAdmin)
-                            {
-                                <span class="badge-superadmin">
-                                    <i class="fas fa-crown mr-1.5"></i>Super Admin
-                                </span>
-                            }
-                            else if (!string.IsNullOrEmpty(userRole))
-                            {
-                                <span class="badge-role">
-                                    <i class="fas fa-user mr-1.5"></i>@userRole
-                                </span>
-                            }
-                        </div>
+            @if (isSuperAdmin)
+            {
+                <div class="sidebar-category text-blue-600/50">Administration</div>
+                <nav>
+                    <a asp-controller="ServiceDesk" asp-action="Index"
+                       class="sidebar-item @(currentController == "ServiceDesk" ? "active" : "")">
+                        <i class="fas fa-headset"></i>
+                        <span>Service Desk</span>
+                    </a>
+                    <a asp-controller="Auth" asp-action="ManagePermissions"
+                       class="sidebar-item @(currentController == "Auth" && currentAction == "ManagePermissions" ? "active" : "")">
+                        <i class="fas fa-shield-halved"></i>
+                        <span>Permissions</span>
+                    </a>
+                    <a asp-controller="Auth" asp-action="ManageRoles"
+                       class="sidebar-item @(currentController == "Auth" && currentAction == "ManageRoles" ? "active" : "")">
+                        <i class="fas fa-users-gear"></i>
+                        <span>User Roles</span>
+                    </a>
+                </nav>
+            }
+        </div>
 
-                        <div class="py-2">
-                            @{
-                                var dynamicMenus = await ManageEngineWebApp.Datacontext.RoleHelper.GetDynamicMenusAsync();
-                                var authorizedMenus = dynamicMenus.Where(m => ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, m.RequiredPermissionCode)).OrderBy(m => m.SortOrder).ToList();
-                            }
+        <!-- Profile Section -->
+        <div class="sidebar-profile">
+            <div class="flex items-center gap-3">
+                <div class="avatar-initial flex-shrink-0">
+                    @(username?.Substring(0, 1).ToUpper() ?? "U")
+                </div>
+                <div class="flex-grow min-w-0 profile-details">
+                    <p class="text-slate-900 font-bold text-sm truncate">@username</p>
+                    <p class="text-[10px] text-blue-600 font-semibold uppercase tracking-wider">@(isSuperAdmin ? "Super Admin" : userRole)</p>
+                </div>
+                <a asp-controller="Auth" asp-action="Logout" class="text-slate-400 hover:text-red-500 transition-colors ml-auto" title="Logout">
+                    <i class="fas fa-sign-out-alt text-lg"></i>
+                </a>
+            </div>
+        </div>
+    </aside>
 
-                            @foreach (var menu in authorizedMenus)
-                            {
-                                <a href="@Url.Action(menu.RouteAction, menu.RouteController)"
-                                   class="@(currentController == menu.RouteController && currentAction == menu.RouteAction ? "active" : "")">
-                                    <i class="@menu.MenuIcon"></i>
-                                    <span>@menu.MenuName</span>
-                                </a>
-                            }
-
-                            @if (isSuperAdmin)
-                            {
-                                <div class="dropdown-divider"></div>
-                                <a asp-controller="ServiceDesk" asp-action="Index"
-                                   class="@(currentController == "ServiceDesk" && currentAction == "Index" ? "active" : "")">
-                                    <i class="fas fa-headset"></i>
-                                    <span>Service Desk</span>
-                                </a>
-                                <a asp-controller="Auth" asp-action="ManagePermissions"
-                                   class="@(currentController == "Auth" && currentAction == "ManagePermissions" ? "active" : "")">
-                                    <i class="fas fa-tools"></i>
-                                    <span>System Management</span>
-                                </a>
-                                <a asp-controller="Auth" asp-action="ManageRoles"
-                                   class="@(currentController == "Auth" && currentAction == "ManageRoles" ? "active" : "")">
-                                    <i class="fas fa-user-shield"></i>
-                                    <span>Manage Roles</span>
-                                </a>
-                            }
-
-                            <div class="dropdown-divider"></div>
-
-                            <a asp-controller="Auth" asp-action="Logout" class="logout-btn">
-                                <i class="fas fa-sign-out-alt"></i>
-                                <span>Logout</span>
-                            </a>
-                        </div>
+    <!-- Main Content Area -->
+    <div class="flex-grow flex flex-col min-w-0 overflow-hidden relative">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="flex items-center gap-3">
+                <button type="button" id="toggleSidebar" class="toggle-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <!-- Nav Logo (Shown only when sidebar is collapsed) -->
+                <div class="nav-logo flex items-center ml-2">
+                    <div class="flex items-center justify-center">
+                        <img src="~/images/footer-logo.png" alt="Sysnet" class="w-24 h-auto" />
                     </div>
                 </div>
             </div>
-        </div>
-    </nav>
+            
+            <div class="flex items-center gap-4">
+                @if (currentController == "ComputerSummary" && currentAction == "Deshboad")
+                {
+                    <div class="relative">
+                        <button id="notificationBell"
+                                class="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center hover:bg-gray-50 border border-gray-200 relative transition-all">
+                            <i class="fas fa-bell text-gray-500 text-lg"></i>
+                            <span id="notificationBadge"
+                                  class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-white">
+                                0
+                            </span>
+                        </button>
 
-    <!-- Main Content -->
-    <main>
-        @RenderBody()
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer-gradient mt-auto">
-        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <div class="flex items-center space-x-3">
-                    <img src="~/images/footer-logo.png" alt="SYSNET" class="footer-logo" />
-                </div>
-              
-                <div class="text-xs">
-                    <p>&copy; @DateTime.Now.Year SYSNET.</p>
+                        <div id="notificationPanel"
+                             class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                            <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
+                                <span class="text-sm font-bold text-gray-700">Notifications</span>
+                                <span class="bg-sky-100 text-sky-600 text-[10px] font-bold px-2 py-0.5 rounded-full" id="notificationCountLabel">0 New</span>
+                            </div>
+                            <div id="notificationList" class="max-h-80 overflow-y-auto">
+                                <!-- Notifications here -->
+                            </div>
+                        </div>
+                    </div>
+                }
+                
+                <div class="h-8 w-[1px] bg-gray-200 mx-2"></div>
+                
+                <div class="flex items-center gap-3">
+                     <span class="text-xs font-semibold text-gray-500">Welcome, <span class="text-gray-900">@username</span></span>
                 </div>
             </div>
-        </div>
-    </footer>
+        </header>
+
+        <!-- Dynamic Content -->
+        <main class="flex-grow overflow-y-auto custom-scrollbar bg-slate-50/50">
+            @RenderBody()
+        </main>
+        
+        <!-- Subtle Footer in Main Content if needed -->
+    </div>
 
     @await RenderSectionAsync("Scripts", required: false)
+    
+    <script>
+        // Sidebar Toggle Persistence
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        
+        const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+        if (isCollapsed) sidebar.classList.add('collapsed');
+
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+        });
+
+        // Notification Logic
+        const bell = document.getElementById('notificationBell');
+        const panel = document.getElementById('notificationPanel');
+        if(bell && panel) {
+            bell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                panel.classList.toggle('hidden');
+            });
+            document.addEventListener('click', (e) => {
+                if(!bell.contains(e.target) && !panel.contains(e.target)) panel.classList.add('hidden');
+            });
+        }
+    </script>
 </body>
 </html>
