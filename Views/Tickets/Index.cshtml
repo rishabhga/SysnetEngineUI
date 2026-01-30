@@ -221,6 +221,10 @@
     }
 
     function openCreateModal() {
-        alert("To create a ticket, please go to a Computer's Details page and click 'Service Desk'.");
+        if ('@isSuperAdmin' === 'True') {
+            window.location.href = '/ServiceDesk';
+        } else {
+            alert("To create a ticket, please go to a Computer's Details page and click 'Service Desk'.");
+        }
     }
 </script>

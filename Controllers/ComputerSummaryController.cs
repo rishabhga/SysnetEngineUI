@@ -1252,6 +1252,11 @@ namespace ManageEngineWebApp.Controllers
         [AuthFilter(AllowedRoles = "SuperAdmin,CompanyAdmin,CompanyUser", VerifyCompanyAccess = true)]
         public async Task<IActionResult> Index(string domain)
         {
+            if (string.IsNullOrEmpty(domain))
+            {
+                return RedirectToAction("Companies", "Companies");
+            }
+
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -1279,19 +1284,36 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<UserDetails>>(content) : null;
-                    datalist = data.Where(x => x.domainName == domain).ToList();
+                    
+                    if (data != null)
+                    {
+                        datalist = data.Where(x => x.domainName == domain).ToList();
 
-                    //ViewBag.lastScan = datalist[0].DateTime;
-                    ViewBag.UserName = datalist[0].domainName;
-                    ViewBag.windowdetails = datalist[0].WindowName;
-                    ViewBag.ip = datalist[0].IpAddress;
-                    ViewBag.LastLogUser = datalist[0].UserName;
-                    ViewBag.LastBootTime = datalist[0].LastBootTime;
-                    ViewBag.scanTime = datalist[0].DateTime;
-                    ViewBag.primaryow = datalist[0].PrimaryOwner;
-
-
-                    //return View(datalist);
+                        if (datalist.Any())
+                        {
+                            ViewBag.UserName = datalist[0].domainName;
+                            ViewBag.windowdetails = datalist[0].WindowName;
+                            ViewBag.ip = datalist[0].IpAddress;
+                            ViewBag.LastLogUser = datalist[0].UserName;
+                            ViewBag.LastBootTime = datalist[0].LastBootTime;
+                            ViewBag.scanTime = datalist[0].DateTime;
+                            ViewBag.primaryow = datalist[0].PrimaryOwner;
+                        }
+                        else
+                        {
+                            ViewBag.NoDevices = true;
+                        }
+                    }
+                    else
+                    {
+                        datalist = new List<UserDetails>();
+                        ViewBag.NoDevices = true;
+                    }
+                }
+                else
+                {
+                    datalist = new List<UserDetails>();
+                    ViewBag.NoDevices = true;
                 }
 
 
@@ -2114,8 +2136,7 @@ namespace ManageEngineWebApp.Controllers
         }
         public async Task<IActionResult> Summary(string domain)
         {
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
 
 
@@ -2145,8 +2166,13 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<Summary>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    datalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<Summary>();
                     //return Json(datalist);
+                }
+
+                if (!datalist.Any())
+                {
+                    return Json(new { TotalHardware = 0, TotalSoftware = 0, CommercialSoftware = 0, NonCommercialSoftware = 0, ProhibitedSoftware = 0, MissingPatches = 0 });
                 }
 
 
@@ -2172,8 +2198,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> OSSummary(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2192,8 +2217,13 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<OSSummary>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    datalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<OSSummary>();
                     //return Json(datalist);
+                }
+
+                if (!datalist.Any())
+                {
+                    return Json(new { OperatingSystem = "N/A", OSVersion = "N/A", RegisteredTo = "N/A", ProductID = "N/A", LicenseType = "N/A", SystemDrive = "N/A", OSCDKey = "N/A", OSServicePack = "N/A", OSBuildNumber = "N/A" });
                 }
                 //return Json(datalist);
 
@@ -2218,8 +2248,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> DeviceSummary(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2239,8 +2268,13 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DeviceSummary>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    datalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<DeviceSummary>();
                     //return Json(datalist);
+                }
+
+                if (!datalist.Any())
+                {
+                    return Json(new { DeviceName = "N/A", Manufacturer = "N/A", Model = "N/A", SystemType = "N/A", SerialNumber = "N/A", Domain = "N/A", UserName = "N/A", TimeZone = "N/A", TotalPhysicalMemory = "N/A" });
                 }
                 //return Json(datalist);
                 var assetSummary = new
@@ -2271,8 +2305,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> UsegeDisk(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2292,7 +2325,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DiskUsage>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     //return Json(datalist);
                 }
 
@@ -2320,8 +2353,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> services(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2341,7 +2373,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsService>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
 
@@ -2360,8 +2392,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> groups(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2382,7 +2413,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsGroupDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -2396,8 +2427,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> drivers(string domain)
         {
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2416,7 +2446,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowDrivers>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -2431,8 +2461,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> BIOS(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2452,7 +2481,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<BIOSDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     //return Json(datalist);
                 }
                 var biosdetaildata = new
@@ -2484,8 +2513,7 @@ namespace ManageEngineWebApp.Controllers
         {
 
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -2503,7 +2531,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<HardDiskDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -2518,8 +2546,7 @@ namespace ManageEngineWebApp.Controllers
         {
 
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -2537,7 +2564,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<LogicalDiskDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -2555,8 +2582,7 @@ namespace ManageEngineWebApp.Controllers
 
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2576,7 +2602,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<KeyboardDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -2589,8 +2615,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Monitor(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2609,7 +2634,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MonitorInfo>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     //return Json(datalist);
                 }
 
@@ -2636,8 +2661,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Motherboard(string domain)
         {
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2658,7 +2682,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MotherboardDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -2673,8 +2697,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> NetworkAdapters(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2693,7 +2716,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<NetworkAdapterDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     //return Json(datalist);
                 }
                 return Json(datalist);
@@ -2707,8 +2730,7 @@ namespace ManageEngineWebApp.Controllers
         {
 
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -2726,7 +2748,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PhysicalMemoryDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     //return Json(datalist);
                 }
 
@@ -2752,8 +2774,7 @@ namespace ManageEngineWebApp.Controllers
         {
 
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -2772,7 +2793,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MemorySlotDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
 
@@ -2791,8 +2812,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> PointingDevices(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2810,7 +2830,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PointingDeviceInfo>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -2827,8 +2847,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Printers(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2846,7 +2865,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PrinterDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -2860,8 +2879,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Processors(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2880,7 +2898,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ProcessorDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     //return Json(datalist);
                 }
                 var processerdata = new
@@ -2910,8 +2928,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Sound(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -2927,7 +2944,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SoundDeviceDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -2945,8 +2962,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> VideoControllers(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2964,7 +2980,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<VideoDeviceInfo>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -2979,8 +2995,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> USBControllers(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -2998,7 +3013,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<USBControllerInfo>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3013,8 +3028,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> USBHub(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3031,7 +3045,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<USBHubDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3049,8 +3063,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> DesktopApps(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3068,7 +3081,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DesktopAppsModel>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3120,8 +3133,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> MicrosoftstoreApps(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3139,7 +3151,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MicrosoftStoreAppDetailsClass>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3153,8 +3165,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> MeteredSoftware(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -3173,7 +3184,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<InstalledApplication>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3186,8 +3197,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> InstallationSoft(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -3219,8 +3229,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Antivirus(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -3237,7 +3246,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<AntivirusDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3250,8 +3259,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Missingpatch(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -3269,7 +3277,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetailsservice>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3283,8 +3291,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Missingpatchwindow(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -3301,7 +3308,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetail>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3312,8 +3319,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Firewall(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3332,7 +3338,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<AntivirusDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3344,8 +3350,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> MissingPatches(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3364,7 +3369,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3389,8 +3394,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> RestrictionOnDevice(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3409,7 +3413,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DeviceRestrictionDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     //return Json(datalist);
                 }
                 var Restricationdeetailsfist = new
@@ -3430,8 +3434,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> RestrictionOnNetwork(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3450,7 +3453,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<RestrictionOnNetwork>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     //return Json(datalist);
                 }
                 var RestricationNettailsfist = new
@@ -3471,8 +3474,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> bluetootdetailsdata(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3491,7 +3493,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<BluetoothDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     //return Json(datalist);
                 }
                 var bluetootdetailslist = new
@@ -3516,8 +3518,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> SecurityPrivacyDetails(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3536,7 +3537,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SecurityPrivacyDetails>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     // return Json(datalist);
                 }
 
@@ -3559,8 +3560,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> ApplicationSettings(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3579,7 +3579,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ApplicationSettings>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     // return Json(datalist);
                 }
 
@@ -3600,8 +3600,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> SocialSearchSettings(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3620,7 +3619,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SocialSearchSettings>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     // return Json(datalist);
                 }
 
@@ -3642,8 +3641,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> UsbDeviceAudit(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
@@ -3661,7 +3659,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<USBDeviceInfo>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3674,8 +3672,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> AuditHistory(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3694,7 +3691,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<UserAuditHistory>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3710,8 +3707,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> LoginHistory(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3729,7 +3725,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<UserLogonHistory>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3744,8 +3740,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> UpdateLoguser(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3779,8 +3774,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Battery(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3798,7 +3792,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<BatteryInfo>>(content) : null;
-                    datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
                     //return Json(datalist);
                 }
                 var batterydata = new
@@ -3826,8 +3820,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> SummaryUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3860,8 +3853,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> OSSummaryUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3897,8 +3889,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> DeviceSummaryChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3931,8 +3922,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> BiosSummaryChageUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -3967,8 +3957,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> HardDiskSummaryChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4002,8 +3991,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> KeyboardSummaryChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4037,8 +4025,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> MonitorSummaryChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4072,8 +4059,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> MotherboardSummaryChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4110,8 +4096,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> NetworkAdapterChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4145,8 +4130,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> ProcessorChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4182,8 +4166,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> physicalMemoryDetailsChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4217,8 +4200,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> SoundDeviceChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4252,8 +4234,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> USBControllerChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4289,8 +4270,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> WindowsUserChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4324,8 +4304,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> WindowsGroupChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4359,8 +4338,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> WindowDriversChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4394,8 +4372,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> DesktopAppsChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4430,8 +4407,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> MSStoreAppChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4466,8 +4442,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> AntivirusChangeAuditUpdateLog(string domain)
         {
 
-            string Addedtokennumber = domain.Split('-')[1];
-            string UCode = Addedtokennumber;
+            string UCode = GetUCodeFromDomain(domain);
 
             HttpClientHandler handler = new HttpClientHandler
             {
@@ -4671,5 +4646,12 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
+
+        private string GetUCodeFromDomain(string domain)
+        {
+            if (string.IsNullOrEmpty(domain)) return "";
+            var parts = domain.Split('-');
+            return parts.Length > 1 ? parts[1] : domain;
+        }
     }
 }

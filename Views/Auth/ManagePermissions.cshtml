@@ -1,0 +1,593 @@
+@{
+    ViewData["Title"] = "System Management";
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">System Management</h1>
+            <p class="text-sm text-gray-500">Manage dynamic modules, permissions, and sidebar menus.</p>
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="openMenuModal()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center shadow-lg shadow-sky-600/20">
+                <i class="fas fa-plus mr-2"></i>Add Menu Item
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="statsContainer">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-pulse h-24"></div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-pulse h-24"></div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-pulse h-24"></div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-pulse h-24"></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Menus List -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <h2 class="font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-list-ul mr-2 text-sky-500"></i>Active Sidebar Menus
+                    </h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Menu Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permission</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menuTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modules List -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <h2 class="font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-cubes mr-2 text-amber-500"></i>Modules
+                    </h2>
+                    <button onclick="openModuleModal()" class="text-sky-600 hover:text-sky-700 font-semibold text-xs">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div id="moduleList" class="p-4 space-y-3">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Permissions Section -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <h2 class="font-bold text-gray-800 flex items-center">
+                <i class="fas fa-key mr-2 text-emerald-500"></i>Permissions
+            </h2>
+            <button onclick="openPermissionModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center">
+                <i class="fas fa-plus mr-1"></i>Add Permission
+            </button>
+        </div>
+        <div class="overflow-x-auto max-h-80">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 sticky top-0">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permission Code</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Module ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action Type</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="permissionTableBody" class="bg-white divide-y divide-gray-200">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Menu Modal -->
+<div id="menuModal" class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl transform transition-all">
+        <div class="px-8 py-6 border-b border-gray-100">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-900" id="menuModalTitle">Add Menu Item</h3>
+                <button onclick="closeMenuModal()" class="text-gray-400 hover:text-gray-900 transition"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <form id="menuForm" class="px-8 py-6 space-y-4">
+            <input type="hidden" id="menuId">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Display Name</label>
+                    <input type="text" id="menuName" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Controller</label>
+                    <input type="text" id="routeController" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm" placeholder="Companies">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Action</label>
+                    <input type="text" id="routeAction" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm" placeholder="Companies">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Icon Class</label>
+                    <input type="text" id="menuIcon" placeholder="fas fa-star" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Required Permission</label>
+                    <input type="text" id="requiredPermission" placeholder="ViewCompanies" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Module</label>
+                    <select id="menuModuleId" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm">
+                        <!-- Options loaded dynamically -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Sort Order</label>
+                    <input type="number" id="menuSortOrder" value="1" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm">
+                </div>
+            </div>
+            <div class="pt-4 flex justify-end space-x-3">
+                <button type="button" onclick="closeMenuModal()" class="px-6 py-2.5 text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-lg shadow-sky-600/20 transition">Save Menu Item</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add/Edit Module Modal -->
+<div id="moduleModal" class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl transform transition-all">
+        <div class="px-8 py-6 border-b border-gray-100">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-900" id="moduleModalTitle">Manage Module</h3>
+                <button onclick="closeModuleModal()" class="text-gray-400 hover:text-gray-900 transition"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <form id="moduleForm" class="px-8 py-6 space-y-4">
+            <input type="hidden" id="moduleId">
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Module Name</label>
+                <input type="text" id="moduleName" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Description</label>
+                <input type="text" id="moduleDesc" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Icon (FontAwesome)</label>
+                <input type="text" id="moduleIcon" placeholder="fas fa-folder" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition text-sm">
+            </div>
+            <div class="pt-4 flex justify-end space-x-3">
+                <button type="button" onclick="closeModuleModal()" class="px-6 py-2.5 text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-lg shadow-amber-500/20 transition">Save Module</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Add/Edit Permission Modal -->
+<div id="permissionModal" class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl transform transition-all">
+        <div class="px-8 py-6 border-b border-gray-100">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-900" id="permissionModalTitle">Add Permission</h3>
+                <button onclick="closePermissionModal()" class="text-gray-400 hover:text-gray-900 transition"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <form id="permissionForm" class="px-8 py-6 space-y-4">
+            <input type="hidden" id="permissionId">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Permission Code</label>
+                    <input type="text" id="permissionCode" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition text-sm" placeholder="ServiceDesk.View">
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Permission Name</label>
+                    <input type="text" id="permissionName" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition text-sm" placeholder="View Service Desk">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Module</label>
+                    <select id="permissionModuleId" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition text-sm">
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Action Type</label>
+                    <select id="permissionActionType" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition text-sm">
+                        <option value="View">View</option>
+                        <option value="Create">Create</option>
+                        <option value="Edit">Edit</option>
+                        <option value="Delete">Delete</option>
+                        <option value="Action">Action</option>
+                    </select>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Description</label>
+                    <input type="text" id="permissionDescription" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition text-sm" placeholder="Optional description">
+                </div>
+            </div>
+            <div class="pt-4 flex justify-end space-x-3">
+                <button type="button" onclick="closePermissionModal()" class="px-6 py-2.5 text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-lg shadow-emerald-500/20 transition">Save Permission</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const AUTH_CTRL = '@Url.Content("~/Auth")';
+
+        $(document).ready(() => {
+            console.log("System Management initialized. Base path:", AUTH_CTRL);
+            checkConnection();
+        });
+
+        function checkConnection() {
+            loadStats();
+            loadMenus();
+            loadModules();
+            loadPermissions();
+        }
+
+        function loadStats() {
+            $.get('@Url.Action("GetStats", "Auth")', stats => {
+                if (stats.error) {
+                    $('#statsContainer').html(`<div class="col-span-4 bg-red-50 p-4 rounded-xl text-red-600 text-sm border border-red-100"><i class="fas fa-exclamation-triangle mr-2"></i>API Error: ${stats.error}</div>`);
+                    return;
+                }
+                const html = `
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-xs font-bold text-gray-400 uppercase mb-1">Modules</p>
+                        <p class="text-3xl font-black text-amber-500">${stats.modules}</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-xs font-bold text-gray-400 uppercase mb-1">Permissions</p>
+                        <p class="text-3xl font-black text-sky-500">${stats.perms}</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-xs font-bold text-gray-400 uppercase mb-1">Active Menus</p>
+                        <p class="text-3xl font-black text-indigo-500">${stats.menus}</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <p class="text-xs font-bold text-gray-400 uppercase mb-1">Roles</p>
+                        <p class="text-3xl font-black text-emerald-500">${stats.roles}</p>
+                    </div>
+                `;
+                $('#statsContainer').html(html);
+            }).fail(() => {
+                $('#statsContainer').html('<div class="col-span-4 bg-amber-50 p-4 rounded-xl text-amber-600 text-sm border border-amber-100"><i class="fas fa-plug mr-2"></i>Cannot connect to Software API. Please ensure the Software project is running.</div>');
+            });
+        }
+
+        function loadMenus() {
+            $.get('@Url.Action("GetMenus", "Auth")', menus => {
+                const rows = menus.map(m => {
+                    const id = m.id || m.Id;
+                    return `
+                    <tr class="hover:bg-gray-50/50 transition duration-150">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <i class="${m.menuIcon} text-gray-400 mr-3 w-4"></i>
+                                <span class="text-sm font-semibold text-gray-900">${m.menuName}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-xs font-mono text-gray-500">${m.routeController}/${m.routeAction}</td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 bg-sky-50 text-sky-600 rounded text-[10px] font-bold">${m.requiredPermissionCode}</span></td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick='editMenu(${JSON.stringify(m)})' class="text-sky-600 hover:text-sky-700 mr-3 px-2 py-1"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteMenu(${id})" class="text-red-400 hover:text-red-500 px-2 py-1"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                }).join('');
+                $('#menuTableBody').html(rows || '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400 text-sm">No menus defined</td></tr>');
+            }).fail(() => $('#menuTableBody').html('<tr><td colspan="4" class="px-6 py-8 text-center text-red-500 text-sm">Error loading menus</td></tr>'));
+        }
+
+        function loadModules() {
+            $.get('@Url.Action("GetModules", "Auth")', modules => {
+                const list = modules.map(m => {
+                    const id = m.id || m.Id;
+                    return `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-amber-50 transition border border-transparent hover:border-amber-100 group">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center mr-3">
+                                <i class="${m.iconClass} text-amber-500"></i>
+                            </div>
+                            <span class="text-sm font-bold text-gray-800">${m.moduleName}</span>
+                        </div>
+                        <button onclick="deleteModule(${id})" class="text-gray-300 hover:text-red-500 transition px-2 py-1"><i class="fas fa-times"></i></button>
+                    </div>`;
+                }).join('');
+                $('#moduleList').html(list || '<p class="text-center py-4 text-gray-400 text-xs">No active modules</p>');
+            }).fail(() => $('#moduleList').html('<p class="text-center py-4 text-red-500 text-xs">Error loading modules</p>'));
+        }
+
+
+        function openMenuModal(callback) {
+            $('#menuForm')[0].reset();
+            $('#menuId').val('0');
+            $('#menuModalTitle').text('Add Menu Item');
+            $('#menuModal').removeClass('hidden');
+            
+            // Populate module dropdown if it existed
+            loadModuleOptions(callback);
+        }
+        
+        function loadModuleOptions(callback) {
+             $.get('@Url.Action("GetModules", "Auth")', modules => {
+                 const options = modules.map(m => `<option value="${m.id || m.Id}">${m.moduleName || m.ModuleName}</option>`).join('');
+                 $('#menuModuleId').html(options);
+                 if (callback) callback();
+             });
+        }
+
+        function closeMenuModal() { $('#menuModal').addClass('hidden'); }
+
+
+        $('#menuForm').on('submit', e => {
+            e.preventDefault();
+            const payload = {
+                id: parseInt($('#menuId').val()),
+                menuName: $('#menuName').val(),
+                routeController: $('#routeController').val(),
+                routeAction: $('#routeAction').val(),
+                menuIcon: $('#menuIcon').val() || 'fas fa-link',
+                requiredPermissionCode: $('#requiredPermission').val(),
+                sortOrder: parseInt($('#menuSortOrder').val()) || 1,
+                moduleId: parseInt($('#menuModuleId').val()) || 1,
+                isActive: true
+            };
+            $.ajax({
+                url: '@Url.Action("SaveMenu", "Auth")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: (res) => {
+                    if (res.success === false) {
+                        bootbox.alert("Error saving menu: " + res.message);
+                        return;
+                    }
+                    closeMenuModal();
+                    loadMenus();
+                    loadStats();
+                    bootbox.alert("Menu saved successfully!");
+                }
+            }).fail(() => bootbox.alert("Failed to save menu. Ensure Software API is running."));
+        });
+
+        
+
+        function deleteMenu(id) {
+            console.log("deleteMenu called with id:", id);
+            if (!id) {
+                bootbox.alert("Error: Menu ID is missing.");
+                return;
+            }
+            bootbox.confirm("Delete this menu item?", result => {
+                if (result) $.ajax({ 
+                    url: '@Url.Action("DeleteMenu", "Auth")/' + id, 
+                    type: 'DELETE', 
+                    success: (res) => { 
+                        console.log("DeleteMenu response:", res);
+                        if(res.success) {
+                            loadMenus(); loadStats(); 
+                        } else {
+                            bootbox.alert("Failed: " + res.message);
+                        }
+                    } 
+                }).fail((xhr) => {
+                    console.error("DeleteMenu failed:", xhr);
+                    bootbox.alert("Failed to delete menu. Endpoint might be unreachable.");
+                });
+            });
+        }
+        
+        function editMenu(m) {
+            console.log("Editing menu:", m);
+            openMenuModal(() => {
+                $('#menuId').val(m.id || m.Id);
+                $('#menuName').val(m.menuName || m.MenuName);
+                $('#routeController').val(m.routeController || m.RouteController);
+                $('#routeAction').val(m.routeAction || m.RouteAction);
+                $('#menuIcon').val(m.menuIcon || m.MenuIcon);
+                $('#requiredPermission').val(m.requiredPermissionCode || m.RequiredPermissionCode);
+                $('#menuSortOrder').val(m.sortOrder || m.SortOrder);
+                
+                const modId = m.moduleId || m.ModuleId;
+                if (modId) {
+                    $('#menuModuleId').val(modId);
+                }
+                
+                $('#menuModalTitle').text('Edit Menu Item');
+            });
+        }
+
+
+        function openModuleModal() {
+            $('#moduleForm')[0].reset();
+            $('#moduleId').val('0');
+            $('#moduleModalTitle').text('Add Module');
+            $('#moduleModal').removeClass('hidden');
+        }
+
+        function closeModuleModal() { $('#moduleModal').addClass('hidden'); }
+
+        $('#moduleForm').on('submit', e => {
+            e.preventDefault();
+            const payload = {
+                id: parseInt($('#moduleId').val()),
+                moduleName: $('#moduleName').val(),
+                description: $('#moduleDesc').val(),
+                iconClass: $('#moduleIcon').val() || 'fas fa-folder',
+                sortOrder: 1,
+                isActive: true
+            };
+            $.ajax({
+                url: '@Url.Action("SaveModule", "Auth")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: (res) => {
+                    if (res.success === false) {
+                        bootbox.alert("Error saving module: " + res.message);
+                        return;
+                    }
+                    closeModuleModal();
+                    loadModules();
+                    loadStats();
+                    bootbox.alert("Module saved successfully!");
+                }
+            }).fail(() => bootbox.alert("Failed to save module. Ensure Software API is running."));
+        });
+
+        function deleteModule(id) {
+            console.log("deleteModule called with id:", id);
+            if (!id) {
+                bootbox.alert("Error: Module ID is missing.");
+                return;
+            }
+            bootbox.confirm("Delete this module? This will NOT delete associated permissions.", result => {
+                if (result) $.ajax({ 
+                    url: '@Url.Action("DeleteModule", "Auth")/' + id, 
+                    type: 'DELETE', 
+                    success: (res) => { 
+                        console.log("DeleteModule response:", res);
+                        if(res.success) {
+                            loadModules(); loadStats(); loadPermissions(); 
+                        } else {
+                            bootbox.alert("Failed: " + res.message);
+                        }
+                    } 
+                }).fail((xhr) => {
+                    console.error("DeleteModule failed:", xhr);
+                    bootbox.alert("Failed to delete module");
+                });
+            });
+        }
+
+        // ===== PERMISSION MANAGEMENT =====
+        function loadPermissions() {
+            $.get('@Url.Action("GetPermissions", "Auth")', perms => {
+                const rows = perms.map(p => {
+                    const id = p.id || p.Id;
+                    return `
+                    <tr class="hover:bg-gray-50/50 transition duration-150">
+                        <td class="px-6 py-3">
+                            <span class="text-xs font-mono bg-emerald-50 text-emerald-700 px-2 py-1 rounded">${p.permissionCode}</span>
+                        </td>
+                        <td class="px-6 py-3 text-sm font-medium text-gray-900">${p.permissionName}</td>
+                        <td class="px-6 py-3 text-xs text-gray-500">${p.moduleId || '-'}</td>
+                        <td class="px-6 py-3">
+                            <span class="text-[10px] px-2 py-0.5 rounded ${p.actionType === 'View' ? 'bg-sky-50 text-sky-600' : 'bg-amber-50 text-amber-600'}">${p.actionType || 'Action'}</span>
+                        </td>
+                        <td class="px-6 py-3 text-right">
+                            <button onclick='editPermission(${JSON.stringify(p)})' class="text-emerald-600 hover:text-emerald-700 mr-2 px-2 py-1"><i class="fas fa-edit"></i></button>
+                            <button onclick="deletePermission(${id})" class="text-red-400 hover:text-red-500 px-2 py-1"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                }).join('');
+                $('#permissionTableBody').html(rows || '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400 text-sm">No permissions defined. Click "Add Permission" to create.</td></tr>');
+            }).fail(() => $('#permissionTableBody').html('<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 text-sm">Error loading permissions</td></tr>'));
+        }
+
+        function openPermissionModal(callback) {
+            $('#permissionForm')[0].reset();
+            $('#permissionId').val('0');
+            $('#permissionModalTitle').text('Add Permission');
+            $('#permissionModal').removeClass('hidden');
+            loadModuleOptionsForPermission(callback);
+        }
+
+        function loadModuleOptionsForPermission(callback) {
+            $.get('@Url.Action("GetModules", "Auth")', modules => {
+                const options = modules.map(m => `<option value="${m.id || m.Id}">${m.moduleName || m.ModuleName}</option>`).join('');
+                $('#permissionModuleId').html('<option value="">-- Select Module --</option>' + options);
+                if (callback) callback();
+            });
+        }
+
+        function closePermissionModal() { $('#permissionModal').addClass('hidden'); }
+
+        function editPermission(p) {
+            openPermissionModal(() => {
+                $('#permissionId').val(p.id || p.Id);
+                $('#permissionCode').val(p.permissionCode || p.PermissionCode);
+                $('#permissionName').val(p.permissionName || p.PermissionName);
+                $('#permissionModuleId').val(p.moduleId || p.ModuleId);
+                $('#permissionActionType').val(p.actionType || p.ActionType || 'View');
+                $('#permissionDescription').val(p.description || p.Description);
+                $('#permissionModalTitle').text('Edit Permission');
+            });
+        }
+
+        $('#permissionForm').on('submit', e => {
+            e.preventDefault();
+            const payload = {
+                id: parseInt($('#permissionId').val()) || 0,
+                permissionCode: $('#permissionCode').val(),
+                permissionName: $('#permissionName').val(),
+                moduleId: parseInt($('#permissionModuleId').val()) || null,
+                actionType: $('#permissionActionType').val(),
+                description: $('#permissionDescription').val(),
+                sortOrder: 1,
+                isActive: true
+            };
+            $.ajax({
+                url: '@Url.Action("SavePermission", "Auth")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: (res) => {
+                    if (res.success === false) {
+                        bootbox.alert("Error saving permission: " + res.message);
+                        return;
+                    }
+                    closePermissionModal();
+                    loadPermissions();
+                    loadStats();
+                    bootbox.alert("Permission saved successfully!");
+                }
+            }).fail(() => bootbox.alert("Failed to save permission. Ensure Software API is running."));
+        });
+
+        function deletePermission(id) {
+            console.log("deletePermission called with id:", id);
+            if (!id) {
+                bootbox.alert("Error: Permission ID is missing.");
+                return;
+            }
+            bootbox.confirm("Delete this permission?", result => {
+                if (result) $.ajax({ 
+                    url: '@Url.Action("DeletePermission", "Auth")/' + id, 
+                    type: 'DELETE', 
+                    success: (res) => { 
+                        console.log("DeletePermission response:", res);
+                        if(res.success) {
+                            loadPermissions(); loadStats(); 
+                        } else {
+                            bootbox.alert("Failed: " + res.message);
+                        }
+                    } 
+                }).fail((xhr) => {
+                    console.error("DeletePermission failed:", xhr);
+                    bootbox.alert("Failed to delete permission");
+                });
+            });
+        }
+    </script>
+}

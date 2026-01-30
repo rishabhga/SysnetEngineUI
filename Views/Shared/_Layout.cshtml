@@ -4,12 +4,6 @@
     var isSuperAdmin = userRole == "SuperAdmin";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
-    
-    // Permission Helpers
-    bool CanManageRoles = ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ManageRoles");
-    bool CanViewCompanies = ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ViewCompanies");
-    bool CanViewClients = ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ViewClients");
-    bool CanManageProtection = ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ManageProtection");
 }
 
 <!DOCTYPE html>
@@ -359,47 +353,39 @@
                         </div>
 
                         <div class="py-2">
-                            @if (CanViewCompanies)
+                            @{
+                                var dynamicMenus = await ManageEngineWebApp.Datacontext.RoleHelper.GetDynamicMenusAsync();
+                                var authorizedMenus = dynamicMenus.Where(m => ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, m.RequiredPermissionCode)).OrderBy(m => m.SortOrder).ToList();
+                            }
+
+                            @foreach (var menu in authorizedMenus)
                             {
-                                <a asp-controller="Companies" asp-action="Companies">
-                                    <i class="fas fa-building"></i>
-                                    <span>Companies</span>
+                                <a href="@Url.Action(menu.RouteAction, menu.RouteController)"
+                                   class="@(currentController == menu.RouteController && currentAction == menu.RouteAction ? "active" : "")">
+                                    <i class="@menu.MenuIcon"></i>
+                                    <span>@menu.MenuName</span>
                                 </a>
                             }
-                            @if (CanManageRoles)
+
+                            @if (isSuperAdmin)
                             {
-                                <a asp-controller="Auth" asp-action="ManageRoles">
+                                <div class="dropdown-divider"></div>
+                                <a asp-controller="ServiceDesk" asp-action="Index"
+                                   class="@(currentController == "ServiceDesk" && currentAction == "Index" ? "active" : "")">
+                                    <i class="fas fa-headset"></i>
+                                    <span>Service Desk</span>
+                                </a>
+                                <a asp-controller="Auth" asp-action="ManagePermissions"
+                                   class="@(currentController == "Auth" && currentAction == "ManagePermissions" ? "active" : "")">
+                                    <i class="fas fa-tools"></i>
+                                    <span>System Management</span>
+                                </a>
+                                <a asp-controller="Auth" asp-action="ManageRoles"
+                                   class="@(currentController == "Auth" && currentAction == "ManageRoles" ? "active" : "")">
                                     <i class="fas fa-user-shield"></i>
                                     <span>Manage Roles</span>
                                 </a>
                             }
-                            @if (CanViewClients)
-                            {
-                                <a asp-controller="ComputerSummary" asp-action="ConnectedClient">
-                                    <i class="fas fa-network-wired"></i>
-                                    <span>Connected Clients</span>
-                                </a>
-                            }
-                            @if (CanViewCompanies || CanManageRoles || CanViewClients)
-                            {
-                                <div class="dropdown-divider"></div>
-                            }
-
-                            <a asp-controller="Hierarchy" asp-action="Index">
-                                <i class="fas fa-sitemap"></i>
-                                <span>Hierarchy View</span>
-                            </a>
-                            <a asp-controller="Hierarchy" asp-action="GraphView">
-                                <i class="fas fa-project-diagram"></i>
-                                <span>Graph View</span>
-                            </a>
-                             
-                            <div class="dropdown-divider"></div>
-
-                            <a asp-controller="Tickets" asp-action="Index">
-                                <i class="fas fa-ticket-alt"></i>
-                                <span>Service Desk</span>
-                            </a>
 
                             <div class="dropdown-divider"></div>
 

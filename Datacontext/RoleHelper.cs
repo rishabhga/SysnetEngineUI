@@ -38,7 +38,27 @@ namespace ManageEngineWebApp.Datacontext
         public int? GroupId { get; set; }
         [JsonProperty("locationId")]
         public int? LocationId { get; set; }
+        [JsonProperty("companyName")]
+        public string? CompanyName { get; set; }
+        [JsonProperty("groupName")]
+        public string? GroupName { get; set; }
+        [JsonProperty("locationName")]
+        public string? LocationName { get; set; }
     }
+
+    public class MenuDefinitionDto
+    {
+        public int Id { get; set; }
+        public string MenuName { get; set; }
+        public string RouteController { get; set; }
+        public string RouteAction { get; set; }
+        public string MenuIcon { get; set; }
+        public int SortOrder { get; set; }
+        public int? ParentId { get; set; }
+        public string RequiredPermissionCode { get; set; }
+        public int ModuleId { get; set; }
+    }
+
     public static class RoleHelper
     {
         private static string _apiBaseUrl = "https://localhost:7225/api/Auth";
@@ -95,17 +115,46 @@ namespace ManageEngineWebApp.Datacontext
             var permissions = context?.Session.GetString("permissions");
             if (string.IsNullOrEmpty(permissions)) return false;
 
-            return permissions.Split(',').Any(p => p.Trim() == permissionCode);
+            var permList = permissions.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            return permList.Any(p => p.Trim().Equals(permissionCode, StringComparison.OrdinalIgnoreCase));
         }
         public static int? GetCompanyId(Microsoft.AspNetCore.Http.HttpContext context)
         {
-            var companyIdStr = context?.Session.GetString("companyId");
-            if (int.TryParse(companyIdStr, out int companyId))
-            {
-                return companyId;
-            }
+            var idStr = context?.Session.GetString("companyId");
+            if (int.TryParse(idStr, out int id)) return id;
             return null;
         }
+
+        public static int? GetGroupId(Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            var idStr = context?.Session.GetString("groupId");
+            if (int.TryParse(idStr, out int id)) return id;
+            return null;
+        }
+
+        public static int? GetLocationId(Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            var idStr = context?.Session.GetString("locationId");
+            if (int.TryParse(idStr, out int id)) return id;
+            return null;
+        }
+
+        public static async Task RefreshSessionPermissionsAsync(Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            var username = context.Session.GetString("username");
+            if (string.IsNullOrEmpty(username)) return;
+
+            var roleInfo = await GetUserRoleFromApiAsync(username);
+            if (roleInfo != null)
+            {
+                context.Session.SetString("role", roleInfo.Roles?.FirstOrDefault() ?? "No Role");
+                context.Session.SetString("permissions", string.Join(",", roleInfo.Permissions ?? new List<string>()));
+                if (roleInfo.CompanyId.HasValue) context.Session.SetString("companyId", roleInfo.CompanyId.Value.ToString());
+                if (roleInfo.GroupId.HasValue) context.Session.SetString("groupId", roleInfo.GroupId.Value.ToString());
+                if (roleInfo.LocationId.HasValue) context.Session.SetString("locationId", roleInfo.LocationId.Value.ToString());
+            }
+        }
+
         public static async Task<bool> AssignRoleAsync(string username, string role, int? companyId, string domainName = null, int? groupId = null, int? locationId = null)
         {
             try
@@ -237,7 +286,7 @@ namespace ManageEngineWebApp.Datacontext
         }
 
         public static async Task<(bool Success, string Message)> CreateRoleAsync(string roleName, string description, 
-            bool requiresCompany, bool requiresDevice, bool requiresLocation)
+            bool requiresCompany, bool requiresDevice, bool requiresLocation, bool requiresGroup = false)
         {
             try
             {
@@ -252,6 +301,7 @@ namespace ManageEngineWebApp.Datacontext
                     RoleName = roleName,
                     Description = description,
                     RequiresCompany = requiresCompany,
+                    RequiresGroup = requiresGroup,
                     RequiresDevice = requiresDevice,
                     RequiresLocation = requiresLocation
                 };
@@ -298,6 +348,31 @@ namespace ManageEngineWebApp.Datacontext
                 return false;
             }
         }
+
+        public static async Task<List<MenuDefinitionDto>> GetDynamicMenusAsync()
+        {
+            try
+            {
+                var handler = new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+                };
+                using var client = new HttpClient(handler);
+                // Use the Permission controller, not Auth
+                var baseUrl = ApiBaseUrl.Replace("/Auth", "/Permission");
+                var response = await client.GetAsync($"{baseUrl}/Menus");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<List<MenuDefinitionDto>>(json) ?? new List<MenuDefinitionDto>();
+                }
+                return new List<MenuDefinitionDto>();
+            }
+            catch
+            {
+                return new List<MenuDefinitionDto>();
+            }
+        }
     }
 
     public class SystemRoleDto
@@ -307,6 +382,7 @@ namespace ManageEngineWebApp.Datacontext
         public bool IsSystem { get; set; }
         public int UserCount { get; set; }
         public bool RequiresCompany { get; set; }
+        public bool RequiresGroup { get; set; }
         public bool RequiresDevice { get; set; }
         public bool RequiresLocation { get; set; }
     }

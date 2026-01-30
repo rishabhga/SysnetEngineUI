@@ -9,14 +9,23 @@ namespace ManageEngineWebApp.Controllers
 {
     public class AuthController : Controller
     {
+        private readonly string _baseUrl;
         private readonly string apiBaseUrl;
         private readonly IConfiguration _configuration;
 
         public AuthController(IConfiguration configuration)
         {
             _configuration = configuration;
-            var baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
-            apiBaseUrl = $"{baseUrl}/api/auth";
+            _baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
+            apiBaseUrl = $"{_baseUrl}/api/auth";
+        }
+
+        private HttpClient GetClient()
+        {
+            return new HttpClient(new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (m, c, ch, s) => true
+            });
         }
 
         [HttpGet]
@@ -145,6 +154,16 @@ namespace ManageEngineWebApp.Controllers
                     HttpContext.Session.SetString("companyId", roleData.CompanyId.Value.ToString());
                 }
 
+                if (roleData.LocationId.HasValue)
+                {
+                    HttpContext.Session.SetString("locationId", roleData.LocationId.Value.ToString());
+                }
+
+                if (roleData.GroupId.HasValue)
+                {
+                    HttpContext.Session.SetString("groupId", roleData.GroupId.Value.ToString());
+                }
+
                 if (roleData.Permissions != null && roleData.Permissions.Any())
                 {
                     HttpContext.Session.SetString("permissions", string.Join(",", roleData.Permissions));
@@ -219,6 +238,7 @@ namespace ManageEngineWebApp.Controllers
         }
         [HttpGet]
         [AuthFilter]
+        [SuperAdminOnlyFilter]
         public async Task<IActionResult> ManageRoles()
         {
             if (!RoleHelper.IsSuperAdmin(HttpContext))
@@ -234,6 +254,11 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
+                if (model == null)
+                {
+                    return Json(new { success = false, message = "Invalid request payload. Please check your inputs." });
+                }
+
                 if (!RoleHelper.IsSuperAdmin(HttpContext))
                 {
                     return Json(new { success = false, message = "Unauthorized" });
@@ -380,6 +405,236 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, message = $"Error: {ex.Message}" });
             }
         }
+
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetGroupedPermissions()
+        {
+            try
+            {
+                HttpClientHandler handler = new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+                };
+                using var client = new HttpClient(handler);
+                var baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
+                
+                var response = await client.GetAsync($"{baseUrl}/api/Permission/Grouped");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return Content(json, "application/json");
+                }
+                return Json(new List<object>());
+            }
+            catch
+            {
+                return Json(new List<object>());
+            }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        [SuperAdminOnlyFilter]
+        public IActionResult ManagePermissions()
+        {
+            if (!RoleHelper.IsSuperAdmin(HttpContext)) return RedirectToAction("Login");
+            return View();
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetStats() {
+            try {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/Permission/Stats");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { error = ex.Message }); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetMenus() {
+            try {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/Permission/Menus");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch { return Json(new List<object>()); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> SaveMenu() {
+            try {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/Permission/Menus", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpDelete("DeleteMenu/{id}")]
+        [AuthFilter]
+        public async Task<IActionResult> DeleteMenu([FromRoute] int id)
+        {
+            try {
+                var response = await GetClient().DeleteAsync($"{_baseUrl}/api/Permission/Menus/{id}");
+                var content = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                    return Json(new { success = true, message = "Menu deleted successfully" });
+                
+                try {
+                    var err = JsonConvert.DeserializeObject<dynamic>(content);
+                    return Json(new { success = false, message = (string)err.message ?? "API failure" });
+                } catch {
+                    return Json(new { success = false, message = "Failed to delete menu in API" });
+                }
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetModules() {
+            try {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/Permission/Modules");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch { return Json(new List<object>()); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> SaveModule() {
+            try {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/Permission/Modules", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpDelete("DeleteModule/{id}")]
+        [AuthFilter]
+        public async Task<IActionResult> DeleteModule([FromRoute] int id) {
+            try {
+                var response = await GetClient().DeleteAsync($"{_baseUrl}/api/Permission/Modules/{id}");
+                var content = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                    return Json(new { success = true, message = "Module deleted successfully" });
+                
+                try {
+                    var err = JsonConvert.DeserializeObject<dynamic>(content);
+                    return Json(new { success = false, message = (string)err.message ?? "API failure" });
+                } catch {
+                    return Json(new { success = false, message = "Failed to delete module in API" });
+                }
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetPermissions() {
+            try {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/Permission/List");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch { return Json(new List<object>()); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> SavePermission() {
+            try {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/Permission/SavePermission", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpDelete("DeletePermission/{id}")]
+        [AuthFilter]
+        public async Task<IActionResult> DeletePermission([FromRoute] int id) {
+            try {
+                var response = await GetClient().DeleteAsync($"{_baseUrl}/api/Permission/{id}");
+                var content = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                    return Json(new { success = true, message = "Permission deleted successfully" });
+                
+                try {
+                    var err = JsonConvert.DeserializeObject<dynamic>(content);
+                    return Json(new { success = false, message = (string)err.message ?? "API failure" });
+                } catch {
+                    return Json(new { success = false, message = "Failed to delete permission in API" });
+                }
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> CreateRoleWithPermissions([FromBody] CreateRoleWithPermissionsRequest model)
+        {
+            try
+            {
+                if (!RoleHelper.IsSuperAdmin(HttpContext))
+                {
+                    return Json(new { success = false, message = "Unauthorized" });
+                }
+
+                if (string.IsNullOrWhiteSpace(model.RoleName))
+                {
+                    return Json(new { success = false, message = "Role name is required" });
+                }
+
+                if (model.Permissions == null || !model.Permissions.Any())
+                {
+                    return Json(new { success = false, message = "At least one permission is required" });
+                }
+
+                var roleResult = await RoleHelper.CreateRoleAsync(
+                    model.RoleName, 
+                    model.Description,
+                    model.RequiresCompany, 
+                    model.RequiresDevice, 
+                    model.RequiresLocation,
+                    model.RequiresGroup);
+
+                if (!roleResult.Success)
+                {
+                    return Json(new { success = false, message = roleResult.Message });
+                }
+
+                HttpClientHandler handler = new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+                };
+                using var client = new HttpClient(handler);
+                var baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
+
+                var permPayload = new
+                {
+                    RoleName = model.RoleName,
+                    PermissionCodes = model.Permissions,
+                    AssignedBy = HttpContext.Session.GetString("username") ?? "System"
+                };
+                var content = new StringContent(
+                    Newtonsoft.Json.JsonConvert.SerializeObject(permPayload),
+                    System.Text.Encoding.UTF8,
+                    "application/json"
+                );
+
+                var permResponse = await client.PostAsync($"{baseUrl}/api/Permission/AssignToRole", content);
+                
+                if (permResponse.IsSuccessStatusCode)
+                {
+                    return Json(new { success = true, message = $"Role '{model.RoleName}' created with {model.Permissions.Count} permissions" });
+                }
+
+                return Json(new { success = true, message = "Role created but permission assignment may have failed" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
     }
 
     public class AssignRoleRequest
@@ -406,8 +661,20 @@ namespace ManageEngineWebApp.Controllers
         public bool RequiresLocation { get; set; }
     }
 
+    public class CreateRoleWithPermissionsRequest
+    {
+        public string? RoleName { get; set; }
+        public string? Description { get; set; }
+        public bool RequiresCompany { get; set; }
+        public bool RequiresGroup { get; set; }
+        public bool RequiresDevice { get; set; }
+        public bool RequiresLocation { get; set; }
+        public List<string>? Permissions { get; set; }
+    }
+
     public class DeleteRoleRequest
     {
         public string? RoleName { get; set; }
     }
 }
+

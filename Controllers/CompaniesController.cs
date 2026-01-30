@@ -216,6 +216,12 @@ namespace ManageEngineWebApp.Controllers
                     return hierarchyList;
                 }
 
+                int? allowedCompanyId = RoleHelper.GetCompanyId(HttpContext);
+                if (allowedCompanyId.HasValue)
+                {
+                    companies = companies.Where(c => c.Id == allowedCompanyId.Value).ToList();
+                }
+
                 foreach (var company in companies)
                 {
                     var companyDto = new CompanyHierarchyDto
@@ -237,6 +243,12 @@ namespace ManageEngineWebApp.Controllers
 
                         if (groups != null)
                         {
+                            int? allowedGroupId = RoleHelper.GetGroupId(HttpContext);
+                            if (allowedGroupId.HasValue)
+                            {
+                                groups = groups.Where(g => g.Id == allowedGroupId.Value).ToList();
+                            }
+
                             foreach (var group in groups)
                             {
                                 var groupDto = new GroupHierarchyDto
@@ -257,6 +269,12 @@ namespace ManageEngineWebApp.Controllers
 
                                     if (locations != null)
                                     {
+                                        int? allowedLocationId = RoleHelper.GetLocationId(HttpContext);
+                                        if (allowedLocationId.HasValue)
+                                        {
+                                            locations = locations.Where(l => l.Id == allowedLocationId.Value).ToList();
+                                        }
+
                                         foreach (var location in locations)
                                         {
                                             var locationDto = new LocationHierarchyDto

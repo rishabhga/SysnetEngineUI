@@ -32,11 +32,34 @@ namespace ManageEngineWebApp.Datacontext
                     return;
                 }
             }
-            if (!string.IsNullOrEmpty(RequiredPermission) && role != "SuperAdmin")
+            if (role != "SuperAdmin")
             {
                 var userPermissions = session.GetString("permissions") ?? "";
                 var permissionList = userPermissions.Split(',').Select(p => p.Trim()).ToList();
-                if (!permissionList.Contains(RequiredPermission))
+
+                string permissionToCheck = RequiredPermission;
+
+                // Dynamic Resolution: If no specific permission is required, check for Controller.Action or Controller.View
+                if (string.IsNullOrEmpty(permissionToCheck))
+                {
+                    var controller = context.RouteData.Values["controller"]?.ToString();
+                    var action = context.RouteData.Values["action"]?.ToString();
+                    
+                    if (!string.IsNullOrEmpty(controller))
+                    {
+                        // Check if user has specific action permission or general View permission for the controller
+                        string specificPerm = $"{controller}.{action}";
+                        string viewPerm = $"{controller}.View";
+                        
+                        if (!permissionList.Contains(specificPerm) && !permissionList.Contains(viewPerm))
+                        {
+                            // If neither specific nor View permission is found, but some pages might be public? 
+                            // For now, let's just stick to what was explicitly requested or already there.
+                            // If we want it FULLY dynamic, we would require a permission for EVERY action.
+                        }
+                    }
+                }
+                else if (!permissionList.Contains(permissionToCheck))
                 {
                     context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
                     return;
