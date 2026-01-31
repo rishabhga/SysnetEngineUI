@@ -275,11 +275,14 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetLocations(int companyId, int groupId)
+        public async Task<IActionResult> GetLocations(int companyId, int? groupId)
         {
             try
             {
-                var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Locationdata?comid={companyId}&groupid={groupId}");
+                var url = $"{_baseUrl}/api/CompaniesDetails/Locationdata?comid={companyId}";
+                if(groupId.HasValue) url += $"&groupid={groupId}";
+                
+                var response = await GetClient().GetAsync(url);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch { return Json(new List<object>()); }
@@ -392,6 +395,47 @@ namespace ManageEngineWebApp.Controllers
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch { return Json(new List<object>()); }
+        }
+
+        [HttpDelete]
+        [AuthFilter]
+        public async Task<IActionResult> DeleteTicket(int id)
+        {
+            try
+            {
+                var username = HttpContext.Session.GetString("username") ?? "System";
+                var response = await GetClient().DeleteAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{id}?username={username}");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> StartWork()
+        {
+            try
+            {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/StartWork", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> ResolveTicket()
+        {
+            try
+            {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/Resolve", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
     }
 }

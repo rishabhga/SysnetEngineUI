@@ -3,110 +3,154 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="bg-gray-50 min-h-screen p-8">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-slate-800">Help Desk Overview</h1>
-            <p class="text-slate-500 mt-1">Real-time insights and ticket management.</p>
+<div class="min-h-screen bg-gray-50 p-4">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-5">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">Service Desk Overview</h1>
+                    <p class="text-gray-600 text-sm mt-0.5">Quick ticket insights and management</p>
+                </div>
+                <a href="@Url.Action("CreateTicket", "ServiceDesk")"
+                   class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded flex items-center">
+                    <i class="fas fa-plus mr-1.5 text-xs"></i>
+                    New Ticket
+                </a>
+            </div>
         </div>
-        <div>
-            <a href="@Url.Action("CreateTicket", "ServiceDesk")" class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors duration-200">
-                <i class="fas fa-plus mr-2"></i> New Request
+
+        <!-- Primary Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <!-- Total Tickets -->
+            <div class="bg-white rounded border border-gray-200 p-3 hover:border-blue-300 transition-colors">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Tickets</div>
+                        <div class="text-lg font-bold text-gray-800 mt-1" id="totalTickets">--</div>
+                    </div>
+                    <div class="w-8 h-8 rounded bg-blue-50 flex items-center justify-center">
+                        <i class="fas fa-ticket-alt text-blue-500 text-sm"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Open Tickets -->
+            <div class="bg-white rounded border border-gray-200 p-3 hover:border-red-300 transition-colors">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Open</div>
+                        <div class="text-lg font-bold text-red-600 mt-1" id="openTickets">--</div>
+                    </div>
+                    <div class="w-8 h-8 rounded bg-red-50 flex items-center justify-center">
+                        <i class="fas fa-exclamation-circle text-red-500 text-sm"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- In Progress -->
+            <div class="bg-white rounded border border-gray-200 p-3 hover:border-amber-300 transition-colors">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">In Progress</div>
+                        <div class="text-lg font-bold text-amber-600 mt-1" id="assignedTickets">--</div>
+                        <div class="text-xs text-gray-400 mt-0.5">Assigned / InProgress</div>
+                    </div>
+                    <div class="w-8 h-8 rounded bg-amber-50 flex items-center justify-center">
+                        <i class="fas fa-spinner text-amber-500 text-sm"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resolved -->
+            <div class="bg-white rounded border border-gray-200 p-3 hover:border-emerald-300 transition-colors">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Resolved</div>
+                        <div class="text-lg font-bold text-emerald-600 mt-1" id="resolvedTickets">--</div>
+                    </div>
+                    <div class="w-8 h-8 rounded bg-emerald-50 flex items-center justify-center">
+                        <i class="fas fa-check-circle text-emerald-500 text-sm"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Secondary Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+            <div class="bg-white rounded border border-gray-200 p-3">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-600">SLA Breached</div>
+                    <span class="text-red-600 font-bold text-sm" id="slaBreaches">--</span>
+                </div>
+            </div>
+            <div class="bg-white rounded border border-gray-200 p-3">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-600">Created Today</div>
+                    <span class="text-blue-600 font-bold text-sm" id="todayCreated">--</span>
+                </div>
+            </div>
+            <div class="bg-white rounded border border-gray-200 p-3">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-600">Resolved Today</div>
+                    <span class="text-emerald-600 font-bold text-sm" id="todayResolved">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Tickets Table -->
+        <div class="bg-white rounded border border-gray-200">
+            <div class="px-3 py-2.5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h2 class="font-medium text-gray-800 text-sm">Recent Requests</h2>
+                <a href="@Url.Action("Tickets", "ServiceDesk")" class="text-xs font-medium text-blue-600 hover:text-blue-800">
+                    View All <i class="fas fa-arrow-right ml-1 text-[10px]"></i>
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-500 text-xs border-b border-gray-200">
+                            <th class="px-3 py-2 font-medium">TICKET ID</th>
+                            <th class="px-3 py-2 font-medium">SUBJECT</th>
+                            <th class="px-3 py-2 font-medium">REQUESTER</th>
+                            <th class="px-3 py-2 font-medium">PRIORITY</th>
+                            <th class="px-3 py-2 font-medium">STATUS</th>
+                            <th class="px-3 py-2 font-medium">CREATED</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentTicketsTable" class="text-sm">
+                        <tr>
+                            <td colspan="6" class="px-3 py-4 text-center text-gray-400">
+                                <i class="fas fa-circle-notch fa-spin mr-2"></i> Loading tickets...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+            <a href="@Url.Action("Tickets", "ServiceDesk")"
+               class="p-2 text-sm text-gray-700 hover:text-blue-600 bg-white rounded border border-gray-200 hover:border-blue-300 transition-colors flex items-center justify-center gap-2">
+                <i class="fas fa-list text-gray-400 text-sm"></i>
+                <span>All Tickets</span>
             </a>
-        </div>
-    </div>
-
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Total Tickets -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-start justify-between hover:shadow-md transition-shadow">
-            <div>
-                <p class="text-sm font-medium text-slate-500 uppercase tracking-wide">Total Tickets</p>
-                <h3 class="text-3xl font-bold text-slate-800 mt-2" id="totalTickets">--</h3>
-            </div>
-            <div class="p-3 bg-blue-50 rounded-lg">
-                <i class="fas fa-ticket-alt text-blue-600 text-xl"></i>
-            </div>
-        </div>
-
-        <!-- Open Tickets -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-start justify-between hover:shadow-md transition-shadow">
-            <div>
-                <p class="text-sm font-medium text-slate-500 uppercase tracking-wide">Open</p>
-                <h3 class="text-3xl font-bold text-red-600 mt-2" id="openTickets">--</h3>
-            </div>
-            <div class="p-3 bg-red-50 rounded-lg">
-                <i class="fas fa-exclamation-circle text-red-600 text-xl"></i>
-            </div>
-        </div>
-
-        <!-- In Progress - (Assigned) -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-start justify-between hover:shadow-md transition-shadow">
-            <div>
-                <p class="text-sm font-medium text-slate-500 uppercase tracking-wide">In Progress</p>
-                <h3 class="text-3xl font-bold text-amber-600 mt-2" id="assignedTickets">--</h3>
-                <span class="text-xs text-slate-400">Assigned / InProgress</span>
-            </div>
-            <div class="p-3 bg-amber-50 rounded-lg">
-                <i class="fas fa-spinner text-amber-600 text-xl"></i>
-            </div>
-        </div>
-
-        <!-- Resolved -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-start justify-between hover:shadow-md transition-shadow">
-            <div>
-                <p class="text-sm font-medium text-slate-500 uppercase tracking-wide">Resolved</p>
-                <h3 class="text-3xl font-bold text-emerald-600 mt-2" id="resolvedTickets">--</h3>
-            </div>
-            <div class="p-3 bg-emerald-50 rounded-lg">
-                <i class="fas fa-check-circle text-emerald-600 text-xl"></i>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Secondary Stats -->
-     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center justify-between">
-              <span class="text-slate-600 font-medium">SLA Breached</span>
-              <span class="text-red-600 font-bold bg-red-50 px-3 py-1 rounded-full" id="slaBreaches">--</span>
-          </div>
-          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center justify-between">
-              <span class="text-slate-600 font-medium">Created Today</span>
-              <span class="text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full" id="todayCreated">--</span>
-          </div>
-          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center justify-between">
-               <span class="text-slate-600 font-medium">Resolved Today</span>
-               <span class="text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full" id="todayResolved">--</span>
-           </div>
-     </div>
-
-    <!-- Recent Tickets Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-gray-50/50">
-            <h2 class="text-lg font-bold text-slate-800">Recent Requests</h2>
-            <a href="@Url.Action("Tickets", "ServiceDesk")" class="text-sm font-medium text-blue-600 hover:text-blue-800">View All Requests <i class="fas fa-arrow-right ml-1"></i></a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
-                        <th class="px-6 py-4 font-semibold">TICKET ID</th>
-                        <th class="px-6 py-4 font-semibold">SUBJECT</th>
-                        <th class="px-6 py-4 font-semibold">REQUESTER</th>
-                        <th class="px-6 py-4 font-semibold">PRIORITY</th>
-                        <th class="px-6 py-4 font-semibold">STATUS</th>
-                        <th class="px-6 py-4 font-semibold">CREATED</th>
-                    </tr>
-                </thead>
-                <tbody id="recentTicketsTable">
-                    <tr>
-                        <td colspan="6" class="px-6 py-8 text-center text-slate-400">
-                            <i class="fas fa-circle-notch fa-spin mr-2"></i> Loading tickets...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <a href="@Url.Action("Dashboard", "ServiceDesk")"
+               class="p-2 text-sm text-gray-700 hover:text-blue-600 bg-white rounded border border-gray-200 hover:border-blue-300 transition-colors flex items-center justify-center gap-2">
+                <i class="fas fa-chart-bar text-gray-400 text-sm"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#"
+               class="p-2 text-sm text-gray-700 hover:text-blue-600 bg-white rounded border border-gray-200 hover:border-blue-300 transition-colors flex items-center justify-center gap-2">
+                <i class="fas fa-users text-gray-400 text-sm"></i>
+                <span>Engineers</span>
+            </a>
+            <a href="#"
+               class="p-2 text-sm text-gray-700 hover:text-blue-600 bg-white rounded border border-gray-200 hover:border-blue-300 transition-colors flex items-center justify-center gap-2">
+                <i class="fas fa-cog text-gray-400 text-sm"></i>
+                <span>Settings</span>
+            </a>
         </div>
     </div>
 </div>
@@ -116,7 +160,7 @@
         $(document).ready(function () {
             loadStats();
             loadRecentTickets();
-            // Refresh every 60 seconds
+
             setInterval(() => {
                 loadStats();
                 loadRecentTickets();
@@ -129,7 +173,7 @@
                 $('#openTickets').text(data.openCount || 0);
                 $('#assignedTickets').text((data.assignedCount + data.inProgressCount) || 0);
                 $('#resolvedTickets').text(data.resolvedCount || 0);
-                
+
                 $('#slaBreaches').text(data.slaBreachedCount || 0);
                 $('#todayCreated').text(data.todayCreated || 0);
                 $('#todayResolved').text(data.todayResolved || 0);
@@ -139,34 +183,43 @@
         function loadRecentTickets() {
             $.get('@Url.Action("GetTickets", "ServiceDesk")', function (data) {
                 var rows = '';
-                // Show max 5
-                var recent = data.slice(0, 5); 
-                
+                var recent = data.slice(0, 5);
+
                 if (recent.length === 0) {
-                    rows = '<tr><td colspan="6" class="px-6 py-8 text-center text-slate-500">No recent tickets found.</td></tr>';
+                    rows = '<tr><td colspan="6" class="px-3 py-3 text-center text-gray-500 text-sm">No recent tickets found.</td></tr>';
                 } else {
                     $.each(recent, function (i, item) {
                         rows += `
-                            <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                <td class="px-6 py-4 font-medium text-slate-800">#${item.ticketNo || item.id}</td>
-                                <td class="px-6 py-4 text-slate-600 font-medium">${item.subject || 'No Subject'}</td>
-                                <td class="px-6 py-4 text-slate-500">
+                            <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                <td class="px-3 py-2 font-medium text-gray-800 text-xs">
+                                    <a href="/ServiceDesk/Details/${item.id}" class="hover:text-blue-600">
+                                        #${item.ticketNo || item.id}
+                                    </a>
+                                </td>
+                                <td class="px-3 py-2 text-gray-600 text-sm truncate max-w-[180px]" title="${item.subject || 'No Subject'}">
+                                    ${item.subject || 'No Subject'}
+                                </td>
+                                <td class="px-3 py-2 text-gray-500">
                                     <div class="flex items-center">
-                                        <div class="h-6 w-6 rounded-full bg-slate-200 text-xs flex items-center justify-center mr-2 text-slate-600 font-bold">${(item.requesterName || 'U').charAt(0)}</div>
-                                        ${item.requesterName || 'Unknown'}
+                                        <div class="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center mr-2 text-gray-600 font-bold">
+                                            ${(item.requesterName || 'U').charAt(0)}
+                                        </div>
+                                        <span class="truncate max-w-[120px]" title="${item.requesterName || 'Unknown'}">${item.requesterName || 'Unknown'}</span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getPriorityClass(item.priority)}">
+                                <td class="px-3 py-2">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getPriorityClass(item.priority)}">
                                         ${item.priority || 'Medium'}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusClass(item.status)}">
+                                <td class="px-3 py-2">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusClass(item.status)}">
                                         ${item.status || 'Open'}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-slate-400 text-sm">${new Date(item.createdOn).toLocaleDateString()}</td>
+                                <td class="px-3 py-2 text-gray-400 text-xs">
+                                    ${new Date(item.createdOn).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </td>
                             </tr>`;
                     });
                 }
@@ -179,15 +232,15 @@
             p = p.toLowerCase();
             if (p === 'high' || p === 'urgent') return 'bg-red-100 text-red-800';
             if (p === 'medium') return 'bg-amber-100 text-amber-800';
-            return 'bg-green-100 text-green-800'; // Low
+            return 'bg-green-100 text-green-800';
         }
 
         function getStatusClass(s) {
             if (!s) return 'bg-gray-100 text-gray-800';
             s = s.toLowerCase();
-            if (s === 'open') return 'bg-red-50 text-red-700 border border-red-200';
-            if (s === 'assigned' || s.includes('progress')) return 'bg-amber-50 text-amber-700 border border-amber-200';
-            if (s === 'resolved' || s === 'closed') return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+            if (s === 'open') return 'bg-red-50 text-red-700';
+            if (s === 'assigned' || s.includes('progress')) return 'bg-blue-50 text-blue-700';
+            if (s === 'resolved' || s === 'closed') return 'bg-emerald-50 text-emerald-700';
             return 'bg-gray-100 text-gray-800';
         }
     </script>

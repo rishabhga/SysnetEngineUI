@@ -22,6 +22,8 @@ namespace ManageEngineWebApp.Models
         public string? CompanyName { get; set; }
         public string? LocationName { get; set; }
         public string? GroupName { get; set; }
+        public int? SlaDuration { get; set; }
+        public string? SlaUnit { get; set; }
         public DateTime? CreatedOn { get; set; }
         public DateTime? ResolvedDate { get; set; }
         public DateTime? DueDate { get; set; }
