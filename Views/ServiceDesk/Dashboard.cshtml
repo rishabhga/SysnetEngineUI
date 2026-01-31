@@ -11,6 +11,13 @@
             <p class="text-slate-500 mt-1">Real-time insights and performance metrics</p>
         </div>
         <div class="flex items-center space-x-3">
+             <!-- Hierarchy Filters -->
+            <select id="companyFilter" class="bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-600 shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Companies</option>
+            </select>
+            <select id="locationFilter" class="bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-600 shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Locations</option>
+            </select>
             <div class="bg-white border border-slate-200 rounded-lg px-4 py-2 flex items-center text-sm text-slate-600 shadow-sm">
                 <i class="far fa-calendar-alt mr-2 text-blue-500"></i>
                 <span id="currentDate">Mock Date</span>
@@ -144,13 +151,49 @@
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             $('#currentDate').text(new Date().toLocaleDateString('en-US', options));
 
+            loadInitialData();
             loadStats();
             loadEngineers();
+
+            $('#companyFilter').on('change', function() {
+                const cid = $(this).val();
+                loadLocations(cid);
+                loadStats();
+                loadEngineers();
+            });
+
+            $('#locationFilter').on('change', function() {
+                loadStats();
+                loadEngineers();
+            });
         });
 
+        function loadInitialData() {
+            $.get('@Url.Action("GetCompanies", "ServiceDesk")', companies => {
+                const select = $('#companyFilter');
+                companies.forEach(c => select.append(`<option value="${c.id}">${c.name}</option>`));
+            });
+        }
+
+        function loadLocations(companyId) {
+            const select = $('#locationFilter');
+            select.html('<option value="">All Locations</option>');
+            if (!companyId) return;
+            $.get(`@Url.Action("GetLocations", "ServiceDesk")?companyId=${companyId}`, locations => {
+                locations.forEach(l => select.append(`<option value="${l.id}">${l.name}</option>`));
+            });
+        }
+
+        let statusChart = null;
+        let priorityChart = null;
+
         function loadStats() {
+            const companyId = $('#companyFilter').val();
+            const locationId = $('#locationFilter').val();
+            const query = `?companyId=${companyId || ''}&locationId=${locationId || ''}`;
+
             $.ajax({
-                url: '@Url.Action("GetStats", "ServiceDesk")',
+                url: '@Url.Action("GetStats", "ServiceDesk")' + query,
                 type: 'GET',
                 success: function(data) {
                     // Update Cards
@@ -170,26 +213,22 @@
         }
 
         function renderCharts(data) {
+            if (statusChart) statusChart.destroy();
+            if (priorityChart) priorityChart.destroy();
+
             // Status Chart (Doughnut)
             const ctxStatus = document.getElementById('statusChart').getContext('2d');
-            new Chart(ctxStatus, {
+            const statusLabels = data.statusBreakdown.map(s => s.status);
+            const statusValues = data.statusBreakdown.map(s => s.count);
+            
+            statusChart = new Chart(ctxStatus, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Open', 'Assigned', 'In Progress', 'Resolved', 'Closed'],
+                    labels: statusLabels,
                     datasets: [{
-                        data: [
-                            data.openCount, 
-                            data.assignedCount, 
-                            data.inProgressCount, 
-                            data.resolvedCount, 
-                            data.closedCount
-                        ],
+                        data: statusValues,
                         backgroundColor: [
-                            '#EF4444', // Red (Open)
-                            '#3B82F6', // Blue (Assigned)
-                            '#F59E0B', // Amber (In Progress)
-                            '#10B981', // Emerald (Resolved)
-                            '#6B7280'  // Gray (Closed)
+                            '#EF4444', '#3B82F6', '#F59E0B', '#10B981', '#6B7280', '#8B5CF6', '#EC4899'
                         ],
                         borderWidth: 0,
                         hoverOffset: 4
@@ -199,36 +238,39 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { usePointStyle: true, font: { size: 11 } } }
+                        legend: { position: 'bottom', labels: { usePointStyle: true, font: { size: 10 } } }
                     },
-                    cutout: '70%'
+                    cutout: '65%'
                 }
             });
 
-            // Priority Chart (Bar) - Mock distribution for now as API might not return priority breakdown in Stats object
-            // Ideally backend GetStats should return priority counts. 
-            // For now, let's just show a placeholder or basic if data available.
-            // Assuming data doesn't have priority breakdown yet, we'll hide this or use dummy data for visual check
-             const ctxPriority = document.getElementById('priorityChart').getContext('2d');
-            new Chart(ctxPriority, {
+            // Priority Chart (Bar)
+            const ctxPriority = document.getElementById('priorityChart').getContext('2d');
+            const priorityLabels = data.priorityBreakdown.map(p => p.priority);
+            const priorityValues = data.priorityBreakdown.map(p => p.count);
+
+            priorityChart = new Chart(ctxPriority, {
                 type: 'bar',
                 data: {
-                    labels: ['High', 'Medium', 'Low'],
+                    labels: priorityLabels,
                     datasets: [{
                         label: 'Tickets',
-                        data: [5, 12, 8], // MOCK DATA - Backend enhancement needed for real data
-                        backgroundColor: ['#EF4444', '#F59E0B', '#10B981'],
+                        data: priorityValues,
+                        backgroundColor: function(context) {
+                            const val = context.chart.data.labels[context.dataIndex].toLowerCase();
+                            if (val.includes('high') || val.includes('urgent')) return '#EF4444';
+                            if (val.includes('med')) return '#F59E0B';
+                            return '#10B981';
+                        },
                         borderRadius: 6
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        y: { beginAtZero: true, grid: { display: true, drawBorder: false } },
+                        y: { beginAtZero: true, grid: { display: true, drawBorder: false }, ticks: { stepSize: 1 } },
                         x: { grid: { display: false } }
                     }
                 }
@@ -236,8 +278,10 @@
         }
 
         function loadEngineers() {
+            const cid = $('#companyFilter').val() || '';
+            const lid = $('#locationFilter').val() || '';
             $.ajax({
-                url: '@Url.Action("GetEngineers", "ServiceDesk")',
+                url: `@Url.Action("GetEngineers", "ServiceDesk")?companyId=${cid}&locationId=${lid}`,
                 type: 'GET',
                 success: function(data) {
                     const list = $('#engineerList');

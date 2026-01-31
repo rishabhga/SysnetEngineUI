@@ -47,7 +47,11 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var query = $"?companyId={companyId}&locationId={locationId}";
+                var q = new List<string>();
+                if (companyId.HasValue) q.Add($"companyId={companyId}");
+                if (locationId.HasValue) q.Add($"locationId={locationId}");
+                var query = q.Any() ? "?" + string.Join("&", q) : "";
+
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
@@ -82,11 +86,40 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetEngineers(int? companyId, int? locationId)
+        public async Task<IActionResult> GetPriorities()
         {
             try
             {
-                var query = $"?companyId={companyId}&locationId={locationId}";
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Priorities");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetStatuses()
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Statuses");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetEngineers(int? companyId, int? locationId, int? groupId)
+        {
+            try
+            {
+                var queryParams = new List<string>();
+                if (companyId.HasValue) queryParams.Add($"companyId={companyId}");
+                if (locationId.HasValue) queryParams.Add($"locationId={locationId}");
+                if (groupId.HasValue) queryParams.Add($"groupId={groupId}");
+                
+                var query = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Engineers{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
@@ -230,11 +263,11 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetLocations()
+        public async Task<IActionResult> GetCompanies()
         {
             try
             {
-                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Locations");
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch { return Json(new List<object>()); }
@@ -242,15 +275,40 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetUsersByLocation(int locationId)
+        public async Task<IActionResult> GetLocations(int companyId, int groupId)
         {
             try
             {
-                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/UsersByLocation/{locationId}");
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Locationdata?comid={companyId}&groupid={groupId}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch { return Json(new List<object>()); }
         }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetUsersByLocation(int companyId, int groupId, int locationId)
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser?comId={companyId}&groupid={groupId}&locationId={locationId}");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetGroups(int companyId)
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Groupdata?id={companyId}");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
+        }
+
         [HttpGet]
         [AuthFilter]
         public async Task<IActionResult> GetComments(int ticketId)

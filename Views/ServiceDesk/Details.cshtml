@@ -100,12 +100,28 @@
                                 }
                             </div>
                         </div>
-                         <div class="bg-white border border-slate-100 p-4 rounded-xl shadow-sm hover:border-blue-200 transition-colors">
+                        <div class="bg-white border border-slate-100 p-4 rounded-xl shadow-sm hover:border-blue-200 transition-colors">
                             <p class="text-[10px] text-slate-400 uppercase font-bold mb-2 tracking-tighter">Current Status</p>
                             <div class="font-bold text-slate-800 flex items-center gap-2">
-                                <i class="fas fa-circle-notch @(Model.Status == "InProgress" ? "fa-spin text-blue-500" : (Model.Status == "Resolved" ? "text-green-500" : "text-slate-400")) text-[10px]"></i>
+                                <i class="fas fa-circle-notch @(Model.Status == "InProgress" || Model.Status == "In Progress" ? "fa-spin text-blue-500" : (Model.Status == "Resolved" ? "text-green-500" : "text-slate-400")) text-[10px]"></i>
                                 @Model.Status
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Hierarchy Info -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-slate-50/50 p-4 rounded-xl border border-dashed border-slate-200">
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Company</p>
+                            <p class="text-sm font-semibold text-slate-700">@(Model.CompanyName ?? "N/A")</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Location</p>
+                            <p class="text-sm font-semibold text-slate-700">@(Model.LocationName ?? "N/A")</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Group / Department</p>
+                            <p class="text-sm font-semibold text-slate-700">@(Model.GroupName ?? "N/A")</p>
                         </div>
                     </div>
 
@@ -364,15 +380,19 @@
         function initUI() {
             // Priority Color
             const p = currentPriority.toLowerCase();
-            const color = p === 'urgent' ? 'bg-red-500' : (p === 'high' ? 'bg-orange-500' : 'bg-sky-500');
-            $('#priorityStripe').addClass(color);
-            $('#priorityIcon').addClass(p === 'urgent' ? 'text-red-500' : (p === 'high' ? 'text-orange-500' : 'text-sky-500'));
+            let colorClass = 'bg-sky-500';
+            if (p.includes('urgent') || p.includes('high')) colorClass = 'bg-red-500';
+            else if (p.includes('med')) colorClass = 'bg-orange-500';
+            
+            $('#priorityStripe').addClass(colorClass);
+            $('#priorityIcon').addClass(colorClass.replace('bg-', 'text-'));
             
             // Status Badge Color
             const s = currentStatus.toLowerCase();
             const badge = $('#headerStatusBadge');
             if(s === 'open') badge.addClass('bg-red-100 text-red-600');
-            else if(s === 'resolved') badge.addClass('bg-green-100 text-green-600');
+            else if(s === 'resolved' || s === 'closed') badge.addClass('bg-emerald-100 text-emerald-600');
+            else if(s === 'rejected') badge.addClass('bg-slate-200 text-slate-700');
             else badge.addClass('bg-blue-100 text-blue-600');
         }
 

@@ -18,6 +18,10 @@ namespace ManageEngineWebApp.Models
         public string? AssignedToName { get; set; } 
         public int? CompanyId { get; set; }
         public int? LocationId { get; set; }
+        public int? GroupId { get; set; }
+        public string? CompanyName { get; set; }
+        public string? LocationName { get; set; }
+        public string? GroupName { get; set; }
         public DateTime? CreatedOn { get; set; }
         public DateTime? ResolvedDate { get; set; }
         public DateTime? DueDate { get; set; }

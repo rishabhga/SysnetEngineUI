@@ -59,6 +59,41 @@
 
                 <hr class="border-slate-100 mb-8">
 
+                <!-- Section: Hierarchy Details -->
+                <div class="mb-8 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center">
+                        <i class="fas fa-sitemap text-blue-500 mr-2"></i> Assignment Hierarchy
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="form-group">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Company <span class="text-red-500">*</span></label>
+                            <select name="companyId" id="companySelect" required class="w-full rounded-lg border border-slate-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all py-2.5 px-3 text-sm shadow-sm">
+                                <option value="">Select Company...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Group <span class="text-red-500">*</span></label>
+                            <select name="groupId" id="groupSelect" required class="w-full rounded-lg border border-slate-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all py-2.5 px-3 text-sm shadow-sm">
+                                <option value="">Select Group...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Location <span class="text-red-500">*</span></label>
+                            <select name="locationId" id="locationSelect" required class="w-full rounded-lg border border-slate-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all py-2.5 px-3 text-sm shadow-sm">
+                                <option value="">Select Location...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">User <span class="text-red-500">*</span></label>
+                            <select name="userId" id="userSelect" required class="w-full rounded-lg border border-slate-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all py-2.5 px-3 text-sm shadow-sm">
+                                <option value="">Select User...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100 mb-8">
+
                 <!-- Section: Ticket Details -->
                 <div class="mb-6">
                     <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center">
@@ -80,14 +115,11 @@
                         </div>
                         <div class="relative">
                             <label class="block text-sm font-medium text-slate-700 mb-1">Priority <span class="text-red-500">*</span></label>
-                            <select name="priority" id="prioritySelect" required class="w-full rounded-lg border-slate-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all py-2.5 px-3 text-sm shadow-sm pr-24">
-                                <option value="Low">Low - Minor impact</option>
-                                <option value="Medium" selected>Medium - Standard issue</option>
-                                <option value="High">High - Urgent work blocker</option>
-                                <option value="Urgent">Critical - System down</option>
+                            <select name="priority" id="prioritySelect" required class="w-full rounded-lg border border-slate-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all py-2.5 px-3 text-sm shadow-sm pr-24">
+                                <option value="">Select Priority...</option>
                             </select>
-                            <div id="slaPreview" class="absolute right-2 top-[30px] px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200 pointer-events-none">
-                                SLA: 24h
+                            <div id="slaPreview" class="absolute right-2 top-[30px] hidden px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200 pointer-events-none">
+                                SLA: --
                             </div>
                         </div>
                     </div>
@@ -132,7 +164,39 @@
 @section Scripts {
     <script>
         $(document).ready(() => {
-            loadCategories();
+            loadInitialData();
+
+            $('#companySelect').on('change', function() {
+                const companyId = $(this).val();
+                $('#groupSelect').html('<option value="">Select Group...</option>');
+                $('#locationSelect').html('<option value="">Select Location...</option>');
+                $('#userSelect').html('<option value="">Select User...</option>');
+                loadGroups(companyId);
+            });
+
+            $('#groupSelect').on('change', function() {
+                const companyId = $('#companySelect').val();
+                const groupId = $(this).val();
+                $('#locationSelect').html('<option value="">Select Location...</option>');
+                $('#userSelect').html('<option value="">Select User...</option>');
+                loadLocations(companyId, groupId);
+            });
+
+            $('#locationSelect').on('change', function() {
+                const companyId = $('#companySelect').val();
+                const groupId = $('#groupSelect').val();
+                const locationId = $(this).val();
+                $('#userSelect').html('<option value="">Select User...</option>');
+                loadUsers(companyId, groupId, locationId);
+            });
+
+            $('#userSelect').on('change', function() {
+                const userName = $("#userSelect option:selected").text();
+                // If it's the "Select User..." option or similar, don't update
+                if (userName && !userName.includes("Select") && !userName.includes("No users")) {
+                    $('input[name="requesterName"]').val(userName);
+                }
+            });
 
             $('#prioritySelect').on('change', function() {
                 const priority = $(this).val();
@@ -144,9 +208,15 @@
                     'Low': { text: 'SLA: 48h', class: 'bg-slate-100 text-slate-500 border-slate-200' }
                 };
                 
-                const meta = slaMap[priority] || slaMap['Medium'];
-                preview.text(meta.text).attr('class', 'absolute right-2 top-[30px] px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider pointer-events-none ' + meta.class);
-            }).trigger('change');
+                if (priority) {
+                    const meta = slaMap[priority] || slaMap['Medium'];
+                    preview.text(meta.text)
+                           .attr('class', 'absolute right-2 top-[30px] px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider pointer-events-none ' + meta.class)
+                           .removeClass('hidden');
+                } else {
+                    preview.addClass('hidden');
+                }
+            });
 
             $('#createTicketForm').on('submit', function(e) {
                 e.preventDefault();
@@ -154,22 +224,82 @@
             });
         });
 
-        function loadCategories() {
-            $.get('@Url.Action("GetCategories", "ServiceDesk")', categories => {
-                const select = $('#ticketCategory');
-                if (categories && categories.length > 0) {
-                    const options = categories.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
-                    select.append(options);
-                } else {
-                     select.append(`
-                        <option value="Hardware">Hardware</option>
-                        <option value="Software">Software</option>
-                        <option value="Network">Network</option>
-                        <option value="Access">Access & Security</option>
-                        <option value="Other">Other</option>
-                    `);
+        function loadInitialData() {
+            // Load Companies
+            $.get('@Url.Action("GetCompanies", "ServiceDesk")', companies => {
+                const select = $('#companySelect');
+                select.html('<option value="">Select Company...</option>');
+                if (companies && companies.length > 0) {
+                   companies.forEach(c => select.append(`<option value="${c.id}">${c.companyName}</option>`));
                 }
             });
+
+            // Load Categories
+            $.get('@Url.Action("GetCategories", "ServiceDesk")', categories => {
+                const select = $('#ticketCategory');
+                select.html('<option value="">Select Category...</option>');
+                if (categories && categories.length > 0) {
+                    categories.forEach(c => select.append(`<option value="${c.value}">${c.label}</option>`));
+                }
+            });
+
+            // Load Priorities
+            $.get('@Url.Action("GetPriorities", "ServiceDesk")', priorities => {
+                const select = $('#prioritySelect');
+                select.html('<option value="">Select Priority...</option>');
+                if (priorities && priorities.length > 0) {
+                    priorities.forEach(p => select.append(`<option value="${p.value}">${p.label}</option>`));
+                }
+            });
+        }
+
+        function loadGroups(companyId) {
+            const select = $('#groupSelect');
+            select.html('<option value="">Loading...</option>');
+            if (!companyId) {
+                select.html('<option value="">Select Company first...</option>');
+                return;
+            }
+            $.get(`@Url.Action("GetGroups", "ServiceDesk")?companyId=${companyId}`, groups => {
+                select.html('<option value="">Select Group...</option>');
+                if (groups && groups.length > 0) {
+                    groups.forEach(g => select.append(`<option value="${g.id}">${g.groupName}</option>`));
+                }
+            }).fail(() => select.html('<option value="">Error loading groups</option>'));
+        }
+
+        function loadLocations(companyId, groupId) {
+            const select = $('#locationSelect');
+            select.html('<option value="">Loading...</option>');
+            if (!companyId || !groupId) {
+                select.html('<option value="">Select Company & Group first...</option>');
+                return;
+            }
+            
+            $.get(`@Url.Action("GetLocations", "ServiceDesk")?companyId=${companyId}&groupId=${groupId}`, locations => {
+                select.html('<option value="">Select Location...</option>');
+                if (locations && locations.length > 0) {
+                    locations.forEach(l => select.append(`<option value="${l.id}">${l.locationName}</option>`));
+                }
+            }).fail(() => select.html('<option value="">Error loading locations</option>'));
+        }
+
+        function loadUsers(companyId, groupId, locationId) {
+            const select = $('#userSelect');
+            select.html('<option value="">Loading...</option>');
+            if (!companyId || !groupId || !locationId) {
+                select.html('<option value="">Select Hierarchy first...</option>');
+                return;
+            }
+            $.get(`@Url.Action("GetUsersByLocation", "ServiceDesk")?companyId=${companyId}&groupId=${groupId}&locationId=${locationId}`, users => {
+                const select = $('#userSelect');
+                select.html('<option value="">Select User...</option>');
+                if (users && users.length > 0) {
+                    users.forEach(u => select.append(`<option value="${u.domainName}">${u.userName}</option>`));
+                } else {
+                    select.html('<option value="">No users found</option>');
+                }
+            }).fail(() => select.html('<option value="">Error loading users</option>'));
         }
 
         function submitTicket() {
@@ -188,6 +318,10 @@
                 subject: $('input[name="subject"]').val(),
                 category: $('select[name="category"]').val(),
                 priority: $('select[name="priority"]').val(),
+                companyId: parseInt($('select[name="companyId"]').val()) || null,
+                groupId: parseInt($('select[name="groupId"]').val()) || null,
+                locationId: parseInt($('select[name="locationId"]').val()) || null,
+                clientId: $('select[name="userId"]').val(), // Store selected user ID in ClientId
                 remark: $('textarea[name="description"]').val()
             };
 
