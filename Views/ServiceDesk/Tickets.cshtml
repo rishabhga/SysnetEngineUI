@@ -406,7 +406,9 @@
                             <span class="font-mono text-xs text-slate-400 mr-1">#</span>${t.ticketNo || t.id}
                         </td>
                         <td class="px-6 py-4">
-                            <div class="font-medium text-slate-800">${escapeHtml(t.subject || 'No Subject')}</div>
+                            <a href="/ServiceDesk/Details/${t.id}" class="font-medium text-slate-800 hover:text-blue-600 transition-colors block cursor-pointer">
+                                ${escapeHtml(t.subject || 'No Subject')}
+                            </a>
                             <div class="text-xs text-slate-400 mt-0.5 truncate max-w-[200px]">${escapeHtml(t.category || 'General')}</div>
                         </td>
                         <td class="px-6 py-4">
@@ -470,7 +472,11 @@
             const status = ticket.status || 'Open';
             const id = ticket.id;
             const ticketNo = ticket.ticketNo || ticket.id;
-            let buttons = '';
+            let buttons = `
+                <a href="/ServiceDesk/Details/${id}" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Details">
+                    <i class="fas fa-eye"></i>
+                </a>
+            `;
 
             if (status === 'Open') {
                 buttons += `

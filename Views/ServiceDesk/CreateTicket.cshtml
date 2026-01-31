@@ -78,14 +78,17 @@
                                 <option value="">Select Category...</option>
                             </select>
                         </div>
-                        <div>
+                        <div class="relative">
                             <label class="block text-sm font-medium text-slate-700 mb-1">Priority <span class="text-red-500">*</span></label>
-                            <select name="priority" required class="w-full rounded-lg border-slate-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all py-2.5 px-3 text-sm shadow-sm">
+                            <select name="priority" id="prioritySelect" required class="w-full rounded-lg border-slate-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all py-2.5 px-3 text-sm shadow-sm pr-24">
                                 <option value="Low">Low - Minor impact</option>
                                 <option value="Medium" selected>Medium - Standard issue</option>
                                 <option value="High">High - Urgent work blocker</option>
                                 <option value="Urgent">Critical - System down</option>
                             </select>
+                            <div id="slaPreview" class="absolute right-2 top-[30px] px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200 pointer-events-none">
+                                SLA: 24h
+                            </div>
                         </div>
                     </div>
 
@@ -130,6 +133,20 @@
     <script>
         $(document).ready(() => {
             loadCategories();
+
+            $('#prioritySelect').on('change', function() {
+                const priority = $(this).val();
+                const preview = $('#slaPreview');
+                const slaMap = {
+                    'Urgent': { text: 'SLA: 4h', class: 'bg-red-100 text-red-600 border-red-200' },
+                    'High': { text: 'SLA: 8h', class: 'bg-orange-100 text-orange-600 border-orange-200' },
+                    'Medium': { text: 'SLA: 24h', class: 'bg-blue-100 text-blue-600 border-blue-200' },
+                    'Low': { text: 'SLA: 48h', class: 'bg-slate-100 text-slate-500 border-slate-200' }
+                };
+                
+                const meta = slaMap[priority] || slaMap['Medium'];
+                preview.text(meta.text).attr('class', 'absolute right-2 top-[30px] px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider pointer-events-none ' + meta.class);
+            }).trigger('change');
 
             $('#createTicketForm').on('submit', function(e) {
                 e.preventDefault();

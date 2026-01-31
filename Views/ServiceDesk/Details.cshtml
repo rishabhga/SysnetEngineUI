@@ -1,123 +1,134 @@
 @model ManageEngineWebApp.Models.HelpdeskTicket
 @{
-    ViewData["Title"] = "Ticket Details";
+    ViewData["Title"] = "Ticket Details - " + Model.TicketNo;
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var username = Context.Session.GetString("username") ?? "User";
+    var userId = Context.Session.GetString("userId") ?? "0";
 }
 
-<div class="bg-gray-50 min-h-screen p-8 font-sans">
-    <!-- Header: Navigation & Title -->
-    <div class="flex items-center justify-between mb-8">
-        <div>
-            <nav class="flex text-sm text-slate-500 mb-1">
-                <a href="@Url.Action("Tickets", "ServiceDesk")" class="hover:text-sky-600 transition-colors">Tickets</a>
-                <span class="mx-2">/</span>
-                <span class="text-slate-800 font-medium">@Model.TicketNo</span>
-            </nav>
-            <h1 class="text-3xl font-bold text-slate-800 flex items-center gap-3">
-                <span id="ticketTitle">@Model.Subject</span>
-                <span id="statusBadge" class="px-3 py-1 text-sm rounded-full font-semibold bg-sky-100 text-sky-700">
-                    @Model.Status
-                </span>
-            </h1>
-        </div>
-        <div class="flex gap-3">
-             <a href="@Url.Action("Tickets", "ServiceDesk")" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
-                <i class="fas fa-arrow-left mr-2"></i> Back
+<div class="bg-gray-50 min-h-screen pb-12 font-sans">
+    <!-- Sticky Header for Actions -->
+    <div class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 transition-all" id="stickyHeader">
+        <div class="flex items-center gap-4">
+            <a href="@Url.Action("Tickets", "ServiceDesk")" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <i class="fas fa-arrow-left text-lg"></i>
             </a>
-          
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-xl font-bold text-slate-800">@Model.TicketNo</h1>
+                    <span id="headerStatusBadge" class="px-3 py-1 text-xs rounded-full font-bold uppercase tracking-wide bg-gray-100 text-gray-600">@Model.Status</span>
+                </div>
+                <p class="text-sm text-slate-500 truncate max-w-md">@Model.Subject</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Action Buttons based on Status -->
+            <div id="actionButtons" class="flex gap-2">
+                <!-- Populated via JS -->
+            </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         <div class="lg:col-span-1 space-y-6">
-            <div class="bg-white/80 backdrop-blur-md border border-white/20 rounded-2xl shadow-lg p-6 relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+    <div class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- LEFT COLUMN: Ticket Info (7 cols) -->
+        <div class="lg:col-span-8 space-y-6">
+            <!-- Main Info Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative group hover:shadow-md transition-shadow">
+                <!-- Priority Stripe -->
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-200" id="priorityStripe"></div>
                 
-                <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
-                    <i class="fas fa-info-circle text-sky-500 mr-2"></i> Ticket Info
-                </h2>
-
-                <div class="space-y-4">
-                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <p class="text-xs text-slate-400 uppercase font-semibold mb-1">Requester</p>
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-lg">
-                                @(Model.RequesterName?.Substring(0,1) ?? "U")
+                <div class="p-6 pl-8">
+                    <div class="flex flex-col md:flex-row justify-between md:items-start mb-8 gap-6">
+                        <div class="flex items-center gap-5">
+                            <div class="relative">
+                                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-2xl shadow-xl shadow-blue-500/20">
+                                    @(Model.RequesterName?.Substring(0,1) ?? "U")
+                                </div>
+                                <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-green-500 border-4 border-white" title="Requester Active"></div>
                             </div>
                             <div>
-                                <p class="text-slate-800 font-medium">@Model.RequesterName</p>
-                                <p class="text-slate-500 text-sm">@Model.RequesterEmail</p>
+                                <h2 class="text-xl font-bold text-slate-800">@Model.RequesterName</h2>
+                                <p class="text-sm text-slate-500 flex items-center gap-2">
+                                    <i class="far fa-envelope text-blue-400"></i> @Model.RequesterEmail
+                                </p>
+                                <div class="mt-2 flex gap-2">
+                                    <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded uppercase tracking-wider">Requester</span>
+                                    @if(Model.ClientId != null) { <span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded uppercase tracking-wider">Portal User</span> }
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- SLA Visual Meter -->
+                        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex-grow max-w-sm">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">SLA Resolution</span>
+                                <span class="text-xs font-bold @(Model.IsSLABreached == true ? "text-red-500" : "text-blue-600")" id="slaPercentText">Calculating...</span>
+                            </div>
+                            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                <div id="slaProgressBar" class="h-full transition-all duration-1000 @(Model.IsSLABreached == true ? "bg-red-500" : "bg-blue-500")" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between mt-2 text-[10px] font-medium text-slate-400">
+                                <span>Created: @Model.CreatedOn?.ToString("HH:mm")</span>
+                                <span>Deadline: @Model.DueDate?.ToString("HH:mm")</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                            <p class="text-xs text-slate-400 uppercase font-semibold">Priority</p>
-                            <p class="text-slate-800 font-medium flex items-center mt-1">
-                                <i class="fas fa-flag mr-2 
-                                   @(Model.Priority == "Urgent" ? "text-red-500" : 
-                                     Model.Priority == "High" ? "text-orange-500" : "text-sky-500")"></i>
-                                @Model.Priority
-                            </p>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                         <div class="bg-white border border-slate-100 p-4 rounded-xl shadow-sm hover:border-blue-200 transition-colors">
+                            <p class="text-[10px] text-slate-400 uppercase font-bold mb-2 tracking-tighter">Priority Level</p>
+                            <div class="font-bold text-slate-800 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full @(Model.Priority == "Urgent" ? "bg-red-500" : (Model.Priority == "High" ? "bg-orange-500" : "bg-sky-500")) animate-pulse"></span>
+                                <span id="priorityText">@Model.Priority</span>
+                            </div>
                         </div>
-                        <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                            <p class="text-xs text-slate-400 uppercase font-semibold">Category</p>
-                            <p class="text-slate-800 font-medium mt-1">@Model.Category</p>
+                        <div class="bg-white border border-slate-100 p-4 rounded-xl shadow-sm hover:border-blue-200 transition-colors">
+                            <p class="text-[10px] text-slate-400 uppercase font-bold mb-2 tracking-tighter">Expert Category</p>
+                            <div class="font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fas fa-tag text-slate-300 text-xs"></i>
+                                <span>@Model.Category</span>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-slate-100 p-4 rounded-xl shadow-sm hover:border-blue-200 transition-colors">
+                            <p class="text-[10px] text-slate-400 uppercase font-bold mb-2 tracking-tighter">Engineer Assigned</p>
+                            <div class="font-bold text-slate-800 flex items-center gap-2 overflow-hidden">
+                                @if(!string.IsNullOrEmpty(Model.AssignedToName)) {
+                                    <div class="w-5 h-5 rounded bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">@Model.AssignedToName[0]</div>
+                                    <span class="truncate">@Model.AssignedToName</span>
+                                } else {
+                                    <span class="text-slate-300 italic font-medium">Unassigned</span>
+                                }
+                            </div>
+                        </div>
+                         <div class="bg-white border border-slate-100 p-4 rounded-xl shadow-sm hover:border-blue-200 transition-colors">
+                            <p class="text-[10px] text-slate-400 uppercase font-bold mb-2 tracking-tighter">Current Status</p>
+                            <div class="font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fas fa-circle-notch @(Model.Status == "InProgress" ? "fa-spin text-blue-500" : (Model.Status == "Resolved" ? "text-green-500" : "text-slate-400")) text-[10px]"></i>
+                                @Model.Status
+                            </div>
                         </div>
                     </div>
 
-                     <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <p class="text-xs text-slate-400 uppercase font-semibold">Assigned To</p>
-                         <div class="mt-1 flex items-center gap-2">
-                             @if(!string.IsNullOrEmpty(Model.AssignedToName)) {
-                                <div class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">
-                                    @Model.AssignedToName.Substring(0,1)
-                                </div>
-                                <span class="text-slate-800 font-medium">@Model.AssignedToName</span>
-                             } else {
-                                 <span class="text-slate-400 italic">Unassigned</span>
-                             }
-                         </div>
-                    </div>
-                     <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <p class="text-xs text-slate-400 uppercase font-semibold">Description</p>
-                        <p class="text-slate-600 mt-1 text-sm leading-relaxed">@Model.Remark</p>
+                    <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 relative group">
+                        <div class="absolute -top-3 left-6 px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-bold text-slate-400 uppercase tracking-widest shadow-sm">Issue Details</div>
+                        <p class="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">@Model.Remark</p>
                     </div>
                 </div>
             </div>
-            
-            <!-- Dates Card -->
-             <div class="bg-white/80 backdrop-blur-md border border-white/20 rounded-2xl shadow-lg p-6">
-                <h3 class="text-sm font-bold text-slate-800 mb-3">Timestamps</h3>
-                <div class="space-y-3 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-slate-500">Created:</span>
-                        <span class="text-slate-800 font-medium">@Model.CreatedOn?.ToString("MMM dd, yyyy HH:mm")</span>
-                    </div>
-                     <div class="flex justify-between">
-                        <span class="text-slate-500">Due Date:</span>
-                        <span class="text-slate-800 font-medium">@Model.DueDate?.ToString("MMM dd, yyyy")</span>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- COLUMN 2: Ticket Parts (Main Content) -->
-        <div class="lg:col-span-1 space-y-6">
-             <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden flex flex-col h-full">
-                <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
-                    <h2 class="text-lg font-bold text-slate-800">
-                        <i class="fas fa-tools text-slate-400 mr-2"></i> Spare Parts Used
-                    </h2>
-                    <button onclick="openPartModal()" class="text-sm bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg shadow-sm transition-colors">
-                        <i class="fas fa-plus mr-1"></i> Add Part
+            <!-- Parts Section -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fas fa-microchip text-purple-500"></i> Spare Parts / Hardware
+                    </h3>
+                    <button onclick="openPartModal()" class="text-sm px-3 py-1.5 bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 text-slate-700 font-medium transition-colors">
+                        <i class="fas fa-plus mr-1 text-purple-500"></i> Add Part
                     </button>
                 </div>
-                
-                <div class="p-0 flex-grow overflow-auto max-h-[500px]">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50 text-xs text-slate-500 uppercase font-semibold sticky top-0">
+                <div class="p-0 overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-slate-500 uppercase bg-slate-50 font-semibold">
                             <tr>
                                 <th class="px-6 py-3">Part Name</th>
                                 <th class="px-6 py-3 text-center">Qty</th>
@@ -126,212 +137,553 @@
                                 <th class="px-6 py-3 text-center">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="partsTableBody" class="divide-y divide-slate-100 text-sm">
-                            <tr><td colspan="5" class="p-6 text-center text-slate-400">Loading parts...</td></tr>
+                        <tbody id="partsTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated by JS -->
                         </tbody>
-                        <tfoot class="bg-slate-50 font-bold text-slate-800 border-t border-slate-200">
+                        <tfoot class="bg-slate-50 font-bold text-slate-800">
                             <tr>
-                                <td colspan="3" class="px-6 py-3 text-right">Grand Total:</td>
-                                <td id="grandTotal" class="px-6 py-3 text-right text-sky-600">$0.00</td>
+                                <td colspan="3" class="px-6 py-3 text-right text-slate-500">Grand Total:</td>
+                                <td id="grandTotal" class="px-6 py-3 text-right text-purple-600">$0.00</td>
                                 <td></td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
-             </div>
+            </div>
         </div>
 
-        <!-- COLUMN 3: Activity Log & Chat -->
-        <div class="lg:col-span-1 space-y-6">
-            <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 h-full flex flex-col">
-                <h2 class="text-lg font-bold text-slate-800 mb-4">
-                    <i class="fas fa-history text-slate-400 mr-2"></i> Activity Log
-                </h2>
-                
-                <div class="relative pl-4 border-l-2 border-slate-200 space-y-8 flex-grow overflow-auto max-h-[600px] pr-2 custom-scrollbar">
-                    
-                    <!-- Simulating Logs dynamically -->
-                    <div id="activityLogContainer">
-                        <!-- JS will populate this -->
-                        <div class="text-center text-slate-400 py-4">Fetching history...</div>
-                    </div>
+        <!-- RIGHT COLUMN: Tabs (Activity, Comments, Files) (4 cols) -->
+        <div class="lg:col-span-4 space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px] sticky top-24">
+                <!-- Custom Tabs Header -->
+                <div class="flex border-b border-slate-200 bg-slate-50">
+                    <button onclick="switchTab('comments')" class="flex-1 py-3 text-sm font-bold text-slate-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-300 transition-all tab-btn active-tab" data-target="comments">
+                        <i class="far fa-comments mr-2"></i> Chat
+                    </button>
+                    <button onclick="switchTab('activity')" class="flex-1 py-3 text-sm font-bold text-slate-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-300 transition-all tab-btn" data-target="activity">
+                        <i class="fas fa-history mr-2"></i> Log
+                    </button>
+                    <button onclick="switchTab('files')" class="flex-1 py-3 text-sm font-bold text-slate-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-300 transition-all tab-btn" data-target="files">
+                        <i class="fas fa-paperclip mr-2"></i> Files
+                    </button>
+                </div>
 
+                <!-- Tab Content: Comments -->
+                <div id="tab-comments" class="tab-content flex-grow flex flex-col h-full bg-slate-50/30">
+                    <div id="commentsList" class="flex-grow overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                        <!-- Loaded via JS -->
+                    </div>
+                    <!-- Input Area -->
+                    <div class="p-4 bg-white border-t border-slate-200">
+                        <div class="relative">
+                            <textarea id="commentInput" rows="2" class="w-full rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none p-3 text-sm pr-12 shadow-inner resize-none transition-all" placeholder="Type a message..."></textarea>
+                            <button onclick="submitComment()" class="absolute right-2 bottom-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Activity -->
+                <div id="tab-activity" class="tab-content hidden flex-grow overflow-y-auto p-6 custom-scrollbar">
+                    <div class="relative pl-4 border-l-2 border-slate-200 space-y-8" id="activityList">
+                        <!-- Loaded via JS -->
+                    </div>
+                </div>
+
+                <!-- Tab Content: Files -->
+                <div id="tab-files" class="tab-content hidden flex-grow p-4 flex flex-col h-full">
+                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer mb-4" onclick="document.getElementById('fileUpload').click()">
+                        <i class="fas fa-cloud-upload-alt text-3xl text-slate-400 mb-2"></i>
+                        <p class="text-sm text-slate-600 font-medium">Click to upload file</p>
+                        <p class="text-xs text-slate-400 mt-1">Images, PDF, Docx (Max 10MB)</p>
+                        <input type="file" id="fileUpload" class="hidden" onchange="uploadFile(this)">
+                    </div>
+                    <div class="flex-grow overflow-y-auto space-y-2 custom-scrollbar" id="attachmentsList">
+                        <!-- Loaded via JS -->
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Add Part Modal -->
-<div id="partModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center transition-opacity duration-300 opacity-0">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm transform scale-95 transition-transform duration-300" id="partModalContent">
-        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h3 class="text-lg font-bold text-slate-800">Add Spare Part</h3>
-             <button onclick="closePartModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
-                <i class="fas fa-times text-xl"></i>
-            </button>
+<!-- Modals (Copied and Adapted from Tickets.cshtml) -->
+<!-- Approve/Reject/Assign/Status Modals will be dynamically injected or we can include placeholders here -->
+<!-- Including simplified placeholders for brevity - ideally partial views or components -->
+<!-- ... (Modals Placeholder) ... -->
+
+<!-- Reusing Part Modal from previous simplified view -->
+<!-- Modals -->
+<div id="approveModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center transition-all duration-300 opacity-0">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-all duration-300">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+            <h3 class="text-lg font-bold text-slate-800">Approve Ticket</h3>
+            <button onclick="closeModal('approveModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
         </div>
         <div class="p-6 space-y-4">
-            <input type="hidden" id="ticketIdForPart" value="@Model.Id">
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Part Name</label>
-                <input type="text" id="partName" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. SSD 500GB">
+            <label class="block text-sm font-medium text-slate-700">Approval Remarks</label>
+            <textarea id="approveRemarks" class="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition-all" rows="3" placeholder="Enter comments..."></textarea>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeModal('approveModal')" class="flex-1 py-2.5 bg-slate-100 text-slate-600 rounded-lg font-bold">Cancel</button>
+                <button onclick="submitStatusAction('Approved')" class="flex-1 py-2.5 bg-green-600 text-white rounded-lg font-bold shadow-lg shadow-green-200">Confirm Approve</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="rejectModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center transition-all duration-300 opacity-0">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-all duration-300">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-red-50 rounded-t-2xl">
+            <h3 class="text-lg font-bold text-red-800">Reject Ticket</h3>
+            <button onclick="closeModal('rejectModal')" class="text-slate-400 hover:text-red-400"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-6 space-y-4">
+            <label class="block text-sm font-medium text-slate-700">Reason for Rejection <span class="text-red-500">*</span></label>
+            <textarea id="rejectRemarks" class="w-full border border-red-100 p-3 rounded-xl focus:ring-2 focus:ring-red-50 focus:border-red-300 outline-none transition-all" rows="3" placeholder="Explain why this is being rejected..."></textarea>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeModal('rejectModal')" class="flex-1 py-2.5 bg-slate-100 text-slate-600 rounded-lg font-bold">Cancel</button>
+                <button onclick="submitStatusAction('Rejected')" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg font-bold shadow-lg shadow-red-200">Confirm Reject</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="assignModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center transition-all duration-300 opacity-0">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-all duration-300">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-blue-50 rounded-t-2xl">
+            <h3 class="text-lg font-bold text-blue-800">Assign Engineer</h3>
+            <button onclick="closeModal('assignModal')" class="text-slate-400 hover:text-blue-400"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="p-3 bg-blue-50 border border-blue-100 rounded-xl mb-2 flex items-center gap-3">
+                <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+                <p class="text-xs text-blue-800 font-medium">Selecting an engineer will notify them and change the ticket status to <span class="font-bold">Assigned</span>.</p>
+            </div>
+            <label class="block text-sm font-medium text-slate-700">Select Specialist</label>
+            <select id="engineerSelect" class="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none bg-no-repeat bg-[right_1rem_center] bg-[length:1em_1em] bg-[image:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E')]">
+                <option value="">Loading engineers...</option>
+            </select>
+            <label class="block text-sm font-medium text-slate-700">Assignment Notes</label>
+            <textarea id="assignNotes" class="w-full border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none transition-all" rows="2" placeholder="Tasks for the engineer..."></textarea>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeModal('assignModal')" class="flex-1 py-2.5 bg-slate-100 text-slate-600 rounded-lg font-bold">Cancel</button>
+                <button onclick="submitAssignAction()" class="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-bold shadow-lg shadow-blue-200">Assign Now</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="partModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center transition-all duration-300 opacity-0">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm transform scale-95 transition-all duration-300">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-purple-50 rounded-t-2xl">
+            <h3 class="text-lg font-bold text-purple-800">Add Spare Part</h3>
+            <button onclick="closeModal('partModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="form-group">
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Hardware / Part Name</label>
+                <input type="text" id="partName" class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-purple-100 outline-none" placeholder="e.g. SSD 256GB">
             </div>
             <div class="grid grid-cols-2 gap-4">
-                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantity</label>
-                    <input type="number" id="partQty" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all" value="1" min="1">
+                <div class="form-group">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Quantity</label>
+                    <input type="number" id="partQty" class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-purple-100 outline-none" value="1">
                 </div>
-                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Unit Cost ($)</label>
-                    <input type="number" id="partCost" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-sky-500 outline-none transition-all" placeholder="0.00" step="0.01">
+                <div class="form-group">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Unit Cost</label>
+                    <input type="number" id="partCost" class="w-full border border-slate-200 p-2.5 rounded-lg focus:ring-2 focus:ring-purple-100 outline-none" placeholder="0.00" step="0.01">
                 </div>
             </div>
-            <button onclick="submitPart()" class="w-full py-3 bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-700 hover:to-sky-600 text-white font-bold rounded-xl shadow-lg shadow-sky-500/30 transition-all transform hover:scale-[1.02]">
-                Insert Part Record
-            </button>
+            <button onclick="submitPart()" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-200">Add to Part Log</button>
         </div>
     </div>
 </div>
 
 <style>
-    .glass-card {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { bg: transparent; }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .active-tab { border-bottom-color: #3b82f6; color: #2563eb; background-color: white; }
+    
+    /* Animation for chat bubbles */
+    .chat-bubble { animation: fadeIn 0.3s ease-out; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 
-<script>
-    const ticketId = "@Model.Id";
-    const ticketNo = "@Model.TicketNo";
-
-    document.addEventListener("DOMContentLoaded", () => {
-        loadParts();
-        loadLogs(); // Assuming you will build an endpoint for logs, or we can use existing data
-    });
-
-    function openPartModal() {
-        const modal = document.getElementById('partModal');
-        const content = document.getElementById('partModalContent');
-        modal.classList.remove('hidden');
-        // Small delay to allow display:block to apply before opacity transition
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            content.classList.remove('scale-95');
-            content.classList.add('scale-100');
-        }, 10);
-    }
-
-    function closePartModal() {
-        const modal = document.getElementById('partModal');
-        const content = document.getElementById('partModalContent');
-        modal.classList.add('opacity-0');
-        content.classList.remove('scale-100');
-        content.classList.add('scale-95');
-        setTimeout(() => {
-            modal.classList.add('hidden');
-        }, 300);
-    }
-
-    async function loadParts() {
-        try {
-            const res = await fetch(`/ServiceDesk/GetParts?ticketId=${ticketId}`);
-            const parts = await res.json();
-            const tbody = document.getElementById('ticketsTableBody'); // Make sure ID matches
-            // Wait, ID in HTML above is partsTableBody. Correcting.
-            const partsBody = document.getElementById('partsTableBody');
-            
-            if(parts.length === 0) {
-                partsBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 italic">No parts added yet.</td></tr>`;
-                updateTotal(0);
-                return;
-            }
-
-            let html = '';
-            let grandTotal = 0;
-
-            parts.forEach(p => {
-                const total = p.quantity * p.unitCost;
-                grandTotal += total;
-                html += `
-                    <tr class="hover:bg-slate-50 transition-colors group">
-                        <td class="px-6 py-4 font-medium text-slate-700">${p.partName}</td>
-                        <td class="px-6 py-4 text-center text-slate-600">${p.quantity}</td>
-                        <td class="px-6 py-4 text-right text-slate-600">$${p.unitCost.toFixed(2)}</td>
-                        <td class="px-6 py-4 text-right font-medium text-slate-800">$${total.toFixed(2)}</td>
-                        <td class="px-6 py-4 text-center">
-                            <button onclick="deletePart(${p.id})" class="text-red-400 hover:text-red-600 transition-colors" title="Remove Part">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            partsBody.innerHTML = html;
-            updateTotal(grandTotal);
-
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    function updateTotal(amount) {
-        document.getElementById('grandTotal').innerText = '$' + amount.toFixed(2);
-    }
-
-    async function submitPart() {
-        const data = {
-            ticketId: parseInt(ticketId),
-            partName: document.getElementById('partName').value,
-            quantity: parseInt(document.getElementById('partQty').value),
-            unitCost: parseFloat(document.getElementById('partCost').value)
-        };
-
-        if(!data.partName || data.quantity < 1) return alert("Please fill all fields");
-
-        try {
-            const res = await fetch('/ServiceDesk/AddPart', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if(res.ok) {
-                closePartModal();
-                document.getElementById('partName').value = ''; 
-                loadParts(); // Refresh list
-            } else {
-                alert("Failed to add part");
-            }
-        } catch(e) { console.error(e); }
-    }
-
-    async function deletePart(id) {
-        if(!confirm("Remove this part record?")) return;
-        await fetch(`/ServiceDesk/DeletePart?id=${id}`, { method: 'DELETE' });
-        loadParts();
-    }
-
-    // Placeholder for logs (fetch from endpoint if available, or simulate)
-    async function loadLogs() {
-        // Since we don't have a direct logs endpoint yet for specific ticket History view, 
-        // we might leave this as a future enhancement or fetch basic logs if endpoint exists.
-        // For now, let's show a "Created" log.
-        const container = document.getElementById('activityLogContainer');
-        const createdDate = "@Model.CreatedOn?.ToString("MMM dd, yyyy HH:mm")";
+@section Scripts {
+    <script>
+        const ticketId = @Model.Id;
+        const currentStatus = "@Model.Status";
+        const currentPriority = "@Model.Priority";
+        const currentUser = "@username";
         
-        container.innerHTML = `
-            <div class="relative pb-8">
-                <span class="absolute -left-[25px] top-1 w-4 h-4 rounded-full bg-sky-100 border-2 border-sky-500"></span>
-                <p class="text-xs text-slate-400 font-semibold uppercase">${createdDate}</p>
-                <p class="text-slate-800 font-medium mt-1">Ticket Created</p>
-                <p class="text-slate-500 text-sm">System / @Model.RequesterName</p>
-            </div>
-        `;
-    }
-</script>
+        $(document).ready(function() {
+            initUI();
+            loadParts();
+            loadComments();
+            loadLogs();
+            loadAttachments();
+            renderActionButtons();
+            
+            updateSLAProgress();
+            setInterval(updateSLAProgress, 60000); // Update every minute
+
+            // Refresh periodic
+            setInterval(() => {
+                if($('#tab-comments').is(':visible')) loadComments(true);
+            }, 10000);
+        });
+
+        function updateSLAProgress() {
+            const created = new Date("@Model.CreatedOn?.ToString("yyyy-MM-ddTHH:mm:ss")");
+            const due = new Date("@Model.DueDate?.ToString("yyyy-MM-ddTHH:mm:ss")");
+            const now = new Date();
+            
+            if (!created || !due) return;
+            
+            const total = due - created;
+            const elapsed = now - created;
+            let percent = Math.min(Math.max((elapsed / total) * 100, 0), 100);
+            
+            const bar = $('#slaProgressBar');
+            const txt = $('#slaPercentText');
+            
+            bar.css('width', percent + '%');
+            
+            if (now > due) {
+                txt.text('BREACHED').addClass('text-red-600').removeClass('text-blue-600');
+                bar.addClass('bg-red-500').removeClass('bg-blue-500');
+            } else {
+                txt.text(Math.round(percent) + '% Elapsed');
+                if (percent > 80) bar.addClass('bg-orange-500').removeClass('bg-blue-500');
+            }
+        }
+
+        function initUI() {
+            // Priority Color
+            const p = currentPriority.toLowerCase();
+            const color = p === 'urgent' ? 'bg-red-500' : (p === 'high' ? 'bg-orange-500' : 'bg-sky-500');
+            $('#priorityStripe').addClass(color);
+            $('#priorityIcon').addClass(p === 'urgent' ? 'text-red-500' : (p === 'high' ? 'text-orange-500' : 'text-sky-500'));
+            
+            // Status Badge Color
+            const s = currentStatus.toLowerCase();
+            const badge = $('#headerStatusBadge');
+            if(s === 'open') badge.addClass('bg-red-100 text-red-600');
+            else if(s === 'resolved') badge.addClass('bg-green-100 text-green-600');
+            else badge.addClass('bg-blue-100 text-blue-600');
+        }
+
+        // ================= TABS =================
+        function switchTab(tabName) {
+            $('.tab-content').addClass('hidden');
+            $(`#tab-${tabName}`).removeClass('hidden');
+            
+            $('.tab-btn').removeClass('active-tab');
+            $(`button[data-target="${tabName}"]`).addClass('active-tab');
+        }
+
+        // ================= ACTIONS = [MODAL LOGIC] =================
+        function openModal(id) {
+            const m = $(`#${id}`);
+            m.removeClass('hidden');
+            setTimeout(() => m.removeClass('opacity-0').find('>div').removeClass('scale-95'), 10);
+            if(id === 'assignModal') loadEngineers();
+        }
+
+        function closeModal(id) {
+            const m = $(`#${id}`);
+            m.addClass('opacity-0').find('>div').addClass('scale-95');
+            setTimeout(() => m.addClass('hidden'), 300);
+        }
+
+        function renderActionButtons() {
+            const container = $('#actionButtons');
+            container.empty();
+            
+            if(currentStatus === 'Open') {
+                container.append(`<button onclick="openModal('approveModal')" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg shadow-green-200 transition-all flex items-center gap-2"><i class="fas fa-check"></i> Approve</button>`);
+                container.append(`<button onclick="openModal('rejectModal')" class="px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-50 font-bold rounded-xl transition-all"><i class="fas fa-times"></i> Reject</button>`);
+            }
+            
+            if(currentStatus === 'Approved' || currentStatus === 'Open') {
+                 container.append(`<button onclick="openModal('assignModal')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center gap-2"><i class="fas fa-user-tag"></i> Assign</button>`);
+            }
+            
+            if(['Assigned', 'InProgress', 'Approved'].includes(currentStatus)) {
+                container.append(`<button onclick="submitStatusAction('Resolved')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2"><i class="fas fa-check-circle"></i> Resolve</button>`);
+            }
+        }
+        
+        function submitStatusAction(newStatus) {
+            let remarks = "";
+            if(newStatus === 'Approved') remarks = $('#approveRemarks').val() || "Approved via portal";
+            else if(newStatus === 'Rejected') {
+                remarks = $('#rejectRemarks').val();
+                if(!remarks) { alert("Please provide rejection reason"); return; }
+            } else {
+                if(!confirm(`Update status to ${newStatus}?`)) return;
+                remarks = `Status updated to ${newStatus}`;
+            }
+
+            $.ajax({
+                url: '@Url.Action("UpdateStatus", "ServiceDesk")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ ticketId: ticketId, newStatus: newStatus, remarks: remarks, username: currentUser }),
+                success: function(res) {
+                    if(res.success) location.reload();
+                    else alert(res.message);
+                }
+            });
+        }
+
+        function loadEngineers() {
+            $.get('@Url.Action("GetEngineers", "ServiceDesk")', function(data) {
+                const select = $('#engineerSelect');
+                select.empty().append('<option value="">Select an Engineer</option>');
+                data.forEach(e => {
+                    select.append(`<option value="${e.id}" data-name="${e.name}">${e.name} (${e.specialty}) - ${e.currentStatus}</option>`);
+                });
+            });
+        }
+
+        function submitAssignAction() {
+            const engId = $('#engineerSelect').val();
+            const engName = $('#engineerSelect option:selected').data('name');
+            const notes = $('#assignNotes').val();
+            
+            if(!engId) { alert("Please select an engineer"); return; }
+            
+            $.ajax({
+                url: '@Url.Action("AssignTicket", "ServiceDesk")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ 
+                    ticketId: ticketId, 
+                    engineerId: engId, 
+                    engineerName: engName, 
+                    assignedBy: currentUser,
+                    notes: notes 
+                }),
+                success: function(res) {
+                    if(res.success) location.reload();
+                    else alert(res.message);
+                }
+            });
+        }
+
+        // ================= COMMENTS =================
+        function loadComments(silent = false) {
+            $.get(`@Url.Action("GetComments", "ServiceDesk")?ticketId=${ticketId}`, function(data) {
+                const list = $('#commentsList');
+                if(!silent) list.empty();
+                
+                // If silent update, sophisticated logic needed to append only new. 
+                // For MVP, just replace innerHTML or check count. 
+                // Let's replace for now to ensure consistency.
+                let html = '';
+                if(!data || data.length === 0) {
+                    html = '<div class="text-center text-slate-400 py-10 italic">No comments yet. Start the conversation!</div>';
+                } else {
+                    data.sort((a,b) => new Date(a.createdOn) - new Date(b.createdOn)); // Ascending
+                    data.forEach(c => {
+                        const isMe = c.userName === currentUser;
+                        const initial = c.userName ? c.userName.charAt(0).toUpperCase() : '?';
+                        const time = new Date(c.createdOn).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+                        
+                        html += `
+                            <div class="flex gap-3 mb-4 chat-bubble ${isMe ? 'flex-row-reverse' : ''}">
+                                <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${isMe ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-600'}">
+                                    ${initial}
+                                </div>
+                                <div class="flex flex-col max-w-[80%] ${isMe ? 'items-end' : 'items-start'}">
+                                    <div class="px-4 py-2 rounded-2xl shadow-sm text-sm ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}">
+                                        ${c.comment}
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 mt-1 px-1">${time}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                // Only update if changed (simple check usually by length or ID, skipping for complexity)
+                if(list.html() !== html) {
+                    list.html(html);
+                    list.scrollTop(list[0].scrollHeight);
+                }
+            });
+        }
+
+        function submitComment() {
+            const txt = $('#commentInput').val().trim();
+            if(!txt) return;
+            
+            $.ajax({
+                url: '@Url.Action("AddComment", "ServiceDesk")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ ticketId: ticketId, comment: txt, userName: currentUser, userId: "@userId" }),
+                success: function(res) {
+                    if(res.success) {
+                        $('#commentInput').val('');
+                        loadComments();
+                    } else alert("Failed to post comment");
+                },
+                error: function(e) { console.error(e); alert("Error posting comment"); }
+            });
+        }
+
+        // ================= LOGS =================
+        function loadLogs() {
+             $.get(`@Url.Action("GetLogs", "ServiceDesk")?ticketId=${ticketId}`, function(data) {
+                 const list = $('#activityList');
+                 list.empty();
+                 if(!data || data.length === 0) list.html('<div class="text-slate-400 italic">No activity yet.</div>');
+                 else {
+                     data.forEach(l => {
+                         const time = new Date(l.createdOn).toLocaleString();
+                         list.append(`
+                            <div class="relative pb-2 pl-4">
+                                <span class="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-slate-300 border-2 border-white ring-1 ring-slate-100"></span>
+                                <p class="text-xs text-slate-400 font-bold uppercase mb-1">${time}</p>
+                                <p class="text-sm font-medium text-slate-800">${l.remarks || 'Status Changed'}</p>
+                                <div class="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                    <span class="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-mono">${l.oldStatus}</span>
+                                    <i class="fas fa-arrow-right text-[10px]"></i>
+                                    <span class="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-mono font-bold">${l.newStatus}</span>
+                                    <span class="ml-2">by ${l.from}</span>
+                                </div>
+                            </div>
+                         `);
+                     });
+                 }
+             });
+        }
+
+        // ================= FILES =================
+        function loadAttachments() {
+            $.get(`@Url.Action("GetAttachments", "ServiceDesk")?ticketId=${ticketId}`, function(data) {
+                 const list = $('#attachmentsList');
+                 list.empty();
+                 if(!data || data.length === 0) return; // Empty state handled by default
+                 
+                 data.forEach(f => {
+                     const date = new Date(f.uploadedOn).toLocaleDateString();
+                     const icon = f.fileType.includes('image') ? 'fa-file-image text-purple-500' : 'fa-file-alt text-blue-500';
+                     list.append(`
+                        <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:shadow-md transition-shadow group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-lg">
+                                    <i class="far ${icon}"></i>
+                                </div>
+                                <div class="overflow-hidden">
+                                    <p class="text-sm font-medium text-slate-800 truncate w-32 md:w-48" title="${f.fileName}">${f.fileName}</p>
+                                    <p class="text-xs text-slate-500">${(f.fileSize/1024).toFixed(1)} KB • ${date} • ${f.uploadedBy}</p>
+                                </div>
+                            </div>
+                            <a href="${f.filePath}" target="_blank" class="p-2 text-slate-400 hover:text-blue-600 transition-colors" title="Download">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                     `);
+                 });
+            });
+        }
+
+        function uploadFile(input) {
+            if(input.files && input.files[0]) {
+                const file = input.files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // Show loading placeholder
+                $('#attachmentsList').prepend(`<div id="uploading" class="p-3 text-center text-sm text-blue-500"><i class="fas fa-spinner fa-spin mr-2"></i>Uploading...</div>`);
+
+                $.ajax({
+                    url: `@Url.Action("AddAttachment", "ServiceDesk")?ticketId=${ticketId}`,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(res) {
+                        $('#uploading').remove();
+                        if(res.success) {
+                            loadAttachments();
+                        } else alert("Upload failed: " + res.message);
+                    },
+                    error: function() { $('#uploading').remove(); alert("Error uploading file"); }
+                });
+            }
+        }
+
+        // ================= PARTS (Legacy Logic) =================
+        // Reuse logic from previous step for parts
+        async function loadParts() {
+             // (Copy reuse logic from step 82 but adapt IDs if needed)
+             // Simplified for brevity in this artifact, functionality mirrors step 82 logic
+        }
+    </script>
+    <!-- Include the Parts logic reuse here or in script block above -->
+    <script>
+        // ... (Include loadParts, submitPart logic) ...
+        // Re-implementing simplified version for completeness
+         async function loadParts() {
+            try {
+                const res = await fetch(`/ServiceDesk/GetParts?ticketId=${ticketId}`);
+                const parts = await res.json();
+                const tbody = document.getElementById('partsTableBody');
+                if(!parts || parts.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 text-xs italic">No parts added.</td></tr>`;
+                    document.getElementById('grandTotal').innerText = "$0.00";
+                    return;
+                }
+                let html = ''; let total = 0;
+                parts.forEach(p => {
+                    const t = p.quantity * p.unitCost; total += t;
+                    html += `<tr>
+                        <td class="px-6 py-3 font-medium text-slate-700">${p.partName}</td>
+                        <td class="px-6 py-3 text-center">${p.quantity}</td>
+                        <td class="px-6 py-3 text-right">$${p.unitCost.toFixed(2)}</td>
+                        <td class="px-6 py-3 text-right font-bold">$${t.toFixed(2)}</td>
+                        <td class="px-6 py-3 text-center"><button onclick="deletePart(${p.id})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+                document.getElementById('grandTotal').innerText = "$" + total.toFixed(2);
+            } catch(e) { console.error(e); }
+        }
+         function openPartModal() {
+            const m = document.getElementById('partModal');
+            m.classList.remove('hidden');
+            setTimeout(() => { m.classList.remove('opacity-0'); document.getElementById('partModalContent').classList.remove('scale-95'); }, 10);
+        }
+        function closePartModal() {
+             const m = document.getElementById('partModal');
+             m.classList.add('opacity-0');
+             setTimeout(() => m.classList.add('hidden'), 300);
+        }
+        async function submitPart() {
+             const data = {
+                ticketId: parseInt(ticketId),
+                partName: $('#partName').val(),
+                quantity: parseInt($('#partQty').val()),
+                unitCost: parseFloat($('#partCost').val())
+            };
+            if(!data.partName) return;
+            await fetch('/ServiceDesk/AddPart', {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+            });
+            closePartModal(); loadParts();
+        }
+         async function deletePart(id) {
+             if(confirm("Delete part?")) {
+                 await fetch(`/ServiceDesk/DeletePart?id=${id}`, {method: 'DELETE'});
+                 loadParts();
+             }
+        }
+    </script>
+}

@@ -25,7 +25,7 @@ namespace ManageEngineWebApp.Controllers
         [AuthFilter]
         public IActionResult Index()
         {
-            return View();
+            return View("Dashboard");
         }
 
         [HttpGet]
@@ -247,6 +247,90 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/UsersByLocation/{locationId}");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
+        }
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetComments(int ticketId)
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{ticketId}/Comments");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> AddComment()
+        {
+            try
+            {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/Comments", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetAttachments(int ticketId)
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{ticketId}/Attachments");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> AddAttachment(int ticketId)
+        {
+            try
+            {
+                var file = Request.Form.Files[0];
+                if (file == null || file.Length == 0) return Json(new { success = false, message = "No file uploaded" });
+
+                using var content = new MultipartFormDataContent();
+                using var stream = file.OpenReadStream();
+                using var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+                
+                content.Add(fileContent, "File", file.FileName);
+                content.Add(new StringContent(ticketId.ToString()), "TicketId");
+                
+                var username = HttpContext.Session.GetString("username") ?? "System";
+                var userId = HttpContext.Session.GetString("userId") ?? "0";
+                
+                content.Add(new StringContent(username), "UploadedBy");
+                content.Add(new StringContent(userId), "UploadedById");
+
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/Attachments", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [AuthFilter]
+        public IActionResult Dashboard()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetLogs(int ticketId)
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{ticketId}/Logs");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch { return Json(new List<object>()); }
