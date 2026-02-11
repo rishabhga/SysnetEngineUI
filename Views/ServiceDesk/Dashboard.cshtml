@@ -1,6 +1,10 @@
 @{
     ViewData["Title"] = "Service Desk Dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var canCreate = ViewBag.CanCreate ?? false;
+    var canAssign = ViewBag.CanAssign ?? false;
+    var canApprove = ViewBag.CanApprove ?? false;
+    var canDelete = ViewBag.CanDelete ?? false;
 }
 
 <div class="min-h-screen bg-gray-50 p-4">
@@ -13,11 +17,14 @@
                     <p class="text-gray-600 text-sm mt-0.5">Real-time ticket overview</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="@Url.Action("CreateTicket", "ServiceDesk")"
-                       class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded flex items-center">
-                        <i class="fas fa-plus mr-1.5 text-xs"></i>
-                        New Ticket
-                    </a>
+                    @if (canCreate)
+                    {
+                        <a href="@Url.Action("CreateTicket", "ServiceDesk")"
+                           class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded flex items-center">
+                            <i class="fas fa-plus mr-1.5 text-xs"></i>
+                            New Ticket
+                        </a>
+                    }
                 </div>
             </div>
 
@@ -156,14 +163,17 @@
                         <span>View All Tickets</span>
                         <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
                     </a>
-                    <a href="@Url.Action("CreateTicket", "ServiceDesk")"
-                       class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-emerald-50 rounded border border-gray-100 hover:border-emerald-200 transition-colors">
-                        <div class="w-7 h-7 rounded bg-emerald-100 flex items-center justify-center">
-                            <i class="fas fa-plus text-emerald-600 text-xs"></i>
-                        </div>
-                        <span>New Ticket</span>
-                        <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
-                    </a>
+                    @if (canCreate)
+                    {
+                        <a href="@Url.Action("CreateTicket", "ServiceDesk")"
+                           class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-emerald-50 rounded border border-gray-100 hover:border-emerald-200 transition-colors">
+                            <div class="w-7 h-7 rounded bg-emerald-100 flex items-center justify-center">
+                                <i class="fas fa-plus text-emerald-600 text-xs"></i>
+                            </div>
+                            <span>New Ticket</span>
+                            <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                        </a>
+                    }
                     <a href="#" onclick="loadStats()"
                        class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-amber-50 rounded border border-gray-100 hover:border-amber-200 transition-colors">
                         <div class="w-7 h-7 rounded bg-amber-100 flex items-center justify-center">

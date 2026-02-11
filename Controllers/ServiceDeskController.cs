@@ -1,6 +1,8 @@
 using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Datacontext;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
+using ManageEngineWebApp.Attributes;
 
 namespace ManageEngineWebApp.Controllers
 {
@@ -22,10 +24,52 @@ namespace ManageEngineWebApp.Controllers
             return new System.Net.Http.HttpClient(handler);
         }
 
+        // Permission check helpers
+        private bool HasPermission(string permissionCode) => RoleHelper.HasPermission(HttpContext, permissionCode);
+        private bool IsSuperAdmin() => RoleHelper.IsSuperAdmin(HttpContext);
+        
+        // Get user's scope for filtering (non-SuperAdmin users see only their scope)
+        private (int? companyId, int? groupId, int? locationId) GetUserScope()
+        {
+            if (IsSuperAdmin()) return (null, null, null);
+            return (RoleHelper.GetCompanyId(HttpContext), 
+                    RoleHelper.GetGroupId(HttpContext), 
+                    RoleHelper.GetLocationId(HttpContext));
+        }
+
+        // Build query string with user scope applied
+        private string BuildScopedQuery(int? requestedCompanyId, int? requestedLocationId)
+        {
+            var (userCompanyId, userGroupId, userLocationId) = GetUserScope();
+            
+            // Use user's scope if they're not SuperAdmin, otherwise use requested params
+            var companyId = userCompanyId ?? requestedCompanyId;
+            var locationId = userLocationId ?? requestedLocationId;
+            
+            var q = new List<string>();
+            if (companyId.HasValue) q.Add($"companyId={companyId}");
+            if (locationId.HasValue) q.Add($"locationId={locationId}");
+            if (userGroupId.HasValue) q.Add($"groupId={userGroupId}");
+            
+            return q.Any() ? "?" + string.Join("&", q) : "";
+        }
+
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.View", "View Dashboard")]
         public IActionResult Index()
         {
+            SetViewPermissions();
             return View("Dashboard");
+        }
+
+        // Set permissions for views to conditionally render buttons
+        private void SetViewPermissions()
+        {
+            ViewBag.CanCreate = HasPermission("ServiceDesk.Create") || IsSuperAdmin();
+            ViewBag.CanAssign = HasPermission("ServiceDesk.Assign") || IsSuperAdmin();
+            ViewBag.CanApprove = HasPermission("ServiceDesk.Approve") || IsSuperAdmin();
+            ViewBag.CanDelete = HasPermission("ServiceDesk.Delete") || IsSuperAdmin();
+            ViewBag.IsSuperAdmin = IsSuperAdmin();
         }
 
         [HttpGet]
@@ -34,7 +78,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var query = $"?companyId={companyId}&locationId={locationId}";
+                // Apply user scope filtering
+                var query = BuildScopedQuery(companyId, locationId);
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Stats{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
@@ -47,11 +92,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var q = new List<string>();
-                if (companyId.HasValue) q.Add($"companyId={companyId}");
-                if (locationId.HasValue) q.Add($"locationId={locationId}");
-                var query = q.Any() ? "?" + string.Join("&", q) : "";
-
+                // Apply user scope filtering so non-admins only see their tickets
+                var query = BuildScopedQuery(companyId, locationId);
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
@@ -60,8 +102,10 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Create", "Create Ticket")]
         public async Task<IActionResult> SaveTicket()
         {
+            // Permission check handled by DynamicAuthorizationFilter
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
@@ -129,19 +173,25 @@ namespace ManageEngineWebApp.Controllers
         [AuthFilter]
         public IActionResult Tickets()
         {
+            SetViewPermissions();
             return View();
         }
 
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Create", "Create Ticket")]
         public IActionResult CreateTicket()
         {
+            // Permission check handled by DynamicAuthorizationFilter
+            ViewBag.CanCreate = HasPermission("ServiceDesk.Create") || IsSuperAdmin();
             return View();
         }
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Assign", "Assign Ticket")]
         public async Task<IActionResult> AssignTicket()
         {
+            // Permission check handled by DynamicAuthorizationFilter
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
@@ -154,6 +204,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Edit", "Update Ticket Details")]
         public async Task<IActionResult> UpdateTicketDetails()
         {
             try
@@ -168,6 +219,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Edit", "Update Ticket Status")]
         public async Task<IActionResult> UpdateStatus()
         {
             try
@@ -182,8 +234,10 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Approve", "Approve Ticket")]
         public async Task<IActionResult> ApproveTicket()
         {
+            // Permission check handled by DynamicAuthorizationFilter
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
@@ -196,8 +250,10 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Approve", "Reject Ticket")] // Uses Approve permission
         public async Task<IActionResult> RejectTicket()
         {
+            // Permission check handled by DynamicAuthorizationFilter
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
@@ -256,6 +312,7 @@ namespace ManageEngineWebApp.Controllers
                 var content = await response.Content.ReadAsStringAsync();
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var ticket = System.Text.Json.JsonSerializer.Deserialize<ManageEngineWebApp.Models.HelpdeskTicket>(content, options);
+                SetViewPermissions();
                 return View(ticket);
             }
             catch { return NotFound(); }
@@ -399,6 +456,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpDelete]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Delete", "Delete Ticket")]
         public async Task<IActionResult> DeleteTicket(int id)
         {
             try

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ManageEngineWebApp.Models;
+using ManageEngineWebApp.Attributes;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +20,8 @@ namespace ManageEngineWebApp.Controllers
 
         private static List<string> _engineers = new List<string> { "John Doe", "Jane Smith", "Admin", "Mike Ross" };
 
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        [DynamicPermission("Tickets.View", "View Tickets")]
         public IActionResult Index(int? companyId, int? locationId)
         {
             var tickets = _tickets.AsQueryable();
@@ -37,6 +41,7 @@ namespace ManageEngineWebApp.Controllers
             return View(tickets.ToList());
         }
 
+        [DynamicPermission("Tickets.Create", "Create Ticket")]
         public IActionResult Create()
         {
             return View();
@@ -47,7 +52,7 @@ namespace ManageEngineWebApp.Controllers
         {
             ticket.Id = _tickets.Count + 1;
             ticket.CreatedDate = DateTime.Now;
-            ticket.Status = "Open";
+            ticket.Status = ticket.Status ?? "Open"; // Handle potential null
             
             // Get current user from session if available
             var username = HttpContext.Session.GetString("username");
@@ -58,6 +63,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         public IActionResult CreateFromComputer(string domain, string subject, string priority, string description, int? companyId = null, int? locationId = null)
         {
             var ticket = new Ticket
@@ -79,6 +85,7 @@ namespace ManageEngineWebApp.Controllers
             return Json(new { success = true, message = "Ticket raised successfully!" });
         }
 
+        [AllowAnonymous]
         public IActionResult GetTicketsForComputer(string domain)
         {
             var tickets = _tickets.Where(t => t.Domain == domain).OrderByDescending(t => t.CreatedDate).ToList();
@@ -86,6 +93,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
+        [DynamicPermission("Tickets.Assign", "Assign Ticket to Engineer")]
         public IActionResult AssignEngineer(int ticketId, string engineerName)
         {
             var ticket = _tickets.FirstOrDefault(t => t.Id == ticketId);
@@ -110,13 +118,13 @@ namespace ManageEngineWebApp.Controllers
     public class Ticket
     {
         public int Id { get; set; }
-        public string Subject { get; set; }
-        public string Description { get; set; }
-        public string Domain { get; set; } // The Computer Name
-        public string Status { get; set; } // Open, In Progress, Closed, Assigned
-        public string Priority { get; set; } // High, Medium, Low
-        public string CreatedBy { get; set; }
-        public string AssignedTo { get; set; }
+        public string? Subject { get; set; }
+        public string? Description { get; set; }
+        public string? Domain { get; set; } // The Computer Name
+        public string? Status { get; set; } // Open, In Progress, Closed, Assigned
+        public string? Priority { get; set; } // High, Medium, Low
+        public string? CreatedBy { get; set; }
+        public string? AssignedTo { get; set; }
         public DateTime CreatedDate { get; set; }
         public int? CompanyId { get; set; }
         public int? LocationId { get; set; }

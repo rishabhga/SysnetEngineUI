@@ -1,6 +1,10 @@
 @{
     ViewData["Title"] = "All Service Tickets";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var canCreate = ViewBag.CanCreate ?? false;
+    var canAssign = ViewBag.CanAssign ?? false;
+    var canApprove = ViewBag.CanApprove ?? false;
+    var canDelete = ViewBag.CanDelete ?? false;
 }
 
 <div class="min-h-screen bg-gray-50 p-4">
@@ -18,11 +22,14 @@
                         <i class="fas fa-arrow-left mr-1.5 text-xs"></i>
                         Back
                     </a>
-                    <a href="@Url.Action("CreateTicket", "ServiceDesk")"
-                       class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded flex items-center">
-                        <i class="fas fa-plus mr-1.5 text-xs"></i>
-                        New Ticket
-                    </a>
+                    @if (canCreate)
+                    {
+                        <a href="@Url.Action("CreateTicket", "ServiceDesk")"
+                           class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded flex items-center">
+                            <i class="fas fa-plus mr-1.5 text-xs"></i>
+                            New Ticket
+                        </a>
+                    }
                 </div>
             </div>
         </div>
@@ -288,6 +295,11 @@
         let allTickets = [];
         const username = '@Context.Session.GetString("username")' || 'Admin';
         const userId = '@Context.Session.GetString("userId")' || '1';
+        
+        // Permission flags from server
+        const canAssign = @(canAssign ? "true" : "false");
+        const canApprove = @(canApprove ? "true" : "false");
+        const canDelete = @(canDelete ? "true" : "false");
 
         // ==================== INITIALIZATION ====================
         $(document).ready(function () {
@@ -481,7 +493,8 @@
                 </a>
             `;
 
-            if (status === 'Open') {
+            // Approve/Reject buttons - require approval permission
+            if (status === 'Open' && canApprove) {
                 buttons += `
                     <button onclick="openApproveModal(${id})" class="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Approve">
                         <i class="fas fa-check text-xs"></i>
@@ -492,7 +505,8 @@
                 `;
             }
 
-            if (status === 'Open' || status === 'Approved') {
+            // Assign button - require assign permission
+            if ((status === 'Open' || status === 'Approved') && canAssign) {
                 buttons += `
                     <button onclick="openAssignModal(${id}, '${escapeHtml(ticketNo)}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Assign to Engineer">
                         <i class="fas fa-user-tag text-xs"></i>
@@ -527,7 +541,7 @@
                 `;
             }
 
-            if (status === 'Rejected') {
+            if (status === 'Rejected' && canApprove) {
                 buttons += `
                     <button onclick="reopenTicket(${id})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Re-Open">
                         <i class="fas fa-redo text-xs"></i>
@@ -544,12 +558,14 @@
                 `;
             }
 
-            // Delete button - available for all tickets
-            buttons += `
-                <button onclick="deleteTicket(${id}, '${escapeHtml(ticketNo)}')" class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded" title="Delete Ticket">
-                    <i class="fas fa-trash text-xs"></i>
-                </button>
-            `;
+            // Delete button - require delete permission
+            if (canDelete) {
+                buttons += `
+                    <button onclick="deleteTicket(${id}, '${escapeHtml(ticketNo)}')" class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded" title="Delete Ticket">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                `;
+            }
 
             return buttons;
         }

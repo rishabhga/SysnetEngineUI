@@ -85,15 +85,13 @@ namespace ManageEngineWebApp.Datacontext
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<UserRoleDto>(json);
+                    var result = JsonConvert.DeserializeObject<UserRoleDto>(json);
+                    return result;
                 }
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"GetUserRoleFromApiAsync Failed. Status: {response.StatusCode}, Content: {errorContent}");
                 return null;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"GetUserRoleFromApiAsync Exception: {ex.Message}");
                 return null;
             }
         }
@@ -112,11 +110,34 @@ namespace ManageEngineWebApp.Datacontext
             var role = context?.Session.GetString("role");
             if (role == "SuperAdmin") return true; 
 
+            if (string.IsNullOrEmpty(permissionCode)) return true; // No permission required
+
             var permissions = context?.Session.GetString("permissions");
             if (string.IsNullOrEmpty(permissions)) return false;
 
-            var permList = permissions.Split(',', StringSplitOptions.RemoveEmptyEntries);
-            return permList.Any(p => p.Trim().Equals(permissionCode, StringComparison.OrdinalIgnoreCase));
+            var permList = permissions.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Trim())
+                .ToList();
+
+            // 1. Exact match (case-insensitive)
+            if (permList.Any(p => p.Equals(permissionCode, StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            // 2. Module-level fallback: if checking "Companies.Companies", also accept "Companies.View"
+            var parts = permissionCode.Split('.');
+            if (parts.Length == 2)
+            {
+                string module = parts[0];
+                string viewPerm = $"{module}.View";
+                if (permList.Any(p => p.Equals(viewPerm, StringComparison.OrdinalIgnoreCase)))
+                    return true;
+
+                // 3. Any permission in the same module grants access (e.g. "Companies.Edit" grants access to Companies controller)
+                if (permList.Any(p => p.StartsWith(module + ".", StringComparison.OrdinalIgnoreCase)))
+                    return true;
+            }
+
+            return false;
         }
         public static int? GetCompanyId(Microsoft.AspNetCore.Http.HttpContext context)
         {

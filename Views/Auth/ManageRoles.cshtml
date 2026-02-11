@@ -1026,12 +1026,20 @@
         }
 
         function showToast(message, type) {
-            // Simple toast using alert for now - can be enhanced later
-            if (type === 'error') {
-                alert('Error: ' + message);
-            } else {
-                alert(message);
-            }
+            const existing = document.getElementById('toast-notification');
+            if(existing) existing.remove();
+
+            const div = document.createElement('div');
+            div.id = 'toast-notification';
+            const isError = type === 'error';
+            div.className = `fixed top-4 right-4 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-y-0 z-50 flex items-center gap-3 ${isError ? 'bg-red-600' : 'bg-green-600'}`;
+            div.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} text-xl"></i><div><h4 class="font-bold text-sm">${isError ? 'Error' : 'Success'}</h4><p class="text-xs opacity-90">${message}</p></div>`;
+            document.body.appendChild(div);
+            
+            setTimeout(() => {
+                div.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(() => div.remove(), 300);
+            }, 3000);
         }
     </script>
 }

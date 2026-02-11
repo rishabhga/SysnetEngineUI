@@ -9,6 +9,7 @@
             <p class="text-sm text-gray-500">Manage dynamic modules, permissions, and sidebar menus.</p>
         </div>
         <div class="flex space-x-3">
+            <!-- Auto-Discover button removed as per user request -->
             <button onclick="openMenuModal()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center shadow-lg shadow-sky-600/20">
                 <i class="fas fa-plus mr-2"></i>Add Menu Item
             </button>
@@ -115,11 +116,13 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Controller</label>
-                    <input type="text" id="routeController" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm" placeholder="Companies">
+                    <input type="text" id="routeController" list="controllerList" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm" placeholder="Companies">
+                    <datalist id="controllerList"></datalist>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Action</label>
-                    <input type="text" id="routeAction" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm" placeholder="Companies">
+                    <input type="text" id="routeAction" list="actionList" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm" placeholder="Index">
+                    <datalist id="actionList"></datalist>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Icon Class</label>
@@ -232,12 +235,55 @@
     <script>
         const AUTH_CTRL = '@Url.Content("~/Auth")';
 
+        // Toast Notification System
+        function showToast(message, isError = false) {
+            const existing = document.getElementById('toast-notification');
+            if(existing) existing.remove();
+
+            const div = document.createElement('div');
+            div.id = 'toast-notification';
+            div.className = `fixed top-4 right-4 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-y-0 z-50 flex items-center gap-3 ${isError ? 'bg-red-600' : 'bg-green-600'}`;
+            div.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} text-xl"></i><div><h4 class="font-bold text-sm">${isError ? 'Error' : 'Success'}</h4><p class="text-xs opacity-90">${message}</p></div>`;
+            document.body.appendChild(div);
+            
+            setTimeout(() => {
+                div.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(() => div.remove(), 300);
+            }, 3000);
+        }
+
         $(document).ready(() => {
-            console.log("System Management initialized. Base path:", AUTH_CTRL);
-            checkConnection();
+            console.log("System Management initialized");
+            loadAllData();
+            loadDiscoveredRoutes();
         });
 
-        function checkConnection() {
+        function seedDatabase() {
+            if(!confirm("This will scan all controllers and assume permissions/routes. Continue?")) return;
+            $.ajax({
+                url: '@Url.Action("SeedPermissions", "Auth")',
+                type: 'POST',
+                success: (res) => {
+                    if(res.success) { showToast(res.message); loadAllData(); }
+                    else showToast(res.message, true);
+                },
+                error: () => showToast("Failed to seed database", true)
+            });
+        }
+
+        function loadDiscoveredRoutes() {
+            $.get('@Url.Action("GetDiscoveredRoutes", "Auth")', routes => {
+                if(routes && routes.length) {
+                    const controllers = [...new Set(routes.map(r => r.controller))];
+                    const actions = [...new Set(routes.map(r => r.action))];
+                    
+                    $('#controllerList').html(controllers.map(c => `<option value="${c}">`).join(''));
+                    $('#actionList').html(actions.map(a => `<option value="${a}">`).join(''));
+                }
+            });
+        }
+
+        function loadAllData() {
             loadStats();
             loadMenus();
             loadModules();
@@ -250,344 +296,230 @@
                     $('#statsContainer').html(`<div class="col-span-4 bg-red-50 p-4 rounded-xl text-red-600 text-sm border border-red-100"><i class="fas fa-exclamation-triangle mr-2"></i>API Error: ${stats.error}</div>`);
                     return;
                 }
+                
                 const html = `
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-amber-500 hover:shadow-md transition">
                         <p class="text-xs font-bold text-gray-400 uppercase mb-1">Modules</p>
-                        <p class="text-3xl font-black text-amber-500">${stats.modules}</p>
+                        <p class="text-3xl font-black text-gray-800">${stats.modules}</p>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-sky-500 hover:shadow-md transition">
                         <p class="text-xs font-bold text-gray-400 uppercase mb-1">Permissions</p>
-                        <p class="text-3xl font-black text-sky-500">${stats.perms}</p>
+                        <p class="text-3xl font-black text-gray-800">${stats.perms}</p>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-indigo-500 hover:shadow-md transition">
                         <p class="text-xs font-bold text-gray-400 uppercase mb-1">Active Menus</p>
-                        <p class="text-3xl font-black text-indigo-500">${stats.menus}</p>
+                        <p class="text-3xl font-black text-gray-800">${stats.menus}</p>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-emerald-500 hover:shadow-md transition">
                         <p class="text-xs font-bold text-gray-400 uppercase mb-1">Roles</p>
-                        <p class="text-3xl font-black text-emerald-500">${stats.roles}</p>
+                        <p class="text-3xl font-black text-gray-800">${stats.roles}</p>
                     </div>
                 `;
                 $('#statsContainer').html(html);
             }).fail(() => {
-                $('#statsContainer').html('<div class="col-span-4 bg-amber-50 p-4 rounded-xl text-amber-600 text-sm border border-amber-100"><i class="fas fa-plug mr-2"></i>Cannot connect to Software API. Please ensure the Software project is running.</div>');
+                $('#statsContainer').html('<div class="col-span-4 bg-amber-50 p-4 rounded-xl text-amber-600 text-sm border border-amber-100"><i class="fas fa-plug mr-2"></i>Cannot connect to Software API.</div>');
+                showToast("Failed to connect to API", true);
             });
         }
 
+        // ================== MENUS ==================
+        // ================== MENUS ==================
         function loadMenus() {
-            $.get('@Url.Action("GetMenus", "Auth")', menus => {
-                const rows = menus.map(m => {
-                    const id = m.id || m.Id;
-                    return `
-                    <tr class="hover:bg-gray-50/50 transition duration-150">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center">
-                                <i class="${m.menuIcon} text-gray-400 mr-3 w-4"></i>
-                                <span class="text-sm font-semibold text-gray-900">${m.menuName}</span>
-                            </div>
-                        </td>
+             $.get('@Url.Action("GetMenus", "Auth")', menus => {
+                const rows = menus.map(m => `
+                    <tr class="hover:bg-gray-50/50 transition border-b border-gray-50 group">
+                        <td class="px-6 py-4"><div class="flex items-center"><i class="${m.menuIcon || 'fas fa-link'} text-gray-400 mr-3 w-4 group-hover:text-indigo-500 transition"></i><span class="text-sm font-semibold text-gray-900">${m.menuName}</span></div></td>
                         <td class="px-6 py-4 text-xs font-mono text-gray-500">${m.routeController}/${m.routeAction}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 bg-sky-50 text-sky-600 rounded text-[10px] font-bold">${m.requiredPermissionCode}</span></td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 bg-sky-50 text-sky-600 rounded text-[10px] font-bold border border-sky-100">${m.requiredPermissionCode || 'None'}</span></td>
                         <td class="px-6 py-4 text-right">
-                            <button onclick='editMenu(${JSON.stringify(m)})' class="text-sky-600 hover:text-sky-700 mr-3 px-2 py-1"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteMenu(${id})" class="text-red-400 hover:text-red-500 px-2 py-1"><i class="fas fa-trash"></i></button>
+                             <button onclick='editMenu(${JSON.stringify(m)})' class="text-sky-600 hover:text-sky-700 mr-3 px-2 py-1 rounded hover:bg-sky-50 transition"><i class="fas fa-edit"></i></button>
+                             <button onclick="deleteMenu(${m.id || m.Id})" class="text-red-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
                         </td>
-                    </tr>`;
-                }).join('');
-                $('#menuTableBody').html(rows || '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400 text-sm">No menus defined</td></tr>');
-            }).fail(() => $('#menuTableBody').html('<tr><td colspan="4" class="px-6 py-8 text-center text-red-500 text-sm">Error loading menus</td></tr>'));
-        }
-
-        function loadModules() {
-            $.get('@Url.Action("GetModules", "Auth")', modules => {
-                const list = modules.map(m => {
-                    const id = m.id || m.Id;
-                    return `
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-amber-50 transition border border-transparent hover:border-amber-100 group">
-                        <div class="flex items-center">
-                            <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center mr-3">
-                                <i class="${m.iconClass} text-amber-500"></i>
-                            </div>
-                            <span class="text-sm font-bold text-gray-800">${m.moduleName}</span>
-                        </div>
-                        <button onclick="deleteModule(${id})" class="text-gray-300 hover:text-red-500 transition px-2 py-1"><i class="fas fa-times"></i></button>
-                    </div>`;
-                }).join('');
-                $('#moduleList').html(list || '<p class="text-center py-4 text-gray-400 text-xs">No active modules</p>');
-            }).fail(() => $('#moduleList').html('<p class="text-center py-4 text-red-500 text-xs">Error loading modules</p>'));
-        }
-
-
-        function openMenuModal(callback) {
-            $('#menuForm')[0].reset();
-            $('#menuId').val('0');
-            $('#menuModalTitle').text('Add Menu Item');
-            $('#menuModal').removeClass('hidden');
-            
-            // Populate module dropdown if it existed
-            loadModuleOptions(callback);
-        }
-        
-        function loadModuleOptions(callback) {
-             $.get('@Url.Action("GetModules", "Auth")', modules => {
-                 const options = modules.map(m => `<option value="${m.id || m.Id}">${m.moduleName || m.ModuleName}</option>`).join('');
-                 $('#menuModuleId').html(options);
-                 if (callback) callback();
+                    </tr>`).join('');
+                $('#menuTableBody').html(rows || '<tr><td colspan="4" class="text-center py-8 text-gray-400 text-xs italic">No menus found</td></tr>');
+             }).fail((xhr) => {
+                 $('#menuTableBody').html('<tr><td colspan="4" class="text-center py-8 text-red-500 text-xs">Failed to load menus: ' + (xhr.responseText || 'Error') + '</td></tr>');
+                 showToast("Failed to load menus", true);
              });
         }
 
-        function closeMenuModal() { $('#menuModal').addClass('hidden'); }
+        function deleteMenu(id) {
+            if(!confirm('Are you sure you want to delete this menu?')) return;
+            $.ajax({
+                url: '/Auth/DeleteMenu?id=' + id,
+                type: 'DELETE',
+                success: (res) => {
+                    if(res.success) { showToast('Menu deleted'); loadAllData(); }
+                    else showToast(res.message, true);
+                },
+                error: () => showToast('Failed to delete menu', true)
+            });
+        }
 
+        // ================== MODULES ==================
+        function loadModules() {
+             $.get('@Url.Action("GetModules", "Auth")', modules => {
+                 const list = modules.map(m => `
+                    <div class="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition group">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center mr-3 group-hover:bg-amber-100 transition"><i class="${m.iconClass || 'fas fa-box'} text-amber-500"></i></div>
+                            <span class="text-sm font-bold text-gray-800">${m.moduleName}</span>
+                        </div>
+                        <button onclick="deleteModule(${m.id || m.Id})" class="text-gray-300 hover:text-red-500 transition px-2 hover:bg-red-50 rounded"><i class="fas fa-times"></i></button>
+                    </div>`).join('');
+                 $('#moduleList').html(list || '<p class="text-center py-4 text-gray-400 text-xs italic">No modules</p>');
+             }).fail((xhr) => {
+                 $('#moduleList').html('<p class="text-center text-red-500">Failed to load modules: ' + (xhr.responseText || 'Error') + '</p>');
+                 showToast("Failed to load modules", true);
+             });
+        }
 
-        $('#menuForm').on('submit', e => {
+        function deleteModule(id) {
+            if(!confirm('Delete this module? Assignments will be lost.')) return;
+            $.ajax({
+                url: '/Auth/DeleteModule?id=' + id,
+                type: 'DELETE',
+                success: (res) => {
+                    if(res.success) { showToast('Module deleted'); loadAllData(); }
+                    else showToast(res.message, true);
+                },
+                error: () => showToast('Failed to delete module', true)
+            });
+        }
+
+        // ================== PERMISSIONS ==================
+        function loadPermissions() {
+             $.get('@Url.Action("GetPermissions", "Auth")', perms => {
+                 const rows = perms.map(p => `
+                    <tr class="hover:bg-gray-50/50 transition border-b border-gray-50 group">
+                        <td class="px-6 py-3"><span class="text-xs font-mono bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-100">${p.permissionCode}</span></td>
+                        <td class="px-6 py-3 text-sm font-medium text-gray-700">${p.permissionName}</td>
+                        <td class="px-6 py-3 text-xs text-gray-500">${p.moduleId || '-'}</td>
+                        <td class="px-6 py-3"><span class="text-[10px] px-2 py-0.5 rounded ${p.actionType === 'View' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'} border border-gray-100">${p.actionType || 'Action'}</span></td>
+                        <td class="px-6 py-3 text-right">
+                            <button onclick='editPermission(${JSON.stringify(p)})' class="text-emerald-600 hover:text-emerald-700 mr-2 px-2 py-1 rounded hover:bg-emerald-50 transition"><i class="fas fa-edit"></i></button>
+                            <button onclick="deletePermission(${p.id || p.Id})" class="text-red-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`).join('');
+                 $('#permissionTableBody').html(rows || '<tr><td colspan="5" class="text-center py-8 text-gray-400 text-xs italic">No permissions found</td></tr>');
+             }).fail((xhr) => {
+                 $('#permissionTableBody').html('<tr><td colspan="5" class="text-center py-8 text-red-500 text-xs">Failed to load permissions: ' + (xhr.responseText || 'Error') + '</td></tr>');
+                 showToast("Failed to load permissions", true);
+             });
+        }
+
+        function deletePermission(id) {
+            if(!confirm('Delete this permission?')) return;
+            $.ajax({
+                url: '/Auth/DeletePermission?id=' + id,
+                type: 'DELETE',
+                success: (res) => {
+                    if(res.success) { showToast('Permission deleted'); loadAllData(); }
+                    else showToast(res.message, true);
+                },
+                error: () => showToast('Failed to delete permission', true)
+            });
+        }
+        
+        // Modal helpers
+        function openMenuModal(cb) { $('#menuModal').removeClass('hidden'); loadModuleOptions(cb); }
+        function closeMenuModal() { $('#menuModal').addClass('hidden'); $('#menuForm')[0].reset(); }
+        
+        function openModuleModal() { $('#moduleModal').removeClass('hidden'); $('#moduleForm')[0].reset(); }
+        function closeModuleModal() { $('#moduleModal').addClass('hidden'); }
+        
+        function openPermissionModal(cb) { $('#permissionModal').removeClass('hidden'); loadModuleOptionsForPermission(cb); }
+        function closePermissionModal() { $('#permissionModal').addClass('hidden'); $('#permissionForm')[0].reset(); }
+        
+        // Load options helpers
+        function loadModuleOptions(cb) { $.get('@Url.Action("GetModules", "Auth")', m => { $('#menuModuleId').html(m.map(x=>`<option value="${x.id || x.Id}">${x.moduleName}</option>`).join('')); if(cb) cb(); }); }
+        function loadModuleOptionsForPermission(cb) { $.get('@Url.Action("GetModules", "Auth")', m => { $('#permissionModuleId').html('<option value="">Select Module</option>' + m.map(x=>`<option value="${x.id || x.Id}">${x.moduleName}</option>`).join('')); if(cb) cb(); }); }
+
+        // Form Submissions
+        $('#menuForm').on('submit', function(e) {
             e.preventDefault();
-            const payload = {
-                id: parseInt($('#menuId').val()),
+            const idVal = $('#menuId').val();
+            const data = {
+                id: idVal ? parseInt(idVal) : 0,
                 menuName: $('#menuName').val(),
                 routeController: $('#routeController').val(),
                 routeAction: $('#routeAction').val(),
-                menuIcon: $('#menuIcon').val() || 'fas fa-link',
+                menuIcon: $('#menuIcon').val(),
                 requiredPermissionCode: $('#requiredPermission').val(),
-                sortOrder: parseInt($('#menuSortOrder').val()) || 1,
-                moduleId: parseInt($('#menuModuleId').val()) || 1,
+                sortOrder: $('#menuSortOrder').val(),
+                moduleId: $('#menuModuleId').val(),
                 isActive: true
             };
             $.ajax({
-                url: '@Url.Action("SaveMenu", "Auth")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(payload),
-                success: (res) => {
-                    if (res.success === false) {
-                        bootbox.alert("Error saving menu: " + res.message);
-                        return;
-                    }
-                    closeMenuModal();
-                    loadMenus();
-                    loadStats();
-                    bootbox.alert("Menu saved successfully!");
-                }
-            }).fail(() => bootbox.alert("Failed to save menu. Ensure Software API is running."));
+                url: '@Url.Action("SaveMenu", "Auth")', type: 'POST', contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: res => { 
+                    if(res.success) { showToast('Menu saved'); closeMenuModal(); loadAllData(); }
+                    else showToast(res.message, true); 
+                },
+                error: () => showToast('Failed to save menu', true)
+            });
         });
-
         
-
-        function deleteMenu(id) {
-            console.log("deleteMenu called with id:", id);
-            if (!id) {
-                bootbox.alert("Error: Menu ID is missing.");
-                return;
-            }
-            bootbox.confirm("Delete this menu item?", result => {
-                if (result) $.ajax({ 
-                    url: '@Url.Action("DeleteMenu", "Auth")/' + id, 
-                    type: 'DELETE', 
-                    success: (res) => { 
-                        console.log("DeleteMenu response:", res);
-                        if(res.success) {
-                            loadMenus(); loadStats(); 
-                        } else {
-                            bootbox.alert("Failed: " + res.message);
-                        }
-                    } 
-                }).fail((xhr) => {
-                    console.error("DeleteMenu failed:", xhr);
-                    bootbox.alert("Failed to delete menu. Endpoint might be unreachable.");
-                });
-            });
-        }
-        
-        function editMenu(m) {
-            console.log("Editing menu:", m);
-            openMenuModal(() => {
-                $('#menuId').val(m.id || m.Id);
-                $('#menuName').val(m.menuName || m.MenuName);
-                $('#routeController').val(m.routeController || m.RouteController);
-                $('#routeAction').val(m.routeAction || m.RouteAction);
-                $('#menuIcon').val(m.menuIcon || m.MenuIcon);
-                $('#requiredPermission').val(m.requiredPermissionCode || m.RequiredPermissionCode);
-                $('#menuSortOrder').val(m.sortOrder || m.SortOrder);
-                
-                const modId = m.moduleId || m.ModuleId;
-                if (modId) {
-                    $('#menuModuleId').val(modId);
-                }
-                
-                $('#menuModalTitle').text('Edit Menu Item');
-            });
-        }
-
-
-        function openModuleModal() {
-            $('#moduleForm')[0].reset();
-            $('#moduleId').val('0');
-            $('#moduleModalTitle').text('Add Module');
-            $('#moduleModal').removeClass('hidden');
-        }
-
-        function closeModuleModal() { $('#moduleModal').addClass('hidden'); }
-
-        $('#moduleForm').on('submit', e => {
+        $('#moduleForm').on('submit', function(e) {
             e.preventDefault();
-            const payload = {
-                id: parseInt($('#moduleId').val()),
+            const idVal = $('#moduleId').val();
+            const data = {
+                id: idVal ? parseInt(idVal) : 0,
                 moduleName: $('#moduleName').val(),
                 description: $('#moduleDesc').val(),
-                iconClass: $('#moduleIcon').val() || 'fas fa-folder',
-                sortOrder: 1,
-                isActive: true
+                iconClass: $('#moduleIcon').val(),
+                sortOrder: 1, isActive: true
             };
-            $.ajax({
-                url: '@Url.Action("SaveModule", "Auth")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(payload),
-                success: (res) => {
-                    if (res.success === false) {
-                        bootbox.alert("Error saving module: " + res.message);
-                        return;
-                    }
-                    closeModuleModal();
-                    loadModules();
-                    loadStats();
-                    bootbox.alert("Module saved successfully!");
-                }
-            }).fail(() => bootbox.alert("Failed to save module. Ensure Software API is running."));
+             $.ajax({
+                url: '@Url.Action("SaveModule", "Auth")', type: 'POST', contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: res => { 
+                    if(res.success) { showToast('Module saved'); closeModuleModal(); loadAllData(); }
+                    else showToast(res.message, true); 
+                },
+                error: () => showToast('Failed to save module', true)
+            });
         });
-
-        function deleteModule(id) {
-            console.log("deleteModule called with id:", id);
-            if (!id) {
-                bootbox.alert("Error: Module ID is missing.");
-                return;
-            }
-            bootbox.confirm("Delete this module? This will NOT delete associated permissions.", result => {
-                if (result) $.ajax({ 
-                    url: '@Url.Action("DeleteModule", "Auth")/' + id, 
-                    type: 'DELETE', 
-                    success: (res) => { 
-                        console.log("DeleteModule response:", res);
-                        if(res.success) {
-                            loadModules(); loadStats(); loadPermissions(); 
-                        } else {
-                            bootbox.alert("Failed: " + res.message);
-                        }
-                    } 
-                }).fail((xhr) => {
-                    console.error("DeleteModule failed:", xhr);
-                    bootbox.alert("Failed to delete module");
-                });
-            });
-        }
-
-        // ===== PERMISSION MANAGEMENT =====
-        function loadPermissions() {
-            $.get('@Url.Action("GetPermissions", "Auth")', perms => {
-                const rows = perms.map(p => {
-                    const id = p.id || p.Id;
-                    return `
-                    <tr class="hover:bg-gray-50/50 transition duration-150">
-                        <td class="px-6 py-3">
-                            <span class="text-xs font-mono bg-emerald-50 text-emerald-700 px-2 py-1 rounded">${p.permissionCode}</span>
-                        </td>
-                        <td class="px-6 py-3 text-sm font-medium text-gray-900">${p.permissionName}</td>
-                        <td class="px-6 py-3 text-xs text-gray-500">${p.moduleId || '-'}</td>
-                        <td class="px-6 py-3">
-                            <span class="text-[10px] px-2 py-0.5 rounded ${p.actionType === 'View' ? 'bg-sky-50 text-sky-600' : 'bg-amber-50 text-amber-600'}">${p.actionType || 'Action'}</span>
-                        </td>
-                        <td class="px-6 py-3 text-right">
-                            <button onclick='editPermission(${JSON.stringify(p)})' class="text-emerald-600 hover:text-emerald-700 mr-2 px-2 py-1"><i class="fas fa-edit"></i></button>
-                            <button onclick="deletePermission(${id})" class="text-red-400 hover:text-red-500 px-2 py-1"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>`;
-                }).join('');
-                $('#permissionTableBody').html(rows || '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400 text-sm">No permissions defined. Click "Add Permission" to create.</td></tr>');
-            }).fail(() => $('#permissionTableBody').html('<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 text-sm">Error loading permissions</td></tr>'));
-        }
-
-        function openPermissionModal(callback) {
-            $('#permissionForm')[0].reset();
-            $('#permissionId').val('0');
-            $('#permissionModalTitle').text('Add Permission');
-            $('#permissionModal').removeClass('hidden');
-            loadModuleOptionsForPermission(callback);
-        }
-
-        function loadModuleOptionsForPermission(callback) {
-            $.get('@Url.Action("GetModules", "Auth")', modules => {
-                const options = modules.map(m => `<option value="${m.id || m.Id}">${m.moduleName || m.ModuleName}</option>`).join('');
-                $('#permissionModuleId').html('<option value="">-- Select Module --</option>' + options);
-                if (callback) callback();
-            });
-        }
-
-        function closePermissionModal() { $('#permissionModal').addClass('hidden'); }
-
-        function editPermission(p) {
-            openPermissionModal(() => {
-                $('#permissionId').val(p.id || p.Id);
-                $('#permissionCode').val(p.permissionCode || p.PermissionCode);
-                $('#permissionName').val(p.permissionName || p.PermissionName);
-                $('#permissionModuleId').val(p.moduleId || p.ModuleId);
-                $('#permissionActionType').val(p.actionType || p.ActionType || 'View');
-                $('#permissionDescription').val(p.description || p.Description);
-                $('#permissionModalTitle').text('Edit Permission');
-            });
-        }
-
-        $('#permissionForm').on('submit', e => {
+        
+        $('#permissionForm').on('submit', function(e) {
             e.preventDefault();
-            const payload = {
-                id: parseInt($('#permissionId').val()) || 0,
+            const idVal = $('#permissionId').val();
+            const data = {
+                id: idVal ? parseInt(idVal) : 0,
                 permissionCode: $('#permissionCode').val(),
                 permissionName: $('#permissionName').val(),
-                moduleId: parseInt($('#permissionModuleId').val()) || null,
+                moduleId: $('#permissionModuleId').val(),
                 actionType: $('#permissionActionType').val(),
                 description: $('#permissionDescription').val(),
-                sortOrder: 1,
-                isActive: true
+                sortOrder: 1, isActive: true
             };
-            $.ajax({
-                url: '@Url.Action("SavePermission", "Auth")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(payload),
-                success: (res) => {
-                    if (res.success === false) {
-                        bootbox.alert("Error saving permission: " + res.message);
-                        return;
-                    }
-                    closePermissionModal();
-                    loadPermissions();
-                    loadStats();
-                    bootbox.alert("Permission saved successfully!");
-                }
-            }).fail(() => bootbox.alert("Failed to save permission. Ensure Software API is running."));
-        });
-
-        function deletePermission(id) {
-            console.log("deletePermission called with id:", id);
-            if (!id) {
-                bootbox.alert("Error: Permission ID is missing.");
-                return;
-            }
-            bootbox.confirm("Delete this permission?", result => {
-                if (result) $.ajax({ 
-                    url: '@Url.Action("DeletePermission", "Auth")/' + id, 
-                    type: 'DELETE', 
-                    success: (res) => { 
-                        console.log("DeletePermission response:", res);
-                        if(res.success) {
-                            loadPermissions(); loadStats(); 
-                        } else {
-                            bootbox.alert("Failed: " + res.message);
-                        }
-                    } 
-                }).fail((xhr) => {
-                    console.error("DeletePermission failed:", xhr);
-                    bootbox.alert("Failed to delete permission");
-                });
+             $.ajax({
+                url: '@Url.Action("SavePermission", "Auth")', type: 'POST', contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: res => { 
+                    if(res.success) { showToast('Permission saved'); closePermissionModal(); loadAllData(); }
+                    else showToast(res.message, true); 
+                },
+                error: () => showToast('Failed to save permission', true)
             });
+        });
+        
+        // Edit helpers
+        function editMenu(m) { 
+            openMenuModal(() => { 
+                $('#menuId').val(m.id||m.Id); $('#menuName').val(m.menuName); $('#routeController').val(m.routeController); 
+                $('#routeAction').val(m.routeAction); $('#menuIcon').val(m.menuIcon); $('#requiredPermission').val(m.requiredPermissionCode);
+                $('#menuSortOrder').val(m.sortOrder); $('#menuModuleId').val(m.moduleId);
+                $('#menuModalTitle').text('Edit Menu');
+            }); 
+        }
+        function editPermission(p) {
+             openPermissionModal(() => {
+                 $('#permissionId').val(p.id||p.Id); $('#permissionCode').val(p.permissionCode); $('#permissionName').val(p.permissionName);
+                 $('#permissionModuleId').val(p.moduleId); $('#permissionActionType').val(p.actionType); $('#permissionDescription').val(p.description);
+                 $('#permissionModalTitle').text('Edit Permission');
+             });
         }
     </script>
 }

@@ -4,7 +4,12 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<ManageEngineWebApp.Filters.DynamicAuthorizationFilter>();
+});
+builder.Services.AddScoped<ManageEngineWebApp.Services.PermissionDiscoveryService>();
+builder.Services.AddScoped<ManageEngineWebApp.Filters.DynamicAuthorizationFilter>();
 builder.Services.AddRazorPages();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();

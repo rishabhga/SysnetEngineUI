@@ -22,49 +22,40 @@ namespace ManageEngineWebApp.Datacontext
                 context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
                 return;
             }
-            if (!string.IsNullOrEmpty(AllowedRoles))
+
+            // SuperAdmin bypasses all checks
+            if (role == "SuperAdmin")
+            {
+                // skip permission checks
+            }
+            else if (!string.IsNullOrEmpty(AllowedRoles))
             {
                 var allowedRolesList = AllowedRoles.Split(',').Select(r => r.Trim()).ToList();
 
+                // If the role is NOT in the allowed list AND user has no dynamic permissions, block
                 if (!allowedRolesList.Contains(role))
                 {
-                    context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
-                    return;
-                }
-            }
-            if (role != "SuperAdmin")
-            {
-                var userPermissions = session.GetString("permissions") ?? "";
-                var permissionList = userPermissions.Split(',').Select(p => p.Trim()).ToList();
-
-                string permissionToCheck = RequiredPermission;
-
-                // Dynamic Resolution: If no specific permission is required, check for Controller.Action or Controller.View
-                if (string.IsNullOrEmpty(permissionToCheck))
-                {
-                    var controller = context.RouteData.Values["controller"]?.ToString();
-                    var action = context.RouteData.Values["action"]?.ToString();
-                    
-                    if (!string.IsNullOrEmpty(controller))
+                    // Check if user has dynamic permissions that grant access (custom roles)
+                    var userPermissions = session.GetString("permissions") ?? "";
+                    if (string.IsNullOrEmpty(userPermissions))
                     {
-                        // Check if user has specific action permission or general View permission for the controller
-                        string specificPerm = $"{controller}.{action}";
-                        string viewPerm = $"{controller}.View";
-                        
-                        if (!permissionList.Contains(specificPerm) && !permissionList.Contains(viewPerm))
-                        {
-                            // If neither specific nor View permission is found, but some pages might be public? 
-                            // For now, let's just stick to what was explicitly requested or already there.
-                            // If we want it FULLY dynamic, we would require a permission for EVERY action.
-                        }
+                        context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
+                        return;
                     }
+                    // User has a custom role with dynamic permissions — let DynamicAuthorizationFilter handle it
                 }
-                else if (!permissionList.Contains(permissionToCheck))
+            }
+
+            // For non-SuperAdmin with explicit RequiredPermission, verify it
+            if (role != "SuperAdmin" && !string.IsNullOrEmpty(RequiredPermission))
+            {
+                if (!RoleHelper.HasPermission(context.HttpContext, RequiredPermission))
                 {
-                    context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
+                    context.Result = new RedirectToActionResult("AccessDenied", "Auth", new { requiredPermission = RequiredPermission });
                     return;
                 }
             }
+
             if (VerifyCompanyAccess && role != "SuperAdmin")
             {
                 var sessionCompanyId = session.GetString("companyId");
