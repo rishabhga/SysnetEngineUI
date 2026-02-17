@@ -143,7 +143,7 @@
                             <tfoot>
                                 <tr class="border-t border-gray-100">
                                     <td colspan="3" class="pt-2 text-right text-xs text-gray-500">Grand Total:</td>
-                                    <td id="grandTotal" class="pt-2 text-right font-bold text-gray-800">$0.00</td>
+                                    <td id="grandTotal" class="pt-2 text-right font-bold text-gray-800">₹0.00</td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -296,7 +296,8 @@
         <div class="p-3">
             <div class="mb-2">
                 <label class="block text-xs text-gray-700 mb-1">Part Name</label>
-                <input type="text" id="partName" class="w-full text-sm border border-gray-300 rounded p-1.5">
+                <input type="text" id="partName" list="masterPartsList" class="w-full text-sm border border-gray-300 rounded p-1.5" autocomplete="off" onchange="onPartSelect(this)">
+                <datalist id="masterPartsList"></datalist>
             </div>
             <div class="grid grid-cols-2 gap-2 mb-3">
                 <div>
@@ -352,9 +353,12 @@
         const currentPriority = "@Model.Priority";
         const currentUser = "@username";
 
+        let connection = null;
+
         $(document).ready(function() {
             initUI();
             loadParts();
+            loadMasterParts();
             loadComments();
             loadLogs();
             loadAttachments();
@@ -363,10 +367,50 @@
             updateSLAProgress();
             setInterval(updateSLAProgress, 60000);
 
-            setInterval(() => {
-                if($('#tab-comments').is(':visible')) loadComments(true);
-            }, 10000);
+            // SignalR Connection
+            setupSignalR();
         });
+
+        async function setupSignalR() {
+            try {
+                // Ensure SignalR library is available (it's often globally included or can be fetched via CDN)
+                if (typeof signalR === "undefined") {
+                    console.warn("SignalR not found, loading from CDN...");
+                    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js");
+                }
+
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/scanHub")
+                    .withAutomaticReconnect()
+                    .build();
+
+                connection.on("ReceiveMessagechat", (message, isClient, time, clientId) => {
+                    // Refresh comments if the incoming message belongs to this ticket's client
+                    if (clientId === "@Model.ClientId") {
+                        loadComments(true);
+                    }
+                });
+
+                await connection.start();
+                console.log("SignalR Connected.");
+            } catch (err) {
+                console.error("SignalR Connection Error: ", err);
+                // Fallback to polling if SignalR fails
+                setInterval(() => {
+                    if($('#tab-comments').is(':visible')) loadComments(true);
+                }, 10000);
+            }
+        }
+
+        function loadScript(url) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement("script");
+                script.src = url;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
 
         function updateSLAProgress() {
             const created = new Date("@Model.CreatedOn?.ToString("yyyy-MM-ddTHH:mm:ss")");
@@ -554,9 +598,13 @@
                     if(res.success) {
                         $('#commentInput').val('');
                         loadComments();
-                    } else alert("Failed to post comment");
+                    } else alert(res.message || "Failed to post comment");
                 },
-                error: function(e) { console.error(e); alert("Error posting comment"); }
+                error: function(e) { 
+                    console.error(e); 
+                    const msg = e.responseJSON?.message || "Error communicating with server while posting comment";
+                    alert(msg); 
+                }
             });
         }
 
@@ -633,9 +681,13 @@
                         $('#uploading').remove();
                         if(res.success) {
                             loadAttachments();
-                        } else alert("Upload failed");
+                        } else alert(res.message || "Upload failed");
                     },
-                    error: function() { $('#uploading').remove(); alert("Error uploading"); }
+                    error: function(e) { 
+                        $('#uploading').remove(); 
+                        const msg = e.responseJSON?.message || "Error uploading file";
+                        alert(msg); 
+                    }
                 });
             }
         }
@@ -648,7 +700,7 @@
                 const tbody = document.getElementById('partsTableBody');
                 if(!parts || parts.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-gray-400 text-sm">No parts added</td></tr>`;
-                    document.getElementById('grandTotal').innerText = "$0.00";
+                    document.getElementById('grandTotal').innerText = "₹0.00";
                     return;
                 }
                 let html = ''; let total = 0;
@@ -691,6 +743,32 @@
             if(confirm("Delete part?")) {
                 await fetch(`/ServiceDesk/DeletePart?id=${id}`, {method: 'DELETE'});
                 loadParts();
+            }
+        }
+
+        // ================= MASTER PARTS =================
+        let masterParts = [];
+        async function loadMasterParts() {
+            try {
+                const res = await fetch('/ServiceDesk/GetMasterParts');
+                masterParts = await res.json();
+                const dl = document.getElementById('masterPartsList');
+                dl.innerHTML = '';
+                masterParts.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.partName;
+                    opt.dataset.price = p.unitCost;
+                    opt.innerText = `₹${p.unitCost} - Stock: ${p.stockQuantity}`;
+                    dl.appendChild(opt);
+                });
+            } catch(e) { console.error("Failed to load master parts", e); }
+        }
+
+        function onPartSelect(input) {
+            const val = input.value;
+            const part = masterParts.find(p => p.partName === val);
+            if(part) {
+                document.getElementById('partCost').value = part.unitCost;
             }
         }
 

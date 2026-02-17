@@ -23,12 +23,8 @@ namespace ManageEngineWebApp.Controllers
             handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
             return new System.Net.Http.HttpClient(handler);
         }
-
-        // Permission check helpers
         private bool HasPermission(string permissionCode) => RoleHelper.HasPermission(HttpContext, permissionCode);
         private bool IsSuperAdmin() => RoleHelper.IsSuperAdmin(HttpContext);
-        
-        // Get user's scope for filtering (non-SuperAdmin users see only their scope)
         private (int? companyId, int? groupId, int? locationId) GetUserScope()
         {
             if (IsSuperAdmin()) return (null, null, null);
@@ -36,20 +32,17 @@ namespace ManageEngineWebApp.Controllers
                     RoleHelper.GetGroupId(HttpContext), 
                     RoleHelper.GetLocationId(HttpContext));
         }
-
-        // Build query string with user scope applied
-        private string BuildScopedQuery(int? requestedCompanyId, int? requestedLocationId)
+        private string BuildScopedQuery(int? requestedCompanyId, int? requestedLocationId, int? requestedGroupId = null)
         {
             var (userCompanyId, userGroupId, userLocationId) = GetUserScope();
-            
-            // Use user's scope if they're not SuperAdmin, otherwise use requested params
             var companyId = userCompanyId ?? requestedCompanyId;
             var locationId = userLocationId ?? requestedLocationId;
+            var groupId = userGroupId ?? requestedGroupId;
             
             var q = new List<string>();
             if (companyId.HasValue) q.Add($"companyId={companyId}");
             if (locationId.HasValue) q.Add($"locationId={locationId}");
-            if (userGroupId.HasValue) q.Add($"groupId={userGroupId}");
+            if (groupId.HasValue) q.Add($"groupId={groupId}");
             
             return q.Any() ? "?" + string.Join("&", q) : "";
         }
@@ -61,8 +54,6 @@ namespace ManageEngineWebApp.Controllers
             SetViewPermissions();
             return View("Dashboard");
         }
-
-        // Set permissions for views to conditionally render buttons
         private void SetViewPermissions()
         {
             ViewBag.CanCreate = HasPermission("ServiceDesk.Create") || IsSuperAdmin();
@@ -74,12 +65,11 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetStats(int? companyId, int? locationId)
+        public async Task<IActionResult> GetStats(int? companyId, int? locationId, int? groupId)
         {
             try
             {
-                // Apply user scope filtering
-                var query = BuildScopedQuery(companyId, locationId);
+                var query = BuildScopedQuery(companyId, locationId, groupId);
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Stats{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
@@ -88,12 +78,11 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetTickets(int? companyId, int? locationId)
+        public async Task<IActionResult> GetTickets(int? companyId, int? locationId, int? groupId)
         {
             try
             {
-                // Apply user scope filtering so non-admins only see their tickets
-                var query = BuildScopedQuery(companyId, locationId);
+                var query = BuildScopedQuery(companyId, locationId, groupId);
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
@@ -105,7 +94,6 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.Create", "Create Ticket")]
         public async Task<IActionResult> SaveTicket()
         {
-            // Permission check handled by DynamicAuthorizationFilter
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
@@ -154,6 +142,18 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
+        public async Task<IActionResult> GetSLAConfigs()
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/SLAConfigs");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
         public async Task<IActionResult> GetEngineers(int? companyId, int? locationId, int? groupId)
         {
             try
@@ -181,7 +181,6 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.Create", "Create Ticket")]
         public IActionResult CreateTicket()
         {
-            // Permission check handled by DynamicAuthorizationFilter
             ViewBag.CanCreate = HasPermission("ServiceDesk.Create") || IsSuperAdmin();
             return View();
         }
@@ -191,7 +190,6 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.Assign", "Assign Ticket")]
         public async Task<IActionResult> AssignTicket()
         {
-            // Permission check handled by DynamicAuthorizationFilter
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
@@ -237,7 +235,6 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.Approve", "Approve Ticket")]
         public async Task<IActionResult> ApproveTicket()
         {
-            // Permission check handled by DynamicAuthorizationFilter
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
@@ -250,10 +247,9 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
-        [DynamicPermission("ServiceDesk.Approve", "Reject Ticket")] // Uses Approve permission
+        [DynamicPermission("ServiceDesk.Approve", "Reject Ticket")] 
         public async Task<IActionResult> RejectTicket()
         {
-            // Permission check handled by DynamicAuthorizationFilter
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
@@ -491,6 +487,67 @@ namespace ManageEngineWebApp.Controllers
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/Resolve", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        // ================= MASTER PARTS INVENTORY =================
+
+        [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageParts", "Manage Parts Inventory")] 
+        public IActionResult PartsInventory()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetMasterParts()
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/MasterParts");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch { return Json(new List<object>()); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> AddMasterPart()
+        {
+            try
+            {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/MasterParts", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> UpdateMasterPart()
+        {
+            try
+            {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/UpdateMasterPart", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> DeleteMasterPart(int id)
+        {
+            try
+            {
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/DeleteMasterPart?id={id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }

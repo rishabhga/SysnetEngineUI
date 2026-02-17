@@ -375,6 +375,11 @@
                                         <i class="fas fa-headset"></i>
                                         <span>Service Desk</span>
                                     </a>
+                                    <a asp-controller="ServiceDesk" asp-action="PartsInventory"
+                                       class="@(currentController == "ServiceDesk" && currentAction == "PartsInventory" ? "active" : "")">
+                                        <i class="fas fa-boxes"></i>
+                                        <span>Parts Inventory</span>
+                                    </a>
                                 }
                                 @if (isSuperAdmin)
                                 {

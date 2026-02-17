@@ -37,6 +37,9 @@
                 <select id="companyFilter" class="h-8 text-sm border border-gray-300 rounded px-2 bg-white text-gray-700 min-w-[150px]">
                     <option value="">All Companies</option>
                 </select>
+                <select id="groupFilter" class="h-8 text-sm border border-gray-300 rounded px-2 bg-white text-gray-700 min-w-[150px]">
+                    <option value="">All Groups</option>
+                </select>
                 <select id="locationFilter" class="h-8 text-sm border border-gray-300 rounded px-2 bg-white text-gray-700 min-w-[150px]">
                     <option value="">All Locations</option>
                 </select>
@@ -210,7 +213,15 @@
 
             $('#companyFilter').on('change', function() {
                 const cid = $(this).val();
-                loadLocations(cid);
+                loadGroups(cid);
+                loadStats();
+                loadEngineers();
+            });
+
+            $('#groupFilter').on('change', function() {
+                const cid = $('#companyFilter').val();
+                const gid = $(this).val();
+                loadLocations(cid, gid);
                 loadStats();
                 loadEngineers();
             });
@@ -239,12 +250,35 @@
             });
         }
 
-        function loadLocations(companyId) {
+        function loadGroups(companyId) {
+            const select = $('#groupFilter');
+            select.html('<option value="">All Groups</option>');
+            $('#locationFilter').html('<option value="">All Locations</option>');
+            
+            if (!companyId) return;
+
+            $.get(`@Url.Action("GetGroups", "ServiceDesk")?companyId=${companyId}`, function(groups) {
+                if (groups && groups.length > 0) {
+                    groups.forEach(function(g) {
+                        const groupId = g.id || g.groupId || g.Id;
+                        const groupName = g.name || g.groupName || g.Name || 'Unknown Group';
+                        select.append(`<option value="${groupId}">${groupName}</option>`);
+                    });
+                }
+            }).fail(function(xhr, status, error) {
+                console.error('Failed to load groups:', error);
+            });
+        }
+
+        function loadLocations(companyId, groupId) {
             const select = $('#locationFilter');
             select.html('<option value="">All Locations</option>');
             if (!companyId) return;
 
-            $.get(`@Url.Action("GetLocations", "ServiceDesk")?companyId=${companyId}`, function(locations) {
+            let url = `@Url.Action("GetLocations", "ServiceDesk")?companyId=${companyId}`;
+            if(groupId) url += `&groupId=${groupId}`;
+
+            $.get(url, function(locations) {
                 if (locations && locations.length > 0) {
                     // Handle both response formats
                     locations.forEach(function(l) {
@@ -263,8 +297,9 @@
 
         function loadStats() {
             const companyId = $('#companyFilter').val();
+            const groupId = $('#groupFilter').val();
             const locationId = $('#locationFilter').val();
-            const query = `?companyId=${companyId || ''}&locationId=${locationId || ''}`;
+            const query = `?companyId=${companyId || ''}&groupId=${groupId || ''}&locationId=${locationId || ''}`;
 
             $.ajax({
                 url: '@Url.Action("GetStats", "ServiceDesk")' + query,
@@ -367,9 +402,10 @@
 
         function loadEngineers() {
             const cid = $('#companyFilter').val() || '';
+            const gid = $('#groupFilter').val() || '';
             const lid = $('#locationFilter').val() || '';
             $.ajax({
-                url: `@Url.Action("GetEngineers", "ServiceDesk")?companyId=${cid}&locationId=${lid}`,
+                url: `@Url.Action("GetEngineers", "ServiceDesk")?companyId=${cid}&groupId=${gid}&locationId=${lid}`,
                 type: 'GET',
                 success: function(data) {
                     const list = $('#engineerList');

@@ -189,23 +189,9 @@
                 <i class="fas fa-clock text-blue-500"></i>
                 <span class="font-medium">SLA Response Times:</span>
             </div>
-            <div class="grid grid-cols-4 gap-2 text-center">
-                <div class="px-2 py-1 bg-white rounded border border-red-200">
-                    <div class="text-red-600 font-bold">Urgent</div>
-                    <div class="text-[10px] text-gray-500">4 hours</div>
-                </div>
-                <div class="px-2 py-1 bg-white rounded border border-orange-200">
-                    <div class="text-orange-600 font-bold">High</div>
-                    <div class="text-[10px] text-gray-500">8 hours</div>
-                </div>
-                <div class="px-2 py-1 bg-white rounded border border-blue-200">
-                    <div class="text-blue-600 font-bold">Medium</div>
-                    <div class="text-[10px] text-gray-500">24 hours</div>
-                </div>
-                <div class="px-2 py-1 bg-white rounded border border-gray-200">
-                    <div class="text-gray-600 font-bold">Low</div>
-                    <div class="text-[10px] text-gray-500">48 hours</div>
-                </div>
+            <div class="grid grid-cols-4 gap-2 text-center" id="slaInfoGrid">
+                <!-- Populated dynamically -->
+                <div class="col-span-4 text-gray-400 italic py-2">Loading SLA definitions...</div>
             </div>
         </div>
     </div>
@@ -273,20 +259,30 @@
             $('#prioritySelect').on('change', function() {
                 const priority = $(this).val();
                 const preview = $('#slaPreview');
-                const slaMap = {
-                    'Urgent': { text: '4h SLA', class: 'bg-red-100 text-red-600 border border-red-200' },
-                    'High': { text: '8h SLA', class: 'bg-orange-100 text-orange-600 border border-orange-200' },
-                    'Medium': { text: '24h SLA', class: 'bg-blue-100 text-blue-600 border border-blue-200' },
-                    'Low': { text: '48h SLA', class: 'bg-gray-100 text-gray-600 border border-gray-200' }
-                };
-
-                if (priority) {
-                    const meta = slaMap[priority] || slaMap['Medium'];
-                    preview.text(meta.text)
-                           .attr('class', 'absolute right-2 top-7 px-2 py-0.5 rounded text-[10px] font-bold uppercase pointer-events-none ' + meta.class)
+                
+                const $selected = $(this).find(':selected');
+                const color = $selected.data('color') || '#6B7280';
+                
+                const hours = window.slaStore ? (window.slaStore[priority] || null) : null;
+                
+                if (priority && hours) {
+                    preview.text(hours + 'h SLA')
+                           .css({
+                                'background-color': color + '20',
+                                'color': color,
+                                'border': `1px solid ${color}40`
+                            })
+                           .attr('class', 'absolute right-2 top-7 px-2 py-0.5 rounded text-[10px] font-bold uppercase pointer-events-none')
                            .removeClass('hidden');
+                           
+                    $('input[name="slaDuration"]').val(hours);
+                    $('select[name="slaUnit"]').val('Hours');
                 } else {
                     preview.addClass('hidden');
+                    if(!priority) {
+                        $('input[name="slaDuration"]').val('24');
+                        $('select[name="slaUnit"]').val('Hours');
+                    }
                 }
             });
 
@@ -315,12 +311,39 @@
                 }
             });
 
-            // Load Priorities
-            $.get('@Url.Action("GetPriorities", "ServiceDesk")', priorities => {
+            // Load Priorities & SLA Configs
+            $.when(
+                $.get('@Url.Action("GetPriorities", "ServiceDesk")'),
+                $.get('@Url.Action("GetSLAConfigs", "ServiceDesk")')
+            ).done((prioritiesRes, slaRes) => {
+                const priorities = prioritiesRes[0];
+                const slas = slaRes[0];
+                
+                // Store SLA hours for easy lookup
+                window.slaStore = {};
+                if(slas) slas.forEach(s => window.slaStore[s.priority] = s.hours);
+                
                 const select = $('#prioritySelect');
+                const infoGrid = $('#slaInfoGrid');
+                
                 select.html('<option value="">Select...</option>');
+                infoGrid.empty();
+                
                 if (priorities && priorities.length > 0) {
-                    priorities.forEach(p => select.append(`<option value="${p.value}">${p.label}</option>`));
+                    priorities.forEach(p => {
+                        const hours = window.slaStore[p.value] || 0;
+                        select.append(`<option value="${p.value}" data-color="${p.color}">${p.label}</option>`);
+                        
+                        const color = p.color || '#6B7280';
+                        infoGrid.append(`
+                            <div class="px-2 py-1 bg-white rounded border text-center cursor-pointer hover:bg-gray-50 transition-colors" 
+                                 style="border-color: ${color}40; color: ${color}"
+                                 onclick="$('#prioritySelect').val('${p.value}').trigger('change')">
+                                <div class="font-bold truncate">${p.label}</div>
+                                <div class="text-[10px] opacity-70">${hours} hours</div>
+                            </div>
+                        `);
+                    });
                 }
             });
         }
