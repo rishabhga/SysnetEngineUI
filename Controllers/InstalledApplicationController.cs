@@ -25,8 +25,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 var content = await response.Content.ReadAsStringAsync();
                 var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<InstalledApplication>>(content) : null;
-                //var datalist =  JsonSerializer.Deserialize<List<WindowsUserDetails>>(content);
-                return View(data);
+                return View(data ?? new List<InstalledApplication>());
             }
 
             throw new Exception("Unable to fetch data from the API.");

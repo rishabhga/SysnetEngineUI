@@ -42,9 +42,8 @@ namespace ManageEngineWebApp.Controllers
             {
                 var content = await response.Content.ReadAsStringAsync();
                 var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-               // var datalist =  JsonSerializer.Deserialize<List<WindowsUserDetails>>(content);
-                var dalalist = data.Where(x => x.Status == "Enabled").ToList();
-                return View(dalalist);
+                var datalist = data != null ? data.Where(x => x.Status == "Enabled").ToList() : new List<WindowsUserDetails>();
+                return View(datalist);
             }
 
                     //if (!response.IsSuccessStatusCode)
@@ -95,13 +94,15 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                    datalist = data.Where(x => x.DomainName == domain).ToList();
+                    datalist = data != null ? data.Where(x => x.DomainName == domain).ToList() : new List<WindowsUserDetails>();
 
-                    ViewBag.lastScan = datalist[0].DateTime;
-                    ViewBag.UserName = datalist[0].DomainName;
-                    ViewBag.LastLogUser = datalist[0].UserName;
-                    ViewBag.LastBootTime = datalist[0].DateTime;
-
+                    if (datalist.Any())
+                    {
+                        ViewBag.lastScan = datalist[0].DateTime;
+                        ViewBag.UserName = datalist[0].DomainName;
+                        ViewBag.LastLogUser = datalist[0].UserName;
+                        ViewBag.LastBootTime = datalist[0].DateTime;
+                    }
 
                     return View(datalist);
                 }
@@ -155,8 +156,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsService>>(content) : null;
-                    var datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<WindowsService>();
+                    return Json(resultList);
                 }
 
                // return View(datalist);
@@ -209,8 +210,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<Summary>>(content) : null;
-                    var datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<Summary>();
+                    return Json(resultList);
                 }
                 return Json(datalist);
 
@@ -253,8 +254,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                    var datalist = data.Where(x => x.DomainName == domain).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.DomainName == domain).ToList() : new List<WindowsUserDetails>();
+                    return Json(resultList);
                 }
                 return Json(datalist);
 
@@ -300,8 +301,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsGroupDetails>>(content) : null;
-                    var datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<WindowsGroupDetails>();
+                    return Json(resultList);
                 }
                 return Json(datalist);
 
@@ -344,8 +345,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowDrivers>>(content) : null;
-                    var datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<WindowDrivers>();
+                    return Json(resultList);
                 }
                 return Json(datalist);
 
@@ -391,8 +392,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                    var datalist = data.Where(x => x.UserCode == domain).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.UserCode == domain).ToList() : new List<WindowsUserDetails>();
+                    return Json(resultList);
                 }
                 return Json(datalist);
 
@@ -435,16 +436,15 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                    if(data.Count> 0)
+                    if (data != null && data.Count > 0)
                     {
-                        var datalist = data.Where(x => x.UserCode == UCode).ToList();
-                        return Json(datalist);
+                        var resultList = data.Where(x => x.UserCode == UCode).ToList();
+                        return Json(resultList);
                     }
                     else
                     {
                         return Json(null);
                     }
-                   
                 }
                 return Json(datalist);
 
@@ -479,8 +479,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<BIOSDetails>>(content) : null;
-                    var datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<BIOSDetails>();
+                    return Json(resultList);
                 }
                 return Json(datalist);
 
@@ -533,8 +533,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<HardDiskDetails>>(content) : null;
-                    var datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<HardDiskDetails>();
+                    return Json(resultList);
                 }
                 return Json(datalist);
 
@@ -627,8 +627,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MotherboardDetails>>(content) : null;
-                    var datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<MotherboardDetails>();
+                    return Json(resultList);
                 }
                 return Json(datalist);
 
@@ -687,8 +687,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PhysicalMemoryDetails>>(content) : null;
-                    var datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<PhysicalMemoryDetails>();
+                    return Json(resultList);
                 }
                 return Json(datalist);
 
@@ -775,8 +775,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ProcessorDetails>>(content) : null;
-                    var datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<ProcessorDetails>();
+                    return Json(resultList);
                 }
                 return Json(datalist);
 

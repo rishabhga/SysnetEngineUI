@@ -17,22 +17,20 @@ namespace ManageEngineWebApp.Controllers
         private readonly IConfiguration _configuration;
         private readonly PermissionDiscoveryService _permissionDiscovery;
 
-        public AuthController(IConfiguration configuration, PermissionDiscoveryService permissionDiscovery)
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        public AuthController(IConfiguration configuration, PermissionDiscoveryService permissionDiscovery, IHttpClientFactory httpClientFactory)
         {
             _configuration = configuration;
             _permissionDiscovery = permissionDiscovery;
+            _httpClientFactory = httpClientFactory;
             _baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
             apiBaseUrl = $"{_baseUrl}/api/auth";
         }
 
         private HttpClient GetClient()
         {
-            var client = new HttpClient(new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (m, c, ch, s) => true
-            });
-            client.Timeout = TimeSpan.FromSeconds(10); // Faster timeout for better UX
-            return client;
+            return _httpClientFactory.CreateClient("ManageEngineApi");
         }
 
         [HttpGet]
@@ -45,11 +43,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> Register(RegisterDto model)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            using var client = new HttpClient(handler);
+            using var client = GetClient();
             var registerPayload = new
             {
                 model.Username,
@@ -67,20 +61,17 @@ namespace ManageEngineWebApp.Controllers
                 return View(model);
             }
 
-            var currentUserRole = HttpContext.Session.GetString("role");
-            if (currentUserRole == "SuperAdmin" && !string.IsNullOrEmpty(model.Role))
+            // Dynamic check: top-level admin can assign roles at registration
+            if (RoleHelper.IsTopLevelAdmin(HttpContext) && !string.IsNullOrEmpty(model.Role))
             {
-                if (model.Role == "CompanyAdmin" && model.CompanyId.HasValue)
+                var roleAssigned = await RoleHelper.AssignRoleAsync(model.Username, model.Role, model.CompanyId);
+                if (roleAssigned)
                 {
-                    var roleAssigned = await RoleHelper.AssignRoleAsync(model.Username, model.Role, model.CompanyId);
-                    if (roleAssigned)
-                    {
-                        TempData["msg"] = $"User registered successfully as {model.Role}.";
-                    }
-                    else
-                    {
-                        TempData["msg"] = "User registered but role assignment failed.";
-                    }
+                    TempData["msg"] = $"User registered successfully as {model.Role}.";
+                }
+                else
+                {
+                    TempData["msg"] = "User registered but role assignment failed.";
                 }
             }
             else
@@ -88,7 +79,7 @@ namespace ManageEngineWebApp.Controllers
                 TempData["msg"] = "Registration successful. Please wait for role assignment.";
             }
 
-            if (currentUserRole == "SuperAdmin")
+            if (RoleHelper.IsTopLevelAdmin(HttpContext))
             {
                 return RedirectToAction("ManageRoles");
             }
@@ -106,11 +97,7 @@ namespace ManageEngineWebApp.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login(LoginDto model)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            using var client = new HttpClient(handler);
+            using var client = GetClient();
             var json = JsonConvert.SerializeObject(model);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -118,8 +105,8 @@ namespace ManageEngineWebApp.Controllers
             if (!response.IsSuccessStatusCode)
             {
                 var errorMsg = await response.Content.ReadAsStringAsync();
-                errorMsg = errorMsg.Replace("\"", "").Trim(); 
-                
+                errorMsg = errorMsg.Replace("\"", "").Trim();
+
                 if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                 {
                     TempData["msg"] = "Server error. Please contact your administrator.";
@@ -140,13 +127,15 @@ namespace ManageEngineWebApp.Controllers
             }
             try
             {
-                var roleData = await RoleHelper.GetUserRoleFromApiAsync(model.Username);
-                
-                if (roleData == null)
+                var roleResponse = await RoleHelper.GetUserRoleFromApiAsync(model.Username);
+
+                if (roleResponse.Result == null)
                 {
-                     TempData["msg"] = "Failed to retrieve user roles. API may be offline or returning errors.";
-                     return View(model);
+                    TempData["msg"] = roleResponse.Error ?? "Failed to retrieve user roles. API may be offline or returning errors.";
+                    return View(model);
                 }
+
+                var roleData = roleResponse.Result;
 
                 if (roleData.Roles == null || !roleData.Roles.Any())
                 {
@@ -154,48 +143,13 @@ namespace ManageEngineWebApp.Controllers
                     return View(model);
                 }
 
-                string primaryRole = roleData.Roles.Contains("SuperAdmin") ? "SuperAdmin" :
-                                    (roleData.Roles.Contains("CompanyAdmin") ? "CompanyAdmin" : roleData.Roles.First());
+                // Primary role = first role from API (already sorted by hierarchy level)
+                string primaryRole = roleData.Roles.First();
 
-                HttpContext.Session.SetString("username", model.Username);
-                HttpContext.Session.SetString("role", primaryRole);
+                // Store ALL role properties in session (dynamic, from database)
+                RoleHelper.SetSessionFromRoleData(HttpContext, roleData, primaryRole);
 
-                if (roleData.CompanyId.HasValue)
-                {
-                    HttpContext.Session.SetString("companyId", roleData.CompanyId.Value.ToString());
-                }
-
-                if (roleData.LocationId.HasValue)
-                {
-                    HttpContext.Session.SetString("locationId", roleData.LocationId.Value.ToString());
-                }
-
-                if (roleData.GroupId.HasValue)
-                {
-                    HttpContext.Session.SetString("groupId", roleData.GroupId.Value.ToString());
-                }
-
-                // Always store permissions in session (even if empty)
-                var permString = roleData.Permissions != null && roleData.Permissions.Any()
-                    ? string.Join(",", roleData.Permissions)
-                    : "";
-                
-                try {
-                    var debugPath = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop), "manageengine_debug.txt");
-                    var roleName = roleData.Roles?.FirstOrDefault() ?? "None";
-                    var log = $"[{DateTime.Now}] User: {model.Username}, Role: {roleName}, PermCount: {roleData.Permissions?.Count ?? 0}, StartPage: {roleData.StartPage}, First5Perms: {string.Join(",", (roleData.Permissions ?? new List<string>()).Take(5))}\n";
-                    System.IO.File.AppendAllText(debugPath, log);
-                } catch {}
-
-                HttpContext.Session.SetString("permissions", permString);
-
-                // Store startPage for later use
-                if (!string.IsNullOrEmpty(roleData.StartPage))
-                {
-                    HttpContext.Session.SetString("startPage", roleData.StartPage);
-                }
-
-                // Redirect based on startPage if available (applies to all roles including custom roles)
+                // Redirect based on StartPage from role definition (dynamic)
                 if (!string.IsNullOrEmpty(roleData.StartPage))
                 {
                     var parts = roleData.StartPage.Split('/');
@@ -207,13 +161,17 @@ namespace ManageEngineWebApp.Controllers
                         return Redirect(roleData.StartPage);
                 }
 
-                if (primaryRole == "SuperAdmin")
+                // Dynamic redirects based on role scope flags (from database)
+                if (roleData.HierarchyLevel == 0)
                 {
+                    // Top-level admin → main dashboard
                     return RedirectToAction("Companies", "Companies");
                 }
-                else if (primaryRole == "CompanyAdmin" && roleData.CompanyId.HasValue)
+                else if (roleData.RequiresCompany && roleData.CompanyId.HasValue)
                 {
-                    var companyMapping = roleData.Mappings?.FirstOrDefault(m => m.RoleName == "CompanyAdmin");
+                    // Company-scoped role → company details
+                    var companyMapping = roleData.Mappings?.FirstOrDefault(m =>
+                        m.CompanyId.HasValue && m.CompanyId.Value == roleData.CompanyId.Value);
                     string companyName = companyMapping?.ScopeName ?? $"Company {roleData.CompanyId.Value}";
                     HttpContext.Session.SetString("companyName", companyName);
 
@@ -223,16 +181,10 @@ namespace ManageEngineWebApp.Controllers
                         companyName = companyName
                     });
                 }
-                else if (primaryRole == "CompanyUser") 
+                else if (roleData.RequiresDevice)
                 {
-                    HttpContext.Session.SetString("role", "CompanyUser");
-
-                    if (roleData.CompanyId.HasValue)
-                    {
-                        HttpContext.Session.SetInt32("companyId", roleData.CompanyId.Value);
-                    }
-
-                    var deviceMapping = roleData.Mappings?.FirstOrDefault(m => m.RoleName == "CompanyUser" && !string.IsNullOrEmpty(m.ScopeName));
+                    // Device-scoped role → device summary
+                    var deviceMapping = roleData.Mappings?.FirstOrDefault(m => !string.IsNullOrEmpty(m.ScopeName));
                     var assignedDomain = deviceMapping?.ScopeName;
 
                     if (!string.IsNullOrEmpty(assignedDomain))
@@ -240,12 +192,20 @@ namespace ManageEngineWebApp.Controllers
                         HttpContext.Session.SetString("assignedDomain", assignedDomain);
                         return RedirectToAction("Index", "ComputerSummary", new { domain = assignedDomain });
                     }
-                    else
-                    {
-                      
-                    }
                 }
-                // Custom roles with permissions: redirect to Companies page (most common landing page)
+
+                // Fallback: redirect to first authorized menu
+                var dynamicMenus = await RoleHelper.GetDynamicMenusAsync(HttpContext);
+                // Menus = page visibility only, no permission check needed
+                var firstAuthorizedMenu = dynamicMenus
+                    .OrderBy(m => m.SortOrder)
+                    .FirstOrDefault();
+
+                if (firstAuthorizedMenu != null && !string.IsNullOrEmpty(firstAuthorizedMenu.RouteController) && !string.IsNullOrEmpty(firstAuthorizedMenu.RouteAction))
+                {
+                    return RedirectToAction(firstAuthorizedMenu.RouteAction, firstAuthorizedMenu.RouteController);
+                }
+
                 return RedirectToAction("Companies", "Companies");
             }
             catch (Exception ex)
@@ -275,7 +235,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("Auth.ManageRoles", "Manage User Roles")]
         public async Task<IActionResult> ManageRoles()
         {
-            if (!RoleHelper.IsSuperAdmin(HttpContext))
+            if (!RoleHelper.IsTopLevelAdmin(HttpContext))
             {
                 return RedirectToAction("AccessDenied");
             }
@@ -293,23 +253,11 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Invalid request payload. Please check your inputs." });
                 }
 
-                if (!RoleHelper.IsSuperAdmin(HttpContext))
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                 {
                     return Json(new { success = false, message = "Unauthorized" });
                 }
-                if (model.Role == "SuperAdmin")
-                {
-                    return Json(new { success = false, message = "Cannot assign SuperAdmin role" });
-                }
-                if (model.Role == "CompanyAdmin" && !model.CompanyId.HasValue)
-                {
-                    return Json(new { success = false, message = "Company Admin must be assigned to a company" });
-                }
-
-                if (model.Role == "CompanyUser" && string.IsNullOrEmpty(model.DomainName))
-                {
-                    return Json(new { success = false, message = "Company User must be assigned to a device" });
-                }
+            
 
                 if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Role))
                 {
@@ -336,7 +284,7 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsSuperAdmin(HttpContext))
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                 {
                     return Json(new List<object>());
                 }
@@ -344,7 +292,7 @@ namespace ManageEngineWebApp.Controllers
                 var roles = await RoleHelper.GetAllSystemRolesAsync();
                 return Json(roles);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Json(new List<object>());
             }
@@ -353,10 +301,10 @@ namespace ManageEngineWebApp.Controllers
         [HttpPost]
         [AuthFilter]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest model)
-            {
+        {
             try
             {
-                if (!RoleHelper.IsSuperAdmin(HttpContext))
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                 {
                     return Json(new { success = false, message = "Unauthorized" });
                 }
@@ -387,12 +335,15 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsSuperAdmin(HttpContext))
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                 {
                     return Json(new { success = false, message = "Unauthorized" });
                 }
 
-                if (model.RoleName == "SuperAdmin" || model.RoleName == "CompanyAdmin" || model.RoleName == "CompanyUser")
+                // Check if role is a system role dynamically (from API/DB)
+                var systemRoles = await RoleHelper.GetAllSystemRolesAsync();
+                var roleToDelete = systemRoles.FirstOrDefault(r => r.Name == model.RoleName);
+                if (roleToDelete?.IsSystem == true)
                 {
                     return Json(new { success = false, message = "Cannot delete system roles" });
                 }
@@ -417,7 +368,7 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsSuperAdmin(HttpContext))
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                 {
                     return Json(new { success = false, message = "Unauthorized" });
                 }
@@ -447,24 +398,42 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                HttpClientHandler handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-                using var client = new HttpClient(handler);
-                var baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
-                
-                var response = await client.GetAsync($"{baseUrl}/api/Permission/Grouped");
+                using var client = GetClient();
+
+                var response = await client.GetAsync($"{_baseUrl}/api/Permission/Grouped");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
                     return Content(json, "application/json");
                 }
-                return Json(new List<object>());
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                return Json(new { success = false, message = $"Backend Error: {errorMsg}" });
             }
-            catch
+            catch (Exception ex)
             {
-                return Json(new List<object>());
+                return Json(new { success = false, message = $"Connection Error: {ex.Message}" });
+            }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetMenusGroupedByModule()
+        {
+            try
+            {
+                using var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}/api/Permission/MenusGroupedByModule");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return Content(json, "application/json");
+                }
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                return Json(new { success = false, message = $"Backend Error: {errorMsg}" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Connection Error: {ex.Message}" });
             }
         }
 
@@ -474,7 +443,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("Auth.ManagePermissions", "Manage System Permissions")]
         public IActionResult ManagePermissions()
         {
-            if (!RoleHelper.IsSuperAdmin(HttpContext)) return RedirectToAction("Login");
+            if (!RoleHelper.IsTopLevelAdmin(HttpContext)) return RedirectToAction("Login");
             return View();
         }
 
@@ -504,7 +473,7 @@ namespace ManageEngineWebApp.Controllers
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/Permission/Menus", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
-                
+
                 try {
                     var result = JsonConvert.DeserializeObject<dynamic>(responseContent);
                     if (result?.success != null) return Content(responseContent, "application/json");
@@ -517,8 +486,8 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = $"API Error {(int)response.StatusCode}: {responseContent}" });
                 }
             } catch (TaskCanceledException) { return Json(new { success = false, message = "API Server not responding. Is ManageEngineSoftware running?" }); }
-              catch (HttpRequestException) { return Json(new { success = false, message = "Cannot connect to API Server at " + _baseUrl }); }
-              catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + ex.Message }); }
+            catch (HttpRequestException) { return Json(new { success = false, message = "Cannot connect to API Server at " + _baseUrl }); }
+            catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + ex.Message }); }
         }
 
         [HttpDelete]
@@ -530,7 +499,7 @@ namespace ManageEngineWebApp.Controllers
                 var content = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
                     return Json(new { success = true, message = "Menu deleted successfully" });
-                
+
                 try {
                     var err = JsonConvert.DeserializeObject<dynamic>(content);
                     return Json(new { success = false, message = (string)err.message ?? "API failure" });
@@ -546,12 +515,12 @@ namespace ManageEngineWebApp.Controllers
             try {
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/Permission/Modules");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (TaskCanceledException) { 
-                return StatusCode(500, "API Server not responding. Please ensure ManageEngineSoftware is running on " + _baseUrl); 
-            } catch (HttpRequestException) { 
-                return StatusCode(500, "Cannot connect to API Server at " + _baseUrl + ". Please start the backend API."); 
-            } catch (Exception ex) { 
-                return StatusCode(500, "Failed to fetch modules: " + ex.Message); 
+            } catch (TaskCanceledException) {
+                return StatusCode(500, "API Server not responding. Please ensure ManageEngineSoftware is running on " + _baseUrl);
+            } catch (HttpRequestException) {
+                return StatusCode(500, "Cannot connect to API Server at " + _baseUrl + ". Please start the backend API.");
+            } catch (Exception ex) {
+                return StatusCode(500, "Failed to fetch modules: " + ex.Message);
             }
         }
 
@@ -563,7 +532,7 @@ namespace ManageEngineWebApp.Controllers
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/Permission/Modules", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
-                
+
                 try {
                     var result = JsonConvert.DeserializeObject<dynamic>(responseContent);
                     if (result?.success != null) return Content(responseContent, "application/json");
@@ -576,8 +545,8 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = $"API Error {(int)response.StatusCode}: {responseContent}" });
                 }
             } catch (TaskCanceledException) { return Json(new { success = false, message = "API Server not responding. Is ManageEngineSoftware running?" }); }
-              catch (HttpRequestException) { return Json(new { success = false, message = "Cannot connect to API Server at " + _baseUrl }); }
-              catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + ex.Message }); }
+            catch (HttpRequestException) { return Json(new { success = false, message = "Cannot connect to API Server at " + _baseUrl }); }
+            catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + ex.Message }); }
         }
 
         [HttpDelete]
@@ -588,7 +557,7 @@ namespace ManageEngineWebApp.Controllers
                 var content = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
                     return Json(new { success = true, message = "Module deleted successfully" });
-                
+
                 try {
                     var err = JsonConvert.DeserializeObject<dynamic>(content);
                     return Json(new { success = false, message = (string)err.message ?? "API failure" });
@@ -616,7 +585,7 @@ namespace ManageEngineWebApp.Controllers
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/Permission/SavePermission", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
-                
+
                 try {
                     var result = JsonConvert.DeserializeObject<dynamic>(responseContent);
                     if (result?.success != null) return Content(responseContent, "application/json");
@@ -629,8 +598,8 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = $"API Error {(int)response.StatusCode}: {responseContent}" });
                 }
             } catch (TaskCanceledException) { return Json(new { success = false, message = "API Server not responding. Is ManageEngineSoftware running?" }); }
-              catch (HttpRequestException) { return Json(new { success = false, message = "Cannot connect to API Server at " + _baseUrl }); }
-              catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + ex.Message }); }
+            catch (HttpRequestException) { return Json(new { success = false, message = "Cannot connect to API Server at " + _baseUrl }); }
+            catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + ex.Message }); }
         }
 
         [HttpDelete]
@@ -641,7 +610,7 @@ namespace ManageEngineWebApp.Controllers
                 var content = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
                     return Json(new { success = true, message = "Permission deleted successfully" });
-                
+
                 try {
                     var err = JsonConvert.DeserializeObject<dynamic>(content);
                     return Json(new { success = false, message = (string)err.message ?? "API failure" });
@@ -665,19 +634,22 @@ namespace ManageEngineWebApp.Controllers
                 int moduleCount = 0;
                 var errors = new List<string>();
 
+                // 0. Ensure SuperAdmin role definition exists with HierarchyLevel 0
+                await RoleHelper.CreateRoleAsync("SuperAdmin", "Top-level System Administrator with full access", false, false, false);
+
                 // 1. Seed Modules First
                 var uniqueModules = discoveredPermissions.Select(p => p.Module).Distinct().Where(m => !string.IsNullOrEmpty(m));
                 foreach (var modName in uniqueModules)
                 {
                     try {
-                        var modContent = new StringContent(JsonConvert.SerializeObject(new { 
-                            ModuleName = modName, 
+                        var modContent = new StringContent(JsonConvert.SerializeObject(new {
+                            ModuleName = modName,
                             DisplayName = modName,
                             Description = $"Module for {modName}",
                             IconClass = "fas fa-cube",
                             IsActive = true
                         }), Encoding.UTF8, "application/json");
-                        
+
                         var res = await GetClient().PostAsync($"{_baseUrl}/api/Permission/Modules", modContent);
                         if (res.IsSuccessStatusCode) moduleCount++;
                         else errors.Add($"Module {modName}: {await res.Content.ReadAsStringAsync()}");
@@ -688,12 +660,12 @@ namespace ManageEngineWebApp.Controllers
                 foreach (var p in discoveredPermissions)
                 {
                     try {
-                        var content = new StringContent(JsonConvert.SerializeObject(new { 
-                            Module = p.Module, 
-                            PermissionCode = p.PermissionCode, 
-                            PermissionName = p.PermissionName, 
-                            ActionType = p.ActionType, 
-                            Description = p.Description, 
+                        var content = new StringContent(JsonConvert.SerializeObject(new {
+                            Module = p.Module,
+                            PermissionCode = p.PermissionCode,
+                            PermissionName = p.PermissionName,
+                            ActionType = p.ActionType,
+                            Description = p.Description,
                             Category = p.Module,
                             ResourceType = "Action",
                             SortOrder = p.SortOrder,
@@ -701,17 +673,43 @@ namespace ManageEngineWebApp.Controllers
                             RouteAction = p.Action,
                             IsActive = true
                         }), Encoding.UTF8, "application/json");
-                        
+
                         var res = await GetClient().PostAsync($"{_baseUrl}/api/Permission/SavePermission", content);
                         if (res.IsSuccessStatusCode) permCount++;
                         // Don't log "Exists" errors as failures, but track others
                     } catch (Exception ex) { errors.Add($"Perm {p.PermissionCode}: {ex.Message}"); }
                 }
 
-                return Json(new { 
-                    success = true, 
-                    message = $"Seeded {moduleCount} modules and {permCount} permissions.",
-                    details = errors 
+                // 3. Assign All Permissions to SuperAdmin
+                var allCodes = discoveredPermissions.Select(p => p.PermissionCode).ToList();
+                var assignRequest = new { roleName = "SuperAdmin", permissionCodes = allCodes, assignedBy = "System" };
+                var assignContent = new StringContent(JsonConvert.SerializeObject(assignRequest), Encoding.UTF8, "application/json");
+                await GetClient().PostAsync($"{_baseUrl}/api/Permission/AssignToRole", assignContent);
+
+                // 4. Assign All Menus to SuperAdmin
+                string menuMsg = "";
+                var menusRes = await GetClient().GetAsync($"{_baseUrl}/api/Permission/Menus");
+                if (menusRes.IsSuccessStatusCode)
+                {
+                    var menusJson = await menusRes.Content.ReadAsStringAsync();
+                    var menus = JsonConvert.DeserializeObject<List<MenuDefinitionDto>>(menusJson);
+                    if (menus != null)
+                    {
+                        var menuIds = menus.Select(m => m.Id).ToList();
+                        var menuPayload = new { roleName = "SuperAdmin", menuIds = menuIds, assignedBy = "System" };
+                        var menuContent = new StringContent(JsonConvert.SerializeObject(menuPayload), Encoding.UTF8, "application/json");
+                        var menuRes = await GetClient().PostAsync($"{_baseUrl}/api/Permission/AssignMenusToRole", menuContent);
+                        if (menuRes.IsSuccessStatusCode) menuMsg = " and all menus";
+                    }
+                }
+
+                // 5. Refresh current user's session
+                await RoleHelper.RefreshSessionPermissionsAsync(HttpContext);
+
+                return Json(new {
+                    success = true,
+                    message = $"Seeded {moduleCount} modules and {permCount} permissions. SuperAdmin now has full access to all permissions{menuMsg}.",
+                    details = errors
                 });
             }
             catch (Exception ex)
@@ -727,11 +725,11 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var discovered = _permissionDiscovery.DiscoverPermissions();
-                var routes = discovered.Select(d => new { 
-                    controller = d.Controller, 
-                    action = d.Action, 
+                var routes = discovered.Select(d => new {
+                    controller = d.Controller,
+                    action = d.Action,
                     module = d.Module,
-                    permission = d.PermissionCode 
+                    permission = d.PermissionCode
                 }).Distinct().OrderBy(r => r.controller).ThenBy(r => r.action).ToList();
                 return Json(routes);
             }
@@ -747,7 +745,7 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsSuperAdmin(HttpContext))
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                 {
                     return Json(new { success = false, message = "Unauthorized" });
                 }
@@ -763,10 +761,10 @@ namespace ManageEngineWebApp.Controllers
                 }
 
                 var roleResult = await RoleHelper.CreateRoleAsync(
-                    model.RoleName, 
+                    model.RoleName,
                     model.Description,
-                    model.RequiresCompany, 
-                    model.RequiresDevice, 
+                    model.RequiresCompany,
+                    model.RequiresDevice,
                     model.RequiresLocation,
                     model.RequiresGroup);
 
@@ -775,12 +773,8 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = roleResult.Message });
                 }
 
-                HttpClientHandler handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-                using var client = new HttpClient(handler);
-                var baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
+                // 2. Assign Permissions to the new role
+                using var client = GetClient();
 
                 var permPayload = new
                 {
@@ -794,28 +788,126 @@ namespace ManageEngineWebApp.Controllers
                     "application/json"
                 );
 
-                var permResponse = await client.PostAsync($"{baseUrl}/api/Permission/AssignToRole", content);
-                var responseContent = await permResponse.Content.ReadAsStringAsync();
-                
-                if (permResponse.IsSuccessStatusCode)
+                var permResponse = await client.PostAsync($"{_baseUrl}/api/Permission/AssignToRole", content);
+                if (!permResponse.IsSuccessStatusCode)
                 {
-                    try {
-                        var result = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseContent);
-                        if (result.success == true)
-                        {
-                            return Json(new { success = true, message = $"Role '{model.RoleName}' created and {model.Permissions.Count} permissions assigned." });
-                        }
-                        return Json(new { success = true, message = $"Role created but permission assignment failed: {result.message}" });
-                    } catch {
-                        return Json(new { success = true, message = $"Role '{model.RoleName}' created (Permissions verification incomplete)" });
+                    var permError = await permResponse.Content.ReadAsStringAsync();
+                    return Json(new { success = false, message = $"Role created but permission assignment failed: {permError}" });
+                }
+
+                // 3. Assign Menus
+                if (model.MenuIds != null && model.MenuIds.Any())
+                {
+                    var menuPayload = new
+                    {
+                        roleName = model.RoleName,
+                        menuIds = model.MenuIds
+                    };
+                    var menuContent = new StringContent(
+                        Newtonsoft.Json.JsonConvert.SerializeObject(menuPayload),
+                        System.Text.Encoding.UTF8,
+                        "application/json"
+                    );
+
+                    var menuResponse = await client.PostAsync($"{_baseUrl}/api/Permission/AssignMenusToRole", menuContent);
+                    if (!menuResponse.IsSuccessStatusCode)
+                    {
+                        var menuError = await menuResponse.Content.ReadAsStringAsync();
+                        return Json(new { success = true, message = $"Role created with permissions, but menu assignment failed: {menuError}" });
                     }
                 }
 
-                return Json(new { success = true, message = "Role created but permission assignment may have failed" });
+                return Json(new { success = true, message = $"Role '{model.RoleName}' created with {model.Permissions.Count} permissions and {model.MenuIds?.Count ?? 0} menus." });
             }
             catch (Exception ex)
             {
                 return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetRoleDetails(string roleName)
+        {
+            try
+            {
+                using var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}/api/Permission/RoleDetails/{roleName}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return Content(json, "application/json");
+                }
+                return NotFound("Role details not found in backend");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+    
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> UpdateRoleWithPermissions([FromBody] CreateRoleWithPermissionsRequest model)
+        {
+            try
+            {
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                {
+                    return Json(new { success = false, message = "Unauthorized" });
+                }
+
+                if (string.IsNullOrWhiteSpace(model.RoleName))
+                {
+                    return Json(new { success = false, message = "Role name is required" });
+                }
+
+                // 1. Update Role Definition in backend
+                using var client = GetClient();
+                var roleUpdatePayload = new {
+                    RoleName = model.RoleName,
+                    Description = model.Description,
+                    RequiresCompany = model.RequiresCompany,
+                    RequiresGroup = model.RequiresGroup,
+                    RequiresDevice = model.RequiresDevice,
+                    RequiresLocation = model.RequiresLocation,
+                    HierarchyLevel = (model.RoleName == "SuperAdmin") ? 0 : 10
+                };
+                var roleContent = new StringContent(JsonConvert.SerializeObject(roleUpdatePayload), Encoding.UTF8, "application/json");
+                var roleResponse = await client.PostAsync($"{_baseUrl}/api/Auth/role/create", roleContent);
+                if (!roleResponse.IsSuccessStatusCode)
+                {
+                    return Json(new { success = false, message = "Failed to update role definition: " + await roleResponse.Content.ReadAsStringAsync() });
+                }
+
+                // 2. Assign Permissions
+                if (model.Permissions != null)
+                {
+                    var permPayload = new {
+                        roleName = model.RoleName,
+                        permissionCodes = model.Permissions,
+                        assignedBy = HttpContext.Session.GetString("username") ?? "System"
+                    };
+                    var permContent = new StringContent(JsonConvert.SerializeObject(permPayload), Encoding.UTF8, "application/json");
+                    await client.PostAsync($"{_baseUrl}/api/Permission/AssignToRole", permContent);
+                }
+
+                // 3. Assign Menus
+                if (model.MenuIds != null)
+                {
+                    var menuPayload = new {
+                        roleName = model.RoleName,
+                        menuIds = model.MenuIds
+                    };
+                    var menuContent = new StringContent(JsonConvert.SerializeObject(menuPayload), Encoding.UTF8, "application/json");
+                    await client.PostAsync($"{_baseUrl}/api/Permission/AssignMenusToRole", menuContent);
+                }
+
+                return Json(new { success = true, message = "Role updated successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
             }
         }
     }
@@ -853,6 +945,7 @@ namespace ManageEngineWebApp.Controllers
         public bool RequiresDevice { get; set; }
         public bool RequiresLocation { get; set; }
         public List<string>? Permissions { get; set; }
+        public List<int>? MenuIds { get; set; }
     }
 
     public class DeleteRoleRequest
@@ -860,4 +953,3 @@ namespace ManageEngineWebApp.Controllers
         public string? RoleName { get; set; }
     }
 }
-

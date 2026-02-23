@@ -177,14 +177,37 @@
                         <label asp-for="Role" class="block text-xs font-semibold text-slate-700 mb-1">
                             <i class="fas fa-user-shield text-primary-600 mr-1"></i> Assign Role
                         </label>
-                        <select asp-for="Role"
+                        <select asp-for="Role" id="roleSelect"
                                 class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm">
-                            <option value="">Select Role</option>
-                            <option value="CompanyAdmin">Company Admin</option>
-                            <option value="User">User</option>
+                            <option value="">Loading roles...</option>
                         </select>
                         <span asp-validation-for="Role" class="text-red-600 text-xs mt-0.5 block"></span>
                     </div>
+
+                    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+                    <script>
+                        $(document).ready(function() {
+                            $.ajax({
+                                url: '@Url.Action("GetAllSystemRoles", "Auth")',
+                                type: 'GET',
+                                success: function(roles) {
+                                    var options = '<option value="">Select Role</option>';
+                                    if (roles && roles.length > 0) {
+                                        roles.forEach(function(role) {
+                                            var name = typeof role === 'string' ? role : role.name;
+                                            options += '<option value="' + name + '">' + name + '</option>';
+                                        });
+                                    } else {
+                                        options = '<option value="">No roles found</option>';
+                                    }
+                                    $('#roleSelect').html(options);
+                                },
+                                error: function() {
+                                    $('#roleSelect').html('<option value="">Error loading roles</option>');
+                                }
+                            });
+                        });
+                    </script>
                 }
 
                 <!-- Create Button -->

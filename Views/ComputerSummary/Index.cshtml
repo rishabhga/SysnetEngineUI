@@ -633,20 +633,21 @@
                         var domain = $('#domainid').val();
                         if (!domain) return;
                         
-                        $.get('/Tickets/GetTicketsForComputer?domain=' + domain, function(data) {
+                        // Use ServiceDesk controller with clientId filter
+                        $.get('/ServiceDesk/GetTickets?clientId=' + encodeURIComponent(domain), function(data) {
                             var html = '';
-                            if (data.length === 0) {
+                            if (!data || data.length === 0) {
                                 html = '<tr><td colspan="6" class="text-center">No tickets found for this device.</td></tr>';
                             } else {
                                 data.forEach(function(t) {
                                     var badgeClass = t.status === 'Open' ? 'label-success' : (t.status === 'Closed' ? 'label-default' : 'label-primary');
                                     html += '<tr>' +
-                                        '<td>#' + t.id + '</td>' +
-                                        '<td>' + t.subject + '</td>' +
-                                        '<td><span class="label ' + badgeClass + '">' + t.status + '</span></td>' +
-                                        '<td>' + t.priority + '</td>' +
-                                        '<td>' + (t.assignedTo || '<em class="text-muted">Unassigned</em>') + '</td>' +
-                                        '<td>' + new Date(t.createdDate).toLocaleDateString() + '</td>' +
+                                        '<td>#' + (t.ticketNo || t.id) + '</td>' +
+                                        '<td>' + (t.subject || 'No Subject') + '</td>' +
+                                        '<td><span class="label ' + badgeClass + '">' + (t.status || 'Open') + '</span></td>' +
+                                        '<td>' + (t.priority || 'Medium') + '</td>' +
+                                        '<td>' + (t.assignedToName || '<em class="text-muted">Unassigned</em>') + '</td>' +
+                                        '<td>' + new Date(t.createdOn).toLocaleDateString() + '</td>' +
                                         '</tr>';
                                 });
                             }
@@ -670,20 +671,32 @@
                             return;
                         }
 
-                        $.post('/Tickets/CreateFromComputer', {
-                            domain: domain,
-                            subject: subject,
-                            priority: priority,
-                            description: description
-                        }, function(response) {
-                            if (response.success) {
-                                $('#raiseTicketModal').modal('hide');
-                                alert('Ticket raised successfully!');
-                                $('#ticketSubject').val('');
-                                $('#ticketDescription').val('');
-                                loadComputerTickets(); // Refresh list
-                            } else {
-                                alert('Error raising ticket');
+                        // Use ServiceDesk/SaveTicket with JSON payload
+                        $.ajax({
+                            url: '/ServiceDesk/SaveTicket',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                clientId: domain,
+                                subject: subject,
+                                priority: priority,
+                                remark: description,
+                                category: 'Hardware', // Default for computer summary
+                                requesterName: '@Context.Session.GetString("username")' || 'System User'
+                            }),
+                            success: function(response) {
+                                if (response && response.success) {
+                                    $('#raiseTicketModal').modal('hide');
+                                    alert('Ticket raised successfully!');
+                                    $('#ticketSubject').val('');
+                                    $('#ticketDescription').val('');
+                                    loadComputerTickets(); // Refresh list
+                                } else {
+                                    alert('Error raising ticket: ' + (response.message || 'Unknown error'));
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                alert('Error raising ticket: ' + error);
                             }
                         });
                     }

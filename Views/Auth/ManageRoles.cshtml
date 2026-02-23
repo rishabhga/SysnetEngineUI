@@ -46,6 +46,11 @@
                 <i class="fas fa-user-tag text-[10px]"></i>
                 <span>Assign</span>
             </button>
+            <button onclick="openManageRolesListModal()"
+                    class="px-2 py-1 text-white rounded text-[10px] font-semibold uppercase tracking-wide transition-colors flex items-center space-x-1 shadow-sm bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800">
+                <i class="fas fa-tasks text-[10px]"></i>
+                <span>Manage Roles</span>
+            </button>
         </div>
     </div>
 
@@ -305,19 +310,42 @@
                 </div>
                 
                 <!-- Right Column: Permission Selection -->
+                <!-- Right Column: Permission & Menu Selection (Tabbed) -->
                 <div>
-                    <label class="flex justify-between items-center text-xs font-semibold text-gray-700 mb-2">
-                        <span><i class="fas fa-lock mr-1"></i>Module Permissions *</span>
-                        <button onclick="seedPermissions()" class="text-xs text-blue-600 hover:text-blue-800 transition flex items-center" title="Re-scan controllers for new pages">
-                            <i class="fas fa-sync-alt mr-1"></i>Refresh
-                        </button>
-                    </label>
-                    <div id="permissionTree" class="border rounded p-3 max-h-64 overflow-y-auto bg-gray-50">
-                        <p class="text-gray-400 text-xs text-center py-4">Loading permissions...</p>
+                    <div class="flex items-center border-b mb-3">
+                        <button onclick="switchRoleTab('perms')" id="tabBtn_perms" class="px-3 py-1 text-xs font-bold border-b-2 border-cyan-500 text-cyan-600">Permissions</button>
+                        <button onclick="switchRoleTab('menus')" id="tabBtn_menus" class="px-3 py-1 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-cyan-600">Menus</button>
                     </div>
-                    <div class="mt-2 flex justify-between items-center">
-                        <button onclick="selectAllPermissions()" class="text-xs text-cyan-600 hover:underline">Select All</button>
-                        <button onclick="clearAllPermissions()" class="text-xs text-gray-500 hover:underline">Clear All</button>
+
+                    <!-- Permissions Tab -->
+                    <div id="tabContent_perms">
+                        <label class="flex justify-between items-center text-[10px] font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+                            <span>Functional Permissions *</span>
+                            <button onclick="seedPermissions()" class="text-[10px] text-blue-600 hover:text-blue-800 transition flex items-center" title="Re-scan controllers">
+                                <i class="fas fa-sync-alt mr-1"></i>Refresh
+                            </button>
+                        </label>
+                        <div id="permissionTree" class="border rounded p-3 max-h-64 overflow-y-auto bg-gray-50 shadow-inner">
+                            <p class="text-gray-400 text-xs text-center py-4">Loading permissions...</p>
+                        </div>
+                        <div class="mt-2 flex justify-between items-center">
+                            <button onclick="selectAllPermissions()" class="text-[10px] text-cyan-600 hover:underline">Select All</button>
+                            <button onclick="clearAllPermissions()" class="text-[10px] text-gray-500 hover:underline">Clear All</button>
+                        </div>
+                    </div>
+
+                    <!-- Menus Tab -->
+                    <div id="tabContent_menus" class="hidden">
+                        <label class="flex justify-between items-center text-[10px] font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+                            <span>Menu Visibility *</span>
+                        </label>
+                        <div id="menuTree" class="border rounded p-3 max-h-64 overflow-y-auto bg-gray-50 shadow-inner">
+                            <p class="text-gray-400 text-xs text-center py-4">Loading menus...</p>
+                        </div>
+                        <div class="mt-2 flex justify-between items-center">
+                            <button onclick="selectAllMenus()" class="text-[10px] text-cyan-600 hover:underline">Select All</button>
+                            <button onclick="clearAllMenus()" class="text-[10px] text-gray-500 hover:underline">Clear All</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -330,7 +358,7 @@
             </button>
             <button onclick="submitCreateRole()" id="createRoleBtn"
                     class="px-4 py-1.5 text-xs text-white rounded hover:opacity-90 font-medium shadow-sm bg-gradient-to-r from-cyan-500 to-blue-600">
-                <i class="fas fa-plus mr-1"></i>Create Role with Permissions
+                <i class="fas fa-save mr-1"></i><span id="createRoleBtnText">Create Role with Permissions</span>
             </button>
         </div>
     </div>
@@ -413,6 +441,9 @@
                             <i class="fas ${icon} text-white text-[10px]"></i>
                         </div>
                     </div>
+                    <div class="mt-1 pt-1 border-t border-gray-50 flex justify-end">
+                        <button onclick="openManageRolesListModal()" class="text-[8px] text-cyan-600 hover:text-cyan-800 font-medium">View List →</button>
+                    </div>
                 </div>`;
             container.append(card);
         }
@@ -432,13 +463,14 @@
 
                     // Build roleConfigs dynamically from metadata
                     systemRoles.forEach(function(r) {
-                        roleConfigs[r.name] = {
-                            requiresCompany: r.requiresCompany,
-                            requiresGroup: r.requiresGroup,
-                            requiresDevice: r.requiresDevice,
-                            requiresLocation: r.requiresLocation,
-                            isSystem: r.isSystem,
-                            startPage: r.startPage
+                        var rName = typeof r === 'string' ? r : (r.name || r.RoleName);
+                        roleConfigs[rName] = {
+                            requiresCompany: r.requiresCompany || false,
+                            requiresGroup: r.requiresGroup || false,
+                            requiresDevice: r.requiresDevice || false,
+                            requiresLocation: r.requiresLocation || false,
+                            isSystem: r.isSystem || false,
+                            startPage: r.startPage || 'ComputerSummary/Index'
                         };
                     });
 
@@ -456,13 +488,18 @@
             var options = '<option value="">-- Select Role --</option>';
             
             // Filter out SuperAdmin from assignment dropdown
-            var displayRoles = systemRoles.filter(r => r.name !== 'SuperAdmin');
+            var displayRoles = systemRoles.filter(r => {
+                var rName = typeof r === 'string' ? r : (r.name || r.RoleName);
+                return rName !== 'SuperAdmin';
+            });
 
             if (displayRoles.length > 0) {
                 displayRoles.forEach(function(role) {
-                    options += '<option value="' + role.name + '">' + formatRoleName(role.name) + '</option>';
+                    var rName = typeof role === 'string' ? role : (role.name || role.RoleName);
+                    options += '<option value="' + rName + '">' + formatRoleName(rName) + '</option>';
                 });
-            } else {
+            }
+ else {
                 options = '<option value="">No custom roles created</option>';
             }
             $('#assignRole').html(options);
@@ -746,11 +783,29 @@
 
         // ===================== CREATE ROLE MODAL =====================
         var permissionsData = []; // Cache permissions data
+        var menusData = []; // Cache menus data
+        var isEditMode = false;
+        var currentEditingRole = '';
+
+        function switchRoleTab(tab) {
+            $('.role-tab-btn').removeClass('border-cyan-500 text-cyan-600').addClass('border-transparent text-gray-500');
+            $('#tabBtn_' + tab).addClass('border-cyan-500 text-cyan-600').removeClass('border-transparent text-gray-500');
+            
+            $('#tabContent_perms').addClass('hidden');
+            $('#tabContent_menus').addClass('hidden');
+            $('#tabContent_' + tab).removeClass('hidden');
+        }
 
         function openCreateRoleModal() {
+            isEditMode = false;
+            currentEditingRole = '';
+            $('#createRoleBtnText').text('Create Role with Permissions');
+            $('#newRoleName').prop('readonly', false);
+            
             document.getElementById('createRoleModal').classList.remove('hidden');
             document.getElementById('createRoleModal').classList.add('flex');
             document.getElementById('createRoleMessage').classList.add('hidden');
+            
             // Reset form
             $('#newRoleName').val('');
             $('#newRoleDescription').val('');
@@ -759,8 +814,9 @@
             $('#roleRequiresDevice').prop('checked', false);
             $('#roleRequiresLocation').prop('checked', false);
             
-            // Load permissions
+            switchRoleTab('perms');
             loadPermissions();
+            loadMenus();
         }
 
         function loadPermissions() {
@@ -772,16 +828,95 @@
                 success: function(data) {
                     permissionsData = data;
                     renderPermissionTree(data);
+                    if (isEditMode) syncRolePermissions();
                 },
-                error: function() {
-                    $('#permissionTree').html('<div class="text-center py-4"><p class="text-red-400 text-xs mb-2">Failed to load permissions.</p><button onclick="loadPermissions()" class="text-xs bg-gray-100 px-2 py-1 rounded border hover:bg-gray-200">Retry</button></div>');
+                error: function(xhr) {
+                    $('#permissionTree').html('<div class="text-center py-6"><i class="fas fa-exclamation-triangle text-red-500 mb-2"></i><p class="text-red-600 text-xs">Failed to load permissions. Please try again.</p></div>');
+                    console.error('Permission load error:', xhr.responseText);
                 }
             });
         }
 
+        function loadMenus() {
+            $('#menuTree').html('<div class="flex flex-col items-center justify-center py-8"><i class="fas fa-sync fa-spin text-cyan-500 text-xl mb-2"></i><p class="text-gray-500 text-xs">Loading authorized menus...</p></div>');
+            
+            $.ajax({
+                url: '@Url.Action("GetMenusGroupedByModule", "Auth")',
+                type: 'GET',
+                success: function(data) {
+                    menusData = data;
+                    renderMenuTree(data);
+                    if (isEditMode) syncRoleMenus();
+                },
+                error: function(xhr) {
+                    $('#menuTree').html('<div class="text-center py-6"><i class="fas fa-exclamation-triangle text-red-500 mb-2"></i><p class="text-red-600 text-xs">Failed to load menus. Please try again.</p></div>');
+                    console.error('Menu load error:', xhr.responseText);
+                }
+            });
+        }
+
+        function renderMenuTree(modules) {
+            if (!modules || !Array.isArray(modules) || modules.length === 0) {
+                var msg = (modules && modules.message) ? modules.message : 'No menus found';
+                $('#menuTree').html(`<div class="text-center py-4"><i class="fas fa-info-circle text-gray-400 mb-1"></i><p class="text-gray-400 text-xs">${msg}</p></div>`);
+                return;
+            }
+
+            var html = '';
+            modules.forEach(function(module) {
+                var moduleName = module.moduleName || module.ModuleName || 'Unknown';
+                var moduleMenus = module.menus || module.Menus || [];
+                var moduleIcon = module.moduleIcon || module.ModuleIcon || 'fas fa-folder';
+                var moduleId = moduleName.replace(/\s+/g, '') + '_menu';
+                
+                // Skip modules with no menus
+                if (moduleMenus.length === 0) return;
+
+                html += `
+                    <div class="mb-3">
+                        <div class="flex items-center mb-1">
+                            <input type="checkbox" id="mod_menu_${moduleId}" class="module-menu-checkbox mr-2 rounded text-cyan-600" 
+                                   onchange="toggleModuleMenus('${moduleId}')">
+                            <label for="mod_menu_${moduleId}" class="text-xs font-semibold text-gray-700 cursor-pointer">
+                                <i class="${moduleIcon} mr-1 text-gray-400"></i>${moduleName}
+                            </label>
+                        </div>
+                        <div class="ml-5 space-y-1" id="menu_container_${moduleId}">`;
+                
+                moduleMenus.forEach(function(menu) {
+                    var menuName = menu.menuName || menu.MenuName || 'Unnamed';
+                    var menuId = menu.id || menu.Id || 0;
+                    html += `
+                        <label class="flex items-center text-xs text-gray-600 hover:bg-gray-100 p-1 rounded cursor-pointer">
+                            <input type="checkbox" class="menu-checkbox mr-2 rounded text-cyan-500" 
+                                   name="menuIds" value="${menuId}" data-module="${moduleId}">
+                            <span class="flex-1">${menuName}</span>
+                        </label>`;
+                });
+                
+                html += `</div></div>`;
+            });
+            
+            $('#menuTree').html(html);
+        }
+
+        function toggleModuleMenus(moduleId) {
+            var isChecked = $('#mod_menu_' + moduleId).is(':checked');
+            $('#menu_container_' + moduleId + ' input[type="checkbox"]').prop('checked', isChecked);
+        }
+
+        function selectAllMenus() {
+            $('#menuTree input[type="checkbox"]').prop('checked', true);
+        }
+
+        function clearAllMenus() {
+            $('#menuTree input[type="checkbox"]').prop('checked', false);
+        }
+
         function renderPermissionTree(modules) {
-            if (!modules || modules.length === 0) {
-                $('#permissionTree').html('<div class="text-center py-8"><p class="text-gray-400 text-xs mb-3">No discovered permissions found in the database.</p><button onclick="seedPermissions()" class="px-4 py-2 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700 shadow-sm transition"><i class="fas fa-magic mr-1"></i>Initialize Permissions Scanner</button></div>');
+            if (!modules || !Array.isArray(modules) || modules.length === 0) {
+                var msg = (modules && modules.message) ? modules.message : 'No discovered permissions found in the database.';
+                $('#permissionTree').html(`<div class="text-center py-8"><p class="text-gray-400 text-xs mb-3">${msg}</p><button onclick="seedPermissions()" class="px-4 py-2 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700 shadow-sm transition"><i class="fas fa-magic mr-1"></i>Initialize Permissions Scanner</button></div>`);
                 return;
             }
 
@@ -876,6 +1011,12 @@
                 selectedPermissions.push($(this).val());
             });
 
+            // Collect selected menus
+            var selectedMenus = [];
+            $('input[name="menuIds"]:checked').each(function() {
+                selectedMenus.push(parseInt($(this).val()));
+            });
+
             if (!roleName) {
                 showMessage(messageEl, 'Please enter a role name!', 'error');
                 return;
@@ -892,10 +1033,13 @@
                 return;
             }
 
-            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Creating...');
+            const actionLabel = isEditMode ? 'Updating...' : 'Creating...';
+            btn.prop('disabled', true).html(`<i class="fas fa-spinner fa-spin mr-1"></i>${actionLabel}`);
+
+            const url = isEditMode ? '@Url.Action("UpdateRoleWithPermissions", "Auth")' : '@Url.Action("CreateRoleWithPermissions", "Auth")';
 
             $.ajax({
-                url: '@Url.Action("CreateRoleWithPermissions", "Auth")',
+                url: url,
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
@@ -905,36 +1049,70 @@
                     RequiresGroup: requiresGroup,
                     RequiresDevice: requiresDevice,
                     RequiresLocation: requiresLocation,
-                    Permissions: selectedPermissions
+                    Permissions: selectedPermissions,
+                    MenuIds: selectedMenus
                 }),
                 success: function(response) {
                     if (response.success) {
-                        showMessage(messageEl, 'Role created successfully!', 'success');
-                        // Add to local config
-                        roleConfigs[roleName] = {
-                            requiresCompany: requiresCompany,
-                            requiresDevice: requiresDevice,
-                            requiresLocation: requiresLocation,
-                            isSystem: false
-                        };
+                        showMessage(messageEl, isEditMode ? 'Role updated successfully!' : 'Role created successfully!', 'success');
                         setTimeout(() => {
                             closeCreateRoleModal();
                             loadSystemRoles();
+                            if (isEditMode) loadRolesList();
                         }, 1000);
                     } else {
-                        showMessage(messageEl, response.message || 'Failed to create role', 'error');
+                        showMessage(messageEl, response.message || 'Error occurred', 'error');
                     }
-                    btn.prop('disabled', false).html('<i class="fas fa-plus mr-1"></i>Create Role');
-                },
-                error: function(xhr) {
-                    var errorMsg = 'Error creating role';
-                    try {
-                        var resp = JSON.parse(xhr.responseText);
-                        errorMsg = resp.message || errorMsg;
-                    } catch(e) {}
-                    showMessage(messageEl, errorMsg, 'error');
-                    btn.prop('disabled', false).html('<i class="fas fa-plus mr-1"></i>Create Role');
+                    btn.prop('disabled', false).html('<i class="fas fa-save mr-1"></i>Save Changes');
                 }
+            });
+        }
+
+        // ===================== EDIT SYSTEM ROLE =====================
+        var currentRoleData = null;
+
+        function editSystemRole(roleName) {
+            isEditMode = true;
+            currentEditingRole = roleName;
+            $('#createRoleBtnText').text('Save Changes');
+            $('#newRoleName').val(roleName).prop('readonly', true);
+            
+            // Show modal
+            document.getElementById('createRoleModal').classList.remove('hidden');
+            document.getElementById('createRoleModal').classList.add('flex');
+            document.getElementById('createRoleMessage').classList.add('hidden');
+            
+            // Fetch Details
+            $.ajax({
+                url: '@Url.Action("GetRoleDetails", "Auth")?roleName=' + roleName,
+                type: 'GET',
+                success: function(data) {
+                    currentRoleData = data;
+                    $('#newRoleDescription').val(data.description);
+                    $('#roleRequiresCompany').prop('checked', data.requiresCompany);
+                    $('#roleRequiresGroup').prop('checked', data.requiresGroup);
+                    $('#roleRequiresDevice').prop('checked', data.requiresDevice);
+                    $('#roleRequiresLocation').prop('checked', data.requiresLocation);
+                    
+                    loadPermissions();
+                    loadMenus();
+                }
+            });
+        }
+
+        function syncRolePermissions() {
+            if (!currentRoleData || !currentRoleData.permissions) return;
+            $('input[name="permissions"]').prop('checked', false);
+            currentRoleData.permissions.forEach(function(code) {
+                $('input[name="permissions"][value="' + code + '"]').prop('checked', true);
+            });
+        }
+
+        function syncRoleMenus() {
+            if (!currentRoleData || !currentRoleData.menus) return;
+            $('input[name="menuIds"]').prop('checked', false);
+            currentRoleData.menus.forEach(function(id) {
+                $('input[name="menuIds"][value="' + id + '"]').prop('checked', true);
             });
         }
 
@@ -976,18 +1154,27 @@
         function createRoleListItem(role, color) {
             var colorClass = 'bg-' + color + '-100 text-' + color + '-700 border-' + color + '-200';
             var isSystem = role.isSystem ? '<span class="text-[8px] bg-gray-200 text-gray-600 px-1 rounded ml-1">SYSTEM</span>' : '';
-            var deleteBtn = !role.isSystem ? 
-                '<button onclick="deleteRole(\'' + role.name + '\')" class="text-red-500 hover:text-red-700 text-xs"><i class="fas fa-trash"></i></button>' : '';
+            var buttons = '';
             
-            return '<div class="flex items-center justify-between p-2 bg-gray-50 rounded border">' +
+            if (!role.isSystem) {
+                buttons = `
+                    <div class="flex items-center space-x-2">
+                        <button onclick="editSystemRole('${role.name}')" class="text-cyan-600 hover:text-cyan-800 text-xs" title="Edit Permissions & Menus"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteRole('${role.name}')" class="text-red-500 hover:text-red-700 text-xs" title="Delete Role"><i class="fas fa-trash"></i></button>
+                    </div>`;
+            } else {
+                buttons = `<span class="text-[10px] text-gray-400 italic">Protected</span>`;
+            }
+            
+            return '<div class="flex items-center justify-between p-2 bg-gray-50 rounded border transition hover:bg-white hover:shadow-sm">' +
                    '<div class="flex items-center space-x-2">' +
                    '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ' + colorClass + '">' +
                    '<i class="fas ' + (role.icon || 'fa-user') + ' mr-0.5 text-[8px]"></i>' + formatRoleName(role.name) +
                    '</span>' + isSystem +
                    '</div>' +
-                   '<div class="flex items-center space-x-2">' +
+                   '<div class="flex items-center space-x-3">' +
                    '<span class="text-[10px] text-gray-500">' + (role.userCount || 0) + ' users</span>' +
-                   deleteBtn +
+                   buttons +
                    '</div></div>';
         }
 

@@ -2,48 +2,70 @@
     ViewData["Title"] = "System Management";
 }
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="flex justify-between items-center mb-8">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">System Management</h1>
-            <p class="text-sm text-gray-500">Manage dynamic modules, permissions, and sidebar menus.</p>
+<!-- Toast Container -->
+<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+    <!-- Header -->
+    <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div class="flex items-center gap-2">
+            <div class="p-1.5 bg-sky-600 rounded-md">
+                <i class="fas fa-cog text-white text-xs"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-semibold text-gray-900">System Management</h1>
+                <p class="text-xs text-gray-500">Manage modules, permissions & menus</p>
+            </div>
         </div>
-        <div class="flex space-x-3">
-            <!-- Auto-Discover button removed as per user request -->
-            <button onclick="openMenuModal()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center shadow-lg shadow-sky-600/20">
-                <i class="fas fa-plus mr-2"></i>Add Menu Item
-            </button>
+        <button onclick="openMenuModal()" class="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-md text-xs font-medium flex items-center justify-center gap-1.5">
+            <i class="fas fa-plus"></i>Add Menu
+        </button>
+    </div>
+
+    <!-- Stats - Compact Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4" id="statsContainer">
+        <!-- Skeleton Loaders -->
+        <div class="bg-white rounded-lg border border-gray-100 p-3 animate-pulse">
+            <div class="h-3 bg-gray-200 rounded w-16 mb-2"></div>
+            <div class="h-5 bg-gray-300 rounded w-12"></div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-100 p-3 animate-pulse">
+            <div class="h-3 bg-gray-200 rounded w-16 mb-2"></div>
+            <div class="h-5 bg-gray-300 rounded w-12"></div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-100 p-3 animate-pulse">
+            <div class="h-3 bg-gray-200 rounded w-16 mb-2"></div>
+            <div class="h-5 bg-gray-300 rounded w-12"></div>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-100 p-3 animate-pulse">
+            <div class="h-3 bg-gray-200 rounded w-16 mb-2"></div>
+            <div class="h-5 bg-gray-300 rounded w-12"></div>
         </div>
     </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="statsContainer">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-pulse h-24"></div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-pulse h-24"></div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-pulse h-24"></div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-pulse h-24"></div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
         <!-- Menus List -->
         <div class="lg:col-span-2">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <h2 class="font-bold text-gray-800 flex items-center">
-                        <i class="fas fa-list-ul mr-2 text-sky-500"></i>Active Sidebar Menus
+            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div class="px-3 py-2 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <h2 class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                        <i class="fas fa-list-ul text-sky-600 text-xs"></i>
+                        Menus <span class="text-gray-400 text-[10px] font-normal" id="menuCount">0</span>
                     </h2>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full text-xs">
+                        <thead class="bg-gray-50/50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Menu Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permission</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th class="px-3 py-2 text-left font-medium text-gray-600">Name</th>
+                                <th class="px-3 py-2 text-left font-medium text-gray-600">Route</th>
+                                <th class="px-3 py-2 text-left font-medium text-gray-600">Module</th>
+                                <th class="px-3 py-2 text-right font-medium text-gray-600"></th>
                             </tr>
                         </thead>
-                        <tbody id="menuTableBody" class="bg-white divide-y divide-gray-200">
+                        <tbody id="menuTableBody" class="divide-y divide-gray-100">
+                            <tr><td colspan="4" class="px-3 py-4 text-center text-gray-400 text-[10px]">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -52,180 +74,207 @@
 
         <!-- Modules List -->
         <div class="lg:col-span-1">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <h2 class="font-bold text-gray-800 flex items-center">
-                        <i class="fas fa-cubes mr-2 text-amber-500"></i>Modules
+            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div class="px-3 py-2 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <h2 class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                        <i class="fas fa-cubes text-amber-600 text-xs"></i>
+                        Modules <span class="text-gray-400 text-[10px] font-normal" id="moduleCount">0</span>
                     </h2>
-                    <button onclick="openModuleModal()" class="text-sky-600 hover:text-sky-700 font-semibold text-xs">
-                        <i class="fas fa-plus"></i>
+                    <button onclick="openModuleModal()" class="text-amber-600 hover:text-amber-700 p-0.5">
+                        <i class="fas fa-plus text-[10px]"></i>
                     </button>
                 </div>
-                <div id="moduleList" class="p-4 space-y-3">
+                <div id="moduleList" class="p-2 space-y-1.5 max-h-[280px] overflow-y-auto">
                     <!-- Dynamic Content -->
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Permissions Section -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <h2 class="font-bold text-gray-800 flex items-center">
-                <i class="fas fa-key mr-2 text-emerald-500"></i>Permissions
-            </h2>
-            <button onclick="openPermissionModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center">
-                <i class="fas fa-plus mr-1"></i>Add Permission
-            </button>
+    <!-- Permissions Section -->
+    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div class="px-3 py-2 border-b border-gray-100 bg-gray-50">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <h2 class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                    <i class="fas fa-key text-emerald-600 text-xs"></i>
+                    Permissions <span class="text-gray-400 text-[10px] font-normal" id="permissionCount">0</span>
+                </h2>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <select id="filterController" class="text-[10px] border-gray-200 rounded px-2 py-1 bg-gray-50 w-full sm:w-32">
+                        <option value="">All Controllers</option>
+                    </select>
+                    <button onclick="openPermissionModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded text-[10px] font-medium flex items-center gap-1 whitespace-nowrap">
+                        <i class="fas fa-plus"></i>Add
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="overflow-x-auto max-h-80">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50 sticky top-0">
+        <div class="overflow-x-auto max-h-72">
+            <table class="min-w-full text-xs">
+                <thead class="bg-gray-50/50 sticky top-0">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permission Code</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Module ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action Type</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th class="px-3 py-2 text-left font-medium text-gray-600">Code</th>
+                        <th class="px-3 py-2 text-left font-medium text-gray-600">Name</th>
+                        <th class="px-3 py-2 text-left font-medium text-gray-600">Module</th>
+                        <th class="px-3 py-2 text-left font-medium text-gray-600">Type</th>
+                        <th class="px-3 py-2 text-right font-medium text-gray-600"></th>
                     </tr>
                 </thead>
-                <tbody id="permissionTableBody" class="bg-white divide-y divide-gray-200">
+                <tbody id="permissionTableBody" class="divide-y divide-gray-100">
+                    <tr><td colspan="5" class="px-3 py-4 text-center text-gray-400 text-[10px]">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- Add/Edit Menu Modal -->
-<div id="menuModal" class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl transform transition-all">
-        <div class="px-8 py-6 border-b border-gray-100">
-            <div class="flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-900" id="menuModalTitle">Add Menu Item</h3>
-                <button onclick="closeMenuModal()" class="text-gray-400 hover:text-gray-900 transition"><i class="fas fa-times"></i></button>
-            </div>
+<!-- Menu Modal - Compact -->
+<div id="menuModal" class="hidden fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg w-full max-w-sm">
+        <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="text-sm font-semibold text-gray-900" id="menuModalTitle">Add Menu</h3>
+            <button onclick="closeMenuModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xs"></i>
+            </button>
         </div>
-        <form id="menuForm" class="px-8 py-6 space-y-4">
+        <form id="menuForm" class="p-4 space-y-3">
             <input type="hidden" id="menuId">
-            <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Display Name</label>
-                    <input type="text" id="menuName" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm">
-                </div>
+            <input type="hidden" id="menuIcon" value="fas fa-circle">
+            <input type="hidden" id="menuModuleId" value="">
+            <input type="hidden" id="menuSortOrder" value="0">
+            <input type="hidden" id="routeController" value="">
+            <input type="hidden" id="routeAction" value="">
+
+            <div>
+                <label class="block text-[10px] font-medium text-gray-600 mb-1">Display Name</label>
+                <input type="text" id="menuName" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs" placeholder="e.g. Companies">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Controller</label>
-                    <input type="text" id="routeController" list="controllerList" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm" placeholder="Companies">
-                    <datalist id="controllerList"></datalist>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Action</label>
-                    <input type="text" id="routeAction" list="actionList" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm" placeholder="Index">
-                    <datalist id="actionList"></datalist>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Icon Class</label>
-                    <input type="text" id="menuIcon" placeholder="fas fa-star" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Required Permission</label>
-                    <input type="text" id="requiredPermission" placeholder="ViewCompanies" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Module</label>
-                    <select id="menuModuleId" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm">
-                        <!-- Options loaded dynamically -->
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Controller</label>
+                    <select id="controllerSelect" class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
+                        <option value="">Select</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Sort Order</label>
-                    <input type="number" id="menuSortOrder" value="1" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none transition text-sm">
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Action</label>
+                    <select id="actionSelect" disabled class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs disabled:opacity-50">
+                        <option value="">Select</option>
+                    </select>
                 </div>
             </div>
-            <div class="pt-4 flex justify-end space-x-3">
-                <button type="button" onclick="closeMenuModal()" class="px-6 py-2.5 text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition">Cancel</button>
-                <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-lg shadow-sky-600/20 transition">Save Menu Item</button>
+
+            <div>
+                <label class="block text-[10px] font-medium text-gray-600 mb-1">Required Permission</label>
+                <select id="menuRequiredPermission" class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
+                    <option value="">None</option>
+                </select>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closeMenuModal()" class="px-3 py-1.5 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded">Cancel</button>
+                <button type="submit" class="px-3 py-1.5 text-xs text-white bg-sky-600 hover:bg-sky-700 rounded">Save</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Add/Edit Module Modal -->
-<div id="moduleModal" class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl transform transition-all">
-        <div class="px-8 py-6 border-b border-gray-100">
-            <div class="flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-900" id="moduleModalTitle">Manage Module</h3>
-                <button onclick="closeModuleModal()" class="text-gray-400 hover:text-gray-900 transition"><i class="fas fa-times"></i></button>
-            </div>
+<!-- Module Modal - Compact -->
+<div id="moduleModal" class="hidden fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg w-full max-w-sm">
+        <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="text-sm font-semibold text-gray-900" id="moduleModalTitle">Manage Module</h3>
+            <button onclick="closeModuleModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xs"></i>
+            </button>
         </div>
-        <form id="moduleForm" class="px-8 py-6 space-y-4">
+        <form id="moduleForm" class="p-4 space-y-3">
             <input type="hidden" id="moduleId">
+
             <div>
-                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Module Name</label>
-                <input type="text" id="moduleName" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition text-sm">
+                <label class="block text-[10px] font-medium text-gray-600 mb-1">Module Name</label>
+                <input type="text" id="moduleName" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
             </div>
+
             <div>
-                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Description</label>
-                <input type="text" id="moduleDesc" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition text-sm">
+                <label class="block text-[10px] font-medium text-gray-600 mb-1">Description</label>
+                <input type="text" id="moduleDesc" class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
             </div>
+
             <div>
-                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Icon (FontAwesome)</label>
-                <input type="text" id="moduleIcon" placeholder="fas fa-folder" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition text-sm">
+                <label class="block text-[10px] font-medium text-gray-600 mb-1">Icon (FontAwesome)</label>
+                <input type="text" id="moduleIcon" placeholder="fas fa-folder" class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
             </div>
-            <div class="pt-4 flex justify-end space-x-3">
-                <button type="button" onclick="closeModuleModal()" class="px-6 py-2.5 text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition">Cancel</button>
-                <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-lg shadow-amber-500/20 transition">Save Module</button>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closeModuleModal()" class="px-3 py-1.5 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded">Cancel</button>
+                <button type="submit" class="px-3 py-1.5 text-xs text-white bg-amber-600 hover:bg-amber-700 rounded">Save</button>
             </div>
         </form>
     </div>
 </div>
 
-
-<!-- Add/Edit Permission Modal -->
-<div id="permissionModal" class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl transform transition-all">
-        <div class="px-8 py-6 border-b border-gray-100">
-            <div class="flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-900" id="permissionModalTitle">Add Permission</h3>
-                <button onclick="closePermissionModal()" class="text-gray-400 hover:text-gray-900 transition"><i class="fas fa-times"></i></button>
-            </div>
+<!-- Permission Modal - Compact -->
+<div id="permissionModal" class="hidden fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg w-full max-w-md">
+        <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="text-sm font-semibold text-gray-900" id="permissionModalTitle">Add Permission</h3>
+            <button onclick="closePermissionModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xs"></i>
+            </button>
         </div>
-        <form id="permissionForm" class="px-8 py-6 space-y-4">
+        <form id="permissionForm" class="p-4 space-y-3">
             <input type="hidden" id="permissionId">
-            <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Permission Code</label>
-                    <input type="text" id="permissionCode" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition text-sm" placeholder="ServiceDesk.View">
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Permission Name</label>
-                    <input type="text" id="permissionName" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition text-sm" placeholder="View Service Desk">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Module</label>
-                    <select id="permissionModuleId" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition text-sm">
+
+            <div class="bg-emerald-50/50 p-3 rounded border border-emerald-100">
+                <label class="block text-[10px] font-medium text-emerald-700 mb-1.5">Discover from Route</label>
+                <div class="flex gap-2">
+                    <select id="permControllerSelect" class="flex-1 px-2.5 py-1.5 bg-white border border-emerald-200 rounded text-xs">
+                        <option value="">Controller</option>
                     </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Action Type</label>
-                    <select id="permissionActionType" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition text-sm">
-                        <option value="View">View</option>
-                        <option value="Create">Create</option>
-                        <option value="Edit">Edit</option>
-                        <option value="Delete">Delete</option>
-                        <option value="Action">Action</option>
+                    <select id="permActionSelect" disabled class="flex-1 px-2.5 py-1.5 bg-white border border-emerald-200 rounded text-xs disabled:opacity-50">
+                        <option value="">Action</option>
                     </select>
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Description</label>
-                    <input type="text" id="permissionDescription" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition text-sm" placeholder="Optional description">
                 </div>
             </div>
-            <div class="pt-4 flex justify-end space-x-3">
-                <button type="button" onclick="closePermissionModal()" class="px-6 py-2.5 text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition">Cancel</button>
-                <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-lg shadow-emerald-500/20 transition">Save Permission</button>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2">
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Permission Code</label>
+                    <input type="text" id="permissionCode" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Permission Name</label>
+                    <input type="text" id="permissionName" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Module</label>
+                    <select id="permissionModuleId" class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs"></select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Action Type</label>
+                    <select id="permissionActionType" class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
+                        <option>View</option>
+                        <option>Create</option>
+                        <option>Edit</option>
+                        <option>Delete</option>
+                        <option>Action</option>
+                    </select>
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Description</label>
+                    <input type="text" id="permissionDescription" class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closePermissionModal()" class="px-3 py-1.5 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded">Cancel</button>
+                <button type="submit" class="px-3 py-1.5 text-xs text-white bg-emerald-600 hover:bg-emerald-700 rounded">Save</button>
             </div>
         </form>
     </div>
@@ -234,21 +283,23 @@
 @section Scripts {
     <script>
         const AUTH_CTRL = '@Url.Content("~/Auth")';
+        let _allPermissions = []; // Store for client-side filtering
 
         // Toast Notification System
         function showToast(message, isError = false) {
-            const existing = document.getElementById('toast-notification');
-            if(existing) existing.remove();
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `flex items-center gap-2 px-3 py-2 rounded shadow-lg text-white text-xs ${
+                isError ? 'bg-red-600' : 'bg-green-600'
+            }`;
+            toast.innerHTML = `
+                <i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} text-[10px]"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
 
-            const div = document.createElement('div');
-            div.id = 'toast-notification';
-            div.className = `fixed top-4 right-4 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-y-0 z-50 flex items-center gap-3 ${isError ? 'bg-red-600' : 'bg-green-600'}`;
-            div.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} text-xl"></i><div><h4 class="font-bold text-sm">${isError ? 'Error' : 'Success'}</h4><p class="text-xs opacity-90">${message}</p></div>`;
-            document.body.appendChild(div);
-            
             setTimeout(() => {
-                div.classList.add('opacity-0', '-translate-y-2');
-                setTimeout(() => div.remove(), 300);
+                toast.remove();
             }, 3000);
         }
 
@@ -274,13 +325,93 @@
         function loadDiscoveredRoutes() {
             $.get('@Url.Action("GetDiscoveredRoutes", "Auth")', routes => {
                 if(routes && routes.length) {
-                    const controllers = [...new Set(routes.map(r => r.controller))];
-                    const actions = [...new Set(routes.map(r => r.action))];
-                    
-                    $('#controllerList').html(controllers.map(c => `<option value="${c}">`).join(''));
-                    $('#actionList').html(actions.map(a => `<option value="${a}">`).join(''));
+                    // Group routes by controller for cleaner logic
+                    const grouped = {};
+                    routes.forEach(r => {
+                        if (!grouped[r.controller]) grouped[r.controller] = [];
+                        if (!grouped[r.controller].includes(r.action)) {
+                            grouped[r.controller].push(r.action);
+                        }
+                    });
+
+                    window._discoveredRoutes = grouped;
+
+                    // Populate Controller Dropdowns (Menu + Permission + Filter)
+                    const controllers = Object.keys(grouped).sort();
+                    const options = '<option value="">-- Select Controller --</option>' +
+                        controllers.map(c => `<option value="${c}">${c}</option>`).join('');
+
+                    $('#controllerSelect').html(options); // Menu Modal
+                    $('#permControllerSelect').html(options); // Permission Modal
+                    $('#filterController').html('<option value="">All Controllers</option>' + controllers.map(c => `<option value="${c}">${c}</option>`).join(''));
                 }
             });
+        }
+
+        // ================== CASCADING DROPDOWNS & FILTERING ==================
+
+        // 1. Menu Modal Logic
+        $(document).on('change', '#controllerSelect', function() {
+            const ctrl = $(this).val();
+            updateActionSelect(ctrl, '#actionSelect');
+
+            // Update hidden fields
+            $('#routeController').val(ctrl);
+            $('#routeAction').val('');
+        });
+
+        $(document).on('change', '#actionSelect', function() {
+            const action = $(this).val();
+            $('#routeAction').val(action);
+        });
+
+        // 2. Permission Modal Logic
+        $(document).on('change', '#permControllerSelect', function() {
+            const ctrl = $(this).val();
+            updateActionSelect(ctrl, '#permActionSelect');
+
+            // Auto-fill Permission Code and Name if both are selected
+            $('#permissionCode').val('');
+            $('#permissionName').val('');
+        });
+
+        $(document).on('change', '#permActionSelect', function() {
+           const ctrl = $('#permControllerSelect').val();
+           const action = $(this).val();
+           if(ctrl && action) {
+               const code = `${ctrl}.${action}`; // Default code convention
+               $('#permissionCode').val(code);
+               $('#permissionName').val(`${action} ${ctrl}`);
+
+               // Auto-detect action type
+               let type = 'Action';
+               const lower = action.toLowerCase();
+               if(lower.includes('index') || lower.includes('details') || lower.includes('view') || lower.includes('get')) type = 'View';
+               else if(lower.includes('create') || lower.includes('add') || lower.includes('insert')) type = 'Create';
+               else if(lower.includes('edit') || lower.includes('update') || lower.includes('modify')) type = 'Edit';
+               else if(lower.includes('delete') || lower.includes('remove')) type = 'Delete';
+
+               $('#permissionActionType').val(type);
+           }
+        });
+
+        // 3. Filter Logic for Permission Table
+        $(document).on('change', '#filterController', function() {
+            const selectedCtrl = $(this).val();
+            renderPermissionsTable(selectedCtrl);
+        });
+
+        function updateActionSelect(ctrl, selector) {
+            const actionSel = $(selector);
+            if (ctrl && window._discoveredRoutes && window._discoveredRoutes[ctrl]) {
+                const actions = window._discoveredRoutes[ctrl].sort();
+                actionSel.html('<option value="">-- Select Page --</option>' +
+                    actions.map(a => `<option value="${a}">${a}</option>`).join(''));
+                actionSel.prop('disabled', false).removeClass('bg-gray-100');
+            } else {
+                actionSel.html('<option value="">-- Select Page --</option>');
+                actionSel.prop('disabled', true).addClass('bg-gray-100');
+            }
         }
 
         function loadAllData() {
@@ -293,52 +424,69 @@
         function loadStats() {
             $.get('@Url.Action("GetStats", "Auth")', stats => {
                 if (stats.error) {
-                    $('#statsContainer').html(`<div class="col-span-4 bg-red-50 p-4 rounded-xl text-red-600 text-sm border border-red-100"><i class="fas fa-exclamation-triangle mr-2"></i>API Error: ${stats.error}</div>`);
+                    $('#statsContainer').html(`<div class="col-span-4 bg-red-50 p-3 rounded-lg text-red-600 text-xs border border-red-100"><i class="fas fa-exclamation-triangle mr-1"></i>API Error: ${stats.error}</div>`);
                     return;
                 }
-                
+
                 const html = `
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-amber-500 hover:shadow-md transition">
-                        <p class="text-xs font-bold text-gray-400 uppercase mb-1">Modules</p>
-                        <p class="text-3xl font-black text-gray-800">${stats.modules}</p>
+                    <div class="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition">
+                        <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Modules</p>
+                        <p class="text-lg font-bold text-gray-800">${stats.modules}</p>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-sky-500 hover:shadow-md transition">
-                        <p class="text-xs font-bold text-gray-400 uppercase mb-1">Permissions</p>
-                        <p class="text-3xl font-black text-gray-800">${stats.perms}</p>
+                    <div class="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition">
+                        <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Permissions</p>
+                        <p class="text-lg font-bold text-gray-800">${stats.perms}</p>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-indigo-500 hover:shadow-md transition">
-                        <p class="text-xs font-bold text-gray-400 uppercase mb-1">Active Menus</p>
-                        <p class="text-3xl font-black text-gray-800">${stats.menus}</p>
+                    <div class="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition">
+                        <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Active Menus</p>
+                        <p class="text-lg font-bold text-gray-800">${stats.menus}</p>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-emerald-500 hover:shadow-md transition">
-                        <p class="text-xs font-bold text-gray-400 uppercase mb-1">Roles</p>
-                        <p class="text-3xl font-black text-gray-800">${stats.roles}</p>
+                    <div class="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition">
+                        <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Roles</p>
+                        <p class="text-lg font-bold text-gray-800">${stats.roles}</p>
                     </div>
                 `;
                 $('#statsContainer').html(html);
             }).fail(() => {
-                $('#statsContainer').html('<div class="col-span-4 bg-amber-50 p-4 rounded-xl text-amber-600 text-sm border border-amber-100"><i class="fas fa-plug mr-2"></i>Cannot connect to Software API.</div>');
+                $('#statsContainer').html('<div class="col-span-4 bg-amber-50 p-3 rounded-lg text-amber-600 text-xs border border-amber-100"><i class="fas fa-plug mr-1"></i>Cannot connect to API.</div>');
                 showToast("Failed to connect to API", true);
             });
         }
 
         // ================== MENUS ==================
-        // ================== MENUS ==================
         function loadMenus() {
              $.get('@Url.Action("GetMenus", "Auth")', menus => {
-                const rows = menus.map(m => `
-                    <tr class="hover:bg-gray-50/50 transition border-b border-gray-50 group">
-                        <td class="px-6 py-4"><div class="flex items-center"><i class="${m.menuIcon || 'fas fa-link'} text-gray-400 mr-3 w-4 group-hover:text-indigo-500 transition"></i><span class="text-sm font-semibold text-gray-900">${m.menuName}</span></div></td>
-                        <td class="px-6 py-4 text-xs font-mono text-gray-500">${m.routeController}/${m.routeAction}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 bg-sky-50 text-sky-600 rounded text-[10px] font-bold border border-sky-100">${m.requiredPermissionCode || 'None'}</span></td>
-                        <td class="px-6 py-4 text-right">
-                             <button onclick='editMenu(${JSON.stringify(m)})' class="text-sky-600 hover:text-sky-700 mr-3 px-2 py-1 rounded hover:bg-sky-50 transition"><i class="fas fa-edit"></i></button>
-                             <button onclick="deleteMenu(${m.id || m.Id})" class="text-red-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
+                $('#menuCount').text(menus.length);
+                const rows = menus.map(m => {
+                    const link = m.routeController && m.routeAction ? `/${m.routeController}/${m.routeAction}` : '#';
+                    return `
+                    <tr class="hover:bg-gray-50/50">
+                        <td class="px-3 py-2">
+                            <div class="flex items-center gap-2">
+                                <i class="${m.menuIcon || 'fas fa-link'} text-gray-400 text-[10px]"></i>
+                                <span class="text-xs font-medium text-gray-900">${m.menuName}</span>
+                                ${m.requiredPermissionCode ? `<span class="px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded text-[8px] font-medium">Req</span>` : ''}
+                            </div>
                         </td>
-                    </tr>`).join('');
-                $('#menuTableBody').html(rows || '<tr><td colspan="4" class="text-center py-8 text-gray-400 text-xs italic">No menus found</td></tr>');
+                        <td class="px-3 py-2">
+                            <span class="text-[10px] font-mono bg-gray-50 px-1.5 py-0.5 rounded text-gray-600">${m.routeController}/${m.routeAction}</span>
+                        </td>
+                        <td class="px-3 py-2">
+                            <span class="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded">${m.moduleName || 'Unassigned'}</span>
+                        </td>
+                        <td class="px-3 py-2 text-right">
+                            <button onclick='editMenu(${JSON.stringify(m)})' class="text-sky-600 hover:text-sky-700 mr-1 p-1 rounded hover:bg-sky-50" title="Edit">
+                                <i class="fas fa-edit text-[10px]"></i>
+                            </button>
+                            <button onclick="deleteMenu(${m.id || m.Id})" class="text-red-400 hover:text-red-500 p-1 rounded hover:bg-red-50" title="Delete">
+                                <i class="fas fa-trash text-[10px]"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                }).join('');
+                $('#menuTableBody').html(rows || '<tr><td colspan="4" class="text-center py-4 text-gray-400 text-[10px]">No menus found</td></tr>');
              }).fail((xhr) => {
-                 $('#menuTableBody').html('<tr><td colspan="4" class="text-center py-8 text-red-500 text-xs">Failed to load menus: ' + (xhr.responseText || 'Error') + '</td></tr>');
+                 $('#menuTableBody').html('<tr><td colspan="4" class="text-center py-4 text-red-500 text-[10px]">Failed to load menus</td></tr>');
                  showToast("Failed to load menus", true);
              });
         }
@@ -359,17 +507,22 @@
         // ================== MODULES ==================
         function loadModules() {
              $.get('@Url.Action("GetModules", "Auth")', modules => {
+                 $('#moduleCount').text(modules.length);
                  const list = modules.map(m => `
-                    <div class="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition group">
-                        <div class="flex items-center">
-                            <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center mr-3 group-hover:bg-amber-100 transition"><i class="${m.iconClass || 'fas fa-box'} text-amber-500"></i></div>
-                            <span class="text-sm font-bold text-gray-800">${m.moduleName}</span>
+                    <div class="flex items-center justify-between p-2 bg-white rounded border border-gray-100 hover:border-amber-200 transition">
+                        <div class="flex items-center min-w-0">
+                            <div class="w-6 h-6 rounded bg-amber-50 flex items-center justify-center mr-2">
+                                <i class="${m.iconClass || 'fas fa-box'} text-amber-600 text-[10px]"></i>
+                            </div>
+                            <span class="text-xs font-medium text-gray-800 truncate">${m.moduleName}</span>
                         </div>
-                        <button onclick="deleteModule(${m.id || m.Id})" class="text-gray-300 hover:text-red-500 transition px-2 hover:bg-red-50 rounded"><i class="fas fa-times"></i></button>
+                        <button onclick="deleteModule(${m.id || m.Id})" class="text-gray-300 hover:text-red-500 p-0.5 rounded hover:bg-red-50">
+                            <i class="fas fa-times text-[8px]"></i>
+                        </button>
                     </div>`).join('');
-                 $('#moduleList').html(list || '<p class="text-center py-4 text-gray-400 text-xs italic">No modules</p>');
+                 $('#moduleList').html(list || '<div class="text-center py-4 text-gray-400 text-[10px]">No modules</div>');
              }).fail((xhr) => {
-                 $('#moduleList').html('<p class="text-center text-red-500">Failed to load modules: ' + (xhr.responseText || 'Error') + '</p>');
+                 $('#moduleList').html('<div class="text-center text-red-500 text-[10px]">Failed to load modules</div>');
                  showToast("Failed to load modules", true);
              });
         }
@@ -390,22 +543,66 @@
         // ================== PERMISSIONS ==================
         function loadPermissions() {
              $.get('@Url.Action("GetPermissions", "Auth")', perms => {
-                 const rows = perms.map(p => `
-                    <tr class="hover:bg-gray-50/50 transition border-b border-gray-50 group">
-                        <td class="px-6 py-3"><span class="text-xs font-mono bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-100">${p.permissionCode}</span></td>
-                        <td class="px-6 py-3 text-sm font-medium text-gray-700">${p.permissionName}</td>
-                        <td class="px-6 py-3 text-xs text-gray-500">${p.moduleId || '-'}</td>
-                        <td class="px-6 py-3"><span class="text-[10px] px-2 py-0.5 rounded ${p.actionType === 'View' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'} border border-gray-100">${p.actionType || 'Action'}</span></td>
-                        <td class="px-6 py-3 text-right">
-                            <button onclick='editPermission(${JSON.stringify(p)})' class="text-emerald-600 hover:text-emerald-700 mr-2 px-2 py-1 rounded hover:bg-emerald-50 transition"><i class="fas fa-edit"></i></button>
-                            <button onclick="deletePermission(${p.id || p.Id})" class="text-red-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50 transition"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>`).join('');
-                 $('#permissionTableBody').html(rows || '<tr><td colspan="5" class="text-center py-8 text-gray-400 text-xs italic">No permissions found</td></tr>');
+                 _allPermissions = perms; // Store all loaded permissions
+                 $('#permissionCount').text(perms.length);
+                 renderPermissionsTable();
+
+                 // Populate Required Permission dropdown in Menu Modal
+                 const options = '<option value="">-- No Permission Required --</option>' +
+                     perms.sort((a,b) => a.permissionCode.localeCompare(b.permissionCode))
+                          .map(p => `<option value="${p.permissionCode}">${p.permissionCode}</option>`).join('');
+                 $('#menuRequiredPermission').html(options);
              }).fail((xhr) => {
-                 $('#permissionTableBody').html('<tr><td colspan="5" class="text-center py-8 text-red-500 text-xs">Failed to load permissions: ' + (xhr.responseText || 'Error') + '</td></tr>');
+                 $('#permissionTableBody').html('<tr><td colspan="5" class="text-center py-4 text-red-500 text-[10px]">Failed to load permissions</td></tr>');
                  showToast("Failed to load permissions", true);
              });
+        }
+
+        function renderPermissionsTable(filterController = "") {
+            let filtered = _allPermissions;
+            if (filterController) {
+                filtered = filtered.filter(p => {
+                    if(p.routeController && p.routeController === filterController) return true;
+                    if(p.permissionCode && p.permissionCode.startsWith(filterController + '.')) return true;
+                    return false;
+                });
+            }
+
+            const rows = filtered.map(p => {
+                let link = '#';
+                if(p.routeController && p.routeAction) link = `/${p.routeController}/${p.routeAction}`;
+                else if(p.permissionCode && p.permissionCode.includes('.')) {
+                    const parts = p.permissionCode.split('.');
+                    if(parts.length == 2) link = `/${parts[0]}/${parts[1]}`;
+                }
+
+                return `
+                <tr class="hover:bg-gray-50/50">
+                    <td class="px-3 py-2">
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] font-mono bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded">${p.permissionCode}</span>
+                            ${link !== '#' ? `<a href="${link}" target="_blank" class="text-emerald-400 hover:text-emerald-600"><i class="fas fa-external-link-alt text-[8px]"></i></a>` : ''}
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 text-xs text-gray-700">${p.permissionName}</td>
+                    <td class="px-3 py-2 text-[10px] text-gray-500">${p.moduleId || '-'}</td>
+                    <td class="px-3 py-2">
+                        <span class="text-[8px] px-1.5 py-0.5 rounded ${p.actionType === 'View' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'}">
+                            ${p.actionType || 'Action'}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2 text-right">
+                        <button onclick='editPermission(${JSON.stringify(p)})' class="text-emerald-600 hover:text-emerald-700 mr-1 p-1 rounded hover:bg-emerald-50">
+                            <i class="fas fa-edit text-[10px]"></i>
+                        </button>
+                        <button onclick="deletePermission(${p.id || p.Id})" class="text-red-400 hover:text-red-500 p-1 rounded hover:bg-red-50">
+                            <i class="fas fa-trash text-[10px]"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            $('#permissionTableBody').html(rows || '<tr><td colspan="5" class="text-center py-4 text-gray-400 text-[10px]">No permissions found</td></tr>');
         }
 
         function deletePermission(id) {
@@ -420,47 +617,63 @@
                 error: () => showToast('Failed to delete permission', true)
             });
         }
-        
+
         // Modal helpers
-        function openMenuModal(cb) { $('#menuModal').removeClass('hidden'); loadModuleOptions(cb); }
-        function closeMenuModal() { $('#menuModal').addClass('hidden'); $('#menuForm')[0].reset(); }
-        
+        function openMenuModal(cb) { $('#menuModal').removeClass('hidden'); if(cb) cb(); }
+        function closeMenuModal() {
+            $('#menuModal').addClass('hidden'); $('#menuForm')[0].reset();
+            $('#menuIcon').val('fas fa-circle'); $('#menuSortOrder').val('0');
+            $('#routeController').val(''); $('#routeAction').val('');
+            $('#controllerSelect').val('');
+            $('#actionSelect').val('').prop('disabled', true);
+            $('#menuRequiredPermission').val('');
+        }
+
         function openModuleModal() { $('#moduleModal').removeClass('hidden'); $('#moduleForm')[0].reset(); }
         function closeModuleModal() { $('#moduleModal').addClass('hidden'); }
-        
-        function openPermissionModal(cb) { $('#permissionModal').removeClass('hidden'); loadModuleOptionsForPermission(cb); }
+
+        function openPermissionModal(cb) {
+            $('#permissionModal').removeClass('hidden');
+            loadModuleOptionsForPermission(cb);
+            $('#permControllerSelect').val('');
+            $('#permActionSelect').val('').prop('disabled', true);
+        }
         function closePermissionModal() { $('#permissionModal').addClass('hidden'); $('#permissionForm')[0].reset(); }
-        
-        // Load options helpers
-        function loadModuleOptions(cb) { $.get('@Url.Action("GetModules", "Auth")', m => { $('#menuModuleId').html(m.map(x=>`<option value="${x.id || x.Id}">${x.moduleName}</option>`).join('')); if(cb) cb(); }); }
         function loadModuleOptionsForPermission(cb) { $.get('@Url.Action("GetModules", "Auth")', m => { $('#permissionModuleId').html('<option value="">Select Module</option>' + m.map(x=>`<option value="${x.id || x.Id}">${x.moduleName}</option>`).join('')); if(cb) cb(); }); }
 
         // Form Submissions
         $('#menuForm').on('submit', function(e) {
             e.preventDefault();
+            const controller = $('#routeController').val();
+            const action = $('#routeAction').val();
+
+            if (!controller || !action) {
+                showToast('Please check both Controller and Page selections', true);
+                return;
+            }
             const idVal = $('#menuId').val();
             const data = {
                 id: idVal ? parseInt(idVal) : 0,
                 menuName: $('#menuName').val(),
-                routeController: $('#routeController').val(),
-                routeAction: $('#routeAction').val(),
-                menuIcon: $('#menuIcon').val(),
-                requiredPermissionCode: $('#requiredPermission').val(),
-                sortOrder: $('#menuSortOrder').val(),
-                moduleId: $('#menuModuleId').val(),
+                routeController: controller,
+                routeAction: action,
+                menuIcon: $('#menuIcon').val() || 'fas fa-circle',
+                sortOrder: parseInt($('#menuSortOrder').val()) || 0,
+                moduleId: parseInt($('#menuModuleId').val()) || 0,
+                requiredPermissionCode: $('#menuRequiredPermission').val(),
                 isActive: true
             };
             $.ajax({
                 url: '@Url.Action("SaveMenu", "Auth")', type: 'POST', contentType: 'application/json',
                 data: JSON.stringify(data),
-                success: res => { 
+                success: res => {
                     if(res.success) { showToast('Menu saved'); closeMenuModal(); loadAllData(); }
-                    else showToast(res.message, true); 
+                    else showToast(res.message || 'Failed to save menu', true);
                 },
-                error: () => showToast('Failed to save menu', true)
+                error: (xhr) => showToast('Failed to save menu', true)
             });
         });
-        
+
         $('#moduleForm').on('submit', function(e) {
             e.preventDefault();
             const idVal = $('#moduleId').val();
@@ -471,17 +684,17 @@
                 iconClass: $('#moduleIcon').val(),
                 sortOrder: 1, isActive: true
             };
-             $.ajax({
+            $.ajax({
                 url: '@Url.Action("SaveModule", "Auth")', type: 'POST', contentType: 'application/json',
                 data: JSON.stringify(data),
-                success: res => { 
+                success: res => {
                     if(res.success) { showToast('Module saved'); closeModuleModal(); loadAllData(); }
-                    else showToast(res.message, true); 
+                    else showToast(res.message, true);
                 },
                 error: () => showToast('Failed to save module', true)
             });
         });
-        
+
         $('#permissionForm').on('submit', function(e) {
             e.preventDefault();
             const idVal = $('#permissionId').val();
@@ -492,33 +705,50 @@
                 moduleId: $('#permissionModuleId').val(),
                 actionType: $('#permissionActionType').val(),
                 description: $('#permissionDescription').val(),
-                sortOrder: 1, isActive: true
+                sortOrder: 1, isActive: true,
+                routeController: $('#permControllerSelect').val(),
+                routeAction: $('#permActionSelect').val()
             };
              $.ajax({
                 url: '@Url.Action("SavePermission", "Auth")', type: 'POST', contentType: 'application/json',
                 data: JSON.stringify(data),
-                success: res => { 
+                success: res => {
                     if(res.success) { showToast('Permission saved'); closePermissionModal(); loadAllData(); }
-                    else showToast(res.message, true); 
+                    else showToast(res.message, true);
                 },
                 error: () => showToast('Failed to save permission', true)
             });
         });
-        
+
         // Edit helpers
-        function editMenu(m) { 
-            openMenuModal(() => { 
-                $('#menuId').val(m.id||m.Id); $('#menuName').val(m.menuName); $('#routeController').val(m.routeController); 
-                $('#routeAction').val(m.routeAction); $('#menuIcon').val(m.menuIcon); $('#requiredPermission').val(m.requiredPermissionCode);
-                $('#menuSortOrder').val(m.sortOrder); $('#menuModuleId').val(m.moduleId);
+        function editMenu(m) {
+            openMenuModal(() => {
+                $('#menuId').val(m.id||m.Id); $('#menuName').val(m.menuName);
+                $('#routeController').val(m.routeController); $('#routeAction').val(m.routeAction);
+                $('#controllerSelect').val(m.routeController).trigger('change');
+                $('#actionSelect').val(m.routeAction);
+                $('#menuIcon').val(m.menuIcon || 'fas fa-circle'); $('#menuSortOrder').val(m.sortOrder || 0);
+                $('#menuModuleId').val(m.moduleId || '');
+                $('#menuRequiredPermission').val(m.requiredPermissionCode || '');
                 $('#menuModalTitle').text('Edit Menu');
-            }); 
+            });
         }
         function editPermission(p) {
              openPermissionModal(() => {
                  $('#permissionId').val(p.id||p.Id); $('#permissionCode').val(p.permissionCode); $('#permissionName').val(p.permissionName);
                  $('#permissionModuleId').val(p.moduleId); $('#permissionActionType').val(p.actionType); $('#permissionDescription').val(p.description);
                  $('#permissionModalTitle').text('Edit Permission');
+
+                 if(p.routeController) {
+                     $('#permControllerSelect').val(p.routeController).trigger('change');
+                     if(p.routeAction) $('#permActionSelect').val(p.routeAction);
+                 } else if (p.permissionCode && p.permissionCode.includes('.')) {
+                     const parts = p.permissionCode.split('.');
+                     if(parts.length === 2) {
+                         $('#permControllerSelect').val(parts[0]).trigger('change');
+                         $('#permActionSelect').val(parts[1]);
+                     }
+                 }
              });
         }
     </script>

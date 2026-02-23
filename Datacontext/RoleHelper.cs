@@ -20,6 +20,22 @@ namespace ManageEngineWebApp.Datacontext
         public string? StartPage { get; set; }
         [JsonProperty("permissions")]
         public List<string>? Permissions { get; set; }
+
+        // Dynamic role properties from RoleDefinitions table
+        [JsonProperty("hierarchyLevel")]
+        public int HierarchyLevel { get; set; } = 999;
+        [JsonProperty("requiresCompany")]
+        public bool RequiresCompany { get; set; }
+        [JsonProperty("requiresGroup")]
+        public bool RequiresGroup { get; set; }
+        [JsonProperty("requiresLocation")]
+        public bool RequiresLocation { get; set; }
+        [JsonProperty("requiresDevice")]
+        public bool RequiresDevice { get; set; }
+        [JsonProperty("isSystemRole")]
+        public bool IsSystemRole { get; set; }
+        [JsonProperty("allowedMenuIds")]
+        public List<int>? AllowedMenuIds { get; set; }
     }
 
     public class RoleMappingDto
@@ -49,66 +65,97 @@ namespace ManageEngineWebApp.Datacontext
     public class MenuDefinitionDto
     {
         public int Id { get; set; }
-        public string MenuName { get; set; }
-        public string RouteController { get; set; }
-        public string RouteAction { get; set; }
-        public string MenuIcon { get; set; }
+        public string MenuName { get; set; } = string.Empty;
+        public string RouteController { get; set; } = string.Empty;
+        public string RouteAction { get; set; } = string.Empty;
+        public string MenuIcon { get; set; } = string.Empty;
         public int SortOrder { get; set; }
         public int? ParentId { get; set; }
-        public string RequiredPermissionCode { get; set; }
+        public string RequiredPermissionCode { get; set; } = string.Empty;
         public int ModuleId { get; set; }
     }
 
     public static class RoleHelper
     {
         private static string _apiBaseUrl = "https://localhost:7225/api/Auth";
-        public static void Configure(IConfiguration configuration)
+        private static IHttpClientFactory? _httpClientFactory;
+
+        public static void Configure(IConfiguration configuration, IHttpClientFactory? httpClientFactory = null)
         {
             var baseUrl = configuration["ApiSettings:BaseUrl"];
             if (!string.IsNullOrEmpty(baseUrl))
             {
                 _apiBaseUrl = $"{baseUrl}/api/Auth";
             }
+            _httpClientFactory = httpClientFactory;
         }
+
         private static string ApiBaseUrl => _apiBaseUrl;
 
-        public static async Task<UserRoleDto> GetUserRoleFromApiAsync(string username)
+        private static HttpClient CreateClient()
+        {
+            if (_httpClientFactory == null)
+                throw new InvalidOperationException(
+                    "RoleHelper.Configure() must be called with a valid IHttpClientFactory before making API calls.");
+
+            return _httpClientFactory.CreateClient("ManageEngineApi");
+        }
+
+        public static async Task<(UserRoleDto? Result, string? Error)> GetUserRoleFromApiAsync(string username)
         {
             try
             {
-                var handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-                using var client = new HttpClient(handler);
+                using var client = CreateClient();
                 var response = await client.GetAsync($"{ApiBaseUrl}/user/roles/{username}");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
                     var result = JsonConvert.DeserializeObject<UserRoleDto>(json);
-                    return result;
+                    return (result, null);
                 }
-                return null;
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                return (null, $"Backend Error ({response.StatusCode}): {errorMsg}");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return null;
+                // Internal connection error
+                return (null, $"Connection Error: {ex.Message}");
             }
         }
-        public static bool IsSuperAdmin(Microsoft.AspNetCore.Http.HttpContext context)
+
+
+        public static bool IsTopLevelAdmin(Microsoft.AspNetCore.Http.HttpContext context)
         {
-            var role = context?.Session.GetString("role");
-            return role == "SuperAdmin";
+            var level = context?.Session.GetString("hierarchyLevel");
+            return level == "0";
         }
-        public static bool IsCompanyAdmin(Microsoft.AspNetCore.Http.HttpContext context)
+
+
+        public static bool IsCompanyScopedRole(Microsoft.AspNetCore.Http.HttpContext context)
         {
-            var role = context?.Session.GetString("role");
-            return role == "CompanyAdmin";
+            var flag = context?.Session.GetString("requiresCompany");
+            return flag == "true";
         }
+
+        public static bool IsDeviceScopedRole(Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            var flag = context?.Session.GetString("requiresDevice");
+            return flag == "true";
+        }
+        public static bool IsSuperAdmin(Microsoft.AspNetCore.Http.HttpContext context) => IsTopLevelAdmin(context);
+        public static bool IsCompanyAdmin(Microsoft.AspNetCore.Http.HttpContext context) => IsCompanyScopedRole(context);
+        public static bool IsCompanyUser(Microsoft.AspNetCore.Http.HttpContext context) => IsDeviceScopedRole(context);
+
+        public static int GetHierarchyLevel(Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            var level = context?.Session.GetString("hierarchyLevel");
+            if (int.TryParse(level, out int h)) return h;
+            return 999;
+        }
+
         public static bool HasPermission(Microsoft.AspNetCore.Http.HttpContext context, string permissionCode)
         {
-            var role = context?.Session.GetString("role");
-            if (role == "SuperAdmin") return true; 
+            if (IsTopLevelAdmin(context)) return true; 
 
             if (string.IsNullOrEmpty(permissionCode)) return true; // No permission required
 
@@ -123,18 +170,18 @@ namespace ManageEngineWebApp.Datacontext
             if (permList.Any(p => p.Equals(permissionCode, StringComparison.OrdinalIgnoreCase)))
                 return true;
 
-            // 2. Module-level fallback: if checking "Companies.Companies", also accept "Companies.View"
             var parts = permissionCode.Split('.');
             if (parts.Length == 2)
             {
                 string module = parts[0];
+                string action = parts[1];
                 string viewPerm = $"{module}.View";
                 if (permList.Any(p => p.Equals(viewPerm, StringComparison.OrdinalIgnoreCase)))
-                    return true;
-
-                // 3. Any permission in the same module grants access (e.g. "Companies.Edit" grants access to Companies controller)
-                if (permList.Any(p => p.StartsWith(module + ".", StringComparison.OrdinalIgnoreCase)))
-                    return true;
+                {
+                    var writeActions = new[] { "Edit", "Delete", "Create", "Update", "Remove", "Add", "Assign" };
+                    if (!writeActions.Any(w => action.Contains(w, StringComparison.OrdinalIgnoreCase)))
+                        return true;
+                }
             }
 
             return false;
@@ -160,31 +207,89 @@ namespace ManageEngineWebApp.Datacontext
             return null;
         }
 
+        public static bool ValidateScope(
+            Microsoft.AspNetCore.Http.HttpContext context,
+            int? requestedCompanyId,
+            int? requestedGroupId = null,
+            int? requestedLocationId = null)
+        {
+            if (IsTopLevelAdmin(context)) return true;
+            var userCompanyId = GetCompanyId(context);
+            if (userCompanyId.HasValue && requestedCompanyId.HasValue
+                && userCompanyId.Value != requestedCompanyId.Value)
+                return false;
+            var userGroupId = GetGroupId(context);
+            if (userGroupId.HasValue && requestedGroupId.HasValue
+                && userGroupId.Value != requestedGroupId.Value)
+                return false;
+            var userLocationId = GetLocationId(context);
+            if (userLocationId.HasValue && requestedLocationId.HasValue
+                && userLocationId.Value != requestedLocationId.Value)
+                return false;
+
+            return true;
+        }
+
+        public static void SetSessionFromRoleData(Microsoft.AspNetCore.Http.HttpContext context, UserRoleDto roleData, string primaryRole)
+        {
+            context.Session.SetString("username", roleData.Username ?? "");
+            context.Session.SetString("role", primaryRole);
+            context.Session.SetString("hierarchyLevel", roleData.HierarchyLevel.ToString());
+            context.Session.SetString("requiresCompany", roleData.RequiresCompany.ToString().ToLower());
+            context.Session.SetString("requiresGroup", roleData.RequiresGroup.ToString().ToLower());
+            context.Session.SetString("requiresLocation", roleData.RequiresLocation.ToString().ToLower());
+            context.Session.SetString("requiresDevice", roleData.RequiresDevice.ToString().ToLower());
+            context.Session.SetString("isSystemRole", roleData.IsSystemRole.ToString().ToLower());
+
+            if (roleData.CompanyId.HasValue)
+                context.Session.SetString("companyId", roleData.CompanyId.Value.ToString());
+            if (roleData.GroupId.HasValue)
+                context.Session.SetString("groupId", roleData.GroupId.Value.ToString());
+            if (roleData.LocationId.HasValue)
+                context.Session.SetString("locationId", roleData.LocationId.Value.ToString());
+
+            var permString = roleData.Permissions != null && roleData.Permissions.Any()
+                ? string.Join(",", roleData.Permissions)
+                : "";
+            context.Session.SetString("permissions", permString);
+
+            var menuIdString = roleData.AllowedMenuIds != null && roleData.AllowedMenuIds.Any()
+                ? string.Join(",", roleData.AllowedMenuIds)
+                : "";
+            context.Session.SetString("allowedMenuIds", menuIdString);
+
+            if (!string.IsNullOrEmpty(roleData.StartPage))
+                context.Session.SetString("startPage", roleData.StartPage);
+        }
+
         public static async Task RefreshSessionPermissionsAsync(Microsoft.AspNetCore.Http.HttpContext context)
         {
             var username = context.Session.GetString("username");
             if (string.IsNullOrEmpty(username)) return;
 
-            var roleInfo = await GetUserRoleFromApiAsync(username);
-            if (roleInfo != null)
+            var roleResponse = await GetUserRoleFromApiAsync(username);
+            if (roleResponse.Result != null)
             {
-                context.Session.SetString("role", roleInfo.Roles?.FirstOrDefault() ?? "No Role");
-                context.Session.SetString("permissions", string.Join(",", roleInfo.Permissions ?? new List<string>()));
-                if (roleInfo.CompanyId.HasValue) context.Session.SetString("companyId", roleInfo.CompanyId.Value.ToString());
-                if (roleInfo.GroupId.HasValue) context.Session.SetString("groupId", roleInfo.GroupId.Value.ToString());
-                if (roleInfo.LocationId.HasValue) context.Session.SetString("locationId", roleInfo.LocationId.Value.ToString());
+                var roleData = roleResponse.Result;
+                // Determine primary role dynamically: lowest hierarchyLevel wins
+                string primaryRole = "No Role";
+                if (roleData.Roles != null && roleData.Roles.Any())
+                {
+                    primaryRole = roleData.Roles.First(); 
+                }
+
+                SetSessionFromRoleData(context, roleData, primaryRole);
+
+                ClearMenuCache(context);
             }
         }
 
-        public static async Task<bool> AssignRoleAsync(string username, string role, int? companyId, string domainName = null, int? groupId = null, int? locationId = null)
+        public static async Task<bool> AssignRoleAsync(string? username, string? role, int? companyId, string? domainName = null, int? groupId = null, int? locationId = null)
         {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(role)) return false;
             try
             {
-                var handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-                using var client = new HttpClient(handler);
+                using var client = CreateClient();
 
                 var payload = new
                 {
@@ -207,7 +312,7 @@ namespace ManageEngineWebApp.Datacontext
                 }
                 return false;
             }
-            catch (Exception ex)
+            catch
             {
                 return false;
             }
@@ -217,11 +322,7 @@ namespace ManageEngineWebApp.Datacontext
         {
             try
             {
-                var handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-                using var client = new HttpClient(handler);
+                using var client = CreateClient();
 
                 var payload = new
                 {
@@ -250,11 +351,7 @@ namespace ManageEngineWebApp.Datacontext
         {
             try
             {
-                var handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-                using var client = new HttpClient(handler);
+                using var client = CreateClient();
                 var response = await client.GetAsync($"{ApiBaseUrl}/roles");
                 if (response.IsSuccessStatusCode)
                 {
@@ -263,27 +360,17 @@ namespace ManageEngineWebApp.Datacontext
                 }
                 return new List<UserRoleDto>();
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"DEBUG: GetAllRolesAsync Error: {ex.Message}");
                 return new List<UserRoleDto>();
             }
-        }
-        public static bool IsCompanyUser(Microsoft.AspNetCore.Http.HttpContext context)
-        {
-            var role = context?.Session.GetString("role");
-            return role == "CompanyUser";
         }
 
         public static async Task<List<SystemRoleDto>> GetAllSystemRolesAsync()
         {
             try
             {
-                var handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-                using var client = new HttpClient(handler);
+                using var client = CreateClient();
                 var response = await client.GetAsync($"{ApiBaseUrl}/roles/system");
                 if (response.IsSuccessStatusCode)
                 {
@@ -296,7 +383,8 @@ namespace ManageEngineWebApp.Datacontext
                 {
                     var json = await response.Content.ReadAsStringAsync();
                     var roleNames = JsonConvert.DeserializeObject<List<string>>(json) ?? new List<string>();
-                    return roleNames.Select(r => new SystemRoleDto { Name = r, IsSystem = r == "SuperAdmin" || r == "CompanyAdmin" || r == "CompanyUser" }).ToList();
+                    // No hardcoded role names — IsSystem defaults to false for all via fallback
+                    return roleNames.Select(r => new SystemRoleDto { Name = r, IsSystem = false }).ToList();
                 }
                 return new List<SystemRoleDto>();
             }
@@ -306,16 +394,13 @@ namespace ManageEngineWebApp.Datacontext
             }
         }
 
-        public static async Task<(bool Success, string Message)> CreateRoleAsync(string roleName, string description, 
+        public static async Task<(bool Success, string Message)> CreateRoleAsync(string? roleName, string? description, 
             bool requiresCompany, bool requiresDevice, bool requiresLocation, bool requiresGroup = false)
         {
+            if (string.IsNullOrEmpty(roleName)) return (false, "Role name is required");
             try
             {
-                var handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-                using var client = new HttpClient(handler);
+                using var client = CreateClient();
 
                 var payload = new
                 {
@@ -324,7 +409,9 @@ namespace ManageEngineWebApp.Datacontext
                     RequiresCompany = requiresCompany,
                     RequiresGroup = requiresGroup,
                     RequiresDevice = requiresDevice,
-                    RequiresLocation = requiresLocation
+                    RequiresLocation = requiresLocation,
+                    HierarchyLevel = (roleName == "SuperAdmin") ? 0 : 10,
+                    DisplayName = roleName
                 };
 
                 var json = JsonConvert.SerializeObject(payload);
@@ -346,21 +433,18 @@ namespace ManageEngineWebApp.Datacontext
                    return (false, "Failed to create role: " + response.ReasonPhrase);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return (false, "Error: " + ex.Message);
+                return (false, "Error occurred while creating role");
             }
         }
 
-        public static async Task<bool> DeleteRoleAsync(string roleName)
+        public static async Task<bool> DeleteRoleAsync(string? roleName)
         {
+            if (string.IsNullOrEmpty(roleName)) return false;
             try
             {
-                var handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-                using var client = new HttpClient(handler);
+                using var client = CreateClient();
                 var response = await client.DeleteAsync($"{ApiBaseUrl}/role/delete/{roleName}");
                 return response.IsSuccessStatusCode;
             }
@@ -370,41 +454,105 @@ namespace ManageEngineWebApp.Datacontext
             }
         }
 
-        public static async Task<List<MenuDefinitionDto>> GetDynamicMenusAsync()
+        /// <summary>
+        /// Get menus from session cache, or fetch from API if not cached.
+        /// </summary>
+        public static async Task<List<MenuDefinitionDto>> GetDynamicMenusAsync(Microsoft.AspNetCore.Http.HttpContext? context = null)
         {
-            try
+            List<MenuDefinitionDto> allMenus = new List<MenuDefinitionDto>();
+
+            // Try session cache first
+            if (context != null)
             {
-                var handler = new HttpClientHandler
+                var cached = context.Session.GetString("cachedMenus");
+                if (!string.IsNullOrEmpty(cached))
                 {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-                using var client = new HttpClient(handler);
-                // Use the Permission controller, not Auth
-                var baseUrl = ApiBaseUrl.Replace("/Auth", "/Permission");
-                var response = await client.GetAsync($"{baseUrl}/Menus");
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<MenuDefinitionDto>>(json) ?? new List<MenuDefinitionDto>();
+                    try
+                    {
+                        allMenus = JsonConvert.DeserializeObject<List<MenuDefinitionDto>>(cached) ?? new List<MenuDefinitionDto>();
+                    }
+                    catch { /* fall through to API if cache corrupted */ }
                 }
-                return new List<MenuDefinitionDto>();
             }
-            catch
+
+            if (!allMenus.Any())
             {
-                return new List<MenuDefinitionDto>();
+                try
+                {
+                    using var client = CreateClient();
+                    var baseUrl = ApiBaseUrl.Replace("/Auth", "/Permission");
+                    var response = await client.GetAsync($"{baseUrl}/Menus");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync();
+                        allMenus = JsonConvert.DeserializeObject<List<MenuDefinitionDto>>(json) ?? new List<MenuDefinitionDto>();
+                        
+                        // Cache in session
+                        if (context != null)
+                        {
+                            context.Session.SetString("cachedMenus", json);
+                        }
+                    }
+                }
+                catch
+                {
+                    return new List<MenuDefinitionDto>();
+                }
             }
+
+            // Filter based on allowedMenuIds AND RequiredPermissionCode
+            if (context != null)
+            {
+                // 1. Permission Check (Primary Filter)
+                // Even if role has mapping, menu is hidden if RequiredPermissionCode is missing from user's permissions
+                allMenus = allMenus.Where(m => string.IsNullOrEmpty(m.RequiredPermissionCode) || HasPermission(context, m.RequiredPermissionCode)).ToList();
+
+                // 2. Role-Menu Mapping Check (Secondary Filter for non-admins)
+                if (!IsTopLevelAdmin(context))
+                {
+                    var allowedIdStr = context.Session.GetString("allowedMenuIds");
+                    if (!string.IsNullOrEmpty(allowedIdStr))
+                    {
+                        var allowedIds = allowedIdStr.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(id => int.TryParse(id, out int result) ? result : -1)
+                            .Where(id => id != -1)
+                            .ToList();
+
+                        return allMenus.Where(m => allowedIds.Contains(m.Id)).ToList();
+                    }
+                    else
+                    {
+                        // No menu mappings found — return menus that don't require any specific permission
+                        // This provides a basic fallback so the user isn't completely locked out
+                        return allMenus.Where(m => string.IsNullOrEmpty(m.RequiredPermissionCode)).ToList();
+                    }
+                }
+            }
+
+            return allMenus;
+        }
+
+        /// <summary>
+        /// Clear cached menus (call when menus are updated).
+        /// </summary>
+        public static void ClearMenuCache(Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            context.Session.Remove("cachedMenus");
         }
     }
 
     public class SystemRoleDto
     {
-        public string Name { get; set; }
-        public string Description { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public bool IsSystem { get; set; }
         public int UserCount { get; set; }
         public bool RequiresCompany { get; set; }
         public bool RequiresGroup { get; set; }
         public bool RequiresDevice { get; set; }
         public bool RequiresLocation { get; set; }
+        public int HierarchyLevel { get; set; }
+        public string StartPage { get; set; } = string.Empty;
     }
+
 }

@@ -1,7 +1,8 @@
 @{
     var username = Context.Session.GetString("username");
     var userRole = Context.Session.GetString("role");
-    var isSuperAdmin = userRole == "SuperAdmin";
+    var hierarchyLevel = Context.Session.GetString("hierarchyLevel");
+    var isTopLevelAdmin = hierarchyLevel == "0";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
 }
@@ -323,7 +324,7 @@
                             </div>
                             <div class="text-left hidden sm:block">
                                 <p class="text-sm font-semibold text-gray-900">@username</p>
-                                <p class="text-xs text-gray-500">@(isSuperAdmin ? "Super Admin" : userRole)</p>
+                                <p class="text-xs text-gray-500">@(isTopLevelAdmin ? "Super Admin" : userRole)</p>
                             </div>
                             <i class="fas fa-chevron-down text-xs text-gray-400"></i>
                         </button>
@@ -338,7 +339,7 @@
                                         <p class="font-bold text-gray-900">@username</p>
                                     </div>
                                 </div>
-                                @if (isSuperAdmin)
+                                @if (isTopLevelAdmin)
                                 {
                                     <span class="badge-superadmin">
                                         <i class="fas fa-crown mr-1.5"></i>Super Admin
@@ -354,8 +355,9 @@
 
                             <div class="py-2">
                                 @{
-                                    var dynamicMenus = await ManageEngineWebApp.Datacontext.RoleHelper.GetDynamicMenusAsync();
-                                    var authorizedMenus = dynamicMenus.Where(m => ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, m.RequiredPermissionCode)).OrderBy(m => m.SortOrder).ToList();
+                                    var dynamicMenus = await ManageEngineWebApp.Datacontext.RoleHelper.GetDynamicMenusAsync(Context);
+                                    // Menus = page visibility only. Filtered by role's assigned menu IDs (in GetDynamicMenusAsync), NOT by permissions.
+                                    var authorizedMenus = dynamicMenus.OrderBy(m => m.SortOrder).ToList();
                                 }
 
                                 @foreach (var menu in authorizedMenus)
@@ -364,34 +366,6 @@
                                        class="@(currentController == menu.RouteController && currentAction == menu.RouteAction ? "active" : "")">
                                         <i class="@menu.MenuIcon"></i>
                                         <span>@menu.MenuName</span>
-                                    </a>
-                                }
-
-                                @if (isSuperAdmin || ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ServiceDesk.View"))
-                                {
-                                    <div class="dropdown-divider"></div>
-                                    <a asp-controller="ServiceDesk" asp-action="Index"
-                                       class="@(currentController == "ServiceDesk" && currentAction == "Index" ? "active" : "")">
-                                        <i class="fas fa-headset"></i>
-                                        <span>Service Desk</span>
-                                    </a>
-                                    <a asp-controller="ServiceDesk" asp-action="PartsInventory"
-                                       class="@(currentController == "ServiceDesk" && currentAction == "PartsInventory" ? "active" : "")">
-                                        <i class="fas fa-boxes"></i>
-                                        <span>Parts Inventory</span>
-                                    </a>
-                                }
-                                @if (isSuperAdmin)
-                                {
-                                    <a asp-controller="Auth" asp-action="ManagePermissions"
-                                       class="@(currentController == "Auth" && currentAction == "ManagePermissions" ? "active" : "")">
-                                        <i class="fas fa-tools"></i>
-                                        <span>System Management</span>
-                                    </a>
-                                    <a asp-controller="Auth" asp-action="ManageRoles"
-                                       class="@(currentController == "Auth" && currentAction == "ManageRoles" ? "active" : "")">
-                                        <i class="fas fa-user-shield"></i>
-                                        <span>Manage Roles</span>
                                     </a>
                                 }
 

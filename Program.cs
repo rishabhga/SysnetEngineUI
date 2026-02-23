@@ -11,24 +11,37 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddScoped<ManageEngineWebApp.Services.PermissionDiscoveryService>();
 builder.Services.AddScoped<ManageEngineWebApp.Filters.DynamicAuthorizationFilter>();
 builder.Services.AddRazorPages();
+// Register named HttpClient with SSL bypass for API calls
+builder.Services.AddHttpClient("ManageEngineApi", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225");
+    // client.DefaultRequestHeaders.Add("X-Api-Key", builder.Configuration["Authentication:ApiKey"]);
+    client.Timeout = TimeSpan.FromSeconds(10);
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+});
+
+// Also register default IHttpClientFactory for DI
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 
 // Add Session
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.IdleTimeout = TimeSpan.FromHours(4); // Increased timeout
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.Name = ".ManageEngine.Session";
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; 
 });
 
-// Register your services
-// Add DbContext (uncomment and configure if needed)
-// builder.Services.AddDbContext<Dbcontext>(options =>
-//     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 var app = builder.Build();
-ManageEngineWebApp.Datacontext.RoleHelper.Configure(app.Configuration);
+
+// Configure RoleHelper with IHttpClientFactory
+var httpClientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
+ManageEngineWebApp.Datacontext.RoleHelper.Configure(app.Configuration, httpClientFactory);
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
@@ -44,7 +57,6 @@ app.UseSession();
 app.UseAuthorization();
 
 // IMPORTANT: Map MVC routes BEFORE Razor Pages
-// In Program.cs (for .NET 6+)
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

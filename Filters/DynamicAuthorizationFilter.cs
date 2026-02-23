@@ -29,18 +29,48 @@ namespace ManageEngineWebApp.Filters
                 return;
             }
 
-            // Skip permission checks for Auth and Home controllers (Login, Logout, AccessDenied, etc.)
-            var skipControllers = new[] { "Auth", "Home" };
+            var skipControllers = new[] { "Home" };
             if (skipControllers.Contains(controller, StringComparer.OrdinalIgnoreCase))
             {
                 await next();
                 return;
             }
-            
-            // Default permission code
+            var username = context.HttpContext.Session.GetString("username");
+            if (string.IsNullOrEmpty(username))
+            {
+                // If it's a public auth action, let it pass
+                if (string.Equals(controller, "Auth", StringComparison.OrdinalIgnoreCase))
+                {
+                    var publicAuthActions = new[] { "Login", "Logout", "Register", "AccessDenied" };
+                    if (publicAuthActions.Contains(action, StringComparer.OrdinalIgnoreCase))
+                    {
+                        await next();
+                        return;
+                    }
+                }
+
+                if (IsAjaxRequest(context.HttpContext.Request))
+                {
+                    context.Result = new JsonResult(new { success = false, message = "Session expired. Please login again." }) { StatusCode = 401 };
+                }
+                else
+                {
+                    // Avoid redirecting if already on Login page
+                    if (!(string.Equals(controller, "Auth", StringComparison.OrdinalIgnoreCase) && string.Equals(action, "Login", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        context.Result = new RedirectToActionResult("Login", "Auth", null);
+                    }
+                    else
+                    {
+                        await next();
+                        return;
+                    }
+                }
+                return; 
+            }
+
             string permissionCode = $"{controller}.{action}";
 
-            // Check for attribute override
             if (context.ActionDescriptor is ControllerActionDescriptor descriptor)
             {
                 var attr = descriptor.MethodInfo.GetCustomAttributes(typeof(DynamicPermissionAttribute), false).FirstOrDefault() as DynamicPermissionAttribute;
@@ -50,28 +80,9 @@ namespace ManageEngineWebApp.Filters
                 }
             }
 
-            // Check if user is authenticated
-            var username = context.HttpContext.Session.GetString("username");
-            if (string.IsNullOrEmpty(username))
-            {
-                // User not logged in
-                if (IsAjaxRequest(context.HttpContext.Request))
-                {
-                    context.Result = new JsonResult(new { success = false, message = "Please login to continue." }) { StatusCode = 401 };
-                }
-                else
-                {
-                    context.Result = new RedirectToActionResult("Login", "Auth", null);
-                }
-                return; // Always return when not authenticated
-            }
-
-            // Check if user is SuperAdmin or has permission
             if (!RoleHelper.HasPermission(context.HttpContext, permissionCode))
             {
-                var sessionPerms = context.HttpContext.Session.GetString("permissions") ?? "(null)";
-                var userRole = context.HttpContext.Session.GetString("role") ?? "(no role)";
-                System.Diagnostics.Debug.WriteLine($"[RBAC DENIED] User role={userRole}, Required={permissionCode}, HasPerms={sessionPerms.Length > 0}, Perms={sessionPerms}");
+
 
                 if (context.HttpContext.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 {

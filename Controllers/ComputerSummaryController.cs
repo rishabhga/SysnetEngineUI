@@ -21,22 +21,14 @@ namespace ManageEngineWebApp.Controllers
     [AuthFilter]
     public class ComputerSummaryController : Controller
     {
-        private readonly HttpClient _httpClient;
-        public ComputerSummaryController(HttpClient httpClient)
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        public ComputerSummaryController(IHttpClientFactory httpClientFactory)
         {
-
-
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
         }
         public async Task<IActionResult> Deshboad(int locationId, string locationName, int groupid, string groupName, int comId, string companyName)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-
-
             ViewBag.CompanyName = companyName;
             ViewBag.groupName = groupName;
             ViewBag.locationName = locationName;
@@ -47,58 +39,52 @@ namespace ManageEngineWebApp.Controllers
             var dalalist = new List<WindowsUserDetails>();
             var contectlist = new List<ConnectedClientDto>();
             List<string> activeComputers = new List<string>();
-            using (var httpClient = new HttpClient(handler))
+
+            // Use the named client "ManageEngineApi" configured in Program.cs
+            var httpClient = _httpClientFactory.CreateClient("ManageEngineApi");
+
+            try
             {
+                // 1. Fetch WindowsUserDetails
+                // Use relative path since BaseAddress is set in Program.cs/CreateClient
+                string userUrl = $"api/WindowsUserDetails/allUser?locationId={locationId}&groupid={groupid}&comId={comId}";
+                var response = await httpClient.GetAsync(userUrl);
 
-
-
-
-                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}");
-                //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}");
-                //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}"); // Replace with your server's URL
-
-                //var jsonContent = JsonConvert.SerializeObject(systemInfometion);
-                //var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-                // Send POST request to the server
-                var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                    // var datalist =  JsonSerializer.Deserialize<List<WindowsUserDetails>>(content);
-                    dalalist = data.Where(x => x.Status == "Enabled").ToList();
-                    //return View(dalalist);
+                    if (data != null)
+                    {
+                        dalalist = data.Where(x => x != null && x.Status == "Enabled").ToList();
+                    }
                 }
 
-                //var response2 = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices");
-
-                var response2 = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices");
-
-
+                // 2. Fetch Connected Devices
+                var response2 = await httpClient.GetAsync("api/Command/GetConnectedDevices");
 
                 if (response2.IsSuccessStatusCode)
                 {
                     var content2 = await response2.Content.ReadAsStringAsync();
                     contectlist = !string.IsNullOrEmpty(content2) ? JsonConvert.DeserializeObject<List<ConnectedClientDto>>(content2) : null;
 
-                    activeComputers = contectlist.Select(d => d.UserName).ToList();
+                    if (contectlist != null)
+                    {
+                        activeComputers = contectlist.Where(d => d != null).Select(d => d.UserName ?? "Unknown").ToList();
+                    }
                 }
-
-
-
-                //return View(dalalist);
-
             }
+            catch (Exception)
+            {
+                 // Proceed with empty lists to avoid crashing the view
+            }
+
             if (contectlist != null)
             {
                 ViewBag.ActiveComputers = activeComputers;
             }
 
-
             return View(dalalist);
-
-            throw new Exception("Unable to fetch data from the API.");
         }
         [AuthFilter]
         public IActionResult VIPClient(int comId, int? groupId, int? locationId, string companyName)
@@ -114,28 +100,20 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllDevices(int companyId, int groupId, int locationId)
         {
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             try
             {
-                using var httpClient = new HttpClient(handler)
-                {
-                    Timeout = TimeSpan.FromSeconds(10)
-                };
-                httpClient.BaseAddress = new Uri(
-                    $"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupId}&&comId={companyId}"
-                );
-                var response = await httpClient.GetAsync("");
+                var httpClient = _httpClientFactory.CreateClient("ManageEngineApi");
+                string url = $"api/WindowsUserDetails/allUser?locationId={locationId}&groupid={groupId}&comId={companyId}";
+                
+                var response = await httpClient.GetAsync(url);
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content)
                         ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content)
                         : null;
-                    var deviceList = data
-                        .Where(x => x.Status == "Enabled")
+                    var deviceList = (data ?? new List<WindowsUserDetails>())
+                        .Where(x => x != null && x.Status == "Enabled")
                         .Select(x => new
                         {
                             domainName = x.DomainName,
@@ -148,26 +126,24 @@ namespace ManageEngineWebApp.Controllers
                 }
                 return Json(new { success = false, message = "Failed to fetch devices" });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"GetAllDevices Error: {ex.Message}");
-                return Json(new { success = false, error = ex.Message });
+                return Json(new { success = false, message = "An error occurred while fetching devices" });
             }
         }
 
         [HttpGet]
         public async Task<IActionResult> GetDevicesByCompany(int companyId)
         {
-            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (m, c, ch, e) => true };
             try
             {
-                using var client = new HttpClient(handler);
-                var response = await client.GetAsync($"https://localhost:7225/api/WindowsUserDetails/allUserByCompany?comId={companyId}");
+                var client = _httpClientFactory.CreateClient("ManageEngineApi");
+                var response = await client.GetAsync($"api/WindowsUserDetails/allUserByCompany?comId={companyId}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<List<dynamic>>(content);
-                    var deviceList = data.Select(x => new
+                    var deviceList = (data ?? new List<dynamic>()).Select(x => new
                     {
                         domainName = (string)(x.DomainName ?? x.domainName),
                         userName = (string)(x.UserName ?? x.userName)
@@ -182,16 +158,15 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDevicesByLocation(int companyId, int groupId, int locationId)
         {
-            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (m, c, ch, e) => true };
             try
             {
-                using var client = new HttpClient(handler);
-                var response = await client.GetAsync($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&groupid={groupId}&comId={companyId}");
+                var client = _httpClientFactory.CreateClient("ManageEngineApi");
+                var response = await client.GetAsync($"api/WindowsUserDetails/allUser?locationId={locationId}&groupid={groupId}&comId={companyId}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<List<dynamic>>(content);
-                    var deviceList = data.Select(x => new
+                    var deviceList = (data ?? new List<dynamic>()).Select(x => new
                     {
                         domainName = (string)(x.DomainName ?? x.domainName),
                         userName = (string)(x.UserName ?? x.userName)
@@ -206,22 +181,17 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetCriticalClients(int companyId, int? groupId, int? locationId)
         {
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             try
             {
-                using var client = new HttpClient(handler)
-                {
-                    Timeout = TimeSpan.FromSeconds(10)
-                };
-                string url = "https://localhost:7225/api/RamCpuDiskData/list";
-                var response = await client.GetAsync(url);
+                var client = _httpClientFactory.CreateClient("ManageEngineApi");
+                // Use relative path
+                var response = await client.GetAsync("api/RamCpuDiskData/list");
+
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var allCriticalClients = JsonConvert.DeserializeObject<List<VIPClient>>(content);
+                    // Note: This calls the internal method, not an API endpoint
                     var devicesResponse = await GetAllDevices(companyId, groupId ?? 0, locationId ?? 0);
                     return Json(new { success = true, data = allCriticalClients });
                 }
@@ -244,17 +214,10 @@ namespace ManageEngineWebApp.Controllers
             {
                 return Json(new { success = false, message = "Invalid client data" });
             }
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
+
             try
             {
-                using var client = new HttpClient(handler)
-                {
-                    Timeout = TimeSpan.FromSeconds(10)
-                };
-                string url = "https://localhost:7225/api/RamCpuDiskData/add";
+                var client = _httpClientFactory.CreateClient("ManageEngineApi");
                 var dto = new
                 {
                     ClientId = criticalClient.ClientId,
@@ -262,7 +225,8 @@ namespace ManageEngineWebApp.Controllers
                 };
                 string jsonData = JsonConvert.SerializeObject(dto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync(url, content);
+                
+                var response = await client.PostAsync("api/RamCpuDiskData/add", content);
 
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -286,20 +250,15 @@ namespace ManageEngineWebApp.Controllers
             {
                 return Json(new { success = false, message = "Invalid client ID" });
             }
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
+
             try
             {
-                using var client = new HttpClient(handler)
-                {
-                    Timeout = TimeSpan.FromSeconds(10)
-                };
-                string url = "https://localhost:7225/api/RamCpuDiskData/remove";
+                var client = _httpClientFactory.CreateClient("ManageEngineApi");
                 string jsonData = JsonConvert.SerializeObject(clientId);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync(url, content);
+                
+                var response = await client.PostAsync("api/RamCpuDiskData/remove", content);
+                
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     return Json(new { success = true, message = "Critical Client removed successfully" });
@@ -322,24 +281,18 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, error = "MachineId is Required" });
             }
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             try
             {
-                using (HttpClient client = new HttpClient(handler))
+                var client = _httpClientFactory.CreateClient("ManageEngineApi");
+                string url = $"api/RamCpuDiskData/notifications/{Uri.EscapeDataString(machineId)}";
+                
+                var response = await client.GetAsync(url);
+                if (response != null && response.IsSuccessStatusCode)
                 {
-                    client.Timeout = TimeSpan.FromSeconds(10);
-                    string url = $"https://localhost:7225/api/RamCpuDiskData/notifications/{Uri.EscapeDataString(machineId)}";
-                    HttpResponseMessage response = await client.GetAsync(url);
-                    if (response != null && response.IsSuccessStatusCode)
-                    {
-                        var content = await response.Content.ReadAsStringAsync();
-                        return Content(content, "application/json");
-                    }
-                    return Json(new { success = false, error = "Failed to fetch notifications" });
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
                 }
+                return Json(new { success = false, error = "Failed to fetch notifications" });
             }
             catch (Exception ex)
             {
@@ -354,25 +307,19 @@ namespace ManageEngineWebApp.Controllers
             if (id <= 0)
                 return Json(new { success = false, error = "Invalid id" });
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             try
             {
-                using (HttpClient client = new HttpClient(handler))
+                var client = _httpClientFactory.CreateClient("ManageEngineApi");
+                string url = $"api/RamCpuDiskData/notification/read/{id}";
+                
+                var response = await client.PostAsync(url, null);
+                if (response != null && response.IsSuccessStatusCode)
                 {
-                    client.Timeout = TimeSpan.FromSeconds(10);
-                    string url = $"https://localhost:7225/api/RamCpuDiskData/notification/read/{id}";
-                    HttpResponseMessage response = await client.PostAsync(url, null);
-                    if (response != null && response.IsSuccessStatusCode)
-                    {
-                        var content = await response.Content.ReadAsStringAsync();
-                        return Content(content, "application/json");
-                    }
-
-                    return Json(new { success = false, error = "Failed to mark as read" });
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
                 }
+
+                return Json(new { success = false, error = "Failed to mark as read" });
             }
             catch (Exception ex)
             {
@@ -1021,7 +968,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetailsservice>>(content) : null;
-                    datalist = data.Where(x => x.UserCode != null).ToList();
+                    datalist = (data ?? new List<PatchDetailsservice>()).Where(x => x != null && x.UserCode != null).ToList();
                     //return View(datalist);
                 }
 
@@ -1249,7 +1196,7 @@ namespace ManageEngineWebApp.Controllers
 
 
         public List<UserDetails> datalist { get; set; }
-        [AuthFilter(AllowedRoles = "SuperAdmin,CompanyAdmin,CompanyUser", VerifyCompanyAccess = true)]
+        [AuthFilter(AllowedHierarchyLevel = 10, VerifyCompanyAccess = true)]
         public async Task<IActionResult> Index(string domain)
         {
             if (string.IsNullOrEmpty(domain))
@@ -3277,7 +3224,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetailsservice>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x != null && x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);
@@ -3308,7 +3255,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetail>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null) datalist = data.Where(x => x != null && x.UserCode == UCode).ToList();
                     return Json(datalist);
                 }
                 return Json(datalist);

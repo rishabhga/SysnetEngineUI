@@ -14,12 +14,16 @@ namespace ManageEngineWebApp.Controllers
     [AuthFilter]
     public class HierarchyController : Controller
     {
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly string _baseUrl;
 
-        public HierarchyController(HttpClient httpClient)
+        public HierarchyController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
+            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
         }
+
+        private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
 
         public async Task<IActionResult> Index(string searchTerm = "", string filterCompany = "all", string filterLicenseStatus = "all")
         {
@@ -34,9 +38,8 @@ namespace ManageEngineWebApp.Controllers
 
                 return View(filteredData);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Index Error: {ex.Message}");
                 return View(new List<CompanyHierarchyDto>());
             }
         }
@@ -48,9 +51,8 @@ namespace ManageEngineWebApp.Controllers
                 var hierarchyData = await LoadHierarchyData();
                 return View(hierarchyData ?? new List<CompanyHierarchyDto>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"GraphView Error: {ex.Message}");
                 return View(new List<CompanyHierarchyDto>());
             }
         }
@@ -72,19 +74,12 @@ namespace ManageEngineWebApp.Controllers
 
         private async Task<List<CompanyHierarchyDto>> LoadHierarchyData()
         {
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            using var httpClient = new HttpClient(handler);
-            httpClient.Timeout = TimeSpan.FromSeconds(60);
+            using var httpClient = GetClient();
             var hierarchyList = new List<CompanyHierarchyDto>();
 
             try
             {
-                var companiesUrl = "https://172.16.15.15:4431/api/CompaniesDetails/Companiesdata";
-                var companiesResponse = await httpClient.GetAsync(companiesUrl);
+                var companiesResponse = await httpClient.GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
 
                 if (!companiesResponse.IsSuccessStatusCode)
                 {
@@ -99,6 +94,13 @@ namespace ManageEngineWebApp.Controllers
                     return hierarchyList;
                 }
 
+                // Scope filter: restrict to user's assigned company
+                int? allowedCompanyId = RoleHelper.GetCompanyId(HttpContext);
+                if (allowedCompanyId.HasValue)
+                {
+                    companies = companies.Where(c => c.Id == allowedCompanyId.Value).ToList();
+                }
+
                 foreach (var company in companies)
                 {
                     var companyDto = new CompanyHierarchyDto
@@ -108,8 +110,7 @@ namespace ManageEngineWebApp.Controllers
                         Groups = new List<GroupHierarchyDto>()
                     };
 
-                    var groupsUrl = $"https://172.16.15.15:4431/api/CompaniesDetails/Groupdata?id={company.Id}";
-                    var groupsResponse = await httpClient.GetAsync(groupsUrl);
+                    var groupsResponse = await httpClient.GetAsync($"{_baseUrl}/api/CompaniesDetails/Groupdata?id={company.Id}");
 
                     if (groupsResponse.IsSuccessStatusCode)
                     {
@@ -118,6 +119,13 @@ namespace ManageEngineWebApp.Controllers
 
                         if (groups != null)
                         {
+                            // Scope filter: restrict to user's assigned group
+                            int? allowedGroupId = RoleHelper.GetGroupId(HttpContext);
+                            if (allowedGroupId.HasValue)
+                            {
+                                groups = groups.Where(g => g.Id == allowedGroupId.Value).ToList();
+                            }
+
                             foreach (var group in groups)
                             {
                                 var groupDto = new GroupHierarchyDto
@@ -127,8 +135,7 @@ namespace ManageEngineWebApp.Controllers
                                     Locations = new List<LocationHierarchyDto>()
                                 };
 
-                                var locationsUrl = $"https://172.16.15.15:4431/api/CompaniesDetails/Locationdata?comid={company.Id}&groupid={group.Id}";
-                                var locationsResponse = await httpClient.GetAsync(locationsUrl);
+                                var locationsResponse = await httpClient.GetAsync($"{_baseUrl}/api/CompaniesDetails/Locationdata?comid={company.Id}&groupid={group.Id}");
 
                                 if (locationsResponse.IsSuccessStatusCode)
                                 {
@@ -137,6 +144,13 @@ namespace ManageEngineWebApp.Controllers
 
                                     if (locations != null)
                                     {
+                                        // Scope filter: restrict to user's assigned location
+                                        int? allowedLocationId = RoleHelper.GetLocationId(HttpContext);
+                                        if (allowedLocationId.HasValue)
+                                        {
+                                            locations = locations.Where(l => l.Id == allowedLocationId.Value).ToList();
+                                        }
+
                                         foreach (var location in locations)
                                         {
                                             var locationDto = new LocationHierarchyDto
@@ -146,8 +160,7 @@ namespace ManageEngineWebApp.Controllers
                                                 Users = new List<UserHierarchyDto>()
                                             };
 
-                                            var usersUrl = $"https://172.16.15.15:4431/api/WindowsUserDetails/allUser?locationId={location.Id}&&groupid={group.Id}&&comId={company.Id}";
-                                            var usersResponse = await httpClient.GetAsync(usersUrl);
+                                            var usersResponse = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser?locationId={location.Id}&groupid={group.Id}&comId={company.Id}");
 
                                             if (usersResponse.IsSuccessStatusCode)
                                             {
