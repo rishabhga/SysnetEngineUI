@@ -113,7 +113,7 @@ namespace ManageEngineWebApp.Controllers
                         ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content)
                         : null;
                     var deviceList = (data ?? new List<WindowsUserDetails>())
-                        .Where(x => x != null && x.Status == "Enabled")
+                        .Where(x => x != null && (x.Status == "Enabled" || string.IsNullOrEmpty(x.Status)))
                         .Select(x => new
                         {
                             domainName = x.DomainName,
@@ -184,8 +184,8 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
-                // Use relative path
-                var response = await client.GetAsync("api/RamCpuDiskData/list");
+                // Use relative path with query parameters
+                var response = await client.GetAsync($"api/RamCpuDiskData/list?companyId={companyId}&groupId={groupId}&locationId={locationId}");
 
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -298,6 +298,50 @@ namespace ManageEngineWebApp.Controllers
             {
                 Console.WriteLine($"GetNotifications Error: {ex.Message}");
                 return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetNotificationsByLocation(int companyId, int? groupId, int? locationId)
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient("ManageEngineApi");
+                string url = $"api/RamCpuDiskData/notifications/location?companyId={companyId}&groupId={groupId}&locationId={locationId}";
+
+                var response = await client.GetAsync(url);
+                if (response != null && response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+                return Json(new { success = false, error = "Failed to fetch location notifications" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetLocationCriticalStatus(int locationId)
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient("ManageEngineApi");
+                string url = $"api/RamCpuDiskData/location/status/{locationId}";
+
+                var response = await client.GetAsync(url);
+                if (response != null && response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+                return Json(new { success = false, isCritical = false });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false, isCritical = false });
             }
         }
 

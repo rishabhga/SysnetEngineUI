@@ -258,6 +258,7 @@ namespace ManageEngineWebApp.Controllers
                                             {
                                                 LocationId = location.Id,
                                                 LocationName = location.LocationName ?? "Unknown",
+                                                IsCritical = location.IsCritical,
                                                 Users = new List<UserHierarchyDto>()
                                             };
 
@@ -471,6 +472,7 @@ namespace ManageEngineWebApp.Controllers
                             {
                                 LocationId = location.Id,
                                 LocationName = location.LocationName ?? "Unknown",
+                                IsCritical = location.IsCritical,
                                 Users = new List<UserHierarchyDto>()
                             };
 

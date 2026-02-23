@@ -95,6 +95,7 @@
                     <tr>
                         <th>S.N</th>                        
                         <th>LocationName</th>
+                        <th>Alert Status</th>
                         <th>Download EXE</th>
                         <th>Actions</th>
                     </tr>
@@ -106,6 +107,11 @@
                             <input type="text" id="newlocationName" class="form-control" placeholder="Enter new Location" />
                             <input type="hidden" id="locationIdHidden" value="@ViewBag.CompanyId" />
                             <input type="hidden" id="locationgroupIdHidden" value="@ViewBag.groupId" />
+                        </td>
+                        <td>
+                            <div class="checkbox">
+                                <label><input type="checkbox" id="newLocationCritical"> Critical</label>
+                            </div>
                         </td>
                         <td>
                             <button id="addlocationInlineBtn" class="btn btn-success"><i class="fas fa-plus-circle"></i> Add</button>
@@ -124,7 +130,13 @@
                                 <input type="text" class="edit-name form-control d-none" value="@item.LocationName" style="width: 150px; display: inline-block;" />
                                 <button class="btn btn-sm btn-warning d-none update-btn">Update</button>
                             </td>
-                      
+                            <td>
+                                <button onclick="toggleLocationCritical(@item.Id, @item.IsCritical.ToString().ToLower(), @item.GroupsID, @item.CompanyID)" 
+                                        class="btn btn-sm @(item.IsCritical ? "btn-danger" : "btn-default")"
+                                        title="@(item.IsCritical ? "Highly Critical - Click to demote" : "Mark as Critical")">
+                                    <i class="fas fa-crown"></i> @(item.IsCritical ? "Critical" : "Standard")
+                                </button>
+                            </td>
 
                             <td>
                                @*  <a href="/Companies/Dwonload?locationId=@item.Id&&groupid=@item.GroupsID&&comId=@item.CompanyID"><i class="fa fa-download"></i></a> *@
@@ -155,12 +167,12 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
     <script>
-        $("#addlocationInlineBtn").on("click", function () {
             const locatioName = $("#newlocationName").val().trim();
             const groupid = $("#locationgroupIdHidden").val();
             const comid = $("#locationIdHidden").val();
+            const isCritical = $("#newLocationCritical").is(":checked");
             if (locatioName === "" && groupid === "" && comid ==="") {
-                alert("? Please enter a company name.");
+                alert("? Please enter a location name.");
                 return;
             }
 
@@ -168,16 +180,40 @@
                 url: '/Companies/LocationAdd',
                 type: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ LocationName: locatioName, GroupsID: groupid, CompanyID: comid }),
+                data: JSON.stringify({ LocationName: locatioName, GroupsID: groupid, CompanyID: comid, IsCritical: isCritical }),
                 success: function (response) {
                     alert("? Location added successfully!");
                     location.reload(); // Or append new row without reloading
                 },
                 error: function () {
-                    alert("? Error adding company.");
+                    alert("? Error adding location.");
                 }
             });
         });
+
+        function toggleLocationCritical(locationId, currentStatus, groupId, companyId) {
+            const newStatus = !currentStatus;
+            const locationName = $(`.location-name-cell[data-id="${locationId}"] .display-name`).text().trim();
+
+            $.ajax({
+                url: '/Companies/Locationupdate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Id: parseInt(locationId),
+                    IsCritical: newStatus,
+                    GroupsID: parseInt(groupId),
+                    CompanyID: parseInt(companyId),
+                    LocationName: locationName
+                }),
+                success: function() {
+                    location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error updating critical status');
+                }
+            });
+        }
     </script>
     <script>
         $(document).ready(function () {

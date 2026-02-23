@@ -140,14 +140,22 @@
         <form id="menuForm" class="p-4 space-y-3">
             <input type="hidden" id="menuId">
             <input type="hidden" id="menuIcon" value="fas fa-circle">
-            <input type="hidden" id="menuModuleId" value="">
             <input type="hidden" id="menuSortOrder" value="0">
             <input type="hidden" id="routeController" value="">
             <input type="hidden" id="routeAction" value="">
 
-            <div>
-                <label class="block text-[10px] font-medium text-gray-600 mb-1">Display Name</label>
-                <input type="text" id="menuName" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs" placeholder="e.g. Companies">
+            <div class="grid grid-cols-2 gap-2">
+                <div class="col-span-2">
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Display Name</label>
+                    <input type="text" id="menuName" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs" placeholder="e.g. Companies">
+                </div>
+                
+                <div class="col-span-2">
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Module</label>
+                    <select id="menuModuleSelect" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
+                        <option value="">Select Module</option>
+                    </select>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2">
@@ -619,14 +627,26 @@
         }
 
         // Modal helpers
-        function openMenuModal(cb) { $('#menuModal').removeClass('hidden'); if(cb) cb(); }
+        function openMenuModal(cb) { 
+            $('#menuModal').removeClass('hidden'); 
+            // Populate Module Dropdown
+            $.get('@Url.Action("GetModules", "Auth")', modules => {
+                const options = '<option value="">Select Module</option>' + 
+                    modules.map(m => `<option value="${m.id || m.Id}">${m.moduleName}</option>`).join('');
+                $('#menuModuleSelect').html(options);
+                if(cb) cb(); 
+            });
+        }
         function closeMenuModal() {
             $('#menuModal').addClass('hidden'); $('#menuForm')[0].reset();
+            $('#menuId').val('');
             $('#menuIcon').val('fas fa-circle'); $('#menuSortOrder').val('0');
             $('#routeController').val(''); $('#routeAction').val('');
             $('#controllerSelect').val('');
             $('#actionSelect').val('').prop('disabled', true);
             $('#menuRequiredPermission').val('');
+            $('#menuModuleSelect').val('');
+            $('#menuModalTitle').text('Add Menu');
         }
 
         function openModuleModal() { $('#moduleModal').removeClass('hidden'); $('#moduleForm')[0].reset(); }
@@ -652,6 +672,13 @@
                 return;
             }
             const idVal = $('#menuId').val();
+            const moduleId = $('#menuModuleSelect').val();
+
+            if (!moduleId) {
+                showToast('Please select a Module for this menu', true);
+                return;
+            }
+
             const data = {
                 id: idVal ? parseInt(idVal) : 0,
                 menuName: $('#menuName').val(),
@@ -659,7 +686,7 @@
                 routeAction: action,
                 menuIcon: $('#menuIcon').val() || 'fas fa-circle',
                 sortOrder: parseInt($('#menuSortOrder').val()) || 0,
-                moduleId: parseInt($('#menuModuleId').val()) || 0,
+                moduleId: parseInt(moduleId) || 0,
                 requiredPermissionCode: $('#menuRequiredPermission').val(),
                 isActive: true
             };
@@ -723,14 +750,27 @@
         // Edit helpers
         function editMenu(m) {
             openMenuModal(() => {
-                $('#menuId').val(m.id||m.Id); $('#menuName').val(m.menuName);
-                $('#routeController').val(m.routeController); $('#routeAction').val(m.routeAction);
-                $('#controllerSelect').val(m.routeController).trigger('change');
-                $('#actionSelect').val(m.routeAction);
-                $('#menuIcon').val(m.menuIcon || 'fas fa-circle'); $('#menuSortOrder').val(m.sortOrder || 0);
-                $('#menuModuleId').val(m.moduleId || '');
-                $('#menuRequiredPermission').val(m.requiredPermissionCode || '');
+                $('#menuId').val(m.id || m.Id); 
+                $('#menuName').val(m.menuName);
                 $('#menuModalTitle').text('Edit Menu');
+                
+                // Set hidden route fields immediately
+                $('#routeController').val(m.routeController);
+                $('#routeAction').val(m.routeAction);
+
+                // Set Module
+                $('#menuModuleSelect').val(m.moduleId || '');
+
+                // Cascading UI update
+                $('#controllerSelect').val(m.routeController);
+                
+                // IMPORTANT: Manually update action dropdown and set value WITHOUT triggering 'change' loop
+                updateActionSelect(m.routeController, '#actionSelect');
+                $('#actionSelect').val(m.routeAction);
+
+                $('#menuIcon').val(m.menuIcon || 'fas fa-circle'); 
+                $('#menuSortOrder').val(m.sortOrder || 0);
+                $('#menuRequiredPermission').val(m.requiredPermissionCode || '');
             });
         }
         function editPermission(p) {

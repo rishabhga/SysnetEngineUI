@@ -20,6 +20,7 @@ namespace ManageEngineWebApp.Dtos
     {
         public int LocationId { get; set; }
         public string LocationName { get; set; }
+        public bool IsCritical { get; set; }
         public List<UserHierarchyDto> Users { get; set; } = new List<UserHierarchyDto>();
     }
 

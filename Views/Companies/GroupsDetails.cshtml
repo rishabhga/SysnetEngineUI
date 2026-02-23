@@ -206,7 +206,14 @@
                                                 <i class="fas fa-map-marker-alt text-orange-600 text-[10px]"></i>
                                             </div>
                                             <div class="min-w-0 flex-1">
-                                                <p class="text-xs font-semibold text-gray-900 truncate">@location.LocationName</p>
+                                                <div class="flex items-center space-x-2">
+                                                    <p class="text-xs font-semibold text-gray-900 truncate">@location.LocationName</p>
+                                                    <button onclick="event.preventDefault(); event.stopPropagation(); toggleLocationCritical(@location.LocationId, @location.IsCritical.ToString().ToLower(), @group.GroupId, @Model.CompanyId)" 
+                                                            class="critical-toggle-btn transition-colors duration-200" 
+                                                            title="@(location.IsCritical ? "Marked as Critical" : "Mark as Critical")">
+                                                        <i class="fas fa-crown text-[10px] @(location.IsCritical ? "text-amber-500 shadow-amber-200" : "text-gray-300 hover:text-amber-300") shadow-sm"></i>
+                                                    </button>
+                                                </div>
                                                 <p class="text-[10px] text-gray-500">@locationOnline/@locationUsers Online</p>
                                             </div>
                                         </a>
@@ -633,13 +640,39 @@
                 data: JSON.stringify({
                     LocationName: locationName,
                     GroupsID: parseInt(groupId),
-                    CompanyID: parseInt(companyId)
+                    CompanyID: parseInt(companyId),
+                    IsCritical: false
                 }),
                 success: function() {
                     location.reload();
                 },
                 error: function(xhr) {
                     alert('Error adding location');
+                }
+            });
+        }
+
+        function toggleLocationCritical(locationId, currentStatus, groupId, companyId) {
+            const newStatus = !currentStatus;
+            const locationName = $(`#locationSelect-${groupId} option[value="${locationId}"]`).data('name') || 
+                               $(`a[href*="locationId=${locationId}"] p.font-semibold`).text().trim();
+
+            $.ajax({
+                url: '/Companies/Locationupdate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Id: parseInt(locationId),
+                    IsCritical: newStatus,
+                    GroupsID: parseInt(groupId),
+                    CompanyID: parseInt(companyId),
+                    LocationName: locationName // Keep existing name
+                }),
+                success: function() {
+                    location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error updating critical status');
                 }
             });
         }

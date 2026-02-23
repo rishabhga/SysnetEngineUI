@@ -1,7 +1,7 @@
 ﻿@model List<ManageEngineWebApp.Models.VIPClient>
 
 @{
-    ViewData["Title"] = "VIP Clients Management";
+    ViewData["Title"] = "Critical Monitoring Management";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
     var companyId = ViewBag.CompanyId;
@@ -10,134 +10,155 @@
     var companyName = ViewBag.CompanyName ?? "Unknown Company";
 }
 
-<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-    <!-- Header with Company Context -->
-    <div class="mb-4 flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-            <a href="javascript:history.back()"
-               class="w-7 h-7 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center justify-center transition shadow-sm">
-                <i class="fas fa-arrow-left text-gray-600 text-xs"></i>
+@section Styles {
+    <style>
+        .critical-card {
+            background-image: radial-gradient(circle at top right, rgba(245, 158, 11, 0.03), transparent);
+        }
+        select option {
+            background: #fff;
+            color: #1e293b;
+            padding: 12px;
+        }
+    </style>
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header Section -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center space-x-4">
+            <a href="javascript:history.back()" 
+               class="p-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl transition-all shadow-sm group">
+                <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
             </a>
-            <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
-                    <i class="fas fa-crown text-white text-xs"></i>
-                </div>
-                <div>
-                    <h1 class="text-base font-bold text-gray-900">Critical Clients</h1>
-                    <p class="text-[10px] text-gray-600">
-                        <i class="fas fa-building mr-1"></i>@companyName
-                    </p>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleLocationCriticality()" class="group relative" id="locationCriticalToggleHeader" title="Toggle Location-wide Critical Monitoring">
+                        <div id="locationCrownContainer" class="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center shadow-lg transition-all duration-300">
+                            <i id="locationCrownIcon" class="fas fa-crown text-slate-400 text-lg transition-colors"></i>
+                        </div>
+                        <div id="locationStatusBadge" class="absolute -bottom-1 -right-1 px-1 bg-amber-500 text-white text-[8px] font-bold rounded-sm shadow-sm hidden">SITE</div>
+                    </button>
+                    <div>
+                        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Critical Monitoring</h1>
+                        <p class="text-sm font-medium text-slate-500 flex items-center">
+                            <i class="fas fa-building mr-1.5 text-slate-400"></i>
+                            @companyName
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
-        <button onclick="openAddModal()"
-                class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center space-x-1.5 shadow-sm"
-                style="background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
-            <i class="fas fa-plus text-[10px]"></i>
-            <span>Add Client</span>
+        
+        <button onclick="openAddModal()" 
+                class="inline-flex items-center px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-all shadow-md shadow-slate-200 group">
+            <i class="fas fa-plus mr-2 text-slate-400 group-hover:text-white transition-colors"></i>
+            Add Critical Device
         </button>
     </div>
 
-    <!-- Stats Card -->
-    <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm mb-4">
-        <div class="flex items-center justify-between">
+    <!-- Quick Stats & Tools -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
-                <p class="text-[9px] font-medium text-gray-500 uppercase">Total Critical Clients</p>
-                <p class="text-xl font-bold text-gray-900 mt-0.5" id="criticalCount">0</p>
+                <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-1">Total Monitored</p>
+                <p class="text-3xl font-black text-slate-900" id="criticalCount">0</p>
             </div>
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
-                <i class="fas fa-crown text-white text-base"></i>
+            <div class="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
+                <i class="fas fa-microchip text-amber-600 text-2xl"></i>
+            </div>
+        </div>
+
+        <div class="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+             <div class="relative group">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors"></i>
+                <input type="text" id="searchCritical" 
+                       class="w-full pl-12 pr-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all text-sm font-medium placeholder:text-slate-400"
+                       placeholder="Search devices by ID or custom name..."
+                       onkeyup="filterCriticalClients()">
             </div>
         </div>
     </div>
 
-    <!-- Search Bar -->
-    <div class="mb-3">
-        <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                <i class="fas fa-search text-gray-400 text-xs"></i>
-            </div>
-            <input type="text" id="searchCritical"
-                   class="w-full pl-8 pr-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-xs"
-                   placeholder="Search by Client ID or Name..."
-                   onkeyup="filterCriticalClients()">
+    <!-- Content Status -->
+    <div id="loadingState" class="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
+        <div class="relative mb-4">
+             <div class="w-12 h-12 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
         </div>
+        <p class="text-slate-500 font-medium animate-pulse">Synchronizing critical fleet data...</p>
     </div>
 
-    <!-- Critical Clients List -->
-    <div id="criticalClientsList" class="space-y-2">
+    <div id="criticalClientsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
+        <!-- Cards will be injected here -->
     </div>
 
-    <div id="emptyState" class="hidden text-center py-12 bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
-            <i class="fas fa-crown text-white text-2xl"></i>
+    <div id="emptyState" class="hidden flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-dashed border-slate-300">
+        <div class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mb-6">
+            <i class="fas fa-crown text-amber-200 text-5xl"></i>
         </div>
-        <p class="text-gray-500 text-sm font-medium mb-1">No Critical Clients Yet</p>
-        <p class="text-gray-400 text-xs mb-4">Add your first critical client to receive priority notifications</p>
-        <button onclick="openAddModal()"
-                class="px-4 py-2 text-white rounded-lg text-xs font-medium transition-colors inline-flex items-center space-x-2 shadow-sm"
-                style="background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
-            <i class="fas fa-plus text-[10px]"></i>
-            <span>Add Critical Client</span>
+        <h3 class="text-xl font-bold text-slate-900 mb-2">No Devices Under Critical Watch</h3>
+        <p class="text-slate-500 text-sm max-w-sm text-center mb-8 px-6">
+            Devices added here will trigger high-priority alerts across the entire @companyName infrastructure when resources are stressed.
+        </p>
+        <button onclick="openAddModal()" 
+                class="px-8 py-3 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-100">
+            Provision First Device
         </button>
     </div>
 </div>
 
-<!-- Add Critical Client Modal -->
-<div id="addCriticalModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div class="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-600">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-2">
-                        <i class="fas fa-crown text-white text-sm"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-white">Add Critical Client</h3>
-                        <p class="text-[10px] text-white/80">@companyName</p>
-                    </div>
+<!-- Professional Add Modal -->
+<div id="addCriticalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[100] px-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-300">
+        <div class="flex items-center justify-between p-6 border-b border-slate-100">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
+                    <i class="fas fa-plus text-white"></i>
                 </div>
-                <button onclick="closeAddModal()" class="w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
-                    <i class="fas fa-times text-white text-xs"></i>
-                </button>
+                <div>
+                    <h3 class="font-bold text-slate-900">Provision Critical Device</h3>
+                    <p class="text-xs text-slate-500 font-medium italic">Hierarchy Scoped to @companyName</p>
+                </div>
             </div>
+            <button onclick="closeAddModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
+                <i class="fas fa-times text-slate-400"></i>
+            </button>
         </div>
-        <div class="p-4">
-            <form id="addCriticalForm" onsubmit="addCriticalClient(event)">
-                <div class="mb-3">
-                    <label class="block text-xs font-medium text-gray-700 mb-1">
-                        Select Device
-                        <span class="text-red-500">*</span>
-                    </label>
-                    <select id="clientId" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm">
-                        <option value="">Loading devices...</option>
-                    </select>
-                    <p class="text-[10px] text-gray-500 mt-1">
-                        <i class="fas fa-info-circle mr-1"></i>Select the device you want to mark as critical
-                    </p>
+        
+        <div class="p-8">
+            <form id="addCriticalForm" class="space-y-6">
+                <div class="space-y-2">
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Source Machine</label>
+                    <div class="relative group">
+                        <i class="fas fa-desktop absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors"></i>
+                        <select id="clientId" required 
+                                class="w-full pl-12 pr-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all text-sm font-semibold appearance-none">
+                            <option value="">Querying active fleet...</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none text-xs"></i>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-xs font-medium text-gray-700 mb-1">
-                        Client Name
-                        <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="clientName" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
-                           placeholder="e.g., John Doe or Main Office">
-                    <p class="text-[10px] text-gray-500 mt-1">
-                        <i class="fas fa-info-circle mr-1"></i>Auto-filled from user name, can be edited
-                    </p>
+
+                <div class="space-y-2">
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Friendly Label</label>
+                    <div class="relative group">
+                        <i class="fas fa-tag absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors"></i>
+                        <input type="text" id="clientName" required 
+                               class="w-full pl-12 pr-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all text-sm font-semibold"
+                               placeholder="e.g. CEO Laptop, Main Server">
+                    </div>
+                    <p class="text-[10px] text-slate-400 px-1 font-medium italic">This name will appear in all system-wide alerts.</p>
                 </div>
-                <div class="flex gap-2">
-                    <button type="submit"
-                            class="flex-1 px-4 py-2 text-white rounded-lg text-xs font-semibold transition-colors"
-                            style="background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
-                        <i class="fas fa-check mr-1"></i>Add Client
+
+                <div class="pt-4 flex gap-4">
+                    <button type="submit" 
+                            class="flex-1 bg-amber-500 text-white py-4 rounded-2xl text-sm font-black hover:bg-amber-600 transition-all shadow-lg shadow-amber-100 active:scale-95">
+                        <i class="fas fa-bolt mr-2 opacity-80"></i>
+                        Activate Monitoring
                     </button>
-                    <button type="button" onclick="closeAddModal()"
-                            class="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-semibold transition-colors">
-                        Cancel
+                    <button type="button" onclick="closeAddModal()" 
+                            class="px-6 bg-slate-100 text-slate-600 py-4 rounded-2xl text-sm font-bold hover:bg-slate-200 transition-all active:scale-95">
+                        Abort
                     </button>
                 </div>
             </form>
@@ -147,97 +168,142 @@
 
 @section Scripts {
     <script>
-        const companyId = @companyId;
-        const groupId = @(groupId ?? 0);
-        const locationId = @(locationId ?? 0);
-        const companyName = '@companyName';
+        const companyId = @(ViewBag.CompanyId ?? 0);
+        const groupId = @(ViewBag.GroupId ?? 0);
+        const locationId = @(ViewBag.LocationId ?? 0);
 
         let allDevices = [];
         let allCriticalClients = [];
 
-        $(document).ready(function () {
-            loadCriticalClients();
-            loadAllDevices();
+        let isLocationCritical = false;
+
+        $(document).ready(function() {
+            loadInitialData();
+            checkLocationStatus();
+            $('#addCriticalForm').on('submit', addCriticalClient);
         });
 
-        function loadAllDevices() {
+        function checkLocationStatus() {
+            $.get('@Url.Action("GetLocationCriticalStatus", "ComputerSummary")', { locationId: locationId }, function(res) {
+                isLocationCritical = res && res.isCritical;
+                updateLocationHeaderUI(isLocationCritical);
+            });
+        }
+
+        function updateLocationHeaderUI(isCritical) {
+            const container = $('#locationCrownContainer');
+            const icon = $('#locationCrownIcon');
+            const badge = $('#locationStatusBadge');
+
+            if (isCritical) {
+                container.removeClass('bg-slate-200').addClass('bg-gradient-to-br from-amber-400 to-orange-600 shadow-amber-200');
+                icon.removeClass('text-slate-400').addClass('text-white');
+                badge.removeClass('hidden');
+            } else {
+                container.addClass('bg-slate-200').removeClass('bg-gradient-to-br from-amber-400 to-orange-600 shadow-amber-200');
+                icon.addClass('text-slate-400').removeClass('text-white');
+                badge.addClass('hidden');
+            }
+        }
+
+        function toggleLocationCriticality() {
+            const newStatus = !isLocationCritical;
+            const msg = newStatus 
+                ? "Switching to SITE-WIDE critical monitoring? This will mark all existing devices in this location as critical."
+                : "Disable site-wide critical monitoring? (Individual VIP overrides will remain)";
+
+            if (!confirm(msg)) return;
+
+            const icon = $('#locationCrownIcon');
+            icon.addClass('fa-spin');
+
             $.ajax({
+                url: '@Url.Action("Locationupdate", "Companies")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    Id: locationId,
+                    IsCritical: newStatus,
+                    GroupsID: groupId,
+                    CompanyID: companyId,
+                    LocationName: '@(ViewBag.LocationName ?? "This Location")'
+                }),
+                success: function() {
+                    isLocationCritical = newStatus;
+                    updateLocationHeaderUI(newStatus);
+                    loadInitialData();
+                    showToast(newStatus ? 'Site-wide monitoring active.' : 'Site-wide monitoring deactivated.', 'success');
+                },
+                error: function() {
+                    showToast('Failed to update site status.', 'error');
+                },
+                complete: function() {
+                    icon.removeClass('fa-spin');
+                }
+            });
+        }
+
+        async function loadInitialData() {
+            $('#loadingState').removeClass('hidden').addClass('flex');
+            $('#criticalClientsList').addClass('hidden');
+            $('#emptyState').addClass('hidden');
+
+            try {
+                await Promise.all([loadAllDevices(), loadCriticalClients()]);
+            } catch (err) {
+                console.error("Initialization Failed", err);
+            } finally {
+                $('#loadingState').addClass('hidden').removeClass('flex');
+            }
+        }
+
+        function loadAllDevices() {
+             return $.ajax({
                 url: '@Url.Action("GetAllDevices", "ComputerSummary")',
                 type: 'GET',
-                data: {
-                    companyId: companyId,
-                    groupId: groupId,
-                    locationId: locationId
-                },
-                success: function (response) {
-                    if (response.success && response.data) {
+                data: { companyId, groupId, locationId },
+                success: function(response) {
+                    if (response && response.success && response.data) {
                         allDevices = response.data;
                         populateDeviceDropdown();
-                    } else {
-                        $('#clientId').html('<option value="">No devices available</option>');
                     }
-                },
-                error: function () {
-                    $('#clientId').html('<option value="">Error loading devices</option>');
                 }
             });
         }
 
         function populateDeviceDropdown() {
             const select = $('#clientId');
-            select.empty();
-            select.append('<option value="">Select a device...</option>');
+            select.empty().append('<option value="">Choose machine...</option>');
 
-            allDevices.forEach(device => {
-                const option = `
-                    <option value="${device.domainName}"
-                            data-username="${device.userName || 'Unknown'}">
-                        ${device.domainName} - ${device.userName || 'Unknown'}
-                    </option>`;
-                select.append(option);
-            });
+            if (allDevices) {
+                allDevices.forEach(device => {
+                    const label = `${device.domainName} (${device.userName || 'System'})`;
+                    select.append(`<option value="${device.domainName}" data-username="${device.userName || ''}">${label}</option>`);
+                });
+            }
 
-            select.on('change', function () {
-                const selectedOption = $(this).find('option:selected');
-                const username = selectedOption.data('username');
-                if (username && username !== 'Unknown') {
-                    $('#clientName').val(username);
-                }
+            select.off('change').on('change', function() {
+                const username = $(this).find('option:selected').data('username');
+                if (username) $('#clientName').val(username);
             });
         }
 
         function loadCriticalClients() {
-            $.ajax({
+            return $.ajax({
                 url: '@Url.Action("GetCriticalClients", "ComputerSummary")',
                 type: 'GET',
-                data: {
-                    companyId: companyId,
-                    groupId: groupId,
-                    locationId: locationId
-                },
-                success: function (response) {
-                    if (response.success && response.data) {
+                data: { companyId, groupId, locationId },
+                success: function(response) {
+                    if (response && response.success && response.data) {
                         allCriticalClients = response.data;
-                        const filteredClients = filterClientsByHierarchy(allCriticalClients);
-                        renderCriticalClients(filteredClients);
+                        renderCriticalClients(allCriticalClients);
                     } else {
                         showEmptyState();
                     }
                 },
-                error: function () {
+                error: function() {
                     showEmptyState();
                 }
-            });
-        }
-
-        function filterClientsByHierarchy(clients) {
-            if (!clients || clients.length === 0) return [];
-
-            const currentDeviceIds = allDevices.map(d => d.domainName.toLowerCase());
-
-            return clients.filter(client => {
-                const clientIdLower = (client.clientId || client.ClientId || '').toLowerCase();
-                return currentDeviceIds.includes(clientIdLower);
             });
         }
 
@@ -251,36 +317,42 @@
             }
 
             emptyState.addClass('hidden');
-            container.empty();
+            container.empty().removeClass('hidden');
             $('#criticalCount').text(clients.length);
 
             clients.forEach(client => {
-                const clientId = client.clientId || client.ClientId || '';
-                const clientName = client.clientName || client.ClientName || 'Unknown';
-
+                const id = client.clientId || '';
+                const name = client.clientName || 'Unnamed Device';
+                const source = client.source || 'Manual';
+                const sourceBadge = source === 'Manual' 
+                    ? '<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-600 uppercase tracking-tighter border border-amber-100">Manual Priority</span>'
+                    : '<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-600 uppercase tracking-tighter border border-blue-100">Location Default</span>';
+                
                 const card = `
-                    <div class="critical-client-card bg-white rounded-lg border-2 border-amber-200 p-3 shadow-sm hover:shadow-md transition-all"
-                         data-client-id="${clientId.toLowerCase()}"
-                         data-client-name="${clientName.toLowerCase()}">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3 flex-1 min-w-0">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                     style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
-                                    <i class="fas fa-crown text-white text-sm"></i>
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <h3 class="text-sm font-bold text-gray-900 truncate">${clientName}</h3>
-                                    <p class="text-[10px] text-gray-500 truncate">
-                                        <i class="fas fa-desktop mr-1"></i>${clientId}
-                                    </p>
+                    <div class="critical-card group relative bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-amber-500/5 hover:-translate-y-1 transition-all duration-300" 
+                         data-id="${(id || '').toLowerCase()}" data-name="${(name || '').toLowerCase()}">
+                        <div class="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-200 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fas fa-crown text-[10px] text-white"></i>
+                        </div>
+                        <div class="flex items-start space-x-4">
+                            <div class="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-50 transition-colors">
+                                <i class="fas fa-desktop text-slate-400 group-hover:text-amber-600 text-xl transition-colors"></i>
+                            </div>
+                            <div class="flex-1 min-w-0 pr-6">
+                                <h3 class="text-base font-bold text-slate-900 truncate mb-0.5">${name}</h3>
+                                <p class="text-xs font-semibold text-slate-400 mb-3 flex items-center truncate">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-200 mr-2"></span>
+                                    ${id}
+                                </p>
+                                <div class="flex items-center space-x-2">
+                                    ${sourceBadge}
                                 </div>
                             </div>
-                            <button onclick="removeCriticalClient('${clientId}', '${clientName.replace(/'/g, "\\'")}')"
-                                    class="ml-2 w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors flex-shrink-0"
-                                    title="Remove critical">
-                                <i class="fas fa-trash-alt text-xs"></i>
-                            </button>
                         </div>
+                        <button onclick="removeCriticalClient('${id}', '${name.replace(/'/g, "\\'")}', '${source}')" 
+                                class="absolute top-6 right-6 w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100">
+                             <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
                     </div>
                 `;
                 container.append(card);
@@ -288,42 +360,40 @@
         }
 
         function showEmptyState() {
-            $('#criticalClientsList').empty();
+            $('#criticalClientsList').addClass('hidden');
             $('#emptyState').removeClass('hidden');
             $('#criticalCount').text('0');
         }
 
         function openAddModal() {
-            $('#addCriticalModal').removeClass('hidden').addClass('flex');
-            $('#clientId').val('');
-            $('#clientName').val('');
+            const modal = $('#addCriticalModal');
+            modal.removeClass('hidden').addClass('flex');
+            setTimeout(() => {
+                modal.removeClass('opacity-0').addClass('opacity-100');
+                modal.find('> div').removeClass('scale-95').addClass('scale-100');
+            }, 10);
         }
 
         function closeAddModal() {
-            $('#addCriticalModal').addClass('hidden').removeClass('flex');
+            const modal = $('#addCriticalModal');
+            modal.removeClass('opacity-100').addClass('opacity-0');
+            modal.find('> div').removeClass('scale-100').addClass('scale-95');
+            setTimeout(() => {
+                modal.addClass('hidden').removeClass('flex');
+                $('#clientId').val('');
+                $('#clientName').val('');
+            }, 300);
         }
 
-        function addCriticalClient(event) {
-            event.preventDefault();
-
-            const clientId = $('#clientId').val()?.trim();
-            const clientName = $('#clientName').val()?.trim();
+        function addCriticalClient(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            
+            const clientId = $('#clientId').val();
+            const clientName = $('#clientName').val();
 
             if (!clientId || !clientName) {
-                showErrorMessage('Please fill in all fields');
+                showToast('Execution blocked: Data requirements missing.', 'error');
                 return;
-            }
-
-            const exists = allCriticalClients.some(c =>
-                (c.clientId || c.ClientId || '').toLowerCase() === clientId.toLowerCase()
-            );
-
-            if (exists) {
-                const currentDeviceIds = allDevices.map(d => d.domainName.toLowerCase());
-                if (currentDeviceIds.includes(clientId.toLowerCase())) {
-                    showErrorMessage('This client is already marked as critical in this location');
-                    return;
-                }
             }
 
             $.ajax({
@@ -332,124 +402,80 @@
                 contentType: 'application/json',
                 data: JSON.stringify({
                     ClientId: clientId,
-                    ClientName: clientName
+                    ClientName: clientName,
+                    CompanyID: companyId,
+                    GroupsID: groupId,
+                    LocationID: locationId
                 }),
-                success: function (response) {
-                    if (response.success) {
+                success: function(response) {
+                    if (response && response.success) {
                         closeAddModal();
-                        loadCriticalClients();
-                        showSuccessMessage('Critical Client added successfully!');
+                        loadInitialData();
+                        showToast('Monitoring successfully deployed.', 'success');
                     } else {
-                        showErrorMessage(response.message || 'Failed to add critical client');
+                        showToast((response && response.message) || 'Operation failed.', 'error');
                     }
                 },
-                error: function (xhr) {
-                    const errorMsg = xhr.responseJSON?.message || 'Error adding critical client. Please try again.';
-                    showErrorMessage(errorMsg);
+                error: function() {
+                    showToast('Network synchronization failed.', 'error');
                 }
             });
         }
 
-        function removeCriticalClient(clientId, name) {
-            if (!confirm(`Are you sure you want to remove ${name} from critical clients?`)) return;
+        function removeCriticalClient(clientId, name, source) {
+            const msg = source === 'Location' 
+                ? `Confirm explicit exclusion of ${name} from critical monitoring? (It is currently inherited from location settings)`
+                : `Confirm detachment of critical monitoring for ${name}?`;
+
+            if (!confirm(msg)) return;
 
             $.ajax({
                 url: '@Url.Action("RemoveCriticalClient", "ComputerSummary")',
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(clientId),
-                success: function (response) {
-                    if (response.success) {
-                        loadCriticalClients();
-                        showSuccessMessage('Critical Client removed successfully!');
-                    } else {
-                        showErrorMessage(response.message || 'Failed to remove critical client');
+                success: function(response) {
+                    if (response && response.success) {
+                        loadInitialData();
+                        showToast('Monitoring detached successfully.', 'success');
                     }
-                },
-                error: function () {
-                    showErrorMessage('Error removing critical client. Please try again.');
                 }
             });
         }
 
         function filterCriticalClients() {
-            const searchValue = $('#searchCritical').val().toLowerCase();
-            const cards = $('.critical-client-card');
+            const term = $('#searchCritical').val().toLowerCase();
+            const cards = $('.critical-card');
+            let count = 0;
 
-            let visibleCount = 0;
-            cards.each(function () {
+            cards.each(function() {
                 const card = $(this);
-                const clientId = card.data('client-id') || '';
-                const clientName = card.data('client-name') || '';
-
-                if (clientId.includes(searchValue) || clientName.includes(searchValue)) {
-                    card.show();
-                    visibleCount++;
-                } else {
-                    card.hide();
-                }
+                const match = card.data('id').toString().includes(term) || card.data('name').toString().includes(term);
+                card.toggle(match);
+                if (match) count++;
             });
 
-            if (searchValue) {
-                $('#criticalCount').text(visibleCount);
-            }
-        }
-
-        function showSuccessMessage(message) {
-            showToast(message, 'success');
-        }
-
-        function showErrorMessage(message) {
-            showToast(message, 'error');
+            if (term) $('#criticalCount').text(count);
+            else $('#criticalCount').text(cards.length);
         }
 
         function showToast(message, type) {
-            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
+            const color = type === 'success' ? 'bg-emerald-600' : 'bg-rose-600';
+            
             const toast = $(`
-                <div class="fixed top-4 right-4 ${bgColor} text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2 animate-slide-in max-w-md">
-                    <i class="fas ${icon}"></i>
-                    <span class="text-sm font-medium">${message}</span>
+                <div class="fixed bottom-8 right-8 ${color} text-white px-6 py-4 rounded-2xl shadow-2xl z-[200] flex items-center space-x-3 transition-all duration-500 translate-y-20 opacity-0">
+                    <i class="fas ${icon} text-xl"></i>
+                    <span class="text-sm font-bold tracking-tight">${message}</span>
                 </div>
             `);
 
             $('body').append(toast);
-
+            setTimeout(() => toast.removeClass('translate-y-20 opacity-0'), 100);
             setTimeout(() => {
-                toast.fadeOut(300, function () {
-                    $(this).remove();
-                });
-            }, 3000);
+                toast.addClass('translate-y-20 opacity-0');
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
         }
     </script>
-
-    <style>
-        @@keyframes slideIn {
-            from
-
-        {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-
-        }
-
-        .animate-slide-in {
-            animation: slideIn 0.3s ease-out;
-        }
-
-        #searchCritical:focus {
-            ring-color: #F59E0B;
-        }
-
-        .critical-client-card:hover {
-            border-color: #F59E0B;
-        }
-    </style>
 }

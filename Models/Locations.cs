@@ -7,6 +7,7 @@
         public int CompanyID { get; set; }
         public int GroupsID { get; set; }
         public string LocationName { get; set; }
+        public bool IsCritical { get; set; }
     }
 }
     
