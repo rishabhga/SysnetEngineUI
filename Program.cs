@@ -3,7 +3,11 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestHeadersTotalSize = 64 * 1024; 
+});
+
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<ManageEngineWebApp.Filters.DynamicAuthorizationFilter>();
@@ -11,10 +15,9 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddScoped<ManageEngineWebApp.Services.PermissionDiscoveryService>();
 builder.Services.AddScoped<ManageEngineWebApp.Filters.DynamicAuthorizationFilter>();
 builder.Services.AddRazorPages();
-// Register named HttpClient with SSL bypass for API calls
 builder.Services.AddHttpClient("ManageEngineApi", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225");
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431");
     // client.DefaultRequestHeaders.Add("X-Api-Key", builder.Configuration["Authentication:ApiKey"]);
     client.Timeout = TimeSpan.FromSeconds(10);
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
@@ -22,7 +25,6 @@ builder.Services.AddHttpClient("ManageEngineApi", client =>
     ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
 });
 
-// Also register default IHttpClientFactory for DI
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 
@@ -39,11 +41,9 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
-// Configure RoleHelper with IHttpClientFactory
 var httpClientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
 ManageEngineWebApp.Datacontext.RoleHelper.Configure(app.Configuration, httpClientFactory);
 
-// Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -56,7 +56,6 @@ app.UseRouting();
 app.UseSession();
 app.UseAuthorization();
 
-// IMPORTANT: Map MVC routes BEFORE Razor Pages
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

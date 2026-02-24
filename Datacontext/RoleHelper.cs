@@ -77,7 +77,7 @@ namespace ManageEngineWebApp.Datacontext
 
     public static class RoleHelper
     {
-        private static string _apiBaseUrl = "https://localhost:7225/api/Auth";
+        private static string _apiBaseUrl = "https://172.16.15.15:4431/api/Auth";
         private static IHttpClientFactory? _httpClientFactory;
 
         public static void Configure(IConfiguration configuration, IHttpClientFactory? httpClientFactory = null)
@@ -161,6 +161,9 @@ namespace ManageEngineWebApp.Datacontext
 
             var permissions = context?.Session.GetString("permissions");
             if (string.IsNullOrEmpty(permissions)) return false;
+
+            // Wildcard = all permissions granted (used for top-level admin)
+            if (permissions == "*") return true;
 
             var permList = permissions.Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => p.Trim())
@@ -511,7 +514,13 @@ namespace ManageEngineWebApp.Datacontext
                 if (!IsTopLevelAdmin(context))
                 {
                     var allowedIdStr = context.Session.GetString("allowedMenuIds");
-                    if (!string.IsNullOrEmpty(allowedIdStr))
+
+                    // -1 marker = all menus allowed (top-level admin wildcard)
+                    if (allowedIdStr == "-1")
+                    {
+                        return allMenus;
+                    }
+                    else if (!string.IsNullOrEmpty(allowedIdStr))
                     {
                         var allowedIds = allowedIdStr.Split(',', StringSplitOptions.RemoveEmptyEntries)
                             .Select(id => int.TryParse(id, out int result) ? result : -1)
@@ -523,7 +532,6 @@ namespace ManageEngineWebApp.Datacontext
                     else
                     {
                         // No menu mappings found — return menus that don't require any specific permission
-                        // This provides a basic fallback so the user isn't completely locked out
                         return allMenus.Where(m => string.IsNullOrEmpty(m.RequiredPermissionCode)).ToList();
                     }
                 }

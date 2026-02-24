@@ -24,7 +24,7 @@ namespace ManageEngineWebApp.Controllers
             _configuration = configuration;
             _permissionDiscovery = permissionDiscovery;
             _httpClientFactory = httpClientFactory;
-            _baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
+            _baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
             apiBaseUrl = $"{_baseUrl}/api/auth";
         }
 
@@ -97,6 +97,15 @@ namespace ManageEngineWebApp.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login(LoginDto model)
         {
+            HttpContext.Session.Clear();
+            foreach (var cookieName in HttpContext.Request.Cookies.Keys)
+            {
+                if (!cookieName.StartsWith("__RequestVerification"))
+                {
+                    Response.Cookies.Delete(cookieName);
+                }
+            }
+
             using var client = GetClient();
             var json = JsonConvert.SerializeObject(model);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -218,6 +227,11 @@ namespace ManageEngineWebApp.Controllers
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
+            // Delete all cookies to prevent bloated cookies from blocking future logins
+            foreach (var cookieName in HttpContext.Request.Cookies.Keys)
+            {
+                Response.Cookies.Delete(cookieName);
+            }
             return RedirectToAction("Login");
         }
         [HttpGet]

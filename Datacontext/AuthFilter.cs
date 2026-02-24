@@ -2,16 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 namespace ManageEngineWebApp.Datacontext
 {
-    /// <summary>
-    /// Base authorization filter. Uses dynamic role checks from session 
-    /// (hierarchyLevel, permissions) — NO hardcoded role names.
-    /// 
-    /// AllowedHierarchyLevel: Maximum hierarchy level allowed (lower = more privileged).
-    ///   - 0 = top-level admin only
-    ///   - 5 = company-level roles and above
-    ///   - 10 = all roles
-    ///   - Default (null) = any authenticated user + permission check
-    /// </summary>
+
     public class AuthFilter : ActionFilterAttribute
     {
         public string? AllowedRoles { get; set; }
@@ -35,14 +26,11 @@ namespace ManageEngineWebApp.Datacontext
                 return;
             }
 
-            // Top-level admin (hierarchy 0) bypasses all checks
             if (RoleHelper.IsTopLevelAdmin(context.HttpContext))
             {
-                // skip permission checks — full access
             }
             else
             {
-                // Check hierarchy level if specified
                 if (AllowedHierarchyLevel > -1)
                 {
                     int userLevel = RoleHelper.GetHierarchyLevel(context.HttpContext);
@@ -53,19 +41,15 @@ namespace ManageEngineWebApp.Datacontext
                     }
                 }
 
-                // Legacy AllowedRoles support (for backward compatibility with existing attributes)
                 if (!string.IsNullOrEmpty(AllowedRoles))
                 {
                     var allowedRolesList = AllowedRoles.Split(',').Select(r => r.Trim()).ToList();
-                    // Role name check is kept for backward compat but not required for new code
                     if (!allowedRolesList.Contains(role))
                     {
-                        // Don't block here — let permission check below handle it
-                        // and let DynamicAuthorizationFilter do final check
+                      
                     }
                 }
 
-                // Check explicit permission if specified
                 if (!string.IsNullOrEmpty(RequiredPermission))
                 {
                     if (!RoleHelper.HasPermission(context.HttpContext, RequiredPermission))
@@ -76,7 +60,6 @@ namespace ManageEngineWebApp.Datacontext
                 }
             }
 
-            // Company access verification — applies to all non-top-level roles
             if (VerifyCompanyAccess && !RoleHelper.IsTopLevelAdmin(context.HttpContext))
             {
                 var sessionCompanyId = session.GetString("companyId");
@@ -116,37 +99,30 @@ namespace ManageEngineWebApp.Datacontext
         }
     }
 
-    /// <summary>
-    /// Restricts access to top-level admin (hierarchy level 0) only.
-    /// </summary>
     public class SuperAdminOnlyFilter : AuthFilter
     {
         public SuperAdminOnlyFilter()
         {
-            AllowedHierarchyLevel = 0; // Only hierarchy level 0 (dynamic, not name-based)
+            AllowedHierarchyLevel = 0; 
         }
     }
 
-    /// <summary>
-    /// Restricts access to company-level admins and above (hierarchy level <= 5).
-    /// </summary>
+   
     public class CompanyDataFilter : AuthFilter
     {
         public CompanyDataFilter()
         {
-            AllowedHierarchyLevel = 5; // Company-level and above
+            AllowedHierarchyLevel = 5; 
             VerifyCompanyAccess = true;
         }
     }
 
-    /// <summary>
-    /// Restricts access to company users and above (hierarchy level <= 10).
-    /// </summary>
+    
     public class CompanyUserFilter : AuthFilter
     {
         public CompanyUserFilter()
         {
-            AllowedHierarchyLevel = 10; // All standard roles
+            AllowedHierarchyLevel = 10; 
             VerifyCompanyAccess = true;
         }
     }

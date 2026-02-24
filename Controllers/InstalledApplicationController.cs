@@ -19,7 +19,7 @@ namespace ManageEngineWebApp.Controllers
         }
         public async Task<IActionResult> Index()
         {
-            var response = await _httpClient.GetAsync("https://localhost:7225/api/InstalledApplication");
+            var response = await _httpClient.GetAsync("https://172.16.15.15:4431/api/InstalledApplication");
 
             if (response.IsSuccessStatusCode)
             {

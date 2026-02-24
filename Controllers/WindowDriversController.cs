@@ -15,7 +15,7 @@ namespace ManageEngineWebApp.Controllers
         }
         public async Task<IActionResult> Index()
         {
-            var response = await _httpClient.GetAsync("https://localhost:7225/api/WindowDrivers");
+            var response = await _httpClient.GetAsync("https://172.16.15.15:4431/api/WindowDrivers");
 
             if (response.IsSuccessStatusCode)
             {
@@ -36,7 +36,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> datalist()
         {
-            var response = await _httpClient.GetAsync("https://localhost:7225/api/WindowDrivers");
+            var response = await _httpClient.GetAsync("https://172.16.15.15:4431/api/WindowDrivers");
 
             if (response.IsSuccessStatusCode)
             {
@@ -52,7 +52,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> users()
         {
            
-            var response = await _httpClient.GetAsync("https://localhost:7225/api/WindowsUserDetails");
+            var response = await _httpClient.GetAsync("https://172.16.15.15:4431/api/WindowsUserDetails");
 
             if (response.IsSuccessStatusCode)
             {
@@ -67,7 +67,7 @@ namespace ManageEngineWebApp.Controllers
         }
         public async Task<IActionResult> Services()
         {
-            var response = await _httpClient.GetAsync("https://localhost:7225/api/WindowDrivers");
+            var response = await _httpClient.GetAsync("https://172.16.15.15:4431/api/WindowDrivers");
 
             if (response.IsSuccessStatusCode)
             {
