@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Text;
 using static ManageEngineWebApp.Datacontext.RoleHelper;
+using ManageEngineWebApp.Requests;
+using ManageEngineWebApp.Filters;
 
 namespace ManageEngineWebApp.Controllers
 {
@@ -62,7 +64,6 @@ namespace ManageEngineWebApp.Controllers
                 return View(model);
             }
 
-            // Dynamic check: top-level admin can assign roles at registration
             if (RoleHelper.IsTopLevelAdmin(HttpContext) && !string.IsNullOrEmpty(model.Role))
             {
                 var roleAssigned = await RoleHelper.AssignRoleAsync(model.Username, model.Role, model.CompanyId);
@@ -153,13 +154,8 @@ namespace ManageEngineWebApp.Controllers
                     return View(model);
                 }
 
-                // Primary role = first role from API (already sorted by hierarchy level)
                 string primaryRole = roleData.Roles.First();
-
-                // Store ALL role properties in session (dynamic, from database)
                 RoleHelper.SetSessionFromRoleData(HttpContext, roleData, primaryRole);
-
-                // Redirect based on StartPage from role definition (dynamic)
                 if (!string.IsNullOrEmpty(roleData.StartPage))
                 {
                     var parts = roleData.StartPage.Split('/');
@@ -171,15 +167,12 @@ namespace ManageEngineWebApp.Controllers
                         return Redirect(roleData.StartPage);
                 }
 
-                // Dynamic redirects based on role scope flags (from database)
                 if (roleData.HierarchyLevel == 0)
                 {
-                    // Top-level admin → main dashboard
                     return RedirectToAction("Companies", "Companies");
                 }
                 else if (roleData.RequiresCompany && roleData.CompanyId.HasValue)
                 {
-                    // Company-scoped role → company details
                     var companyMapping = roleData.Mappings?.FirstOrDefault(m =>
                         m.CompanyId.HasValue && m.CompanyId.Value == roleData.CompanyId.Value);
                     string companyName = companyMapping?.ScopeName ?? $"Company {roleData.CompanyId.Value}";
@@ -193,7 +186,6 @@ namespace ManageEngineWebApp.Controllers
                 }
                 else if (roleData.RequiresDevice)
                 {
-                    // Device-scoped role → device summary
                     var deviceMapping = roleData.Mappings?.FirstOrDefault(m => !string.IsNullOrEmpty(m.ScopeName));
                     var assignedDomain = deviceMapping?.ScopeName;
 
@@ -203,10 +195,7 @@ namespace ManageEngineWebApp.Controllers
                         return RedirectToAction("Index", "ComputerSummary", new { domain = assignedDomain });
                     }
                 }
-
-                // Fallback: redirect to first authorized menu
                 var dynamicMenus = await RoleHelper.GetDynamicMenusAsync(HttpContext);
-                // Menus = page visibility only, no permission check needed
                 var firstAuthorizedMenu = dynamicMenus
                     .OrderBy(m => m.SortOrder)
                     .FirstOrDefault();
@@ -228,7 +217,6 @@ namespace ManageEngineWebApp.Controllers
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
-            // Delete all cookies to prevent bloated cookies from blocking future logins
             foreach (var cookieName in HttpContext.Request.Cookies.Keys)
             {
                 Response.Cookies.Delete(cookieName);
@@ -647,11 +635,8 @@ namespace ManageEngineWebApp.Controllers
                 int permCount = 0;
                 int moduleCount = 0;
                 var errors = new List<string>();
-
-                // 0. Ensure SuperAdmin role definition exists with HierarchyLevel 0
                 await RoleHelper.CreateRoleAsync("SuperAdmin", "Top-level System Administrator with full access", false, false, false);
 
-                // 1. Seed Modules First
                 var uniqueModules = discoveredPermissions.Select(p => p.Module).Distinct().Where(m => !string.IsNullOrEmpty(m));
                 foreach (var modName in uniqueModules)
                 {
@@ -670,7 +655,6 @@ namespace ManageEngineWebApp.Controllers
                     } catch (Exception ex) { errors.Add($"Module {modName}: {ex.Message}"); }
                 }
 
-                // 2. Seed Permissions
                 foreach (var p in discoveredPermissions)
                 {
                     try {
@@ -690,17 +674,14 @@ namespace ManageEngineWebApp.Controllers
 
                         var res = await GetClient().PostAsync($"{_baseUrl}/api/Permission/SavePermission", content);
                         if (res.IsSuccessStatusCode) permCount++;
-                        // Don't log "Exists" errors as failures, but track others
                     } catch (Exception ex) { errors.Add($"Perm {p.PermissionCode}: {ex.Message}"); }
                 }
 
-                // 3. Assign All Permissions to SuperAdmin
                 var allCodes = discoveredPermissions.Select(p => p.PermissionCode).ToList();
                 var assignRequest = new { roleName = "SuperAdmin", permissionCodes = allCodes, assignedBy = "System" };
                 var assignContent = new StringContent(JsonConvert.SerializeObject(assignRequest), Encoding.UTF8, "application/json");
                 await GetClient().PostAsync($"{_baseUrl}/api/Permission/AssignToRole", assignContent);
 
-                // 4. Assign All Menus to SuperAdmin
                 string menuMsg = "";
                 var menusRes = await GetClient().GetAsync($"{_baseUrl}/api/Permission/Menus");
                 if (menusRes.IsSuccessStatusCode)
@@ -717,7 +698,6 @@ namespace ManageEngineWebApp.Controllers
                     }
                 }
 
-                // 5. Refresh current user's session
                 await RoleHelper.RefreshSessionPermissionsAsync(HttpContext);
 
                 return Json(new {
@@ -787,7 +767,6 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = roleResult.Message });
                 }
 
-                // 2. Assign Permissions to the new role
                 using var client = GetClient();
 
                 var permPayload = new
@@ -809,7 +788,6 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = $"Role created but permission assignment failed: {permError}" });
                 }
 
-                // 3. Assign Menus
                 if (model.MenuIds != null && model.MenuIds.Any())
                 {
                     var menuPayload = new
@@ -876,7 +854,6 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Role name is required" });
                 }
 
-                // 1. Update Role Definition in backend
                 using var client = GetClient();
                 var roleUpdatePayload = new {
                     RoleName = model.RoleName,
@@ -894,7 +871,6 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Failed to update role definition: " + await roleResponse.Content.ReadAsStringAsync() });
                 }
 
-                // 2. Assign Permissions
                 if (model.Permissions != null)
                 {
                     var permPayload = new {
@@ -906,7 +882,6 @@ namespace ManageEngineWebApp.Controllers
                     await client.PostAsync($"{_baseUrl}/api/Permission/AssignToRole", permContent);
                 }
 
-                // 3. Assign Menus
                 if (model.MenuIds != null)
                 {
                     var menuPayload = new {
@@ -924,46 +899,5 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
-    }
-
-    public class AssignRoleRequest
-    {
-        public string? Username { get; set; }
-        public string? Role { get; set; }
-        public int? CompanyId { get; set; }
-        public int? GroupId { get; set; }
-        public string? DomainName { get; set; }
-        public int? LocationId { get; set; }
-    }
-
-    public class RemoveRoleRequest
-    {
-        public string? Username { get; set; }
-    }
-
-    public class CreateRoleRequest
-    {
-        public string? RoleName { get; set; }
-        public string? Description { get; set; }
-        public bool RequiresCompany { get; set; }
-        public bool RequiresDevice { get; set; }
-        public bool RequiresLocation { get; set; }
-    }
-
-    public class CreateRoleWithPermissionsRequest
-    {
-        public string? RoleName { get; set; }
-        public string? Description { get; set; }
-        public bool RequiresCompany { get; set; }
-        public bool RequiresGroup { get; set; }
-        public bool RequiresDevice { get; set; }
-        public bool RequiresLocation { get; set; }
-        public List<string>? Permissions { get; set; }
-        public List<int>? MenuIds { get; set; }
-    }
-
-    public class DeleteRoleRequest
-    {
-        public string? RoleName { get; set; }
     }
 }

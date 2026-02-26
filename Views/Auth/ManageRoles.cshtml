@@ -1,4 +1,4 @@
-@model List<ManageEngineWebApp.Datacontext.UserRoleDto>
+@model List<ManageEngineWebApp.Dtos.UserRoleDto>
 @{
     ViewData["Title"] = "Manage User Roles";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -309,8 +309,7 @@
                     </div>
                 </div>
 
-                <!-- Right Column: Permission Selection -->
-                <!-- Right Column: Permission & Menu Selection (Tabbed) -->
+      
                 <div>
                     <div class="flex items-center border-b mb-3">
                         <button onclick="switchRoleTab('perms')" id="tabBtn_perms" class="px-3 py-1 text-xs font-bold border-b-2 border-cyan-500 text-cyan-600">Permissions</button>
@@ -397,31 +396,25 @@
                    'CompanyUser': { requiresCompany: true, requiresDevice: true, requiresLocation: false, isSystem: true }
                };
 
-               // Initialize on page load
                $(document).ready(function() {
                    loadSystemRoles();
                });
 
-               // Inject User List from Model to JS for client-side stats
                var allUsers = @Html.Raw(Json.Serialize(Model));
 
                function renderStats() {
                    var container = $('#roleStatsContainer');
                    container.empty();
 
-                   // 1. Total Users
                    addStatCard(container, "Total Users", allUsers.length, "bg-emerald-500", "fa-users");
 
-                   // 2. Super Admin (Always show)
                    var saCount = allUsers.filter(u => (u.Roles || u.roles || []).includes("SuperAdmin")).length;
                    addStatCard(container, "Super Admin", saCount, "bg-red-500", "fa-crown");
 
-                   // 3. Dynamic Roles from systemRoles
                    systemRoles.forEach(function(role) {
                        var rName = typeof role === 'string' ? role : (role.name || role.RoleName);
                        if(rName === 'SuperAdmin') return;
                        var count = allUsers.filter(u => (u.Roles || u.roles || []).includes(rName)).length;
-                       // Only show cards for roles that either have users or are defined
                        addStatCard(container, rName, count, "bg-cyan-500", "fa-tag");
                    });
 
@@ -449,7 +442,7 @@
                    container.append(card);
                }
 
-               // Load available roles from system
+
                function loadSystemRoles() {
                    $.ajax({
                        url: '@Url.Action("GetAllSystemRoles", "Auth")',
@@ -457,12 +450,11 @@
                        success: function (roles) {
                            systemRoles = roles || [];
 
-                           // Reset roleConfigs with SuperAdmin defaults
+
                            roleConfigs = {
                                'SuperAdmin': { requiresCompany: false, requiresGroup: false, requiresDevice: false, requiresLocation: false, isSystem: true, startPage: 'Companies/Companies' }
                            };
 
-                           // Build roleConfigs dynamically from metadata
                            systemRoles.forEach(function(r) {
                                var rName = typeof r === 'string' ? r : (r.name || r.RoleName);
                                roleConfigs[rName] = {
@@ -480,7 +472,7 @@
                        },
                        error: function () {
                            console.error('Failed to load system roles');
-                           renderStats(); // Still render basic stats
+                           renderStats(); 
                        }
                    });
                }
@@ -488,7 +480,7 @@
                function updateRoleDropdown() {
                    var options = '<option value="">-- Select Role --</option>';
 
-                   // Filter out SuperAdmin from assignment dropdown
+
                    var displayRoles = systemRoles.filter(r => {
                        var rName = typeof r === 'string' ? r : (r.name || r.RoleName);
                        return rName !== 'SuperAdmin';
@@ -508,17 +500,17 @@
 
                function formatRoleName(roleName) {
                    if (!roleName) return "";
-                   // Convert CamelCase to Title Case with spaces
+        
                    return roleName.replace(/([A-Z])/g, ' $1').trim();
                }
 
-               // ===================== ASSIGN ROLE MODAL =====================
+  
                function openAssignRoleModal() {
                    document.getElementById('assignRoleModal').classList.remove('hidden');
                    document.getElementById('assignRoleModal').classList.add('flex');
                    document.getElementById('assignMessage').classList.add('hidden');
                    loadCompaniesForModal();
-                   loadSystemRoles(); // Refresh roles list
+                   loadSystemRoles();
                }
 
                function closeAssignRoleModal() {
@@ -539,20 +531,19 @@
                    var role = $(this).val();
                    var config = roleConfigs[role] || { requiresCompany: false, requiresGroup: false, requiresDevice: false, requiresLocation: false };
 
-                   // Logic: All scoped roles require Company selection first
+        
                    if (config.requiresCompany || config.requiresGroup || config.requiresDevice || config.requiresLocation) {
                        $('#companySelectDiv').removeClass('hidden');
                    } else {
                        $('#companySelectDiv').addClass('hidden');
                    }
 
-                   // These stay hidden until nested selection is made
                    $('#groupSelectDiv').addClass('hidden');
                    $('#locationSelectDiv').addClass('hidden');
                    $('#domainSelectDiv').addClass('hidden');
                });
 
-               // Company change handler - Load Groups
+         
                $('#assignCompany').on('change', function () {
                    var companyId = $(this).val();
                    var role = $('#assignRole').val();
@@ -563,7 +554,7 @@
                        return;
                    }
 
-                   // Always load groups next if any scoped field is required
+                
                    if (config.requiresCompany || config.requiresDevice || config.requiresLocation) {
                        $('#groupSelectDiv').removeClass('hidden');
                        $('#assignGroup').html('<option value="">Loading groups...</option>');
@@ -584,12 +575,12 @@
                        });
                    }
 
-                   // Reset downstreams
+              
                    $('#locationSelectDiv').addClass('hidden');
                    $('#domainSelectDiv').addClass('hidden');
                });
 
-               // Group change handler - Load Locations
+            
                $('#assignGroup').on('change', function () {
                    var companyId = $('#assignCompany').val();
                    var groupId = $(this).val();
@@ -623,7 +614,7 @@
                    $('#domainSelectDiv').addClass('hidden');
                });
 
-               // Location change handler - Load Devices
+
                $('#assignLocation').on('change', function () {
                    var companyId = $('#assignCompany').val();
                    var groupId = $('#assignGroup').val();
@@ -783,9 +774,8 @@
                    }, { type: 'danger' });
                }
 
-               // ===================== CREATE ROLE MODAL =====================
-               var permissionsData = []; // Cache permissions data
-               var menusData = []; // Cache menus data
+               var permissionsData = []; 
+               var menusData = []; 
                var isEditMode = false;
                var currentEditingRole = '';
 
@@ -808,7 +798,6 @@
                    document.getElementById('createRoleModal').classList.add('flex');
                    document.getElementById('createRoleMessage').classList.add('hidden');
 
-                   // Reset form
                    $('#newRoleName').val('');
                    $('#newRoleDescription').val('');
                    $('#roleRequiresCompany').prop('checked', false);
@@ -871,7 +860,7 @@
                        var moduleIcon = module.moduleIcon || module.ModuleIcon || 'fas fa-folder';
                        var moduleId = moduleName.replace(/\s+/g, '') + '_menu';
 
-                       // Skip modules with no menus
+       
                        if (moduleMenus.length === 0) return;
 
                        html += `
@@ -1029,13 +1018,13 @@
                    const messageEl = $('#createRoleMessage');
                    const btn = $('#createRoleBtn');
 
-                   // Collect selected permissions
+                   
                    var selectedPermissions = [];
                    $('input[name="permissions"]:checked').each(function() {
                        selectedPermissions.push($(this).val());
                    });
 
-                   // Collect selected menus
+               
                    var selectedMenus = [];
                    $('input[name="menuIds"]:checked').each(function() {
                        selectedMenus.push(parseInt($(this).val()));
@@ -1051,7 +1040,7 @@
                        return;
                    }
 
-                   // Validate role name format (no spaces, CamelCase)
+                
                    if (/\s/.test(roleName)) {
                        showMessage(messageEl, 'Role name cannot contain spaces. Use CamelCase format.', 'error');
                        return;
@@ -1092,7 +1081,7 @@
                    });
                }
 
-               // ===================== EDIT SYSTEM ROLE =====================
+  
                var currentRoleData = null;
 
                function editSystemRole(roleName) {
@@ -1102,12 +1091,11 @@
                    $('#createRoleBtnText').text('Save Changes');
                    $('#newRoleName').val(roleName).prop('readonly', true);
 
-                   // Show modal
+     
                    document.getElementById('createRoleModal').classList.remove('hidden');
                    document.getElementById('createRoleModal').classList.add('flex');
                    document.getElementById('createRoleMessage').classList.add('hidden');
 
-                   // Fetch Details
                    $.ajax({
                        url: '@Url.Action("GetRoleDetails", "Auth")?roleName=' + roleName,
                        type: 'GET',
@@ -1141,7 +1129,6 @@
                    });
                }
 
-               // ===================== MANAGE ROLES LIST MODAL =====================
                function openManageRolesListModal() {
                    document.getElementById('manageRolesListModal').classList.remove('hidden');
                    document.getElementById('manageRolesListModal').classList.add('flex');
@@ -1160,7 +1147,7 @@
                        type: 'GET',
                        success: function(roles) {
                            var html = '';
-                           // Add SuperAdmin first (system role)
+
                            html += createRoleListItem({ name: 'SuperAdmin', description: 'Full system access', isSystem: true, userCount: 1 }, 'red');
 
                            if (roles && roles.length > 0) {
@@ -1204,7 +1191,7 @@
                }
 
 
-               // ===================== UTILITY FUNCTIONS =====================
+  
                function showMessage(el, message, type) {
                    el.removeClass('hidden bg-red-50 text-red-700 bg-green-50 text-green-700');
                    if (type === 'success') {

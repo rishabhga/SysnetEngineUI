@@ -318,7 +318,6 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
                 var json = await response.Content.ReadAsStringAsync();
 
-                // Scope filter: restrict to user's assigned company
                 var (userCompanyId, _, _) = GetUserScope();
                 if (userCompanyId.HasValue)
                 {
@@ -340,7 +339,6 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                // Scope check: ensure user can access this company
                 var (userCompanyId, userGroupId, _) = GetUserScope();
                 var effectiveCompanyId = userCompanyId ?? companyId;
                 var effectiveGroupId = userGroupId ?? groupId;
@@ -360,7 +358,6 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                // Scope check: enforce user's scope
                 var (userCompanyId, userGroupId, userLocationId) = GetUserScope();
                 var effectiveCompanyId = userCompanyId ?? companyId;
                 var effectiveGroupId = userGroupId ?? groupId;
@@ -378,7 +375,6 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                // Scope check: restrict to user's company
                 var (userCompanyId, _, _) = GetUserScope();
                 var effectiveCompanyId = userCompanyId ?? companyId;
 
@@ -515,7 +511,6 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
-        // ================= MASTER PARTS INVENTORY =================
 
         [AuthFilter]
         [DynamicPermission("ServiceDesk.ManageParts", "Manage Parts Inventory")] 

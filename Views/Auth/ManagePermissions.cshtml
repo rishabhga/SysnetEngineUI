@@ -291,9 +291,8 @@
 @section Scripts {
     <script>
         const AUTH_CTRL = '@Url.Content("~/Auth")';
-        let _allPermissions = []; // Store for client-side filtering
+        let _allPermissions = []; 
 
-        // Toast Notification System
         function showToast(message, isError = false) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -312,7 +311,7 @@
         }
 
         $(document).ready(() => {
-            // System Management initialized
+
             loadAllData();
             loadDiscoveredRoutes();
         });
@@ -358,7 +357,7 @@
         function loadDiscoveredRoutes() {
             $.get('@Url.Action("GetDiscoveredRoutes", "Auth")', routes => {
                 if(routes && routes.length) {
-                    // Group routes by controller for cleaner logic
+                   
                     const grouped = {};
                     routes.forEach(r => {
                         if (!grouped[r.controller]) grouped[r.controller] = [];
@@ -369,26 +368,24 @@
 
                     window._discoveredRoutes = grouped;
 
-                    // Populate Controller Dropdowns (Menu + Permission + Filter)
+          
                     const controllers = Object.keys(grouped).sort();
                     const options = '<option value="">-- Select Controller --</option>' +
                         controllers.map(c => `<option value="${c}">${c}</option>`).join('');
 
-                    $('#controllerSelect').html(options); // Menu Modal
-                    $('#permControllerSelect').html(options); // Permission Modal
+                    $('#controllerSelect').html(options); 
+                    $('#permControllerSelect').html(options); 
                     $('#filterController').html('<option value="">All Controllers</option>' + controllers.map(c => `<option value="${c}">${c}</option>`).join(''));
                 }
             });
         }
 
-        // ================== CASCADING DROPDOWNS & FILTERING ==================
-
-        // 1. Menu Modal Logic
+      
         $(document).on('change', '#controllerSelect', function() {
             const ctrl = $(this).val();
             updateActionSelect(ctrl, '#actionSelect');
 
-            // Update hidden fields
+       
             $('#routeController').val(ctrl);
             $('#routeAction').val('');
         });
@@ -398,12 +395,11 @@
             $('#routeAction').val(action);
         });
 
-        // 2. Permission Modal Logic
         $(document).on('change', '#permControllerSelect', function() {
             const ctrl = $(this).val();
             updateActionSelect(ctrl, '#permActionSelect');
 
-            // Auto-fill Permission Code and Name if both are selected
+         
             $('#permissionCode').val('');
             $('#permissionName').val('');
         });
@@ -412,11 +408,11 @@
            const ctrl = $('#permControllerSelect').val();
            const action = $(this).val();
            if(ctrl && action) {
-               const code = `${ctrl}.${action}`; // Default code convention
+               const code = `${ctrl}.${action}`; 
                $('#permissionCode').val(code);
                $('#permissionName').val(`${action} ${ctrl}`);
 
-               // Auto-detect action type
+        
                let type = 'Action';
                const lower = action.toLowerCase();
                if(lower.includes('index') || lower.includes('details') || lower.includes('view') || lower.includes('get')) type = 'View';
@@ -428,7 +424,7 @@
            }
         });
 
-        // 3. Filter Logic for Permission Table
+ 
         $(document).on('change', '#filterController', function() {
             const selectedCtrl = $(this).val();
             renderPermissionsTable(selectedCtrl);
@@ -486,7 +482,7 @@
             });
         }
 
-        // ================== MENUS ==================
+        
         function loadMenus() {
              $.get('@Url.Action("GetMenus", "Auth")', menus => {
                 $('#menuCount').text(menus.length);
@@ -543,7 +539,7 @@
             }, { type: 'danger' });
         }
 
-        // ================== MODULES ==================
+   
         function loadModules() {
              $.get('@Url.Action("GetModules", "Auth")', modules => {
                  $('#moduleCount').text(modules.length);
@@ -585,14 +581,14 @@
             }, { type: 'danger' });
         }
 
-        // ================== PERMISSIONS ==================
+    
         function loadPermissions() {
              $.get('@Url.Action("GetPermissions", "Auth")', perms => {
-                 _allPermissions = perms; // Store all loaded permissions
+                 _allPermissions = perms;
                  $('#permissionCount').text(perms.length);
                  renderPermissionsTable();
 
-                 // Populate Required Permission dropdown in Menu Modal
+          
                  const options = '<option value="">-- No Permission Required --</option>' +
                      perms.sort((a,b) => a.permissionCode.localeCompare(b.permissionCode))
                           .map(p => `<option value="${p.permissionCode}">${p.permissionCode}</option>`).join('');
@@ -669,10 +665,10 @@
             }, { type: 'danger' });
         }
 
-        // Modal helpers
+    
         function openMenuModal(cb) {
             $('#menuModal').removeClass('hidden');
-            // Populate Module Dropdown
+          
             $.get('@Url.Action("GetModules", "Auth")', modules => {
                 const options = '<option value="">Select Module</option>' +
                     modules.map(m => `<option value="${m.id || m.Id}">${m.moduleName}</option>`).join('');
@@ -704,7 +700,7 @@
         function closePermissionModal() { $('#permissionModal').addClass('hidden'); $('#permissionForm')[0].reset(); }
         function loadModuleOptionsForPermission(cb) { $.get('@Url.Action("GetModules", "Auth")', m => { $('#permissionModuleId').html('<option value="">Select Module</option>' + m.map(x=>`<option value="${x.id || x.Id}">${x.moduleName}</option>`).join('')); if(cb) cb(); }); }
 
-        // Form Submissions
+      
         $('#menuForm').on('submit', function(e) {
             e.preventDefault();
             const controller = $('#routeController').val();
@@ -790,24 +786,21 @@
             });
         });
 
-        // Edit helpers
+
         function editMenu(m) {
             openMenuModal(() => {
                 $('#menuId').val(m.id || m.Id);
                 $('#menuName').val(m.menuName);
                 $('#menuModalTitle').text('Edit Menu');
 
-                // Set hidden route fields immediately
                 $('#routeController').val(m.routeController);
                 $('#routeAction').val(m.routeAction);
 
-                // Set Module
                 $('#menuModuleSelect').val(m.moduleId || '');
 
-                // Cascading UI update
+             
                 $('#controllerSelect').val(m.routeController);
 
-                // IMPORTANT: Manually update action dropdown and set value WITHOUT triggering 'change' loop
                 updateActionSelect(m.routeController, '#actionSelect');
                 $('#actionSelect').val(m.routeAction);
 

@@ -38,7 +38,6 @@ namespace ManageEngineWebApp.Filters
             var username = context.HttpContext.Session.GetString("username");
             if (string.IsNullOrEmpty(username))
             {
-                // If it's a public auth action, let it pass
                 if (string.Equals(controller, "Auth", StringComparison.OrdinalIgnoreCase))
                 {
                     var publicAuthActions = new[] { "Login", "Logout", "Register", "AccessDenied" };
@@ -55,7 +54,6 @@ namespace ManageEngineWebApp.Filters
                 }
                 else
                 {
-                    // Avoid redirecting if already on Login page
                     if (!(string.Equals(controller, "Auth", StringComparison.OrdinalIgnoreCase) && string.Equals(action, "Login", StringComparison.OrdinalIgnoreCase)))
                     {
                         context.Result = new RedirectToActionResult("Login", "Auth", null);

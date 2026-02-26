@@ -1,80 +1,8 @@
+using ManageEngineWebApp.Dtos;
 using Newtonsoft.Json;
 using System.Text;
 namespace ManageEngineWebApp.Datacontext
 {
-    public class UserRoleDto
-    {
-        [JsonProperty("username")]
-        public string? Username { get; set; }
-        [JsonProperty("roles")]
-        public List<string>? Roles { get; set; }
-        [JsonProperty("mappings")]
-        public List<RoleMappingDto>? Mappings { get; set; }
-        [JsonProperty("companyId")]
-        public int? CompanyId { get; set; }
-        [JsonProperty("groupId")]
-        public int? GroupId { get; set; }
-        [JsonProperty("locationId")]
-        public int? LocationId { get; set; }
-        [JsonProperty("startPage")]
-        public string? StartPage { get; set; }
-        [JsonProperty("permissions")]
-        public List<string>? Permissions { get; set; }
-
-        // Dynamic role properties from RoleDefinitions table
-        [JsonProperty("hierarchyLevel")]
-        public int HierarchyLevel { get; set; } = 999;
-        [JsonProperty("requiresCompany")]
-        public bool RequiresCompany { get; set; }
-        [JsonProperty("requiresGroup")]
-        public bool RequiresGroup { get; set; }
-        [JsonProperty("requiresLocation")]
-        public bool RequiresLocation { get; set; }
-        [JsonProperty("requiresDevice")]
-        public bool RequiresDevice { get; set; }
-        [JsonProperty("isSystemRole")]
-        public bool IsSystemRole { get; set; }
-        [JsonProperty("allowedMenuIds")]
-        public List<int>? AllowedMenuIds { get; set; }
-    }
-
-    public class RoleMappingDto
-    {
-        [JsonProperty("roleName")]
-        public string? RoleName { get; set; }
-        [JsonProperty("scopeType")]
-        public string? ScopeType { get; set; }
-        [JsonProperty("scopeName")]
-        public string? ScopeName { get; set; }
-        [JsonProperty("scopeId")]
-        public int? ScopeId { get; set; }
-        [JsonProperty("companyId")]
-        public int? CompanyId { get; set; }
-        [JsonProperty("groupId")]
-        public int? GroupId { get; set; }
-        [JsonProperty("locationId")]
-        public int? LocationId { get; set; }
-        [JsonProperty("companyName")]
-        public string? CompanyName { get; set; }
-        [JsonProperty("groupName")]
-        public string? GroupName { get; set; }
-        [JsonProperty("locationName")]
-        public string? LocationName { get; set; }
-    }
-
-    public class MenuDefinitionDto
-    {
-        public int Id { get; set; }
-        public string MenuName { get; set; } = string.Empty;
-        public string RouteController { get; set; } = string.Empty;
-        public string RouteAction { get; set; } = string.Empty;
-        public string MenuIcon { get; set; } = string.Empty;
-        public int SortOrder { get; set; }
-        public int? ParentId { get; set; }
-        public string RequiredPermissionCode { get; set; } = string.Empty;
-        public int ModuleId { get; set; }
-    }
-
     public static class RoleHelper
     {
         private static string _apiBaseUrl = "https://localhost:7225/api/Auth";
@@ -119,7 +47,6 @@ namespace ManageEngineWebApp.Datacontext
             }
             catch (Exception ex)
             {
-                // Internal connection error
                 return (null, $"Connection Error: {ex.Message}");
             }
         }
@@ -158,19 +85,17 @@ namespace ManageEngineWebApp.Datacontext
         {
             if (IsTopLevelAdmin(context)) return true; 
 
-            if (string.IsNullOrEmpty(permissionCode)) return true; // No permission required
+            if (string.IsNullOrEmpty(permissionCode)) return true;
 
             var permissions = context?.Session.GetString("permissions");
             if (string.IsNullOrEmpty(permissions)) return false;
 
-            // Wildcard = all permissions granted (used for top-level admin)
             if (permissions == "*") return true;
 
             var permList = permissions.Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => p.Trim())
                 .ToList();
 
-            // 1. Exact match (case-insensitive)
             if (permList.Any(p => p.Equals(permissionCode, StringComparison.OrdinalIgnoreCase)))
                 return true;
 
@@ -270,13 +195,11 @@ namespace ManageEngineWebApp.Datacontext
             if (roleData.CompanyId.HasValue)
                 context.Session.SetString("companyId", roleData.CompanyId.Value.ToString());
                 
-            // Extract GroupIds from root or Mappings
             var groupIds = new List<int>();
             if (roleData.GroupId.HasValue) groupIds.Add(roleData.GroupId.Value);
             if (roleData.Mappings != null) groupIds.AddRange(roleData.Mappings.Where(m => m.GroupId.HasValue).Select(m => m.GroupId.Value));
             if (groupIds.Any()) context.Session.SetString("groupId", string.Join(",", groupIds.Distinct()));
 
-            // Extract LocationIds from root or Mappings
             var locationIds = new List<int>();
             if (roleData.LocationId.HasValue) locationIds.Add(roleData.LocationId.Value);
             if (roleData.Mappings != null) locationIds.AddRange(roleData.Mappings.Where(m => m.LocationId.HasValue).Select(m => m.LocationId.Value));
@@ -305,7 +228,6 @@ namespace ManageEngineWebApp.Datacontext
             if (roleResponse.Result != null)
             {
                 var roleData = roleResponse.Result;
-                // Determine primary role dynamically: lowest hierarchyLevel wins
                 string primaryRole = "No Role";
                 if (roleData.Roles != null && roleData.Roles.Any())
                 {
@@ -488,14 +410,10 @@ namespace ManageEngineWebApp.Datacontext
             }
         }
 
-        /// <summary>
-        /// Get menus from session cache, or fetch from API if not cached.
-        /// </summary>
         public static async Task<List<MenuDefinitionDto>> GetDynamicMenusAsync(Microsoft.AspNetCore.Http.HttpContext? context = null)
         {
             List<MenuDefinitionDto> allMenus = new List<MenuDefinitionDto>();
 
-            // Try session cache first
             if (context != null)
             {
                 var cached = context.Session.GetString("cachedMenus");
@@ -505,7 +423,7 @@ namespace ManageEngineWebApp.Datacontext
                     {
                         allMenus = JsonConvert.DeserializeObject<List<MenuDefinitionDto>>(cached) ?? new List<MenuDefinitionDto>();
                     }
-                    catch { /* fall through to API if cache corrupted */ }
+                    catch {  }
                 }
             }
 
@@ -521,7 +439,6 @@ namespace ManageEngineWebApp.Datacontext
                         var json = await response.Content.ReadAsStringAsync();
                         allMenus = JsonConvert.DeserializeObject<List<MenuDefinitionDto>>(json) ?? new List<MenuDefinitionDto>();
                         
-                        // Cache in session
                         if (context != null)
                         {
                             context.Session.SetString("cachedMenus", json);
@@ -534,19 +451,13 @@ namespace ManageEngineWebApp.Datacontext
                 }
             }
 
-            // Filter based on allowedMenuIds AND RequiredPermissionCode
             if (context != null)
             {
-                // 1. Permission Check (Primary Filter)
-                // Even if role has mapping, menu is hidden if RequiredPermissionCode is missing from user's permissions
                 allMenus = allMenus.Where(m => string.IsNullOrEmpty(m.RequiredPermissionCode) || HasPermission(context, m.RequiredPermissionCode)).ToList();
 
-                // 2. Role-Menu Mapping Check (Secondary Filter for non-admins)
                 if (!IsTopLevelAdmin(context))
                 {
                     var allowedIdStr = context.Session.GetString("allowedMenuIds");
-
-                    // -1 marker = all menus allowed (top-level admin wildcard)
                     if (allowedIdStr == "-1")
                     {
                         return allMenus;
@@ -562,7 +473,6 @@ namespace ManageEngineWebApp.Datacontext
                     }
                     else
                     {
-                        // No menu mappings found — return menus that don't require any specific permission
                         return allMenus.Where(m => string.IsNullOrEmpty(m.RequiredPermissionCode)).ToList();
                     }
                 }
@@ -571,56 +481,9 @@ namespace ManageEngineWebApp.Datacontext
             return allMenus;
         }
 
-        /// <summary>
-        /// Clear cached menus (call when menus are updated).
-        /// </summary>
         public static void ClearMenuCache(Microsoft.AspNetCore.Http.HttpContext context)
         {
             context.Session.Remove("cachedMenus");
         }
     }
-
-    public class SystemRoleDto
-    {
-        [JsonProperty("name")]
-        [System.Text.Json.Serialization.JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
-
-        [JsonProperty("description")]
-        [System.Text.Json.Serialization.JsonPropertyName("description")]
-        public string Description { get; set; } = string.Empty;
-
-        [JsonProperty("isSystem")]
-        [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
-        public bool IsSystem { get; set; }
-
-        [JsonProperty("userCount")]
-        [System.Text.Json.Serialization.JsonPropertyName("userCount")]
-        public int UserCount { get; set; }
-
-        [JsonProperty("requiresCompany")]
-        [System.Text.Json.Serialization.JsonPropertyName("requiresCompany")]
-        public bool RequiresCompany { get; set; }
-
-        [JsonProperty("requiresGroup")]
-        [System.Text.Json.Serialization.JsonPropertyName("requiresGroup")]
-        public bool RequiresGroup { get; set; }
-
-        [JsonProperty("requiresDevice")]
-        [System.Text.Json.Serialization.JsonPropertyName("requiresDevice")]
-        public bool RequiresDevice { get; set; }
-
-        [JsonProperty("requiresLocation")]
-        [System.Text.Json.Serialization.JsonPropertyName("requiresLocation")]
-        public bool RequiresLocation { get; set; }
-
-        [JsonProperty("hierarchyLevel")]
-        [System.Text.Json.Serialization.JsonPropertyName("hierarchyLevel")]
-        public int HierarchyLevel { get; set; }
-
-        [JsonProperty("startPage")]
-        [System.Text.Json.Serialization.JsonPropertyName("startPage")]
-        public string StartPage { get; set; } = string.Empty;
-    }
-
 }

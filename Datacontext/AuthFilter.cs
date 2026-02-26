@@ -98,32 +98,4 @@ namespace ManageEngineWebApp.Datacontext
             return null;
         }
     }
-
-    public class SuperAdminOnlyFilter : AuthFilter
-    {
-        public SuperAdminOnlyFilter()
-        {
-            AllowedHierarchyLevel = 0; 
-        }
-    }
-
-   
-    public class CompanyDataFilter : AuthFilter
-    {
-        public CompanyDataFilter()
-        {
-            AllowedHierarchyLevel = 5; 
-            VerifyCompanyAccess = true;
-        }
-    }
-
-    
-    public class CompanyUserFilter : AuthFilter
-    {
-        public CompanyUserFilter()
-        {
-            AllowedHierarchyLevel = 10; 
-            VerifyCompanyAccess = true;
-        }
-    }
 }
