@@ -1,4 +1,4 @@
-@model List<ManageEngineWebApp.Dtos.CompanyHierarchyDto>
+﻿@model List<ManageEngineWebApp.Dtos.CompanyHierarchyDto>
 @{
     ViewData["Title"] = "Companies - SYSNET";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -61,16 +61,7 @@
         }
     </div>
 
-    <div class="hidden text-xs text-gray-500 mb-2 p-2 bg-gray-50 rounded-lg border border-gray-200" id="debugSection">
-        <p class="font-semibold mb-1">Debug Information:</p>
-        <p>Active Computers Count: @activeComputers.Count</p>
-        <p>Total Online Calculated: @activeCount</p>
-        <p>Total Users in System: @totalUsers</p>
-        @if (activeComputers.Count > 0)
-        {
-            <p class="mt-1">Active Computers: @string.Join(", ", activeComputers.Take(5))@(activeComputers.Count > 5 ? "..." : "")</p>
-        }
-    </div>
+
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
@@ -130,9 +121,7 @@
                 <i class="fas fa-search text-gray-400 text-sm"></i>
             </div>
         </div>
-        <button onclick="toggleDebug()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium">
-            <i class="fas fa-bug text-xs"></i>
-        </button>
+
     </div>
 
     <!-- Companies Grid -->
@@ -232,7 +221,7 @@
                                             </div>
                                             <div>
                                                 <p class="text-xs font-semibold text-gray-900 truncate max-w-[100px]">@group.GroupName</p>
-                                                <p class="text-[10px] text-gray-500">@groupOnline/@groupUsers Online � @groupLocations Loc</p>
+                                                <p class="text-[10px] text-gray-500">@groupOnline/@groupUsers Online · @groupLocations Loc</p>
                                             </div>
                                         </div>
                                     </div>
@@ -522,9 +511,7 @@
     }
 
 
-    function toggleDebug() {
-        $('#debugSection').toggleClass('hidden');
-    }
+
 
     $(document).ready(function() {
         $('#searchCompanies').on('keyup', function() {
@@ -535,3 +522,4 @@
         });
     });
 </script>
+

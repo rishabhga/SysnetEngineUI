@@ -500,12 +500,18 @@
             if(newStatus === 'Approved') remarks = $('#approveRemarks').val() || "Approved via portal";
             else if(newStatus === 'Rejected') {
                 remarks = $('#rejectRemarks').val();
-                if(!remarks) { alert("Please provide rejection reason"); return; }
+                if(!remarks) { sysAlert('Please provide rejection reason', 'warning'); return; }
             } else {
-                if(!confirm(`Update status to ${newStatus}?`)) return;
-                remarks = `Status updated to ${newStatus}`;
+                sysConfirm('Update status to ' + newStatus + '?', function() {
+                    var r = 'Status updated to ' + newStatus;
+                    doStatusUpdate(newStatus, r);
+                });
+                return;
             }
+            doStatusUpdate(newStatus, remarks);
+        }
 
+        function doStatusUpdate(newStatus, remarks) {
             $.ajax({
                 url: '@Url.Action("UpdateStatus", "ServiceDesk")',
                 type: 'POST',
@@ -513,7 +519,7 @@
                 data: JSON.stringify({ ticketId: ticketId, newStatus: newStatus, remarks: remarks, username: currentUser }),
                 success: function(res) {
                     if(res.success) location.reload();
-                    else alert(res.message);
+                    else sysAlert(res.message, 'error');
                 }
             });
         }
@@ -533,7 +539,7 @@
             const engName = $('#engineerSelect option:selected').data('name');
             const notes = $('#assignNotes').val();
 
-            if(!engId) { alert("Please select an engineer"); return; }
+            if(!engId) { sysAlert('Please select an engineer', 'warning'); return; }
 
             $.ajax({
                 url: '@Url.Action("AssignTicket", "ServiceDesk")',
@@ -548,7 +554,7 @@
                 }),
                 success: function(res) {
                     if(res.success) location.reload();
-                    else alert(res.message);
+                    else sysAlert(res.message, 'error');
                 }
             });
         }
@@ -598,12 +604,12 @@
                     if(res.success) {
                         $('#commentInput').val('');
                         loadComments();
-                    } else alert(res.message || "Failed to post comment");
+                    } else sysAlert(res.message || 'Failed to post comment', 'error');
                 },
                 error: function(e) { 
                     console.error(e); 
-                    const msg = e.responseJSON?.message || "Error communicating with server while posting comment";
-                    alert(msg); 
+                    var msg = e.responseJSON?.message || 'Error communicating with server while posting comment';
+                    sysAlert(msg, 'error'); 
                 }
             });
         }
@@ -681,12 +687,12 @@
                         $('#uploading').remove();
                         if(res.success) {
                             loadAttachments();
-                        } else alert(res.message || "Upload failed");
+                        } else sysAlert(res.message || 'Upload failed', 'error');
                     },
                     error: function(e) { 
                         $('#uploading').remove(); 
-                        const msg = e.responseJSON?.message || "Error uploading file";
-                        alert(msg); 
+                        var msg = e.responseJSON?.message || 'Error uploading file';
+                        sysAlert(msg, 'error'); 
                     }
                 });
             }
@@ -739,11 +745,10 @@
             loadParts();
         }
 
-        async function deletePart(id) {
-            if(confirm("Delete part?")) {
-                await fetch(`/ServiceDesk/DeletePart?id=${id}`, {method: 'DELETE'});
-                loadParts();
-            }
+        function deletePart(id) {
+            sysConfirm('Delete this part?', function() {
+                fetch('/ServiceDesk/DeletePart?id=' + id, {method: 'DELETE'}).then(function(){ loadParts(); });
+            }, {type:'danger'});
         }
 
         // ================= MASTER PARTS =================
@@ -774,47 +779,46 @@
 
         // ================= START WORK =================
         function startWork() {
-            if(!confirm('Start working on this ticket?')) return;
-            
-            $.ajax({
-                url: '@Url.Action("StartWork", "ServiceDesk")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    ticketId: ticketId,
-                    username: currentUser,
-                    remarks: 'Started working on ticket'
-                }),
-                success: function(res) {
-                    if(res.success) location.reload();
-                    else alert(res.message || 'Failed to start work');
-                },
-                error: function() {
-                    alert('Failed to start work');
-                }
+            sysConfirm('Start working on this ticket?', function() {
+                $.ajax({
+                    url: '@Url.Action("StartWork", "ServiceDesk")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        ticketId: ticketId,
+                        username: currentUser,
+                        remarks: 'Started working on ticket'
+                    }),
+                    success: function(res) {
+                        if(res.success) location.reload();
+                        else sysAlert(res.message || 'Failed to start work', 'error');
+                    },
+                    error: function() {
+                        sysAlert('Failed to start work', 'error');
+                    }
+                });
             });
         }
 
         // ================= DELETE TICKET =================
         function deleteTicket() {
-            if(!confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) return;
-            
-            $.ajax({
-                url: '@Url.Action("DeleteTicket", "ServiceDesk")',
-                type: 'DELETE',
-                data: { id: ticketId },
-                success: function(res) {
-                    if(res.success) {
-                        alert('Ticket deleted successfully');
-                        window.location.href = '@Url.Action("Tickets", "ServiceDesk")';
-                    } else {
-                        alert(res.message || 'Failed to delete ticket');
+            sysConfirm('Are you sure you want to delete this ticket? This action cannot be undone.', function() {
+                $.ajax({
+                    url: '@Url.Action("DeleteTicket", "ServiceDesk")' + '?id=' + ticketId,
+                    type: 'DELETE',
+                    success: function(res) {
+                        if(res.success) {
+                            sysAlert('Ticket deleted successfully', 'success');
+                            setTimeout(function(){ window.location.href = '@Url.Action("Tickets", "ServiceDesk")'; }, 1500);
+                        } else {
+                            sysAlert(res.message || 'Failed to delete ticket', 'error');
+                        }
+                    },
+                    error: function() {
+                        sysAlert('Failed to delete ticket', 'error');
                     }
-                },
-                error: function() {
-                    alert('Failed to delete ticket');
-                }
-            });
+                });
+            }, {type:'danger'});
         }
 
         // ================= RESOLVE TICKET =================
@@ -832,10 +836,10 @@
                 }),
                 success: function(res) {
                     if(res.success) location.reload();
-                    else alert(res.message || 'Failed to resolve');
+                    else sysAlert(res.message || 'Failed to resolve', 'error');
                 },
                 error: function() {
-                    alert('Failed to resolve ticket');
+                    sysAlert('Failed to resolve ticket', 'error');
                 }
             });
         }

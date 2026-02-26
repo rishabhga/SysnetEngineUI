@@ -77,7 +77,8 @@ namespace ManageEngineWebApp.Datacontext
 
     public static class RoleHelper
     {
-        private static string _apiBaseUrl = "https://172.16.15.15:4431/api/Auth";
+        private static string _apiBaseUrl = "https://localhost:7225/api/Auth";
+        //private static string _apiBaseUrl = "https://172.16.15.15:4431/api/Auth";
         private static IHttpClientFactory? _httpClientFactory;
 
         public static void Configure(IConfiguration configuration, IHttpClientFactory? httpClientFactory = null)
@@ -196,17 +197,39 @@ namespace ManageEngineWebApp.Datacontext
             return null;
         }
 
-        public static int? GetGroupId(Microsoft.AspNetCore.Http.HttpContext context)
+        public static List<int> GetGroupIds(Microsoft.AspNetCore.Http.HttpContext context)
         {
             var idStr = context?.Session.GetString("groupId");
-            if (int.TryParse(idStr, out int id)) return id;
+            if (string.IsNullOrEmpty(idStr)) return new List<int>();
+            return idStr.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.TryParse(s, out int id) ? id : (int?)null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id.Value)
+                        .ToList();
+        }
+
+        public static int? GetGroupId(Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            var ids = GetGroupIds(context);
+            if (ids.Any()) return ids.First();
             return null;
+        }
+
+        public static List<int> GetLocationIds(Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            var idStr = context?.Session.GetString("locationId");
+            if (string.IsNullOrEmpty(idStr)) return new List<int>();
+            return idStr.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.TryParse(s, out int id) ? id : (int?)null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id.Value)
+                        .ToList();
         }
 
         public static int? GetLocationId(Microsoft.AspNetCore.Http.HttpContext context)
         {
-            var idStr = context?.Session.GetString("locationId");
-            if (int.TryParse(idStr, out int id)) return id;
+            var ids = GetLocationIds(context);
+            if (ids.Any()) return ids.First();
             return null;
         }
 
@@ -217,17 +240,17 @@ namespace ManageEngineWebApp.Datacontext
             int? requestedLocationId = null)
         {
             if (IsTopLevelAdmin(context)) return true;
+            
             var userCompanyId = GetCompanyId(context);
-            if (userCompanyId.HasValue && requestedCompanyId.HasValue
-                && userCompanyId.Value != requestedCompanyId.Value)
+            if (userCompanyId.HasValue && requestedCompanyId.HasValue && userCompanyId.Value != requestedCompanyId.Value)
                 return false;
-            var userGroupId = GetGroupId(context);
-            if (userGroupId.HasValue && requestedGroupId.HasValue
-                && userGroupId.Value != requestedGroupId.Value)
+                
+            var userGroupIds = GetGroupIds(context);
+            if (userGroupIds.Any() && requestedGroupId.HasValue && !userGroupIds.Contains(requestedGroupId.Value))
                 return false;
-            var userLocationId = GetLocationId(context);
-            if (userLocationId.HasValue && requestedLocationId.HasValue
-                && userLocationId.Value != requestedLocationId.Value)
+                
+            var userLocationIds = GetLocationIds(context);
+            if (userLocationIds.Any() && requestedLocationId.HasValue && !userLocationIds.Contains(requestedLocationId.Value))
                 return false;
 
             return true;
@@ -246,10 +269,18 @@ namespace ManageEngineWebApp.Datacontext
 
             if (roleData.CompanyId.HasValue)
                 context.Session.SetString("companyId", roleData.CompanyId.Value.ToString());
-            if (roleData.GroupId.HasValue)
-                context.Session.SetString("groupId", roleData.GroupId.Value.ToString());
-            if (roleData.LocationId.HasValue)
-                context.Session.SetString("locationId", roleData.LocationId.Value.ToString());
+                
+            // Extract GroupIds from root or Mappings
+            var groupIds = new List<int>();
+            if (roleData.GroupId.HasValue) groupIds.Add(roleData.GroupId.Value);
+            if (roleData.Mappings != null) groupIds.AddRange(roleData.Mappings.Where(m => m.GroupId.HasValue).Select(m => m.GroupId.Value));
+            if (groupIds.Any()) context.Session.SetString("groupId", string.Join(",", groupIds.Distinct()));
+
+            // Extract LocationIds from root or Mappings
+            var locationIds = new List<int>();
+            if (roleData.LocationId.HasValue) locationIds.Add(roleData.LocationId.Value);
+            if (roleData.Mappings != null) locationIds.AddRange(roleData.Mappings.Where(m => m.LocationId.HasValue).Select(m => m.LocationId.Value));
+            if (locationIds.Any()) context.Session.SetString("locationId", string.Join(",", locationIds.Distinct()));
 
             var permString = roleData.Permissions != null && roleData.Permissions.Any()
                 ? string.Join(",", roleData.Permissions)
@@ -551,15 +582,44 @@ namespace ManageEngineWebApp.Datacontext
 
     public class SystemRoleDto
     {
+        [JsonProperty("name")]
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+
+        [JsonProperty("description")]
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string Description { get; set; } = string.Empty;
+
+        [JsonProperty("isSystem")]
+        [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
         public bool IsSystem { get; set; }
+
+        [JsonProperty("userCount")]
+        [System.Text.Json.Serialization.JsonPropertyName("userCount")]
         public int UserCount { get; set; }
+
+        [JsonProperty("requiresCompany")]
+        [System.Text.Json.Serialization.JsonPropertyName("requiresCompany")]
         public bool RequiresCompany { get; set; }
+
+        [JsonProperty("requiresGroup")]
+        [System.Text.Json.Serialization.JsonPropertyName("requiresGroup")]
         public bool RequiresGroup { get; set; }
+
+        [JsonProperty("requiresDevice")]
+        [System.Text.Json.Serialization.JsonPropertyName("requiresDevice")]
         public bool RequiresDevice { get; set; }
+
+        [JsonProperty("requiresLocation")]
+        [System.Text.Json.Serialization.JsonPropertyName("requiresLocation")]
         public bool RequiresLocation { get; set; }
+
+        [JsonProperty("hierarchyLevel")]
+        [System.Text.Json.Serialization.JsonPropertyName("hierarchyLevel")]
         public int HierarchyLevel { get; set; }
+
+        [JsonProperty("startPage")]
+        [System.Text.Json.Serialization.JsonPropertyName("startPage")]
         public string StartPage { get; set; } = string.Empty;
     }
 

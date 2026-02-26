@@ -20,7 +20,8 @@ namespace ManageEngineWebApp.Controllers
         {
             _httpClientFactory = httpClientFactory;
             _env = env;
-            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
+            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
+            //_baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
         }
         private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
         public async Task<IActionResult> Companies()
@@ -55,7 +56,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error fetching connected devices: {ex.Message}");
+                Debug.WriteLine($"Error: {ex.Message}");
             }
             ViewBag.ActiveComputers = activeComputers;
 
@@ -223,10 +224,10 @@ namespace ManageEngineWebApp.Controllers
 
                         if (groups != null)
                         {
-                            int? allowedGroupId = RoleHelper.GetGroupId(HttpContext);
-                            if (allowedGroupId.HasValue)
+                            var allowedGroupIds = RoleHelper.GetGroupIds(HttpContext);
+                            if (allowedGroupIds.Any())
                             {
-                                groups = groups.Where(g => g.Id == allowedGroupId.Value).ToList();
+                                groups = groups.Where(g => allowedGroupIds.Contains(g.Id)).ToList();
                             }
 
                             foreach (var group in groups)
@@ -246,10 +247,10 @@ namespace ManageEngineWebApp.Controllers
 
                                     if (locations != null)
                                     {
-                                        int? allowedLocationId = RoleHelper.GetLocationId(HttpContext);
-                                        if (allowedLocationId.HasValue)
+                                        var allowedLocationIds = RoleHelper.GetLocationIds(HttpContext);
+                                        if (allowedLocationIds.Any())
                                         {
-                                           locations = locations.Where(l => l.Id == allowedLocationId.Value).ToList();
+                                           locations = locations.Where(l => allowedLocationIds.Contains(l.Id)).ToList();
                                         }
 
                                         foreach (var location in locations)
@@ -408,7 +409,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error fetching connected devices: {ex.Message}");
+                Debug.WriteLine($"Error: {ex.Message}");
             }
             ViewBag.ActiveComputers = activeComputers;
             ViewBag.RemoteSessions = remoteSessions;
@@ -439,10 +440,10 @@ namespace ManageEngineWebApp.Controllers
 
             if (groups != null)
             {
-                int? allowedGroupId = RoleHelper.GetGroupId(HttpContext);
-                if (allowedGroupId.HasValue)
+                var allowedGroupIds = RoleHelper.GetGroupIds(HttpContext);
+                if (allowedGroupIds.Any())
                 {
-                    groups = groups.Where(g => g.Id == allowedGroupId.Value).ToList();
+                    groups = groups.Where(g => allowedGroupIds.Contains(g.Id)).ToList();
                 }
 
                 foreach (var group in groups)
@@ -460,10 +461,10 @@ namespace ManageEngineWebApp.Controllers
 
                     if (locations != null)
                     {
-                        int? allowedLocationId = RoleHelper.GetLocationId(HttpContext);
-                        if (allowedLocationId.HasValue)
+                        var allowedLocationIds = RoleHelper.GetLocationIds(HttpContext);
+                        if (allowedLocationIds.Any())
                         {
-                            locations = locations.Where(l => l.Id == allowedLocationId.Value).ToList();
+                            locations = locations.Where(l => allowedLocationIds.Contains(l.Id)).ToList();
                         }
 
                         foreach (var location in locations)

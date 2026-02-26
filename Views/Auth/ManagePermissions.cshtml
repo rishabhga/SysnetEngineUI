@@ -149,7 +149,7 @@
                     <label class="block text-[10px] font-medium text-gray-600 mb-1">Display Name</label>
                     <input type="text" id="menuName" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs" placeholder="e.g. Companies">
                 </div>
-                
+
                 <div class="col-span-2">
                     <label class="block text-[10px] font-medium text-gray-600 mb-1">Module</label>
                     <select id="menuModuleSelect" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
@@ -312,21 +312,46 @@
         }
 
         $(document).ready(() => {
-            console.log("System Management initialized");
+            // System Management initialized
             loadAllData();
             loadDiscoveredRoutes();
         });
 
+        async function scanAndAddPermissions() {
+            sysConfirm("This will scan all controllers and assume permissions/routes. Continue?", function() {
+                $('.scan-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Scanning...');
+
+                $.ajax({
+                    url: '/Auth/ScanPermissions',
+                    type: 'POST',
+                    success: function (res) {
+                        if (res.success) {
+                            sysAlert(res.message, "success");
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            sysAlert(res.message, "error");
+                            $('.scan-btn').prop('disabled', false).html('<i class="fas fa-search mr-2"></i>Scan & Add Permissions');
+                        }
+                    },
+                    error: function () {
+                        sysAlert("Scanning failed", "error");
+                        $('.scan-btn').prop('disabled', false).html('<i class="fas fa-search mr-2"></i>Scan & Add Permissions');
+                    }
+                });
+            });
+        }
+
         function seedDatabase() {
-            if(!confirm("This will scan all controllers and assume permissions/routes. Continue?")) return;
-            $.ajax({
-                url: '@Url.Action("SeedPermissions", "Auth")',
-                type: 'POST',
-                success: (res) => {
-                    if(res.success) { showToast(res.message); loadAllData(); }
-                    else showToast(res.message, true);
-                },
-                error: () => showToast("Failed to seed database", true)
+            sysConfirm("This will scan all controllers and assume permissions/routes. Continue?", function() {
+                $.ajax({
+                    url: '@Url.Action("SeedPermissions", "Auth")',
+                    type: 'POST',
+                    success: (res) => {
+                        if(res.success) { showToast(res.message); loadAllData(); }
+                        else showToast(res.message, true);
+                    },
+                    error: () => showToast("Failed to seed database", true)
+                });
             });
         }
 
@@ -500,16 +525,22 @@
         }
 
         function deleteMenu(id) {
-            if(!confirm('Are you sure you want to delete this menu?')) return;
-            $.ajax({
-                url: '/Auth/DeleteMenu?id=' + id,
-                type: 'DELETE',
-                success: (res) => {
-                    if(res.success) { showToast('Menu deleted'); loadAllData(); }
-                    else showToast(res.message, true);
-                },
-                error: () => showToast('Failed to delete menu', true)
-            });
+            sysConfirm('Are you sure you want to delete this menu?', function() {
+                $.ajax({
+                    url: '/Auth/DeleteMenu/' + id,
+                    type: 'POST',
+                    success: function (res) {
+                        if (res.success) { showToast('Menu deleted'); loadAllData(); }
+                        else sysAlert(res.message || 'Failed to delete menu', "error");
+                    },
+                    error: function (xhr) {
+                        var msg = 'Failed to delete menu';
+                        if (xhr.status === 404) msg = 'Delete menu action not found. Check MVC controller.';
+                        else if (xhr.status === 405) msg = 'Wrong HTTP method for DeleteMenu on MVC controller.';
+                        sysAlert(msg, 'error');
+                    }
+                });
+            }, { type: 'danger' });
         }
 
         // ================== MODULES ==================
@@ -536,16 +567,22 @@
         }
 
         function deleteModule(id) {
-            if(!confirm('Delete this module? Assignments will be lost.')) return;
-            $.ajax({
-                url: '/Auth/DeleteModule?id=' + id,
-                type: 'DELETE',
-                success: (res) => {
-                    if(res.success) { showToast('Module deleted'); loadAllData(); }
-                    else showToast(res.message, true);
-                },
-                error: () => showToast('Failed to delete module', true)
-            });
+            sysConfirm('Delete this module? Assignments will be lost.', function() {
+                $.ajax({
+                    url: '/Auth/DeleteModule/' + id,
+                    type: 'POST',
+                    success: function (res) {
+                        if (res.success) { showToast('Module deleted'); loadAllData(); }
+                        else sysAlert(res.message || 'Failed to delete module', "error");
+                    },
+                    error: function (xhr) {
+                        var msg = 'Failed to delete module';
+                        if (xhr.status === 404) msg = 'Delete module action not found. Check MVC controller.';
+                        else if (xhr.status === 405) msg = 'Wrong HTTP method for DeleteModule on MVC controller.';
+                        sysAlert(msg, 'error');
+                    }
+                });
+            }, { type: 'danger' });
         }
 
         // ================== PERMISSIONS ==================
@@ -614,27 +651,33 @@
         }
 
         function deletePermission(id) {
-            if(!confirm('Delete this permission?')) return;
-            $.ajax({
-                url: '/Auth/DeletePermission?id=' + id,
-                type: 'DELETE',
-                success: (res) => {
-                    if(res.success) { showToast('Permission deleted'); loadAllData(); }
-                    else showToast(res.message, true);
-                },
-                error: () => showToast('Failed to delete permission', true)
-            });
+            sysConfirm('Delete this permission?', function() {
+                $.ajax({
+                    url: '/Auth/DeletePermission/' + id,
+                    type: 'POST',
+                    success: function (res) {
+                        if (res.success) { showToast('Permission deleted'); loadAllData(); }
+                        else sysAlert(res.message || 'Failed to delete permission', "error");
+                    },
+                    error: function (xhr) {
+                        var msg = 'Failed to delete permission';
+                        if (xhr.status === 404) msg = 'Delete permission action not found. Check MVC controller.';
+                        else if (xhr.status === 405) msg = 'Wrong HTTP method for DeletePermission on MVC controller.';
+                        sysAlert(msg, 'error');
+                    }
+                });
+            }, { type: 'danger' });
         }
 
         // Modal helpers
-        function openMenuModal(cb) { 
-            $('#menuModal').removeClass('hidden'); 
+        function openMenuModal(cb) {
+            $('#menuModal').removeClass('hidden');
             // Populate Module Dropdown
             $.get('@Url.Action("GetModules", "Auth")', modules => {
-                const options = '<option value="">Select Module</option>' + 
+                const options = '<option value="">Select Module</option>' +
                     modules.map(m => `<option value="${m.id || m.Id}">${m.moduleName}</option>`).join('');
                 $('#menuModuleSelect').html(options);
-                if(cb) cb(); 
+                if(cb) cb();
             });
         }
         function closeMenuModal() {
@@ -750,10 +793,10 @@
         // Edit helpers
         function editMenu(m) {
             openMenuModal(() => {
-                $('#menuId').val(m.id || m.Id); 
+                $('#menuId').val(m.id || m.Id);
                 $('#menuName').val(m.menuName);
                 $('#menuModalTitle').text('Edit Menu');
-                
+
                 // Set hidden route fields immediately
                 $('#routeController').val(m.routeController);
                 $('#routeAction').val(m.routeAction);
@@ -763,12 +806,12 @@
 
                 // Cascading UI update
                 $('#controllerSelect').val(m.routeController);
-                
+
                 // IMPORTANT: Manually update action dropdown and set value WITHOUT triggering 'change' loop
                 updateActionSelect(m.routeController, '#actionSelect');
                 $('#actionSelect').val(m.routeAction);
 
-                $('#menuIcon').val(m.menuIcon || 'fas fa-circle'); 
+                $('#menuIcon').val(m.menuIcon || 'fas fa-circle');
                 $('#menuSortOrder').val(m.sortOrder || 0);
                 $('#menuRequiredPermission').val(m.requiredPermissionCode || '');
             });

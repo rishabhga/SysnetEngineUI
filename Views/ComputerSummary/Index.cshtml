@@ -667,7 +667,7 @@
                         var description = $('#ticketDescription').val();
 
                         if (!subject || !description) {
-                            alert('Please fill in all fields');
+                            sysAlert('Please fill in all fields', 'warning');
                             return;
                         }
 
@@ -687,16 +687,16 @@
                             success: function(response) {
                                 if (response && response.success) {
                                     $('#raiseTicketModal').modal('hide');
-                                    alert('Ticket raised successfully!');
+                                    sysAlert('Ticket raised successfully!', 'success');
                                     $('#ticketSubject').val('');
                                     $('#ticketDescription').val('');
                                     loadComputerTickets(); // Refresh list
                                 } else {
-                                    alert('Error raising ticket: ' + (response.message || 'Unknown error'));
+                                    sysAlert('Error raising ticket: ' + (response.message || 'Unknown error'), 'error');
                                 }
                             },
                             error: function(xhr, status, error) {
-                                alert('Error raising ticket: ' + error);
+                                sysAlert('Error raising ticket: ' + error, 'error');
                             }
                         });
                     }
@@ -2919,7 +2919,7 @@
                     var fileInput = $("input[type='file']")[0].files[0];
 
                     if (!fileInput) {
-                        alert("Please select file.");
+                        sysAlert("Please select file.", "warning");
                         return;
                     }
 
@@ -2932,12 +2932,12 @@
                         contentType: false,
                         processData: false,
                         success: function (res) {
-                            alert(res);
+                            sysAlert(res, "info");
                             $("#uploadModal").modal("hide");
                             $('#InstallationSoftwarelist').DataTable().ajax.reload();
                         },
                         error: function () {
-                            alert("Upload failed.");
+                            sysAlert("Upload failed.", "error");
                         }
                     });
                 });
@@ -3056,7 +3056,7 @@
                 
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -3082,7 +3082,7 @@
                 $('#tdBatteryLevel').text(data.batteryLevel);
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -3210,7 +3210,7 @@
                 $('#tdDateTimebios').text(data.dateTime);
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -3304,7 +3304,7 @@
                 });
             },
             error: function () {
-                alert("Error loading Network Adapter data");
+                sysAlert("Error loading Network Adapter data", "error");
             }
         });
 
@@ -3337,7 +3337,7 @@
                 $('#tdDateTime').text(data.dateTime);
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -3426,7 +3426,7 @@
                 });
             },
             error: function () {
-                alert("Error loading Network Adapter data");
+                sysAlert("Error loading Network Adapter data", "error");
             }
         });
 
@@ -3504,7 +3504,7 @@
                 });
             },
             error: function () {
-                alert("Error loading Network Adapter data");
+                sysAlert("Error loading Network Adapter data", "error");
             }
         });
 
@@ -3557,7 +3557,7 @@
              
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -3651,7 +3651,7 @@
                 $('#tdDateTime').text(data.dateTime);
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -3877,11 +3877,11 @@
                         contentType: 'application/json',
                         data: JSON.stringify({ softwareName: softwareName }),
                         success: function (response) {
-                            alert(response.message); // Show response
+                            sysAlert(response.message, "info"); // Show response
                             table.ajax.reload(); // Refresh Table
                         },
                         error: function (xhr, status, error) {
-                            alert("Error: " + xhr.responseText);
+                            sysAlert("Error: " + xhr.responseText, "error");
                         }
                     });
                 });
@@ -3928,11 +3928,11 @@
                         contentType: 'application/json',
                         data: JSON.stringify({ softwareName: softwareName }),
                         success: function (response) {
-                            alert(response.message); // Show response
+                            sysAlert(response.message, "info"); // Show response
                             table.ajax.reload(); // Refresh Table
                         },
                         error: function (xhr, status, error) {
-                            alert("Error: " + xhr.responseText);
+                            sysAlert("Error: " + xhr.responseText, "error");
                         }
                     });
                 });
@@ -4037,26 +4037,24 @@
         })
 
         $(document).on("click", ".delete-btn", function () {
-    var fileName = $(this).data("software");
+            var fileName = $(this).data("software");
 
-    if (!confirm("Are you sure you want to delete " + fileName + "?")) {
-        return;
-    }
-
-    $.ajax({
-        url: "/ComputerSummary/Delete",
-        type: "POST",
-        data: { fileName: fileName },
-        success: function (res) {
-            alert(res.message);
-            // Reload your DataTable
-            $('#softwareTable').DataTable().ajax.reload();
-        },
-        error: function () {
-            alert("Error deleting software!");
-        }
-    });
-});
+            sysConfirm("Are you sure you want to delete " + fileName + "?", function() {
+                $.ajax({
+                    url: "/ComputerSummary/Delete",
+                    type: "POST",
+                    data: { fileName: fileName },
+                    success: function (res) {
+                        sysAlert(res.message, "success");
+                        // Reload your DataTable
+                        $('#softwareTable').DataTable().ajax.reload();
+                    },
+                    error: function () {
+                        sysAlert("Error deleting software!", "error");
+                    }
+                });
+            }, { type: 'danger' });
+        });
 
 
 
@@ -4262,12 +4260,12 @@ $('#WindowUpdatelist').on('click', '.desc-preview', function () {
         //         contentType: 'application/json',
         //         data: JSON.stringify({ patches: patchIds }),
         //         success: function(response) {
-        //             alert('Update command sent to ' + patchIds.length + ' patches.');
+        //             sysAlert('Update command sent to ' + patchIds.length + ' patches.', 'success');
         //             table.ajax.reload(); // Table ko refresh karo
         //         },
         //         error: function(err) {
         //             console.error(err);
-        //             alert('Error sending update command.');
+        //             sysAlert('Cannot refresh - device is offline', 'warning');
         //         }
         //     });
         // });
@@ -4296,7 +4294,7 @@ $('#WindowUpdatelist').on('click', '.desc-preview', function () {
               
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
         
@@ -4325,7 +4323,7 @@ $('#WindowUpdatelist').on('click', '.desc-preview', function () {
                 $('#tdAutoConnectWiFiSense').html(boolToIcon(data.autoConnectWiFiSense));  
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -4355,7 +4353,7 @@ $('#WindowUpdatelist').on('click', '.desc-preview', function () {
                
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -4385,7 +4383,7 @@ $('#WindowUpdatelist').on('click', '.desc-preview', function () {
               
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -4413,7 +4411,7 @@ $('#WindowUpdatelist').on('click', '.desc-preview', function () {
               
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -4442,7 +4440,7 @@ $('#WindowUpdatelist').on('click', '.desc-preview', function () {
               
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading data", "error");
             }
         });
 
@@ -4939,7 +4937,7 @@ $('#WindowUpdatelist').on('click', '.desc-preview', function () {
              
             },
             error: function () {
-                alert("Error loading data");
+                sysAlert("Error loading battery data", "error");
             }
         });
        
@@ -4957,11 +4955,11 @@ function uploadSoftware() {
         processData: false,
         contentType: false,
         success: function (res) {
-            alert("Uploaded Successfully");
+            sysAlert("Uploaded Successfully", "success");
             $('#uploadSoftwareModal').modal('hide');
         },
         error: function () {
-            alert("Upload failed");
+            sysAlert("Upload failed", "error");
         }
     });
 }

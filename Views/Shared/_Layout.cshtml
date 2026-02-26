@@ -378,8 +378,8 @@
                             </div>
                         </div>
                     </div>
-                </div>
             </div>
+        </div>
     </nav>
 
     <!-- Main Content -->
@@ -403,5 +403,106 @@
     </footer>
 
     @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- Custom Dialog Modal (replaces native confirm/alert) -->
+    <div id="sysModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);z-index:9999;opacity:0;transition:opacity .2s ease;">
+        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem;">
+            <div id="sysModalBox" style="background:#fff;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);max-width:420px;width:100%;transform:scale(0.95) translateY(10px);opacity:0;transition:all .25s cubic-bezier(0.4,0,0.2,1);">
+                <div style="padding:1.75rem 1.75rem 0;">
+                    <div id="sysModalIconWrap" style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;"></div>
+                    <h4 id="sysModalTitle" style="text-align:center;font-weight:700;font-size:1.05rem;color:#1e293b;margin-bottom:.5rem;"></h4>
+                    <p id="sysModalMsg" style="text-align:center;color:#64748b;font-size:.875rem;line-height:1.5;margin:0;"></p>
+                </div>
+                <div id="sysModalBtns" style="display:flex;gap:.625rem;padding:1.25rem 1.75rem 1.5rem;justify-content:center;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container for sysAlert -->
+    <div id="sysToastContainer" style="position:fixed;top:1.25rem;right:1.25rem;z-index:10000;display:flex;flex-direction:column;gap:.5rem;pointer-events:none;"></div>
+
+    <script>
+    (function(){
+        var overlay = document.getElementById('sysModalOverlay');
+        var box = document.getElementById('sysModalBox');
+        var iconWrap = document.getElementById('sysModalIconWrap');
+        var titleEl = document.getElementById('sysModalTitle');
+        var msgEl = document.getElementById('sysModalMsg');
+        var btnsEl = document.getElementById('sysModalBtns');
+
+        function showModal() {
+            overlay.style.display = 'block';
+            requestAnimationFrame(function(){ requestAnimationFrame(function(){
+                overlay.style.opacity = '1';
+                box.style.opacity = '1';
+                box.style.transform = 'scale(1) translateY(0)';
+            }); });
+        }
+        function hideModal() {
+            overlay.style.opacity = '0';
+            box.style.opacity = '0';
+            box.style.transform = 'scale(0.95) translateY(10px)';
+            setTimeout(function(){ overlay.style.display = 'none'; }, 250);
+        }
+
+        var typeConfig = {
+            warning: { icon:'fas fa-exclamation-triangle', iconColor:'#f59e0b', bg:'linear-gradient(135deg,#fffbeb,#fef3c7)', title:'Confirm Action' },
+            danger:  { icon:'fas fa-trash-alt',            iconColor:'#ef4444', bg:'linear-gradient(135deg,#fef2f2,#fee2e2)', title:'Are you sure?' },
+            info:    { icon:'fas fa-info-circle',          iconColor:'#0ea5e9', bg:'linear-gradient(135deg,#f0f9ff,#e0f2fe)', title:'Information' },
+            success: { icon:'fas fa-check-circle',         iconColor:'#10b981', bg:'linear-gradient(135deg,#ecfdf5,#d1fae5)', title:'Success' },
+            error:   { icon:'fas fa-times-circle',         iconColor:'#ef4444', bg:'linear-gradient(135deg,#fef2f2,#fee2e2)', title:'Error' }
+        };
+
+        // sysConfirm(message, onConfirm, options)
+        // options: { type: 'warning'|'danger', title, confirmText, cancelText }
+        window.sysConfirm = function(message, onConfirm, options) {
+            options = options || {};
+            var t = typeConfig[options.type || 'warning'];
+            iconWrap.style.background = t.bg;
+            iconWrap.innerHTML = '<i class="'+t.icon+'" style="font-size:1.25rem;color:'+t.iconColor+';"></i>';
+            titleEl.textContent = options.title || t.title;
+            msgEl.textContent = message;
+
+            var confirmColor = (options.type === 'danger') ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#0ea5e9,#0284c7)';
+            btnsEl.innerHTML =
+                '<button id="sysModalCancel" style="flex:1;padding:.625rem 1rem;border-radius:10px;border:1px solid #e2e8f0;background:#fff;color:#475569;font-weight:600;font-size:.875rem;cursor:pointer;transition:all .15s;">'+(options.cancelText||'Cancel')+'</button>' +
+                '<button id="sysModalOk" style="flex:1;padding:.625rem 1rem;border-radius:10px;border:none;background:'+confirmColor+';color:#fff;font-weight:600;font-size:.875rem;cursor:pointer;box-shadow:0 2px 8px rgba(14,165,233,0.3);transition:all .15s;">'+(options.confirmText||'OK')+'</button>';
+
+            showModal();
+
+            document.getElementById('sysModalCancel').onclick = function(){ hideModal(); };
+            document.getElementById('sysModalOk').onclick = function(){ hideModal(); if(onConfirm) onConfirm(); };
+            overlay.onclick = function(e){ if(e.target === overlay) hideModal(); };
+        };
+
+        // sysAlert(message, type, duration)
+        // type: 'success'|'error'|'warning'|'info' (default 'info')
+        window.sysAlert = function(message, type, duration) {
+            type = type || 'info';
+            duration = duration || 3500;
+            var t = typeConfig[type] || typeConfig.info;
+            var borderColors = { success:'#10b981', error:'#ef4444', warning:'#f59e0b', info:'#0ea5e9' };
+
+            var toast = document.createElement('div');
+            toast.style.cssText = 'pointer-events:auto;display:flex;align-items:center;gap:.75rem;padding:.875rem 1.25rem;background:#fff;border-radius:12px;border-left:4px solid '+(borderColors[type]||'#0ea5e9')+';box-shadow:0 10px 25px -5px rgba(0,0,0,0.1),0 4px 6px -2px rgba(0,0,0,0.05);min-width:280px;max-width:420px;transform:translateX(100%);opacity:0;transition:all .3s cubic-bezier(0.4,0,0.2,1);';
+            toast.innerHTML = '<div style="width:32px;height:32px;border-radius:8px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="'+t.icon+'" style="font-size:.8rem;color:'+t.iconColor+';"></i></div>' +
+                '<div style="flex:1;font-size:.8125rem;color:#334155;line-height:1.4;font-weight:500;">'+message+'</div>' +
+                '<button onclick="this.parentElement.style.opacity=\'0\';this.parentElement.style.transform=\'translateX(100%)\';setTimeout(function(){this.parentElement&&this.parentElement.remove()}.bind(this),300);" style="border:none;background:none;color:#94a3b8;cursor:pointer;padding:2px;font-size:.875rem;"><i class="fas fa-times"></i></button>';
+
+            var container = document.getElementById('sysToastContainer');
+            container.appendChild(toast);
+            requestAnimationFrame(function(){ requestAnimationFrame(function(){
+                toast.style.transform = 'translateX(0)';
+                toast.style.opacity = '1';
+            }); });
+
+            setTimeout(function(){
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(function(){ toast.remove(); }, 300);
+            }, duration);
+        };
+    })();
+    </script>
 </body>
 </html>

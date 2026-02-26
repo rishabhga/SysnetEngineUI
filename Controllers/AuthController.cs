@@ -24,7 +24,8 @@ namespace ManageEngineWebApp.Controllers
             _configuration = configuration;
             _permissionDiscovery = permissionDiscovery;
             _httpClientFactory = httpClientFactory;
-            _baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
+            _baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
+            //_baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
             apiBaseUrl = $"{_baseUrl}/api/auth";
         }
 
@@ -219,7 +220,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                TempData["msg"] = $"Login Error: {ex.Message}";
+                TempData["msg"] = "An error occurred during login. Please try again.";
                 return View(model);
             }
         }
@@ -350,31 +351,24 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 if (!RoleHelper.IsTopLevelAdmin(HttpContext))
-                {
                     return Json(new { success = false, message = "Unauthorized" });
-                }
 
-                // Check if role is a system role dynamically (from API/DB)
                 var systemRoles = await RoleHelper.GetAllSystemRolesAsync();
                 var roleToDelete = systemRoles.FirstOrDefault(r => r.Name == model.RoleName);
                 if (roleToDelete?.IsSystem == true)
-                {
                     return Json(new { success = false, message = "Cannot delete system roles" });
-                }
 
                 var success = await RoleHelper.DeleteRoleAsync(model.RoleName);
-
-                if (success)
-                {
-                    return Json(new { success = true, message = "Role deleted successfully" });
-                }
-                return Json(new { success = false, message = "Failed to delete role" });
+                return Json(success
+                    ? new { success = true, message = "Role deleted successfully" }
+                    : new { success = false, message = "Failed to delete role" });
             }
             catch (Exception ex)
             {
                 return Json(new { success = false, message = $"Error: {ex.Message}" });
             }
         }
+
 
         [HttpPost]
         [AuthFilter]
@@ -504,24 +498,26 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + ex.Message }); }
         }
 
-        [HttpDelete]
+        [HttpPost]
         [AuthFilter]
         public async Task<IActionResult> DeleteMenu(int id)
         {
-            try {
-                var response = await GetClient().DeleteAsync($"{_baseUrl}/api/Permission/Menus/{id}");
-                var content = await response.Content.ReadAsStringAsync();
-                if (response.IsSuccessStatusCode)
-                    return Json(new { success = true, message = "Menu deleted successfully" });
+            try
+            {
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                    return Json(new { success = false, message = "Unauthorized" });
 
-                try {
-                    var err = JsonConvert.DeserializeObject<dynamic>(content);
-                    return Json(new { success = false, message = (string)err.message ?? "API failure" });
-                } catch {
-                    return Json(new { success = false, message = "Failed to delete menu in API" });
-                }
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+                using var client = GetClient();
+                var response = await client.DeleteAsync($"{_baseUrl}/api/Permission/Menus/{id}");
+                var json = await response.Content.ReadAsStringAsync();
+                return Content(json, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
         }
+
 
         [HttpGet]
         [AuthFilter]
@@ -563,22 +559,24 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + ex.Message }); }
         }
 
-        [HttpDelete]
+        [HttpPost]
         [AuthFilter]
-        public async Task<IActionResult> DeleteModule(int id) {
-            try {
-                var response = await GetClient().DeleteAsync($"{_baseUrl}/api/Permission/Modules/{id}");
-                var content = await response.Content.ReadAsStringAsync();
-                if (response.IsSuccessStatusCode)
-                    return Json(new { success = true, message = "Module deleted successfully" });
+        public async Task<IActionResult> DeleteModule(int id)
+        {
+            try
+            {
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                    return Json(new { success = false, message = "Unauthorized" });
 
-                try {
-                    var err = JsonConvert.DeserializeObject<dynamic>(content);
-                    return Json(new { success = false, message = (string)err.message ?? "API failure" });
-                } catch {
-                    return Json(new { success = false, message = "Failed to delete module in API" });
-                }
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+                using var client = GetClient();
+                var response = await client.DeleteAsync($"{_baseUrl}/api/Permission/Modules/{id}");
+                var json = await response.Content.ReadAsStringAsync();
+                return Content(json, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
         }
 
 
@@ -616,22 +614,24 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + ex.Message }); }
         }
 
-        [HttpDelete]
+        [HttpPost]
         [AuthFilter]
-        public async Task<IActionResult> DeletePermission(int id) {
-            try {
-                var response = await GetClient().DeleteAsync($"{_baseUrl}/api/Permission/{id}");
-                var content = await response.Content.ReadAsStringAsync();
-                if (response.IsSuccessStatusCode)
-                    return Json(new { success = true, message = "Permission deleted successfully" });
+        public async Task<IActionResult> DeletePermission(int id)
+        {
+            try
+            {
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                    return Json(new { success = false, message = "Unauthorized" });
 
-                try {
-                    var err = JsonConvert.DeserializeObject<dynamic>(content);
-                    return Json(new { success = false, message = (string)err.message ?? "API failure" });
-                } catch {
-                    return Json(new { success = false, message = "Failed to delete permission in API" });
-                }
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+                using var client = GetClient();
+                var response = await client.DeleteAsync($"{_baseUrl}/api/Permission/{id}");
+                var json = await response.Content.ReadAsStringAsync();
+                return Content(json, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
         }
 
 

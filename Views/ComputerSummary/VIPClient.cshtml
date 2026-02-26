@@ -212,34 +212,34 @@
                 ? "Switching to SITE-WIDE critical monitoring? This will mark all existing devices in this location as critical."
                 : "Disable site-wide critical monitoring? (Individual VIP overrides will remain)";
 
-            if (!confirm(msg)) return;
+            sysConfirm(msg, function() {
+                const icon = $('#locationCrownIcon');
+                icon.addClass('fa-spin');
 
-            const icon = $('#locationCrownIcon');
-            icon.addClass('fa-spin');
-
-            $.ajax({
-                url: '@Url.Action("Locationupdate", "Companies")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    Id: locationId,
-                    IsCritical: newStatus,
-                    GroupsID: groupId,
-                    CompanyID: companyId,
-                    LocationName: '@(ViewBag.LocationName ?? "This Location")'
-                }),
-                success: function() {
-                    isLocationCritical = newStatus;
-                    updateLocationHeaderUI(newStatus);
-                    loadInitialData();
-                    showToast(newStatus ? 'Site-wide monitoring active.' : 'Site-wide monitoring deactivated.', 'success');
-                },
-                error: function() {
-                    showToast('Failed to update site status.', 'error');
-                },
-                complete: function() {
-                    icon.removeClass('fa-spin');
-                }
+                $.ajax({
+                    url: '@Url.Action("Locationupdate", "Companies")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        Id: locationId,
+                        IsCritical: newStatus,
+                        GroupsID: groupId,
+                        CompanyID: companyId,
+                        LocationName: '@(ViewBag.LocationName ?? "This Location")'
+                    }),
+                    success: function() {
+                        isLocationCritical = newStatus;
+                        updateLocationHeaderUI(newStatus);
+                        loadInitialData();
+                        sysAlert(newStatus ? 'Site-wide monitoring active.' : 'Site-wide monitoring deactivated.', 'success');
+                    },
+                    error: function() {
+                        sysAlert('Failed to update site status.', 'error');
+                    },
+                    complete: function() {
+                        icon.removeClass('fa-spin');
+                    }
+                });
             });
         }
 
@@ -427,20 +427,23 @@
                 ? `Confirm explicit exclusion of ${name} from critical monitoring? (It is currently inherited from location settings)`
                 : `Confirm detachment of critical monitoring for ${name}?`;
 
-            if (!confirm(msg)) return;
-
-            $.ajax({
-                url: '@Url.Action("RemoveCriticalClient", "ComputerSummary")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(clientId),
-                success: function(response) {
-                    if (response && response.success) {
-                        loadInitialData();
-                        showToast('Monitoring detached successfully.', 'success');
+            sysConfirm(msg, function() {
+                $.ajax({
+                    url: '@Url.Action("RemoveCriticalClient", "ComputerSummary")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(clientId),
+                    success: function(response) {
+                        if (response && response.success) {
+                            loadInitialData();
+                            sysAlert('Monitoring detached successfully.', 'success');
+                        }
+                    },
+                    error: function() {
+                        sysAlert('Failed to detach monitoring.', 'error');
                     }
-                }
-            });
+                });
+            }, { type: 'danger' });
         }
 
         function filterCriticalClients() {

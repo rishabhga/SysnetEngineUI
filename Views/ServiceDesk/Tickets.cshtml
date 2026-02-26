@@ -781,33 +781,32 @@
         }
 
         function reopenTicket(ticketId) {
-            if (!confirm('Re-open this ticket?')) return;
-
-            showLoading();
-
-            $.ajax({
-                url: '@Url.Action("UpdateStatus", "ServiceDesk")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    ticketId: ticketId,
-                    newStatus: 'Open',
-                    remarks: 'Ticket re-opened',
-                    username: username
-                }),
-                success: function (res) {
-                    hideLoading();
-                    if (res && res.success) {
-                        showToast('Ticket re-opened', 'success');
-                        loadTickets();
-                    } else {
-                        showToast('Failed: ' + (res.message || 'Error'), 'error');
+            sysConfirm('Re-open this ticket?', function() {
+                showLoading();
+                $.ajax({
+                    url: '@Url.Action("UpdateStatus", "ServiceDesk")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        ticketId: ticketId,
+                        newStatus: 'Open',
+                        remarks: 'Ticket re-opened',
+                        username: username
+                    }),
+                    success: function (res) {
+                        hideLoading();
+                        if (res && res.success) {
+                            showToast('Ticket re-opened', 'success');
+                            loadTickets();
+                        } else {
+                            showToast('Failed: ' + (res.message || 'Error'), 'error');
+                        }
+                    },
+                    error: function () {
+                        hideLoading();
+                        showToast('Failed to re-open', 'error');
                     }
-                },
-                error: function () {
-                    hideLoading();
-                    showToast('Failed to re-open', 'error');
-                }
+                });
             });
         }
 
@@ -903,75 +902,73 @@
         }
 
         function deletePart(partId) {
-            if (!confirm('Delete this part?')) return;
-
-            const ticketId = parseInt($('#partsTicketId').val());
-
-            $.ajax({
-                url: '@Url.Action("DeletePart", "ServiceDesk")',
-                type: 'DELETE',
-                data: { id: partId },
-                success: function (res) {
-                    if (res && res.success) {
-                        showToast('Part deleted', 'success');
-                        loadParts(ticketId);
-                    } else {
+            sysConfirm('Delete this part?', function() {
+                const ticketId = parseInt($('#partsTicketId').val());
+                $.ajax({
+                    url: '@Url.Action("DeletePart", "ServiceDesk")',
+                    type: 'DELETE',
+                    data: { id: partId },
+                    success: function (res) {
+                        if (res && res.success) {
+                            showToast('Part deleted', 'success');
+                            loadParts(ticketId);
+                        } else {
+                            showToast('Failed to delete', 'error');
+                        }
+                    },
+                    error: function () {
                         showToast('Failed to delete', 'error');
                     }
-                },
-                error: function () {
-                    showToast('Failed to delete', 'error');
-                }
-            });
+                });
+            }, {type:'danger'});
         }
 
         // ==================== START WORK ====================
         function startWork(ticketId) {
-            if (!confirm('Start working on this ticket?')) return;
-            
-            $.ajax({
-                url: '@Url.Action("StartWork", "ServiceDesk")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    ticketId: ticketId,
-                    username: username,
-                    remarks: 'Started working on ticket'
-                }),
-                success: function (res) {
-                    if (res && res.success) {
-                        showToast('Work started', 'success');
-                        loadTickets();
-                    } else {
-                        showToast(res.message || 'Failed to start work', 'error');
+            sysConfirm('Start working on this ticket?', function() {
+                $.ajax({
+                    url: '@Url.Action("StartWork", "ServiceDesk")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        ticketId: ticketId,
+                        username: username,
+                        remarks: 'Started working on ticket'
+                    }),
+                    success: function (res) {
+                        if (res && res.success) {
+                            showToast('Work started', 'success');
+                            loadTickets();
+                        } else {
+                            showToast(res.message || 'Failed to start work', 'error');
+                        }
+                    },
+                    error: function () {
+                        showToast('Failed to start work', 'error');
                     }
-                },
-                error: function () {
-                    showToast('Failed to start work', 'error');
-                }
+                });
             });
         }
 
         // ==================== DELETE TICKET ====================
         function deleteTicket(ticketId, ticketNo) {
-            if (!confirm(`Are you sure you want to delete ticket ${ticketNo}? This action cannot be undone.`)) return;
-            
-            $.ajax({
-                url: '@Url.Action("DeleteTicket", "ServiceDesk")',
-                type: 'DELETE',
-                data: { id: ticketId },
-                success: function (res) {
-                    if (res && res.success) {
-                        showToast('Ticket deleted', 'success');
-                        loadTickets();
-                    } else {
-                        showToast(res.message || 'Failed to delete ticket', 'error');
+            sysConfirm('Are you sure you want to delete ticket ' + ticketNo + '? This action cannot be undone.', function() {
+                $.ajax({
+                    url: '@Url.Action("DeleteTicket", "ServiceDesk")' + '?id=' + ticketId,
+                    type: 'DELETE',
+                    success: function (res) {
+                        if (res && res.success) {
+                            showToast('Ticket deleted', 'success');
+                            loadTickets();
+                        } else {
+                            showToast(res.message || 'Failed to delete ticket', 'error');
+                        }
+                    },
+                    error: function () {
+                        showToast('Failed to delete ticket', 'error');
                     }
-                },
-                error: function () {
-                    showToast('Failed to delete ticket', 'error');
-                }
-            });
+                });
+            }, {type:'danger'});
         }
 
         // ==================== RESOLVE TICKET ====================

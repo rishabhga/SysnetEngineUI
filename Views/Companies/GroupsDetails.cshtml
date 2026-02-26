@@ -574,7 +574,7 @@
                     location.reload();
                 },
                 error: function(xhr) {
-                    alert('Error updating location');
+                    sysAlert('Error updating location', 'error');
                 }
             });
         }
@@ -606,7 +606,7 @@
                     window.URL.revokeObjectURL(url);
                 },
                 error: function (xhr, status, error) {
-                    alert('Download failed: ' + error);
+                    sysAlert('Download failed: ' + error, 'error');
                 },
                 complete: function () {
                     clickedButton.disabled = false;
@@ -647,7 +647,7 @@
                     location.reload();
                 },
                 error: function(xhr) {
-                    alert('Error adding location');
+                    sysAlert('Error adding location', 'error');
                 }
             });
         }
@@ -672,7 +672,7 @@
                     location.reload();
                 },
                 error: function(xhr) {
-                    alert('Error updating critical status');
+                    sysAlert('Error updating critical status', 'error');
                 }
             });
         }

@@ -31,7 +31,7 @@ namespace ManageEngineWebApp.Controllers
                
 
                // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/WindowsUserDetails");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsUserDetails/allUser"); // Replace with your server's URL
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails/allUser"); // Replace with your server's URL
 
                 //var jsonContent = JsonConvert.SerializeObject(systemInfometion);
                 //var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
@@ -53,7 +53,7 @@ namespace ManageEngineWebApp.Controllers
             }
 
 
-            //var response = await _httpClient.GetAsync("https://172.16.15.15:4431/api/WindowsUserDetails/allUser");
+            //var response = await _httpClient.GetAsync("https://localhost:7225/api/WindowsUserDetails/allUser");
             // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/WindowsUserDetails");
 
 
@@ -80,7 +80,7 @@ namespace ManageEngineWebApp.Controllers
 
                
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsUserDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
                // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/WindowsUserDetails");
                 
 
@@ -149,7 +149,7 @@ namespace ManageEngineWebApp.Controllers
  
 
                // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/WindowsService");
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsService");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsService");
                 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -202,7 +202,7 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/Summary");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Summary");
                // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/Summary");
 
                 var response = await httpClient.GetAsync("");
@@ -246,7 +246,7 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsUserDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
                // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/WindowsUserDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -293,7 +293,7 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsGroupDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsGroupDetails");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/WindowsGroupDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -337,7 +337,7 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowDrivers");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowDrivers");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/WindowDrivers");
 
                 var response = await httpClient.GetAsync("");
@@ -384,7 +384,7 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsUserDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/WindowsUserDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -428,7 +428,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/WindowsUserDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/WindowsUserDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -471,7 +471,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/BIOSDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/BIOSDetails");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/BIOSDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -525,7 +525,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/HardDiskDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/HardDiskDetails");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/HardDiskDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -619,7 +619,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/MotherboardDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MotherboardDetails");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/MotherboardDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -679,7 +679,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-               httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/PhysicalMemoryDetails");
+               httpClient.BaseAddress = new Uri("https://localhost:7225/api/PhysicalMemoryDetails");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/PhysicalMemoryDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -767,7 +767,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-               httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/ProcessorDetails");
+               httpClient.BaseAddress = new Uri("https://localhost:7225/api/ProcessorDetails");
                // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/ProcessorDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -797,7 +797,7 @@ namespace ManageEngineWebApp.Controllers
             };
             using (var httpClient = new HttpClient(handler))
             {
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/SoundDeviceDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/SoundDeviceDetails");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/USBHubDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -858,7 +858,7 @@ namespace ManageEngineWebApp.Controllers
 
             using (var httpClient = new HttpClient(handler))
             {
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/USBHubDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/USBHubDetails");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/USBHubDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -954,7 +954,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                //httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/InstalledApplication");
+                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication");
                 httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/InstalledApplication");
 
                 var response = await httpClient.GetAsync("");
@@ -997,7 +997,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/InstalledApplication");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/InstalledApplication");
 
                 var response = await httpClient.GetAsync("");
@@ -1029,7 +1029,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/UsbDeviceInfo");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UsbDeviceInfo");
                 //httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/UsbDeviceInfo");
 
                 var response = await httpClient.GetAsync("");
@@ -1071,7 +1071,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                //httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/AntivirusDetails");
+                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/AntivirusDetails");
                 httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1102,7 +1102,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                //httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/AntivirusDetails");
+                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/AntivirusDetails");
                 httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1134,7 +1134,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/CustomComputerDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/CustomComputerDetails");
                // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1166,7 +1166,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/DeviceSummary");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/DeviceSummary");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1199,7 +1199,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/OSSummary");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/OSSummary");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1233,7 +1233,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/SecurityPrivacyDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/SecurityPrivacyDetails");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1267,7 +1267,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/ApplicationSettings");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/ApplicationSettings");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1300,7 +1300,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/SocialSearchSettings");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/SocialSearchSettings");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1333,7 +1333,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/DeviceRestrictionDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/DeviceRestrictionDetails");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1367,7 +1367,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/MonitorInfo");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MonitorInfo");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1400,7 +1400,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/NetworkAdapterDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/NetworkAdapterDetails");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1434,7 +1434,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/KeyboardDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/KeyboardDetails");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1474,7 +1474,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/PrinterDetails");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/PrinterDetails");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1521,7 +1521,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/PointingDeviceInfo");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/PointingDeviceInfo");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1565,7 +1565,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/VideoDeviceInfo");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/VideoDeviceInfo");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1608,7 +1608,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/USBControllerInfo");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/USBControllerInfo");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1641,7 +1641,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/UserAuditHistory");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserAuditHistory");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
@@ -1676,7 +1676,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
 
-                httpClient.BaseAddress = new Uri("https://172.16.15.15:4431/api/UserLogonHistory");
+                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserLogonHistory");
                 // httpClient.BaseAddress = new Uri("https://172.16.15.30:4431/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");

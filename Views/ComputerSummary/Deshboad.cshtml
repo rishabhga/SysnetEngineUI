@@ -491,33 +491,34 @@
                 ? "Mark this entire location as CRITICAL? This will start monitoring resource health for all machines here."
                 : "Remove critical status from this location? (Individual VIP overrides will remain)";
 
-            if (!confirm(msg)) return;
+            sysConfirm(msg, function() {
+                const $btn = $('#locationCriticalToggle');
+                $btn.find('i').addClass('fa-spin');
 
-            const $btn = $('#locationCriticalToggle');
-            $btn.find('i').addClass('fa-spin');
-
-            $.ajax({
-                url: '@Url.Action("Locationupdate", "Companies")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    Id: @ViewBag.locationid,
-                    IsCritical: newStatus,
-                    GroupsID: @ViewBag.groupid,
-                    CompanyID: @ViewBag.companyid,
-                    LocationName: '@ViewBag.locationName'
-                }),
-                success: function() {
-                    isLocationCurrentlyCritical = newStatus;
-                    updateLocationBadgeUI(newStatus);
-                    loadCriticalClientsList(); // Refresh the crown icons on cards
-                },
-                error: function() {
-                    alert('Failed to update location status.');
-                },
-                complete: function() {
-                    $btn.find('i').removeClass('fa-spin');
-                }
+                $.ajax({
+                    url: '@Url.Action("Locationupdate", "Companies")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        Id: @ViewBag.locationid,
+                        IsCritical: newStatus,
+                        GroupsID: @ViewBag.groupid,
+                        CompanyID: @ViewBag.companyid,
+                        LocationName: '@ViewBag.locationName'
+                    }),
+                    success: function() {
+                        isLocationCurrentlyCritical = newStatus;
+                        updateLocationBadgeUI(newStatus);
+                        loadCriticalClientsList(); // Refresh the crown icons on cards
+                        sysAlert('Location status updated.', 'success');
+                    },
+                    error: function() {
+                        sysAlert('Failed to update location status.', 'error');
+                    },
+                    complete: function() {
+                        $btn.find('i').removeClass('fa-spin');
+                    }
+                });
             });
         }
 
@@ -812,7 +813,7 @@
             var isOnline = $card.data('status') === 'online';
 
             if (!isOnline) {
-                alert('Protection only available for ONLINE devices');
+                sysAlert('Protection only available for ONLINE devices', 'warning');
                 $(button).closest('.menu-dropdown').addClass('hidden');
                 return;
             }
@@ -823,7 +824,7 @@
             $(button).closest('.menu-dropdown').addClass('hidden');
 
             if (isEnabled) {
-                if (confirm(`Disable Temporary Protection for ${domain}?`)) {
+                sysConfirm(`Disable Temporary Protection for ${domain}?`, async function() {
                     try {
                         var response = await fetch(`@Url.Action("ClearOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
                         var result = await response.json();
@@ -831,14 +832,14 @@
                         if (result.success) {
                             updateCardUI($card, false);
                             updateToggleButtonState($card, false);
-                            alert('Temporary Protection disabled');
+                            sysAlert('Temporary Protection disabled', 'success');
                         } else {
-                            alert('Failed to disable protection: ' + (result.error || 'Unknown error'));
+                            sysAlert('Failed to disable protection: ' + (result.error || 'Unknown error'), 'error');
                         }
                     } catch (e) {
-                        alert('Error: ' + e.message);
+                        sysAlert('Error: ' + e.message, 'error');
                     }
-                }
+                });
             } else {
                 try {
                     var response = await fetch(`@Url.Action("EnableTempProtection", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
@@ -849,10 +850,10 @@
                         updateToggleButtonState($card, true);
                         showProtectionModal(domain);
                     } else {
-                        alert('Failed to enable protection: ' + (result.error || 'Client not connected'));
+                        sysAlert('Failed to enable protection: ' + (result.error || 'Client not connected'), 'error');
                     }
                 } catch (e) {
-                    alert('Error: ' + e.message);
+                    sysAlert('Error: ' + e.message, 'error');
                 }
             }
         }
@@ -1187,7 +1188,7 @@
             var isOnline = card.data('status') === 'online';
 
             if (!isOnline) {
-                alert('Cannot refresh - device is offline');
+                sysAlert('Cannot refresh - device is offline', 'warning');
                 return;
             }
 
@@ -1332,7 +1333,7 @@
             var newName = cell.find('.edit-name').val().trim();
 
             if (!newName) {
-                alert('Name cannot be empty.');
+                sysAlert('Name cannot be empty.', 'warning');
                 return;
             }
 
@@ -1357,7 +1358,7 @@
                     cell.find('.display-name-section').show();
                 },
                 error: function() {
-                    alert('Error updating name');
+                    sysAlert('Error updating name', 'error');
                 },
                 complete: function() {
                     btn.html('Save').prop('disabled', false);

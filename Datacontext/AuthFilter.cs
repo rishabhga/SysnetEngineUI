@@ -81,7 +81,7 @@ namespace ManageEngineWebApp.Datacontext
             }
             base.OnActionExecuting(context);
         }
-        private int? GetCompanyIdFromRoute(ActionExecutingContext context)
+        private static int? GetCompanyIdFromRoute(ActionExecutingContext context)
         {
             var parameters = new[] { "id", "ComId", "companyId" };
             foreach (var param in parameters)

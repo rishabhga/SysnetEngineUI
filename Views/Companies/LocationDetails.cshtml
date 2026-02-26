@@ -167,12 +167,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
     <script>
+        $("#addlocationInlineBtn").click(function () {
             const locatioName = $("#newlocationName").val().trim();
             const groupid = $("#locationgroupIdHidden").val();
             const comid = $("#locationIdHidden").val();
             const isCritical = $("#newLocationCritical").is(":checked");
-            if (locatioName === "" && groupid === "" && comid ==="") {
-                alert("? Please enter a location name.");
+            if (locatioName === "" || groupid === "" || comid ==="") {
+                sysAlert("Please enter a location name.", "warning");
                 return;
             }
 
@@ -182,11 +183,11 @@
                 contentType: 'application/json',
                 data: JSON.stringify({ LocationName: locatioName, GroupsID: groupid, CompanyID: comid, IsCritical: isCritical }),
                 success: function (response) {
-                    alert("? Location added successfully!");
-                    location.reload(); // Or append new row without reloading
+                    sysAlert("Location added successfully!", "success");
+                    setTimeout(() => location.reload(), 1500);
                 },
                 error: function () {
-                    alert("? Error adding location.");
+                    sysAlert("Error adding location.", "error");
                 }
             });
         });
@@ -210,7 +211,7 @@
                     location.reload();
                 },
                 error: function(xhr) {
-                    alert('Error updating critical status');
+                    sysAlert('Error updating critical status', 'error');
                 }
             });
         }
@@ -236,7 +237,7 @@
                 const compId = $cell.data("company-id");
 
                 if (newName === "") {
-                    alert("? location name cannot be empty.");
+                    sysAlert("Location name cannot be empty.", "warning");
                     return;
                 }
                 
@@ -249,10 +250,10 @@
                     success: function (response) {
                         $cell.find(".display-name").text(newName).show();
                         $cell.find(".edit-name, .update-btn").addClass("d-none");
-                        alert("? Location updated successfully!");
+                        sysAlert("Location updated successfully!", "success");
                     },
                     error: function () {
-                        alert("? Error updating Locationupdate.");
+                        sysAlert("Error updating Location.", "error");
                     }
                 });
             });
@@ -305,7 +306,7 @@
                     window.URL.revokeObjectURL(url);
                 })
                 .catch(error => {
-                    alert(error.message);
+                    sysAlert(error.message, "error");
                 })
                 .finally(() => {
                     // Re-enable buttons and reset UI
@@ -354,7 +355,7 @@
                     window.URL.revokeObjectURL(url);
                 },
                 error: function (xhr, status, error) {
-                    alert('Download failed: ' + error);
+                    sysAlert('Download failed: ' + error, "error");
                 },
                 complete: function () {
                     buttons.prop('disabled', false);

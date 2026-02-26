@@ -15,7 +15,8 @@ namespace ManageEngineWebApp.Controllers
         {
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
-            _baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
+            _baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
+            //_baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
         }
 
         private System.Net.Http.HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");

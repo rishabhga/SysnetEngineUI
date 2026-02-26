@@ -4,47 +4,32 @@
 }
 
 <div class="container d-flex justify-content-center align-items-center" style="min-height: 70vh;">
-    <div class="card shadow-lg p-4 text-center" style="max-width: 500px;">
+    <div class="card shadow-lg p-4 text-center" style="max-width: 480px; border-radius: 16px; border: none;">
         <div class="card-body">
-            <h1 class="display-1 text-danger">🚫</h1>
-            <h3 class="card-title text-danger mb-4">Access Denied</h3>
-            <p class="text-muted">You don't have permission to access this page.</p>
-            <p class="text-muted">Please contact your administrator if you believe this is an error.</p>
-            
+            <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#fee2e2,#fecaca);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+                <i class="fas fa-lock" style="font-size:1.75rem;color:#dc2626;"></i>
+            </div>
+            <h3 class="card-title fw-bold mb-2" style="color:#1e293b;">Access Denied</h3>
+            <p class="text-muted mb-4">You don't have permission to access this page.<br/>Please contact your administrator if you believe this is an error.</p>
+
             @if (ViewBag.RequiredPermission != null)
             {
-                <div class="alert alert-warning text-start">
-                    <h5 class="alert-heading"><i class="fas fa-key me-2"></i>Missing Permission</h5>
-                    <p class="mb-0 font-monospace fw-bold text-danger">@ViewBag.RequiredPermission</p>
+                <div class="text-start p-3 mb-4" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border-radius:12px;border-left:4px solid #f59e0b;">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="fas fa-key" style="color:#d97706;font-size:0.85rem;"></i>
+                        <span class="fw-semibold" style="font-size:0.85rem;color:#92400e;">Required Permission</span>
+                    </div>
+                    <code style="font-size:0.8rem;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:6px;">@ViewBag.RequiredPermission</code>
                 </div>
             }
 
-            <div class="alert alert-secondary text-start mt-3">
-                <h6 class="alert-heading">Your Access Details:</h6>
-                <div class="small">
-                    <div><strong>Role:</strong> @(ViewBag.UserRole ?? "None")</div>
-                    <div class="mt-1">
-                        <strong>Permissions:</strong>
-                        @if (!string.IsNullOrEmpty(ViewBag.UserPermissions))
-                        {
-                            <div class="d-flex flex-wrap gap-1 mt-1">
-                                @foreach (var p in ((string)ViewBag.UserPermissions).Split(','))
-                                {
-                                    <span class="badge bg-secondary text-white fw-normal">@p.Trim()</span>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <span class="text-muted fst-italic">None</span>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <a asp-controller="Auth" asp-action="Logout" class="btn btn-danger">Logout</a>
-                <a asp-controller="Companies" asp-action="Companies" class="btn btn-primary ms-2">Go to Home</a>
+            <div class="d-flex justify-content-center gap-2">
+                <a asp-controller="Auth" asp-action="Logout" class="btn btn-outline-danger px-4" style="border-radius:10px;font-weight:600;">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                </a>
+                <a asp-controller="Companies" asp-action="Companies" class="btn btn-primary px-4" style="border-radius:10px;font-weight:600;background:linear-gradient(135deg,#0ea5e9,#0284c7);border:none;">
+                    <i class="fas fa-home me-1"></i>Go to Home
+                </a>
             </div>
         </div>
     </div>

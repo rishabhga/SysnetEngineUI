@@ -207,7 +207,7 @@
         };
 
         if (!part.partName || part.unitCost < 0) {
-            alert("Please fill in Part Name and a valid Cost.");
+            sysAlert("Please fill in Part Name and a valid Cost.", "warning");
             return;
         }
 
@@ -226,29 +226,32 @@
                     closeModal('partModal');
                     loadParts();
                 } else {
-                    alert(result.message || "Operation failed");
+                    sysAlert(result.message || "Operation failed", "error");
                 }
             } catch (e) {
                 console.error("JSON Parse Error:", e, text);
-                alert(`Error saving part: Server returned invalid JSON. Content: ${text.substring(0, 150)}`);
+                sysAlert(`Error saving part: Server returned invalid JSON. Content: ${text.substring(0, 150)}`, "error");
             }
         } catch (error) {
             console.error(error);
-            alert("Error saving part: " + error.message);
+            sysAlert("Error saving part: " + error.message, "error");
         }
     }
 
-    async function deletePart(id) {
-        if (!confirm("Are you sure you want to delete this part?")) return;
-        
-        try {
-            const res = await fetch(`/ServiceDesk/DeleteMasterPart?id=${id}`, { method: 'POST' });
-            const result = await res.json();
-            if (result.success) loadParts();
-            else alert(result.message || "Failed to delete");
-        } catch (error) {
-            console.error(error);
-            alert("Error deleting part");
-        }
+    function deletePart(id) {
+        sysConfirm("Are you sure you want to delete this part?", async function() {
+            try {
+                const res = await fetch(`/ServiceDesk/DeleteMasterPart?id=${id}`, { method: 'POST' });
+                const result = await res.json();
+                if (result.success) {
+                    loadParts();
+                    sysAlert("Part deleted successfully", "success");
+                }
+                else sysAlert(result.message || "Failed to delete", "error");
+            } catch (error) {
+                console.error(error);
+                sysAlert("Error deleting part", "error");
+            }
+        }, { type: 'danger' });
     }
 </script>

@@ -81,7 +81,7 @@
                     @foreach (var user in Model)
                     {
                         <tr class="hover:bg-cyan-50/30 transition-colors group">
-                            
+
                             <td class="px-3 py-1.5 align-top">
                                 <div class="flex items-center">
                                     <div class="w-5 h-5 rounded bg-gray-100 flex items-center justify-center mr-1.5 text-gray-500 group-hover:bg-cyan-100 group-hover:text-cyan-600 transition">
@@ -97,7 +97,7 @@
                                         foreach (var role in user.Roles)
                                         {
                                             var colorHue = Math.Abs(role.GetHashCode() % 360);
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide border transition-all hover:scale-105" 
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide border transition-all hover:scale-105"
                                                   style="background-color: hsl(@colorHue, 70%, 96%); color: hsl(@colorHue, 70%, 35%); border-color: hsl(@colorHue, 70%, 90%); shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                                 <i class="fas @(role.Contains("Admin") ? "fa-shield-alt" : "fa-tag") mr-1 text-[8px]"></i>@formatRoleName(role)
                                             </span>
@@ -180,7 +180,7 @@
                                                 style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
                                             <i class="fas fa-edit mr-0.5 text-[8px]"></i>Edit
                                         </button>
-                                        <button onclick="removeRole('@user.Username')"
+                                        <button onclick="removeUserRole('@user.Username', '@(user.Roles?.FirstOrDefault() ?? "")')"
                                                 class="inline-flex items-center px-1.5 py-0.5 bg-red-500 text-white rounded hover:bg-red-600 text-[9px] font-bold uppercase tracking-wide shadow-sm transition-all">
                                             <i class="fas fa-trash mr-0.5 text-[8px]"></i>Del
                                         </button>
@@ -283,8 +283,8 @@
                     <div class="mb-3">
                         <label class="block text-xs font-semibold text-gray-700 mb-1">Description</label>
                         <textarea id="newRoleDescription"
-                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                               placeholder="Brief description..." rows="2"></textarea>
+                                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                                  placeholder="Brief description..." rows="2"></textarea>
                     </div>
                     <div class="mb-3">
                         <label class="block text-xs font-semibold text-gray-700 mb-2">Hierarchy Requirements</label>
@@ -308,7 +308,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Right Column: Permission Selection -->
                 <!-- Right Column: Permission & Menu Selection (Tabbed) -->
                 <div>
@@ -349,7 +349,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div id="createRoleMessage" class="mt-3 p-2 rounded text-xs font-medium hidden"></div>
         </div>
         <div class="px-4 py-3 border-t flex justify-end space-x-2">
@@ -389,844 +389,847 @@
 
 @section Scripts {
     <script>
-        // Cached roles data
-        var systemRoles = [];
-        var roleConfigs = {
-            'SuperAdmin': { requiresCompany: false, requiresDevice: false, requiresLocation: false, isSystem: true },
-            'CompanyAdmin': { requiresCompany: true, requiresDevice: false, requiresLocation: false, isSystem: true },
-            'CompanyUser': { requiresCompany: true, requiresDevice: true, requiresLocation: false, isSystem: true }
-        };
-
-        // Initialize on page load
-        $(document).ready(function() {
-            loadSystemRoles();
-        });
-
-        // Inject User List from Model to JS for client-side stats
-        var allUsers = @Html.Raw(Json.Serialize(Model));
-
-        function renderStats() {
-            var container = $('#roleStatsContainer');
-            container.empty();
-
-            // 1. Total Users
-            addStatCard(container, "Total Users", allUsers.length, "bg-emerald-500", "fa-users");
-
-            // 2. Super Admin (Always show)
-            var saCount = allUsers.filter(u => (u.Roles || u.roles || []).includes("SuperAdmin")).length;
-            addStatCard(container, "Super Admin", saCount, "bg-red-500", "fa-crown");
-
-            // 3. Dynamic Roles from systemRoles
-            systemRoles.forEach(function(role) {
-                if(role.name === 'SuperAdmin') return;
-                var count = allUsers.filter(u => (u.Roles || u.roles || []).includes(role.name)).length;
-                // Only show cards for roles that either have users or are defined
-                addStatCard(container, role.name, count, "bg-cyan-500", "fa-tag");
-            });
-
-            // 4. No Role
-            var nrCount = allUsers.filter(u => !(u.Roles || u.roles) || (u.Roles || u.roles).length === 0).length;
-            addStatCard(container, "No Role", nrCount, "bg-gray-400", "fa-user-slash");
-        }
-
-        function addStatCard(container, title, value, colorClass, icon) {
-            var card = `
-                <div class="bg-white rounded border border-gray-200 p-2 shadow-sm hover:shadow transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">${formatRoleName(title)}</p>
-                            <p class="text-base font-bold text-gray-900 mt-0.5">${value}</p>
-                        </div>
-                        <div class="w-6 h-6 rounded flex items-center justify-center ${colorClass} shadow-sm">
-                            <i class="fas ${icon} text-white text-[10px]"></i>
-                        </div>
-                    </div>
-                    <div class="mt-1 pt-1 border-t border-gray-50 flex justify-end">
-                        <button onclick="openManageRolesListModal()" class="text-[8px] text-cyan-600 hover:text-cyan-800 font-medium">View List →</button>
-                    </div>
-                </div>`;
-            container.append(card);
-        }
-
-        // Load available roles from system
-        function loadSystemRoles() {
-            $.ajax({
-                url: '@Url.Action("GetAllSystemRoles", "Auth")',
-                type: 'GET',
-                success: function (roles) {
-                    systemRoles = roles || [];
-                    
-                    // Reset roleConfigs with SuperAdmin defaults
-                    roleConfigs = {
-                        'SuperAdmin': { requiresCompany: false, requiresGroup: false, requiresDevice: false, requiresLocation: false, isSystem: true, startPage: 'Companies/Companies' }
-                    };
-
-                    // Build roleConfigs dynamically from metadata
-                    systemRoles.forEach(function(r) {
-                        var rName = typeof r === 'string' ? r : (r.name || r.RoleName);
-                        roleConfigs[rName] = {
-                            requiresCompany: r.requiresCompany || false,
-                            requiresGroup: r.requiresGroup || false,
-                            requiresDevice: r.requiresDevice || false,
-                            requiresLocation: r.requiresLocation || false,
-                            isSystem: r.isSystem || false,
-                            startPage: r.startPage || 'ComputerSummary/Index'
-                        };
-                    });
-
-                    updateRoleDropdown();
-                    renderStats();
-                },
-                error: function () {
-                    console.error('Failed to load system roles');
-                    renderStats(); // Still render basic stats
-                }
-            });
-        }
-
-        function updateRoleDropdown() {
-            var options = '<option value="">-- Select Role --</option>';
-            
-            // Filter out SuperAdmin from assignment dropdown
-            var displayRoles = systemRoles.filter(r => {
-                var rName = typeof r === 'string' ? r : (r.name || r.RoleName);
-                return rName !== 'SuperAdmin';
-            });
-
-            if (displayRoles.length > 0) {
-                displayRoles.forEach(function(role) {
-                    var rName = typeof role === 'string' ? role : (role.name || role.RoleName);
-                    options += '<option value="' + rName + '">' + formatRoleName(rName) + '</option>';
-                });
-            }
- else {
-                options = '<option value="">No custom roles created</option>';
-            }
-            $('#assignRole').html(options);
-        }
-
-        function formatRoleName(roleName) {
-            if (!roleName) return "";
-            // Convert CamelCase to Title Case with spaces
-            return roleName.replace(/([A-Z])/g, ' $1').trim();
-        }
-
-        // ===================== ASSIGN ROLE MODAL =====================
-        function openAssignRoleModal() {
-            document.getElementById('assignRoleModal').classList.remove('hidden');
-            document.getElementById('assignRoleModal').classList.add('flex');
-            document.getElementById('assignMessage').classList.add('hidden');
-            loadCompaniesForModal();
-            loadSystemRoles(); // Refresh roles list
-        }
-
-        function closeAssignRoleModal() {
-            document.getElementById('assignRoleModal').classList.add('hidden');
-            document.getElementById('assignRoleModal').classList.remove('flex');
-            document.getElementById('assignUsername').value = '';
-            document.getElementById('assignRole').value = '';
-            document.getElementById('assignCompany').value = '';
-            document.getElementById('assignDomain').value = '';
-            document.getElementById('assignLocation').value = '';
-            $('#companySelectDiv').addClass('hidden');
-            $('#groupSelectDiv').addClass('hidden');
-            $('#locationSelectDiv').addClass('hidden');
-            $('#domainSelectDiv').addClass('hidden');
-        }
-
-        $('#assignRole').on('change', function () {
-            var role = $(this).val();
-            var config = roleConfigs[role] || { requiresCompany: false, requiresGroup: false, requiresDevice: false, requiresLocation: false };
-
-            // Logic: All scoped roles require Company selection first
-            if (config.requiresCompany || config.requiresGroup || config.requiresDevice || config.requiresLocation) {
-                $('#companySelectDiv').removeClass('hidden');
-            } else {
-                $('#companySelectDiv').addClass('hidden');
-            }
-            
-            // These stay hidden until nested selection is made
-            $('#groupSelectDiv').addClass('hidden');
-            $('#locationSelectDiv').addClass('hidden');
-            $('#domainSelectDiv').addClass('hidden');
-        });
-
-        // Company change handler - Load Groups
-        $('#assignCompany').on('change', function () {
-            var companyId = $(this).val();
-            var role = $('#assignRole').val();
-            var config = roleConfigs[role] || {};
-
-            if (!companyId) {
-                $('#groupSelectDiv').addClass('hidden');
-                return;
-            }
-
-            // Always load groups next if any scoped field is required
-            if (config.requiresCompany || config.requiresDevice || config.requiresLocation) {
-                $('#groupSelectDiv').removeClass('hidden');
-                $('#assignGroup').html('<option value="">Loading groups...</option>');
-                $.ajax({
-                    url: '/Companies/GetGroupsByCompany?companyId=' + companyId,
-                    type: 'GET',
-                    success: function (data) {
-                        var options = '<option value="">-- Select Group --</option>';
-                        if (data && data.length > 0) {
-                            data.forEach(function (group) {
-                                options += '<option value="' + group.id + '">' + group.groupName + '</option>';
-                            });
-                        } else {
-                            options = '<option value="">No groups found</option>';
-                        }
-                        $('#assignGroup').html(options);
-                    }
-                });
-            }
-            
-            // Reset downstreams
-            $('#locationSelectDiv').addClass('hidden');
-            $('#domainSelectDiv').addClass('hidden');
-        });
-
-        // Group change handler - Load Locations
-        $('#assignGroup').on('change', function () {
-            var companyId = $('#assignCompany').val();
-            var groupId = $(this).val();
-            var role = $('#assignRole').val();
-            var config = roleConfigs[role] || {};
-
-            if (!groupId) {
-                $('#locationSelectDiv').addClass('hidden');
-                return;
-            }
-
-            if (config.requiresLocation || config.requiresDevice) {
-                $('#locationSelectDiv').removeClass('hidden');
-                $('#assignLocation').html('<option value="">Loading locations...</option>');
-                $.ajax({
-                    url: '/Companies/GetLocationsByGroup?companyId=' + companyId + '&groupId=' + groupId,
-                    type: 'GET',
-                    success: function (data) {
-                        var options = '<option value="">-- Select Location --</option>';
-                        if (data && data.length > 0) {
-                            data.forEach(function (loc) {
-                                options += '<option value="' + loc.id + '">' + loc.locationName + '</option>';
-                            });
-                        } else {
-                            options = '<option value="">No locations found</option>';
-                        }
-                        $('#assignLocation').html(options);
-                    }
-                });
-            }
-            $('#domainSelectDiv').addClass('hidden');
-        });
-
-        // Location change handler - Load Devices
-        $('#assignLocation').on('change', function () {
-            var companyId = $('#assignCompany').val();
-            var groupId = $('#assignGroup').val();
-            var locationId = $(this).val();
-            var role = $('#assignRole').val();
-            var config = roleConfigs[role] || {};
-
-            if (!locationId) {
-                $('#domainSelectDiv').addClass('hidden');
-                return;
-            }
-
-            if (config.requiresDevice) {
-                $('#domainSelectDiv').removeClass('hidden');
-                $('#assignDomain').html('<option value="">Loading devices...</option>');
-                $.ajax({
-                    url: '/ComputerSummary/GetDevicesByLocation?companyId=' + companyId + '&groupId=' + groupId + '&locationId=' + locationId,
-                    type: 'GET',
-                    success: function (data) {
-                        var options = '<option value="">-- Select Device --</option>';
-                        if (data && data.length > 0) {
-                            data.forEach(function (device) {
-                                options += '<option value="' + device.domainName + '">' +
-                                           device.domainName + ' (' + (device.userName || 'N/A') + ')</option>';
-                            });
-                        } else {
-                            options = '<option value="">No devices found</option>';
-                        }
-                        $('#assignDomain').html(options);
-                    }
-                });
-            }
-        });
-
-        function loadCompaniesForModal() {
-            $.ajax({
-                url: '/Companies/GetCompaniesForDropdown',
-                type: 'GET',
-                success: function (companies) {
-                    $('#assignCompany').html('<option value="">-- Select Company --</option>');
-                    if (companies && companies.length > 0) {
-                        companies.forEach(function (company) {
-                            $('#assignCompany').append('<option value="' + company.id + '">' + company.companyName + '</option>');
-                        });
-                    } else {
-                        $('#assignCompany').html('<option value="">No companies available</option>');
-                    }
-                },
-                error: function () {
-                    $('#assignCompany').html('<option value="">Error loading companies</option>');
-                }
-            });
-        }
-
-        function submitAssignRole() {
-            const username = $('#assignUsername').val().trim();
-            const role = $('#assignRole').val();
-            const companyId = $('#assignCompany').val();
-            const groupId = $('#assignGroup').val();
-            const domainName = $('#assignDomain').val();
-            const locationId = $('#assignLocation').val();
-            const messageEl = $('#assignMessage');
-            const btn = $('#assignRoleBtn');
-            
-            if (!username) {
-                showMessage(messageEl, 'Please enter a username!', 'error');
-                return false;
-            }
-            if (!role) {
-                showMessage(messageEl, 'Please select a role!', 'error');
-                return false;
-            }
-            
-            var config = roleConfigs[role] || {};
-            if (config.requiresCompany && !companyId) {
-                showMessage(messageEl, 'Please select a company!', 'error');
-                return false;
-            }
-            if (config.requiresDevice && !domainName) {
-                showMessage(messageEl, 'Please select a device!', 'error');
-                return false;
-            }
-            if (config.requiresLocation && !locationId) {
-                showMessage(messageEl, 'Please select a location!', 'error');
-                return false;
-            }
-            
-            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Assigning...');
-            $.ajax({
-                url: '@Url.Action("AssignRole", "Auth")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    Username: username,
-                    Role: role,
-                    CompanyId: companyId ? parseInt(companyId) : null,
-                    GroupId: groupId ? parseInt(groupId) : null,
-                    LocationId: locationId ? parseInt(locationId) : null,
-                    DomainName: domainName || null
-                }),
-                success: function (response) {
-                    if (response.success) {
-                        showMessage(messageEl, response.message, 'success');
-                        setTimeout(() => location.reload(), 1000);
-                    } else {
-                        showMessage(messageEl, response.message, 'error');
-                        btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i>Assign Role');
-                    }
-                },
-                error: function (xhr, status, error) {
-                    showMessage(messageEl, 'Network error: ' + error, 'error');
-                    btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i>Assign Role');
-                }
-            });
-        }
-
-        function editRole(username, currentRole, companyId, domainName) {
-            openAssignRoleModal();
-            setTimeout(function() {
-                $('#assignUsername').val(username);
-                $('#assignRole').val(currentRole).trigger('change');
-                setTimeout(function() {
-                    if (companyId) {
-                        $('#assignCompany').val(companyId);
-                        if (roleConfigs[currentRole]?.requiresCompany || roleConfigs[currentRole]?.requiresDevice || roleConfigs[currentRole]?.requiresLocation) {
-                            $('#assignCompany').trigger('change');
-                            setTimeout(function() {
-                                if (domainName) {
-                                    $('#assignDomain').val(domainName);
-                                }
-                            }, 1000);
-                        }
-                    }
-                }, 500);
-            }, 300);
-        }
-
-        function removeRole(username) {
-            if (!confirm('Remove role from user "' + username + '"?')) return;
-            $.ajax({
-                url: '@Url.Action("RemoveRole", "Auth")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ Username: username }),
-                success: function (response) {
-                    if (response.success) {
-                        showToast('Role removed successfully', 'success');
-                        setTimeout(() => location.reload(), 800);
-                    } else {
-                        showToast(response.message, 'error');
-                    }
-                },
-                error: function () {
-                    showToast('Error removing role', 'error');
-                }
-            });
-        }
-
-        // ===================== CREATE ROLE MODAL =====================
-        var permissionsData = []; // Cache permissions data
-        var menusData = []; // Cache menus data
-        var isEditMode = false;
-        var currentEditingRole = '';
-
-        function switchRoleTab(tab) {
-            $('.role-tab-btn').removeClass('border-cyan-500 text-cyan-600').addClass('border-transparent text-gray-500');
-            $('#tabBtn_' + tab).addClass('border-cyan-500 text-cyan-600').removeClass('border-transparent text-gray-500');
-            
-            $('#tabContent_perms').addClass('hidden');
-            $('#tabContent_menus').addClass('hidden');
-            $('#tabContent_' + tab).removeClass('hidden');
-        }
-
-        function openCreateRoleModal() {
-            isEditMode = false;
-            currentEditingRole = '';
-            $('#createRoleBtnText').text('Create Role with Permissions');
-            $('#newRoleName').prop('readonly', false);
-            
-            document.getElementById('createRoleModal').classList.remove('hidden');
-            document.getElementById('createRoleModal').classList.add('flex');
-            document.getElementById('createRoleMessage').classList.add('hidden');
-            
-            // Reset form
-            $('#newRoleName').val('');
-            $('#newRoleDescription').val('');
-            $('#roleRequiresCompany').prop('checked', false);
-            $('#roleRequiresGroup').prop('checked', false);
-            $('#roleRequiresDevice').prop('checked', false);
-            $('#roleRequiresLocation').prop('checked', false);
-            
-            switchRoleTab('perms');
-            loadPermissions();
-            loadMenus();
-        }
-
-        function loadPermissions() {
-            $('#permissionTree').html('<div class="flex flex-col items-center justify-center py-8"><i class="fas fa-sync fa-spin text-cyan-500 text-xl mb-2"></i><p class="text-gray-500 text-xs">Loading authorized permissions...</p></div>');
-            
-            $.ajax({
-                url: '@Url.Action("GetGroupedPermissions", "Auth")',
-                type: 'GET',
-                success: function(data) {
-                    permissionsData = data;
-                    renderPermissionTree(data);
-                    if (isEditMode) syncRolePermissions();
-                },
-                error: function(xhr) {
-                    $('#permissionTree').html('<div class="text-center py-6"><i class="fas fa-exclamation-triangle text-red-500 mb-2"></i><p class="text-red-600 text-xs">Failed to load permissions. Please try again.</p></div>');
-                    console.error('Permission load error:', xhr.responseText);
-                }
-            });
-        }
-
-        function loadMenus() {
-            $('#menuTree').html('<div class="flex flex-col items-center justify-center py-8"><i class="fas fa-sync fa-spin text-cyan-500 text-xl mb-2"></i><p class="text-gray-500 text-xs">Loading authorized menus...</p></div>');
-            
-            $.ajax({
-                url: '@Url.Action("GetMenusGroupedByModule", "Auth")',
-                type: 'GET',
-                success: function(data) {
-                    menusData = data;
-                    renderMenuTree(data);
-                    if (isEditMode) syncRoleMenus();
-                },
-                error: function(xhr) {
-                    $('#menuTree').html('<div class="text-center py-6"><i class="fas fa-exclamation-triangle text-red-500 mb-2"></i><p class="text-red-600 text-xs">Failed to load menus. Please try again.</p></div>');
-                    console.error('Menu load error:', xhr.responseText);
-                }
-            });
-        }
-
-        function renderMenuTree(modules) {
-            if (!modules || !Array.isArray(modules) || modules.length === 0) {
-                var msg = (modules && modules.message) ? modules.message : 'No menus found';
-                $('#menuTree').html(`<div class="text-center py-4"><i class="fas fa-info-circle text-gray-400 mb-1"></i><p class="text-gray-400 text-xs">${msg}</p></div>`);
-                return;
-            }
-
-            var html = '';
-            modules.forEach(function(module) {
-                var moduleName = module.moduleName || module.ModuleName || 'Unknown';
-                var moduleMenus = module.menus || module.Menus || [];
-                var moduleIcon = module.moduleIcon || module.ModuleIcon || 'fas fa-folder';
-                var moduleId = moduleName.replace(/\s+/g, '') + '_menu';
-                
-                // Skip modules with no menus
-                if (moduleMenus.length === 0) return;
-
-                html += `
-                    <div class="mb-3">
-                        <div class="flex items-center mb-1">
-                            <input type="checkbox" id="mod_menu_${moduleId}" class="module-menu-checkbox mr-2 rounded text-cyan-600" 
-                                   onchange="toggleModuleMenus('${moduleId}')">
-                            <label for="mod_menu_${moduleId}" class="text-xs font-semibold text-gray-700 cursor-pointer">
-                                <i class="${moduleIcon} mr-1 text-gray-400"></i>${moduleName}
-                            </label>
-                        </div>
-                        <div class="ml-5 space-y-1" id="menu_container_${moduleId}">`;
-                
-                moduleMenus.forEach(function(menu) {
-                    var menuName = menu.menuName || menu.MenuName || 'Unnamed';
-                    var menuId = menu.id || menu.Id || 0;
-                    html += `
-                        <label class="flex items-center text-xs text-gray-600 hover:bg-gray-100 p-1 rounded cursor-pointer">
-                            <input type="checkbox" class="menu-checkbox mr-2 rounded text-cyan-500" 
-                                   name="menuIds" value="${menuId}" data-module="${moduleId}">
-                            <span class="flex-1">${menuName}</span>
-                        </label>`;
-                });
-                
-                html += `</div></div>`;
-            });
-            
-            $('#menuTree').html(html);
-        }
-
-        function toggleModuleMenus(moduleId) {
-            var isChecked = $('#mod_menu_' + moduleId).is(':checked');
-            $('#menu_container_' + moduleId + ' input[type="checkbox"]').prop('checked', isChecked);
-        }
-
-        function selectAllMenus() {
-            $('#menuTree input[type="checkbox"]').prop('checked', true);
-        }
-
-        function clearAllMenus() {
-            $('#menuTree input[type="checkbox"]').prop('checked', false);
-        }
-
-        function renderPermissionTree(modules) {
-            if (!modules || !Array.isArray(modules) || modules.length === 0) {
-                var msg = (modules && modules.message) ? modules.message : 'No discovered permissions found in the database.';
-                $('#permissionTree').html(`<div class="text-center py-8"><p class="text-gray-400 text-xs mb-3">${msg}</p><button onclick="seedPermissions()" class="px-4 py-2 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700 shadow-sm transition"><i class="fas fa-magic mr-1"></i>Initialize Permissions Scanner</button></div>`);
-                return;
-            }
-
-            var html = '';
-            modules.forEach(function(module) {
-                var moduleId = module.moduleName.replace(/\s+/g, '');
-                html += `
-                    <div class="mb-3">
-                        <div class="flex items-center mb-1">
-                            <input type="checkbox" id="mod_${moduleId}" class="module-checkbox mr-2 rounded text-cyan-600" 
-                                   data-module="${moduleId}" onchange="toggleModulePermissions('${moduleId}')">
-                            <label for="mod_${moduleId}" class="text-xs font-semibold text-gray-700 cursor-pointer">
-                                <i class="${module.moduleIcon || 'fas fa-folder'} mr-1 text-gray-400"></i>${module.moduleName}
-                            </label>
-                        </div>
-                        <div class="ml-5 space-y-1" id="perms_${moduleId}">`;
-                
-                if (module.permissions && module.permissions.length > 0) {
-                    module.permissions.forEach(function(perm) {
-                        var actionClass = perm.actionType === 'Read' ? 'text-green-600' : 
-                                         (perm.actionType === 'Write' ? 'text-blue-600' : 'text-red-600');
-                        html += `
-                            <label class="flex items-center text-xs text-gray-600 hover:bg-gray-100 p-1 rounded cursor-pointer">
-                                <input type="checkbox" class="perm-checkbox mr-2 rounded text-cyan-500" 
-                                       name="permissions" value="${perm.permissionCode}" data-module="${moduleId}">
-                                <span class="flex-1">${perm.permissionName}</span>
-                                <span class="text-[10px] ${actionClass}">${perm.actionType}</span>
-                            </label>`;
-                    });
-                } else {
-                    html += '<p class="text-gray-400 text-[10px] italic">No permissions defined</p>';
-                }
-                
-                html += `</div></div>`;
-            });
-            
-            $('#permissionTree').html(html);
-        }
-
-        function toggleModulePermissions(moduleId) {
-            var isChecked = $('#mod_' + moduleId).is(':checked');
-            $('#perms_' + moduleId + ' input[type="checkbox"]').prop('checked', isChecked);
-        }
-
-        function selectAllPermissions() {
-            $('#permissionTree input[type="checkbox"]').prop('checked', true);
-        }
-
-        function clearAllPermissions() {
-            $('#permissionTree input[type="checkbox"]').prop('checked', false);
-        }
-
-        function seedPermissions() {
-            $.ajax({
-                url: '@Url.Action("SeedPermissions", "Auth")',
-                type: 'POST',
-                success: function(response) {
-                    if (response.success) {
-                        showToast(response.message, 'success');
-                        loadPermissions();
-                    } else {
-                        showToast(response.message || 'Failed to seed', 'error');
-                    }
-                }
-            });
-        }
-
-        function closeCreateRoleModal() {
-            document.getElementById('createRoleModal').classList.add('hidden');
-            document.getElementById('createRoleModal').classList.remove('flex');
-        }
-
-        function selectRoleColor(color) {
-            $('#selectedRoleColor').val(color);
-            $('.role-color-btn').removeClass('ring-2 ring-offset-2 ring-gray-500');
-            $('.role-color-btn[data-color="' + color + '"]').addClass('ring-2 ring-offset-2 ring-gray-500');
-        }
-
-        function submitCreateRole() {
-            const roleName = $('#newRoleName').val().trim();
-            const description = $('#newRoleDescription').val().trim();
-            const requiresCompany = $('#roleRequiresCompany').is(':checked');
-            const requiresGroup = $('#roleRequiresGroup').is(':checked');
-            const requiresDevice = $('#roleRequiresDevice').is(':checked');
-            const requiresLocation = $('#roleRequiresLocation').is(':checked');
-            const messageEl = $('#createRoleMessage');
-            const btn = $('#createRoleBtn');
-
-            // Collect selected permissions
-            var selectedPermissions = [];
-            $('input[name="permissions"]:checked').each(function() {
-                selectedPermissions.push($(this).val());
-            });
-
-            // Collect selected menus
-            var selectedMenus = [];
-            $('input[name="menuIds"]:checked').each(function() {
-                selectedMenus.push(parseInt($(this).val()));
-            });
-
-            if (!roleName) {
-                showMessage(messageEl, 'Please enter a role name!', 'error');
-                return;
-            }
-
-            if (selectedPermissions.length === 0) {
-                showMessage(messageEl, 'Please select at least one permission!', 'error');
-                return;
-            }
-
-            // Validate role name format (no spaces, CamelCase)
-            if (/\s/.test(roleName)) {
-                showMessage(messageEl, 'Role name cannot contain spaces. Use CamelCase format.', 'error');
-                return;
-            }
-
-            const actionLabel = isEditMode ? 'Updating...' : 'Creating...';
-            btn.prop('disabled', true).html(`<i class="fas fa-spinner fa-spin mr-1"></i>${actionLabel}`);
-
-            const url = isEditMode ? '@Url.Action("UpdateRoleWithPermissions", "Auth")' : '@Url.Action("CreateRoleWithPermissions", "Auth")';
-
-            $.ajax({
-                url: url,
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    RoleName: roleName,
-                    Description: description,
-                    RequiresCompany: requiresCompany,
-                    RequiresGroup: requiresGroup,
-                    RequiresDevice: requiresDevice,
-                    RequiresLocation: requiresLocation,
-                    Permissions: selectedPermissions,
-                    MenuIds: selectedMenus
-                }),
-                success: function(response) {
-                    if (response.success) {
-                        showMessage(messageEl, isEditMode ? 'Role updated successfully!' : 'Role created successfully!', 'success');
-                        setTimeout(() => {
-                            closeCreateRoleModal();
-                            loadSystemRoles();
-                            if (isEditMode) loadRolesList();
-                        }, 1000);
-                    } else {
-                        showMessage(messageEl, response.message || 'Error occurred', 'error');
-                    }
-                    btn.prop('disabled', false).html('<i class="fas fa-save mr-1"></i>Save Changes');
-                }
-            });
-        }
-
-        // ===================== EDIT SYSTEM ROLE =====================
-        var currentRoleData = null;
-
-        function editSystemRole(roleName) {
-            isEditMode = true;
-            currentEditingRole = roleName;
-            $('#createRoleBtnText').text('Save Changes');
-            $('#newRoleName').val(roleName).prop('readonly', true);
-            
-            // Show modal
-            document.getElementById('createRoleModal').classList.remove('hidden');
-            document.getElementById('createRoleModal').classList.add('flex');
-            document.getElementById('createRoleMessage').classList.add('hidden');
-            
-            // Fetch Details
-            $.ajax({
-                url: '@Url.Action("GetRoleDetails", "Auth")?roleName=' + roleName,
-                type: 'GET',
-                success: function(data) {
-                    currentRoleData = data;
-                    $('#newRoleDescription').val(data.description);
-                    $('#roleRequiresCompany').prop('checked', data.requiresCompany);
-                    $('#roleRequiresGroup').prop('checked', data.requiresGroup);
-                    $('#roleRequiresDevice').prop('checked', data.requiresDevice);
-                    $('#roleRequiresLocation').prop('checked', data.requiresLocation);
-                    
-                    loadPermissions();
-                    loadMenus();
-                }
-            });
-        }
-
-        function syncRolePermissions() {
-            if (!currentRoleData || !currentRoleData.permissions) return;
-            $('input[name="permissions"]').prop('checked', false);
-            currentRoleData.permissions.forEach(function(code) {
-                $('input[name="permissions"][value="' + code + '"]').prop('checked', true);
-            });
-        }
-
-        function syncRoleMenus() {
-            if (!currentRoleData || !currentRoleData.menus) return;
-            $('input[name="menuIds"]').prop('checked', false);
-            currentRoleData.menus.forEach(function(id) {
-                $('input[name="menuIds"][value="' + id + '"]').prop('checked', true);
-            });
-        }
-
-        // ===================== MANAGE ROLES LIST MODAL =====================
-        function openManageRolesListModal() {
-            document.getElementById('manageRolesListModal').classList.remove('hidden');
-            document.getElementById('manageRolesListModal').classList.add('flex');
-            loadRolesList();
-        }
-
-        function closeManageRolesListModal() {
-            document.getElementById('manageRolesListModal').classList.add('hidden');
-            document.getElementById('manageRolesListModal').classList.remove('flex');
-        }
-
-        function loadRolesList() {
-            $('#rolesListContainer').html('<p class="text-gray-500 text-xs text-center py-4">Loading roles...</p>');
-            $.ajax({
-                url: '@Url.Action("GetAllSystemRoles", "Auth")',
-                type: 'GET',
-                success: function(roles) {
-                    var html = '';
-                    // Add SuperAdmin first (system role)
-                    html += createRoleListItem({ name: 'SuperAdmin', description: 'Full system access', isSystem: true, userCount: 1 }, 'red');
-                    
-                    if (roles && roles.length > 0) {
-                        roles.forEach(function(role) {
-                            html += createRoleListItem(role, role.color || 'cyan');
-                        });
-                    }
-                    $('#rolesListContainer').html(html);
-                },
-                error: function() {
-                    $('#rolesListContainer').html('<p class="text-red-500 text-xs text-center py-4">Error loading roles</p>');
-                }
-            });
-        }
-
-        function createRoleListItem(role, color) {
-            var colorClass = 'bg-' + color + '-100 text-' + color + '-700 border-' + color + '-200';
-            var isSystem = role.isSystem ? '<span class="text-[8px] bg-gray-200 text-gray-600 px-1 rounded ml-1">SYSTEM</span>' : '';
-            var buttons = '';
-            
-            if (!role.isSystem) {
-                buttons = `
-                    <div class="flex items-center space-x-2">
-                        <button onclick="editSystemRole('${role.name}')" class="text-cyan-600 hover:text-cyan-800 text-xs" title="Edit Permissions & Menus"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteRole('${role.name}')" class="text-red-500 hover:text-red-700 text-xs" title="Delete Role"><i class="fas fa-trash"></i></button>
-                    </div>`;
-            } else {
-                buttons = `<span class="text-[10px] text-gray-400 italic">Protected</span>`;
-            }
-            
-            return '<div class="flex items-center justify-between p-2 bg-gray-50 rounded border transition hover:bg-white hover:shadow-sm">' +
-                   '<div class="flex items-center space-x-2">' +
-                   '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ' + colorClass + '">' +
-                   '<i class="fas ' + (role.icon || 'fa-user') + ' mr-0.5 text-[8px]"></i>' + formatRoleName(role.name) +
-                   '</span>' + isSystem +
-                   '</div>' +
-                   '<div class="flex items-center space-x-3">' +
-                   '<span class="text-[10px] text-gray-500">' + (role.userCount || 0) + ' users</span>' +
-                   buttons +
-                   '</div></div>';
-        }
-
-        function deleteRole(roleName) {
-            if (!confirm('Are you sure you want to delete the role "' + roleName + '"? Users with this role will lose access.')) return;
-            
-            $.ajax({
-                url: '@Url.Action("DeleteRole", "Auth")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ RoleName: roleName }),
-                success: function(response) {
-                    if (response.success) {
-                        showToast('Role deleted successfully', 'success');
-                        loadRolesList();
-                        loadSystemRoles();
-                    } else {
-                        showToast(response.message || 'Failed to delete role', 'error');
-                    }
-                },
-                error: function() {
-                    showToast('Error deleting role', 'error');
-                }
-            });
-        }
-
-        // ===================== UTILITY FUNCTIONS =====================
-        function showMessage(el, message, type) {
-            el.removeClass('hidden bg-red-50 text-red-700 bg-green-50 text-green-700');
-            if (type === 'success') {
-                el.addClass('bg-green-50 text-green-700');
-            } else {
-                el.addClass('bg-red-50 text-red-700');
-            }
-            el.text(message).removeClass('hidden');
-        }
-
-        function showToast(message, type) {
-            const existing = document.getElementById('toast-notification');
-            if(existing) existing.remove();
-
-            const div = document.createElement('div');
-            div.id = 'toast-notification';
-            const isError = type === 'error';
-            div.className = `fixed top-4 right-4 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-y-0 z-50 flex items-center gap-3 ${isError ? 'bg-red-600' : 'bg-green-600'}`;
-            div.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} text-xl"></i><div><h4 class="font-bold text-sm">${isError ? 'Error' : 'Success'}</h4><p class="text-xs opacity-90">${message}</p></div>`;
-            document.body.appendChild(div);
-            
-            setTimeout(() => {
-                div.classList.add('opacity-0', '-translate-y-2');
-                setTimeout(() => div.remove(), 300);
-            }, 3000);
-        }
+               // Cached roles data
+               var systemRoles = [];
+               var roleConfigs = {
+                   'SuperAdmin': { requiresCompany: false, requiresDevice: false, requiresLocation: false, isSystem: true },
+                   'CompanyAdmin': { requiresCompany: true, requiresDevice: false, requiresLocation: false, isSystem: true },
+                   'CompanyUser': { requiresCompany: true, requiresDevice: true, requiresLocation: false, isSystem: true }
+               };
+
+               // Initialize on page load
+               $(document).ready(function() {
+                   loadSystemRoles();
+               });
+
+               // Inject User List from Model to JS for client-side stats
+               var allUsers = @Html.Raw(Json.Serialize(Model));
+
+               function renderStats() {
+                   var container = $('#roleStatsContainer');
+                   container.empty();
+
+                   // 1. Total Users
+                   addStatCard(container, "Total Users", allUsers.length, "bg-emerald-500", "fa-users");
+
+                   // 2. Super Admin (Always show)
+                   var saCount = allUsers.filter(u => (u.Roles || u.roles || []).includes("SuperAdmin")).length;
+                   addStatCard(container, "Super Admin", saCount, "bg-red-500", "fa-crown");
+
+                   // 3. Dynamic Roles from systemRoles
+                   systemRoles.forEach(function(role) {
+                       var rName = typeof role === 'string' ? role : (role.name || role.RoleName);
+                       if(rName === 'SuperAdmin') return;
+                       var count = allUsers.filter(u => (u.Roles || u.roles || []).includes(rName)).length;
+                       // Only show cards for roles that either have users or are defined
+                       addStatCard(container, rName, count, "bg-cyan-500", "fa-tag");
+                   });
+
+                   // 4. No Role
+                   var nrCount = allUsers.filter(u => !(u.Roles || u.roles) || (u.Roles || u.roles).length === 0).length;
+                   addStatCard(container, "No Role", nrCount, "bg-gray-400", "fa-user-slash");
+               }
+
+               function addStatCard(container, title, value, colorClass, icon) {
+                   var card = `
+                       <div class="bg-white rounded border border-gray-200 p-2 shadow-sm hover:shadow transition">
+                           <div class="flex items-center justify-between">
+                               <div>
+                                   <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">${formatRoleName(title)}</p>
+                                   <p class="text-base font-bold text-gray-900 mt-0.5">${value}</p>
+                               </div>
+                               <div class="w-6 h-6 rounded flex items-center justify-center ${colorClass} shadow-sm">
+                                   <i class="fas ${icon} text-white text-[10px]"></i>
+                               </div>
+                           </div>
+                           <div class="mt-1 pt-1 border-t border-gray-50 flex justify-end">
+                               <button onclick="openManageRolesListModal()" class="text-[8px] text-cyan-600 hover:text-cyan-800 font-medium">View List →</button>
+                           </div>
+                       </div>`;
+                   container.append(card);
+               }
+
+               // Load available roles from system
+               function loadSystemRoles() {
+                   $.ajax({
+                       url: '@Url.Action("GetAllSystemRoles", "Auth")',
+                       type: 'GET',
+                       success: function (roles) {
+                           systemRoles = roles || [];
+
+                           // Reset roleConfigs with SuperAdmin defaults
+                           roleConfigs = {
+                               'SuperAdmin': { requiresCompany: false, requiresGroup: false, requiresDevice: false, requiresLocation: false, isSystem: true, startPage: 'Companies/Companies' }
+                           };
+
+                           // Build roleConfigs dynamically from metadata
+                           systemRoles.forEach(function(r) {
+                               var rName = typeof r === 'string' ? r : (r.name || r.RoleName);
+                               roleConfigs[rName] = {
+                                   requiresCompany: r.requiresCompany || false,
+                                   requiresGroup: r.requiresGroup || false,
+                                   requiresDevice: r.requiresDevice || false,
+                                   requiresLocation: r.requiresLocation || false,
+                                   isSystem: r.isSystem || false,
+                                   startPage: r.startPage || 'ComputerSummary/Index'
+                               };
+                           });
+
+                           updateRoleDropdown();
+                           renderStats();
+                       },
+                       error: function () {
+                           console.error('Failed to load system roles');
+                           renderStats(); // Still render basic stats
+                       }
+                   });
+               }
+
+               function updateRoleDropdown() {
+                   var options = '<option value="">-- Select Role --</option>';
+
+                   // Filter out SuperAdmin from assignment dropdown
+                   var displayRoles = systemRoles.filter(r => {
+                       var rName = typeof r === 'string' ? r : (r.name || r.RoleName);
+                       return rName !== 'SuperAdmin';
+                   });
+
+                   if (displayRoles.length > 0) {
+                       displayRoles.forEach(function(role) {
+                           var rName = typeof role === 'string' ? role : (role.name || role.RoleName);
+                           options += '<option value="' + rName + '">' + formatRoleName(rName) + '</option>';
+                       });
+                   }
+        else {
+                       options = '<option value="">No custom roles created</option>';
+                   }
+                   $('#assignRole').html(options);
+               }
+
+               function formatRoleName(roleName) {
+                   if (!roleName) return "";
+                   // Convert CamelCase to Title Case with spaces
+                   return roleName.replace(/([A-Z])/g, ' $1').trim();
+               }
+
+               // ===================== ASSIGN ROLE MODAL =====================
+               function openAssignRoleModal() {
+                   document.getElementById('assignRoleModal').classList.remove('hidden');
+                   document.getElementById('assignRoleModal').classList.add('flex');
+                   document.getElementById('assignMessage').classList.add('hidden');
+                   loadCompaniesForModal();
+                   loadSystemRoles(); // Refresh roles list
+               }
+
+               function closeAssignRoleModal() {
+                   document.getElementById('assignRoleModal').classList.add('hidden');
+                   document.getElementById('assignRoleModal').classList.remove('flex');
+                   document.getElementById('assignUsername').value = '';
+                   document.getElementById('assignRole').value = '';
+                   document.getElementById('assignCompany').value = '';
+                   document.getElementById('assignDomain').value = '';
+                   document.getElementById('assignLocation').value = '';
+                   $('#companySelectDiv').addClass('hidden');
+                   $('#groupSelectDiv').addClass('hidden');
+                   $('#locationSelectDiv').addClass('hidden');
+                   $('#domainSelectDiv').addClass('hidden');
+               }
+
+               $('#assignRole').on('change', function () {
+                   var role = $(this).val();
+                   var config = roleConfigs[role] || { requiresCompany: false, requiresGroup: false, requiresDevice: false, requiresLocation: false };
+
+                   // Logic: All scoped roles require Company selection first
+                   if (config.requiresCompany || config.requiresGroup || config.requiresDevice || config.requiresLocation) {
+                       $('#companySelectDiv').removeClass('hidden');
+                   } else {
+                       $('#companySelectDiv').addClass('hidden');
+                   }
+
+                   // These stay hidden until nested selection is made
+                   $('#groupSelectDiv').addClass('hidden');
+                   $('#locationSelectDiv').addClass('hidden');
+                   $('#domainSelectDiv').addClass('hidden');
+               });
+
+               // Company change handler - Load Groups
+               $('#assignCompany').on('change', function () {
+                   var companyId = $(this).val();
+                   var role = $('#assignRole').val();
+                   var config = roleConfigs[role] || {};
+
+                   if (!companyId) {
+                       $('#groupSelectDiv').addClass('hidden');
+                       return;
+                   }
+
+                   // Always load groups next if any scoped field is required
+                   if (config.requiresCompany || config.requiresDevice || config.requiresLocation) {
+                       $('#groupSelectDiv').removeClass('hidden');
+                       $('#assignGroup').html('<option value="">Loading groups...</option>');
+                       $.ajax({
+                           url: '/Companies/GetGroupsByCompany?companyId=' + companyId,
+                           type: 'GET',
+                           success: function (data) {
+                               var options = '<option value="">-- Select Group --</option>';
+                               if (data && data.length > 0) {
+                                   data.forEach(function (group) {
+                                       options += '<option value="' + group.id + '">' + group.groupName + '</option>';
+                                   });
+                               } else {
+                                   options = '<option value="">No groups found</option>';
+                               }
+                               $('#assignGroup').html(options);
+                           }
+                       });
+                   }
+
+                   // Reset downstreams
+                   $('#locationSelectDiv').addClass('hidden');
+                   $('#domainSelectDiv').addClass('hidden');
+               });
+
+               // Group change handler - Load Locations
+               $('#assignGroup').on('change', function () {
+                   var companyId = $('#assignCompany').val();
+                   var groupId = $(this).val();
+                   var role = $('#assignRole').val();
+                   var config = roleConfigs[role] || {};
+
+                   if (!groupId) {
+                       $('#locationSelectDiv').addClass('hidden');
+                       return;
+                   }
+
+                   if (config.requiresLocation || config.requiresDevice) {
+                       $('#locationSelectDiv').removeClass('hidden');
+                       $('#assignLocation').html('<option value="">Loading locations...</option>');
+                       $.ajax({
+                           url: '/Companies/GetLocationsByGroup?companyId=' + companyId + '&groupId=' + groupId,
+                           type: 'GET',
+                           success: function (data) {
+                               var options = '<option value="">-- Select Location --</option>';
+                               if (data && data.length > 0) {
+                                   data.forEach(function (loc) {
+                                       options += '<option value="' + loc.id + '">' + loc.locationName + '</option>';
+                                   });
+                               } else {
+                                   options = '<option value="">No locations found</option>';
+                               }
+                               $('#assignLocation').html(options);
+                           }
+                       });
+                   }
+                   $('#domainSelectDiv').addClass('hidden');
+               });
+
+               // Location change handler - Load Devices
+               $('#assignLocation').on('change', function () {
+                   var companyId = $('#assignCompany').val();
+                   var groupId = $('#assignGroup').val();
+                   var locationId = $(this).val();
+                   var role = $('#assignRole').val();
+                   var config = roleConfigs[role] || {};
+
+                   if (!locationId) {
+                       $('#domainSelectDiv').addClass('hidden');
+                       return;
+                   }
+
+                   if (config.requiresDevice) {
+                       $('#domainSelectDiv').removeClass('hidden');
+                       $('#assignDomain').html('<option value="">Loading devices...</option>');
+                       $.ajax({
+                           url: '/ComputerSummary/GetDevicesByLocation?companyId=' + companyId + '&groupId=' + groupId + '&locationId=' + locationId,
+                           type: 'GET',
+                           success: function (data) {
+                               var options = '<option value="">-- Select Device --</option>';
+                               if (data && data.length > 0) {
+                                   data.forEach(function (device) {
+                                       options += '<option value="' + device.domainName + '">' +
+                                                  device.domainName + ' (' + (device.userName || 'N/A') + ')</option>';
+                                   });
+                               } else {
+                                   options = '<option value="">No devices found</option>';
+                               }
+                               $('#assignDomain').html(options);
+                           }
+                       });
+                   }
+               });
+
+               function loadCompaniesForModal() {
+                   $.ajax({
+                       url: '/Companies/GetCompaniesForDropdown',
+                       type: 'GET',
+                       success: function (companies) {
+                           $('#assignCompany').html('<option value="">-- Select Company --</option>');
+                           if (companies && companies.length > 0) {
+                               companies.forEach(function (company) {
+                                   $('#assignCompany').append('<option value="' + company.id + '">' + company.companyName + '</option>');
+                               });
+                           } else {
+                               $('#assignCompany').html('<option value="">No companies available</option>');
+                           }
+                       },
+                       error: function () {
+                           $('#assignCompany').html('<option value="">Error loading companies</option>');
+                       }
+                   });
+               }
+
+               function submitAssignRole() {
+                   const username = $('#assignUsername').val().trim();
+                   const role = $('#assignRole').val();
+                   const companyId = $('#assignCompany').val();
+                   const groupId = $('#assignGroup').val();
+                   const domainName = $('#assignDomain').val();
+                   const locationId = $('#assignLocation').val();
+                   const messageEl = $('#assignMessage');
+                   const btn = $('#assignRoleBtn');
+
+                   if (!username) {
+                       showMessage(messageEl, 'Please enter a username!', 'error');
+                       return false;
+                   }
+                   if (!role) {
+                       showMessage(messageEl, 'Please select a role!', 'error');
+                       return false;
+                   }
+
+                   var config = roleConfigs[role] || {};
+                   if (config.requiresCompany && !companyId) {
+                       showMessage(messageEl, 'Please select a company!', 'error');
+                       return false;
+                   }
+                   if (config.requiresDevice && !domainName) {
+                       showMessage(messageEl, 'Please select a device!', 'error');
+                       return false;
+                   }
+                   if (config.requiresLocation && !locationId) {
+                       showMessage(messageEl, 'Please select a location!', 'error');
+                       return false;
+                   }
+
+                   btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Assigning...');
+                   $.ajax({
+                       url: '@Url.Action("AssignRole", "Auth")',
+                       type: 'POST',
+                       contentType: 'application/json',
+                       data: JSON.stringify({
+                           Username: username,
+                           Role: role,
+                           CompanyId: companyId ? parseInt(companyId) : null,
+                           GroupId: groupId ? parseInt(groupId) : null,
+                           LocationId: locationId ? parseInt(locationId) : null,
+                           DomainName: domainName || null
+                       }),
+                       success: function (response) {
+                           if (response.success) {
+                               showMessage(messageEl, response.message, 'success');
+                               setTimeout(() => location.reload(), 1000);
+                           } else {
+                               showMessage(messageEl, response.message, 'error');
+                               btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i>Assign Role');
+                           }
+                       },
+                       error: function (xhr, status, error) {
+                           sysAlert('Network error: ' + error, 'error');
+                           btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i>Assign Role');
+                       }
+                   });
+               }
+
+               function editRole(username, currentRole, companyId, domainName) {
+                   openAssignRoleModal();
+                   setTimeout(function() {
+                       $('#assignUsername').val(username);
+                       $('#assignRole').val(currentRole).trigger('change');
+                       setTimeout(function() {
+                           if (companyId) {
+                               $('#assignCompany').val(companyId);
+                               if (roleConfigs[currentRole]?.requiresCompany || roleConfigs[currentRole]?.requiresDevice || roleConfigs[currentRole]?.requiresLocation) {
+                                   $('#assignCompany').trigger('change');
+                                   setTimeout(function() {
+                                       if (domainName) {
+                                           $('#assignDomain').val(domainName);
+                                       }
+                                   }, 1000);
+                               }
+                           }
+                       }, 500);
+                   }, 300);
+               }
+
+               function removeUserRole(username, roleName) {
+                   sysConfirm('Remove role "' + roleName + '" from user "' + username + '"?', function() {
+                       $.ajax({
+                           url: '@Url.Action("RemoveRole", "Auth")',
+                           type: 'POST',
+                           contentType: 'application/json',
+                           data: JSON.stringify({ Username: username }),
+                           success: function (response) {
+                               if (response.success) {
+                                   showToast('Role removed successfully', 'success');
+                                   setTimeout(() => location.reload(), 800);
+                               } else {
+                                   showToast(response.message, 'error');
+                               }
+                           },
+                           error: function () {
+                               sysAlert('Error removing role', 'error');
+                           }
+                       });
+                   }, { type: 'danger' });
+               }
+
+               // ===================== CREATE ROLE MODAL =====================
+               var permissionsData = []; // Cache permissions data
+               var menusData = []; // Cache menus data
+               var isEditMode = false;
+               var currentEditingRole = '';
+
+               function switchRoleTab(tab) {
+                   $('.role-tab-btn').removeClass('border-cyan-500 text-cyan-600').addClass('border-transparent text-gray-500');
+                   $('#tabBtn_' + tab).addClass('border-cyan-500 text-cyan-600').removeClass('border-transparent text-gray-500');
+
+                   $('#tabContent_perms').addClass('hidden');
+                   $('#tabContent_menus').addClass('hidden');
+                   $('#tabContent_' + tab).removeClass('hidden');
+               }
+
+               function openCreateRoleModal() {
+                   isEditMode = false;
+                   currentEditingRole = '';
+                   $('#createRoleBtnText').text('Create Role with Permissions');
+                   $('#newRoleName').prop('readonly', false);
+
+                   document.getElementById('createRoleModal').classList.remove('hidden');
+                   document.getElementById('createRoleModal').classList.add('flex');
+                   document.getElementById('createRoleMessage').classList.add('hidden');
+
+                   // Reset form
+                   $('#newRoleName').val('');
+                   $('#newRoleDescription').val('');
+                   $('#roleRequiresCompany').prop('checked', false);
+                   $('#roleRequiresGroup').prop('checked', false);
+                   $('#roleRequiresDevice').prop('checked', false);
+                   $('#roleRequiresLocation').prop('checked', false);
+
+                   switchRoleTab('perms');
+                   loadPermissions();
+                   loadMenus();
+               }
+
+               function loadPermissions() {
+                   $('#permissionTree').html('<div class="flex flex-col items-center justify-center py-8"><i class="fas fa-sync fa-spin text-cyan-500 text-xl mb-2"></i><p class="text-gray-500 text-xs">Loading authorized permissions...</p></div>');
+
+                   $.ajax({
+                       url: '@Url.Action("GetGroupedPermissions", "Auth")',
+                       type: 'GET',
+                       success: function(data) {
+                           permissionsData = data;
+                           renderPermissionTree(data);
+                           if (isEditMode) syncRolePermissions();
+                       },
+                       error: function(xhr) {
+                           $('#permissionTree').html('<div class="text-center py-6"><i class="fas fa-exclamation-triangle text-red-500 mb-2"></i><p class="text-red-600 text-xs">Failed to load permissions. Please try again.</p></div>');
+                           console.error('Permission load error:', xhr.responseText);
+                       }
+                   });
+               }
+
+               function loadMenus() {
+                   $('#menuTree').html('<div class="flex flex-col items-center justify-center py-8"><i class="fas fa-sync fa-spin text-cyan-500 text-xl mb-2"></i><p class="text-gray-500 text-xs">Loading authorized menus...</p></div>');
+
+                   $.ajax({
+                       url: '@Url.Action("GetMenusGroupedByModule", "Auth")',
+                       type: 'GET',
+                       success: function(data) {
+                           menusData = data;
+                           renderMenuTree(data);
+                           if (isEditMode) syncRoleMenus();
+                       },
+                       error: function(xhr) {
+                           $('#menuTree').html('<div class="text-center py-6"><i class="fas fa-exclamation-triangle text-red-500 mb-2"></i><p class="text-red-600 text-xs">Failed to load menus. Please try again.</p></div>');
+                           console.error('Menu load error:', xhr.responseText);
+                       }
+                   });
+               }
+
+               function renderMenuTree(modules) {
+                   if (!modules || !Array.isArray(modules) || modules.length === 0) {
+                       var msg = (modules && modules.message) ? modules.message : 'No menus found';
+                       $('#menuTree').html(`<div class="text-center py-4"><i class="fas fa-info-circle text-gray-400 mb-1"></i><p class="text-gray-400 text-xs">${msg}</p></div>`);
+                       return;
+                   }
+
+                   var html = '';
+                   modules.forEach(function(module) {
+                       var moduleName = module.moduleName || module.ModuleName || 'Unknown';
+                       var moduleMenus = module.menus || module.Menus || [];
+                       var moduleIcon = module.moduleIcon || module.ModuleIcon || 'fas fa-folder';
+                       var moduleId = moduleName.replace(/\s+/g, '') + '_menu';
+
+                       // Skip modules with no menus
+                       if (moduleMenus.length === 0) return;
+
+                       html += `
+                           <div class="mb-3">
+                               <div class="flex items-center mb-1">
+                                   <input type="checkbox" id="mod_menu_${moduleId}" class="module-menu-checkbox mr-2 rounded text-cyan-600"
+                                          onchange="toggleModuleMenus('${moduleId}')">
+                                   <label for="mod_menu_${moduleId}" class="text-xs font-semibold text-gray-700 cursor-pointer">
+                                       <i class="${moduleIcon} mr-1 text-gray-400"></i>${moduleName}
+                                   </label>
+                               </div>
+                               <div class="ml-5 space-y-1" id="menu_container_${moduleId}">`;
+
+                       moduleMenus.forEach(function(menu) {
+                           var menuName = menu.menuName || menu.MenuName || 'Unnamed';
+                           var menuId = menu.id || menu.Id || 0;
+                           html += `
+                               <label class="flex items-center text-xs text-gray-600 hover:bg-gray-100 p-1 rounded cursor-pointer">
+                                   <input type="checkbox" class="menu-checkbox mr-2 rounded text-cyan-500"
+                                          name="menuIds" value="${menuId}" data-module="${moduleId}">
+                                   <span class="flex-1">${menuName}</span>
+                               </label>`;
+                       });
+
+                       html += `</div></div>`;
+                   });
+
+                   $('#menuTree').html(html);
+               }
+
+               function toggleModuleMenus(moduleId) {
+                   var isChecked = $('#mod_menu_' + moduleId).is(':checked');
+                   $('#menu_container_' + moduleId + ' input[type="checkbox"]').prop('checked', isChecked);
+               }
+
+               function selectAllMenus() {
+                   $('#menuTree input[type="checkbox"]').prop('checked', true);
+               }
+
+               function clearAllMenus() {
+                   $('#menuTree input[type="checkbox"]').prop('checked', false);
+               }
+
+               function renderPermissionTree(modules) {
+                   if (!modules || !Array.isArray(modules) || modules.length === 0) {
+                       var msg = (modules && modules.message) ? modules.message : 'No discovered permissions found in the database.';
+                       $('#permissionTree').html(`<div class="text-center py-8"><p class="text-gray-400 text-xs mb-3">${msg}</p><button onclick="seedPermissions()" class="px-4 py-2 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700 shadow-sm transition"><i class="fas fa-magic mr-1"></i>Initialize Permissions Scanner</button></div>`);
+                       return;
+                   }
+
+                   var html = '';
+                   modules.forEach(function(module) {
+                       var moduleId = module.moduleName.replace(/\s+/g, '');
+                       html += `
+                           <div class="mb-3">
+                               <div class="flex items-center mb-1">
+                                   <input type="checkbox" id="mod_${moduleId}" class="module-checkbox mr-2 rounded text-cyan-600"
+                                          data-module="${moduleId}" onchange="toggleModulePermissions('${moduleId}')">
+                                   <label for="mod_${moduleId}" class="text-xs font-semibold text-gray-700 cursor-pointer">
+                                       <i class="${module.moduleIcon || 'fas fa-folder'} mr-1 text-gray-400"></i>${module.moduleName}
+                                   </label>
+                               </div>
+                               <div class="ml-5 space-y-1" id="perms_${moduleId}">`;
+
+                       if (module.permissions && module.permissions.length > 0) {
+                           module.permissions.forEach(function(perm) {
+                               var actionClass = perm.actionType === 'Read' ? 'text-green-600' :
+                                                (perm.actionType === 'Write' ? 'text-blue-600' : 'text-red-600');
+                               html += `
+                                   <label class="flex items-center text-xs text-gray-600 hover:bg-gray-100 p-1 rounded cursor-pointer">
+                                       <input type="checkbox" class="perm-checkbox mr-2 rounded text-cyan-500"
+                                              name="permissions" value="${perm.permissionCode}" data-module="${moduleId}">
+                                       <span class="flex-1">${perm.permissionName}</span>
+                                       <span class="text-[10px] ${actionClass}">${perm.actionType}</span>
+                                   </label>`;
+                           });
+                       } else {
+                           html += '<p class="text-gray-400 text-[10px] italic">No permissions defined</p>';
+                       }
+
+                       html += `</div></div>`;
+                   });
+
+                   $('#permissionTree').html(html);
+               }
+
+               function toggleModulePermissions(moduleId) {
+                   var isChecked = $('#mod_' + moduleId).is(':checked');
+                   $('#perms_' + moduleId + ' input[type="checkbox"]').prop('checked', isChecked);
+               }
+
+               function selectAllPermissions() {
+                   $('#permissionTree input[type="checkbox"]').prop('checked', true);
+               }
+
+               function deleteRole(roleId, roleName) {
+                   sysConfirm('Are you sure you want to delete the role "' + roleName + '"? Users with this role will lose access.', function() {
+                       $.ajax({
+                           url: '/Auth/DeleteRole',
+                           type: 'POST',
+                           contentType: 'application/json',
+                           data: JSON.stringify({ RoleName: roleName }),
+                           success: function (res) {
+                               if (res.success) {
+                                   sysAlert(res.message, "success");
+                                   loadRolesList();
+                               } else {
+                                   sysAlert(res.message, "error");
+                               }
+                           },
+                           error: function() {
+                               sysAlert('Error deleting role', 'error');
+                           }
+                       });
+                   }, { type: 'danger' });
+               }
+
+               function clearAllPermissions() {
+                   $('#permissionTree input[type="checkbox"]').prop('checked', false);
+               }
+
+               function seedPermissions() {
+                   $.ajax({
+                       url: '@Url.Action("SeedPermissions", "Auth")',
+                       type: 'POST',
+                       success: function(response) {
+                           if (response.success) {
+                               showToast(response.message, 'success');
+                               loadPermissions();
+                           } else {
+                               showToast(response.message || 'Failed to seed', 'error');
+                           }
+                       }
+                   });
+               }
+
+               function closeCreateRoleModal() {
+                   document.getElementById('createRoleModal').classList.add('hidden');
+                   document.getElementById('createRoleModal').classList.remove('flex');
+               }
+
+               function selectRoleColor(color) {
+                   $('#selectedRoleColor').val(color);
+                   $('.role-color-btn').removeClass('ring-2 ring-offset-2 ring-gray-500');
+                   $('.role-color-btn[data-color="' + color + '"]').addClass('ring-2 ring-offset-2 ring-gray-500');
+               }
+
+               function submitCreateRole() {
+                   const roleName = $('#newRoleName').val().trim();
+                   const description = $('#newRoleDescription').val().trim();
+                   const requiresCompany = $('#roleRequiresCompany').is(':checked');
+                   const requiresGroup = $('#roleRequiresGroup').is(':checked');
+                   const requiresDevice = $('#roleRequiresDevice').is(':checked');
+                   const requiresLocation = $('#roleRequiresLocation').is(':checked');
+                   const messageEl = $('#createRoleMessage');
+                   const btn = $('#createRoleBtn');
+
+                   // Collect selected permissions
+                   var selectedPermissions = [];
+                   $('input[name="permissions"]:checked').each(function() {
+                       selectedPermissions.push($(this).val());
+                   });
+
+                   // Collect selected menus
+                   var selectedMenus = [];
+                   $('input[name="menuIds"]:checked').each(function() {
+                       selectedMenus.push(parseInt($(this).val()));
+                   });
+
+                   if (!roleName) {
+                       showMessage(messageEl, 'Please enter a role name!', 'error');
+                       return;
+                   }
+
+                   if (selectedPermissions.length === 0) {
+                       showMessage(messageEl, 'Please select at least one permission!', 'error');
+                       return;
+                   }
+
+                   // Validate role name format (no spaces, CamelCase)
+                   if (/\s/.test(roleName)) {
+                       showMessage(messageEl, 'Role name cannot contain spaces. Use CamelCase format.', 'error');
+                       return;
+                   }
+
+                   const actionLabel = isEditMode ? 'Updating...' : 'Creating...';
+                   btn.prop('disabled', true).html(`<i class="fas fa-spinner fa-spin mr-1"></i>${actionLabel}`);
+
+                   const url = isEditMode ? '@Url.Action("UpdateRoleWithPermissions", "Auth")' : '@Url.Action("CreateRoleWithPermissions", "Auth")';
+
+                   $.ajax({
+                       url: url,
+                       type: 'POST',
+                       contentType: 'application/json',
+                       data: JSON.stringify({
+                           RoleName: roleName,
+                           Description: description,
+                           RequiresCompany: requiresCompany,
+                           RequiresGroup: requiresGroup,
+                           RequiresDevice: requiresDevice,
+                           RequiresLocation: requiresLocation,
+                           Permissions: selectedPermissions,
+                           MenuIds: selectedMenus
+                       }),
+                       success: function(response) {
+                           if (response.success) {
+                               showMessage(messageEl, isEditMode ? 'Role updated successfully!' : 'Role created successfully!', 'success');
+                               setTimeout(() => {
+                                   closeCreateRoleModal();
+                                   loadSystemRoles();
+                                   if (isEditMode) loadRolesList();
+                               }, 1000);
+                           } else {
+                               showMessage(messageEl, response.message || 'Error occurred', 'error');
+                           }
+                           btn.prop('disabled', false).html('<i class="fas fa-save mr-1"></i>Save Changes');
+                       }
+                   });
+               }
+
+               // ===================== EDIT SYSTEM ROLE =====================
+               var currentRoleData = null;
+
+               function editSystemRole(roleName) {
+                   closeManageRolesListModal();
+                   isEditMode = true;
+                   currentEditingRole = roleName;
+                   $('#createRoleBtnText').text('Save Changes');
+                   $('#newRoleName').val(roleName).prop('readonly', true);
+
+                   // Show modal
+                   document.getElementById('createRoleModal').classList.remove('hidden');
+                   document.getElementById('createRoleModal').classList.add('flex');
+                   document.getElementById('createRoleMessage').classList.add('hidden');
+
+                   // Fetch Details
+                   $.ajax({
+                       url: '@Url.Action("GetRoleDetails", "Auth")?roleName=' + roleName,
+                       type: 'GET',
+                       success: function(data) {
+                           currentRoleData = data;
+                           $('#newRoleDescription').val(data.description);
+                           $('#roleRequiresCompany').prop('checked', data.requiresCompany);
+                           $('#roleRequiresGroup').prop('checked', data.requiresGroup);
+                           $('#roleRequiresDevice').prop('checked', data.requiresDevice);
+                           $('#roleRequiresLocation').prop('checked', data.requiresLocation);
+
+                           loadPermissions();
+                           loadMenus();
+                       }
+                   });
+               }
+
+               function syncRolePermissions() {
+                   if (!currentRoleData || !currentRoleData.permissions) return;
+                   $('input[name="permissions"]').prop('checked', false);
+                   currentRoleData.permissions.forEach(function(code) {
+                       $('input[name="permissions"][value="' + code + '"]').prop('checked', true);
+                   });
+               }
+
+               function syncRoleMenus() {
+                   if (!currentRoleData || !currentRoleData.menus) return;
+                   $('input[name="menuIds"]').prop('checked', false);
+                   currentRoleData.menus.forEach(function(id) {
+                       $('input[name="menuIds"][value="' + id + '"]').prop('checked', true);
+                   });
+               }
+
+               // ===================== MANAGE ROLES LIST MODAL =====================
+               function openManageRolesListModal() {
+                   document.getElementById('manageRolesListModal').classList.remove('hidden');
+                   document.getElementById('manageRolesListModal').classList.add('flex');
+                   loadRolesList();
+               }
+
+               function closeManageRolesListModal() {
+                   document.getElementById('manageRolesListModal').classList.add('hidden');
+                   document.getElementById('manageRolesListModal').classList.remove('flex');
+               }
+
+               function loadRolesList() {
+                   $('#rolesListContainer').html('<p class="text-gray-500 text-xs text-center py-4">Loading roles...</p>');
+                   $.ajax({
+                       url: '@Url.Action("GetAllSystemRoles", "Auth")',
+                       type: 'GET',
+                       success: function(roles) {
+                           var html = '';
+                           // Add SuperAdmin first (system role)
+                           html += createRoleListItem({ name: 'SuperAdmin', description: 'Full system access', isSystem: true, userCount: 1 }, 'red');
+
+                           if (roles && roles.length > 0) {
+                               roles.forEach(function(role) {
+                                   html += createRoleListItem(role, role.color || 'cyan');
+                               });
+                           }
+                           $('#rolesListContainer').html(html);
+                       },
+                       error: function() {
+                           $('#rolesListContainer').html('<p class="text-red-500 text-xs text-center py-4">Error loading roles</p>');
+                       }
+                   });
+               }
+
+               function createRoleListItem(role, color) {
+                   var colorClass = 'bg-' + color + '-100 text-' + color + '-700 border-' + color + '-200';
+                   var isSystem = role.isSystem ? '<span class="text-[8px] bg-gray-200 text-gray-600 px-1 rounded ml-1">SYSTEM</span>' : '';
+                   var buttons = '';
+
+                   if (!role.isSystem) {
+                       buttons = `
+                           <div class="flex items-center space-x-2">
+                               <button onclick="editSystemRole('${role.name}')" class="text-cyan-600 hover:text-cyan-800 text-xs" title="Edit Permissions & Menus"><i class="fas fa-edit"></i></button>
+                               <button onclick="deleteRole('${role.id}', '${role.name}')" class="text-red-500 hover:text-red-700 text-xs" title="Delete Role"><i class="fas fa-trash"></i></button>
+                           </div>`;
+                   } else {
+                       buttons = `<span class="text-[10px] text-gray-400 italic">Protected</span>`;
+                   }
+
+                   return '<div class="flex items-center justify-between p-2 bg-gray-50 rounded border transition hover:bg-white hover:shadow-sm">' +
+                          '<div class="flex items-center space-x-2">' +
+                          '<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ' + colorClass + '">' +
+                          '<i class="fas ' + (role.icon || 'fa-user') + ' mr-0.5 text-[8px]"></i>' + formatRoleName(role.name) +
+                          '</span>' + isSystem +
+                          '</div>' +
+                          '<div class="flex items-center space-x-3">' +
+                          '<span class="text-[10px] text-gray-500">' + (role.userCount || 0) + ' users</span>' +
+                          buttons +
+                          '</div></div>';
+               }
+
+
+               // ===================== UTILITY FUNCTIONS =====================
+               function showMessage(el, message, type) {
+                   el.removeClass('hidden bg-red-50 text-red-700 bg-green-50 text-green-700');
+                   if (type === 'success') {
+                       el.addClass('bg-green-50 text-green-700');
+                   } else {
+                       el.addClass('bg-red-50 text-red-700');
+                   }
+                   el.text(message).removeClass('hidden');
+               }
+
+               function showToast(message, type) {
+                   const existing = document.getElementById('toast-notification');
+                   if(existing) existing.remove();
+
+                   const div = document.createElement('div');
+                   div.id = 'toast-notification';
+                   const isError = type === 'error';
+                   div.className = `fixed top-4 right-4 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-y-0 z-50 flex items-center gap-3 ${isError ? 'bg-red-600' : 'bg-green-600'}`;
+                   div.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} text-xl"></i><div><h4 class="font-bold text-sm">${isError ? 'Error' : 'Success'}</h4><p class="text-xs opacity-90">${message}</p></div>`;
+                   document.body.appendChild(div);
+
+                   setTimeout(() => {
+                       div.classList.add('opacity-0', '-translate-y-2');
+                       setTimeout(() => div.remove(), 300);
+                   }, 3000);
+               }
     </script>
 }
