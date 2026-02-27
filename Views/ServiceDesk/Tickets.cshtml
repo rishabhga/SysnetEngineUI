@@ -906,7 +906,7 @@
                 const ticketId = parseInt($('#partsTicketId').val());
                 $.ajax({
                     url: '@Url.Action("DeletePart", "ServiceDesk")',
-                    type: 'DELETE',
+                    type: 'POST',
                     data: { id: partId },
                     success: function (res) {
                         if (res && res.success) {
@@ -955,7 +955,7 @@
             sysConfirm('Are you sure you want to delete ticket ' + ticketNo + '? This action cannot be undone.', function() {
                 $.ajax({
                     url: '@Url.Action("DeleteTicket", "ServiceDesk")' + '?id=' + ticketId,
-                    type: 'DELETE',
+                    type: 'POST',
                     success: function (res) {
                         if (res && res.success) {
                             showToast('Ticket deleted', 'success');

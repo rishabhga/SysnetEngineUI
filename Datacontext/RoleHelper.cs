@@ -401,7 +401,7 @@ namespace ManageEngineWebApp.Datacontext
             try
             {
                 using var client = CreateClient();
-                var response = await client.DeleteAsync($"{ApiBaseUrl}/role/delete/{roleName}");
+                var response = await client.PostAsync($"{ApiBaseUrl}/role/delete/{roleName}", null);
                 return response.IsSuccessStatusCode;
             }
             catch

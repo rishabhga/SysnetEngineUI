@@ -281,13 +281,13 @@ namespace ManageEngineWebApp.Controllers
             catch { return Json(new List<object>()); }
         }
 
-        [HttpDelete]
+        [HttpPost]
         [AuthFilter]
         public async Task<IActionResult> DeletePart(int id)
         {
             try
             {
-                var response = await GetClient().DeleteAsync($"{_baseUrl}/api/ServiceDesk/Parts/{id}");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/DeletePart/{id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
@@ -469,7 +469,7 @@ namespace ManageEngineWebApp.Controllers
             catch { return Json(new List<object>()); }
         }
 
-        [HttpDelete]
+        [HttpPost]
         [AuthFilter]
         [DynamicPermission("ServiceDesk.Delete", "Delete Ticket")]
         public async Task<IActionResult> DeleteTicket(int id)
@@ -477,7 +477,7 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var username = HttpContext.Session.GetString("username") ?? "System";
-                var response = await GetClient().DeleteAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{id}?username={username}");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/DeleteTicket/{id}?username={username}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }

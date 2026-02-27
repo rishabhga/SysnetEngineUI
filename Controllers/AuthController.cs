@@ -496,7 +496,7 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Unauthorized" });
 
                 using var client = GetClient();
-                var response = await client.DeleteAsync($"{_baseUrl}/api/Permission/Menus/{id}");
+                var response = await client.PostAsync($"{_baseUrl}/api/Permission/DeleteMenu/{id}", null);
                 var json = await response.Content.ReadAsStringAsync();
                 return Content(json, "application/json");
             }
@@ -557,7 +557,7 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Unauthorized" });
 
                 using var client = GetClient();
-                var response = await client.DeleteAsync($"{_baseUrl}/api/Permission/Modules/{id}");
+                var response = await client.PostAsync($"{_baseUrl}/api/Permission/DeleteModule/{id}", null);
                 var json = await response.Content.ReadAsStringAsync();
                 return Content(json, "application/json");
             }
@@ -612,7 +612,7 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Unauthorized" });
 
                 using var client = GetClient();
-                var response = await client.DeleteAsync($"{_baseUrl}/api/Permission/{id}");
+                var response = await client.PostAsync($"{_baseUrl}/api/Permission/DeletePermission/{id}", null);
                 var json = await response.Content.ReadAsStringAsync();
                 return Content(json, "application/json");
             }

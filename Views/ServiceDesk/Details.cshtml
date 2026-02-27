@@ -747,7 +747,7 @@
 
         function deletePart(id) {
             sysConfirm('Delete this part?', function() {
-                fetch('/ServiceDesk/DeletePart?id=' + id, {method: 'DELETE'}).then(function(){ loadParts(); });
+                fetch('/ServiceDesk/DeletePart?id=' + id, {method: 'POST'}).then(function(){ loadParts(); });
             }, {type:'danger'});
         }
 
@@ -805,7 +805,7 @@
             sysConfirm('Are you sure you want to delete this ticket? This action cannot be undone.', function() {
                 $.ajax({
                     url: '@Url.Action("DeleteTicket", "ServiceDesk")' + '?id=' + ticketId,
-                    type: 'DELETE',
+                    type: 'POST',
                     success: function(res) {
                         if(res.success) {
                             sysAlert('Ticket deleted successfully', 'success');
