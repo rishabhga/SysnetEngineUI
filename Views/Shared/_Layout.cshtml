@@ -1,10 +1,11 @@
-@{
+﻿@{
     var username = Context.Session.GetString("username");
     var userRole = Context.Session.GetString("role");
     var hierarchyLevel = Context.Session.GetString("hierarchyLevel");
     var isTopLevelAdmin = hierarchyLevel == "0";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var userInitial = username?.Substring(0, 1).ToUpper() ?? "U";
 }
 
 <!DOCTYPE html>
@@ -26,9 +27,17 @@
     <link href="~/css/prettify.css" rel="stylesheet" />
     <link href="~/css/datepicker.css" rel="stylesheet" />
     <link href="~/css/Custom.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
 
     <style>
+        :root {
+            --nav-from: #0ea5e9;
+            --nav-mid: #0284c7;
+            --nav-to: #0369a1;
+            --nav-h: 64px;
+        }
+
         * {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
@@ -37,7 +46,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            background-color: #f9fafb;
+            background-color: #f0f4f8;
         }
 
         main {
@@ -46,227 +55,442 @@
             padding-bottom: 2rem;
         }
 
-        /* Navigation Styles */
-        .nav-gradient {
-            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 50%, #0369a1 100%);
-            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.1), 0 2px 4px -1px rgba(14, 165, 233, 0.06);
+        /* ─── NAV ─────────────────────────────────────────── */
+        #main-nav {
+            background: linear-gradient(135deg, var(--nav-from) 0%, var(--nav-mid) 55%, var(--nav-to) 100%);
+            height: var(--nav-h);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            box-shadow: 0 2px 16px rgba(2,132,199,.35);
         }
 
-        .logo-container {
-            transition: transform 0.3s ease;
-        }
-
-            .logo-container:hover {
-                transform: translateY(-2px);
-            }
-
-            .logo-container img {
-                filter: brightness(0) invert(1);
-                height: 32px;
-                width: auto;
-            }
-
-        /* Dropdown Styles */
-        .dropdown {
-            position: relative;
-        }
-
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 100%;
-            margin-top: 0.5rem;
-            min-width: 280px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            z-index: 50;
-            opacity: 0;
-            transform: translateY(-8px);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-        }
-
-        .dropdown:hover .dropdown-menu {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .dropdown-header {
-            padding: 1.25rem;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border-bottom: 1px solid #e0e7ff;
-        }
-
-        .dropdown-menu a {
+        .nav-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            height: 100%;
             display: flex;
             align-items: center;
-            padding: 0.75rem 1.25rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #374151;
-            transition: all 0.15s ease;
+            justify-content: space-between;
+        }
+
+        /* Logo */
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
             text-decoration: none;
-            border-left: 3px solid transparent;
+            transition: transform .25s;
         }
 
-            .dropdown-menu a:hover {
-                background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%);
-                color: #0369a1;
-                border-left-color: #0ea5e9;
-            }
-
-            .dropdown-menu a i {
-                width: 20px;
-                margin-right: 0.875rem;
-                font-size: 1rem;
-                transition: transform 0.2s;
-            }
-
-            .dropdown-menu a:hover i {
-                transform: scale(1.15);
-            }
-
-        .dropdown-divider {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
-            margin: 0.5rem 0;
-        }
-
-        .logout-btn {
-            color: #dc2626 !important;
-        }
-
-            .logout-btn:hover {
-                background: linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%) !important;
-                border-left-color: #dc2626 !important;
-            }
-
-        /* Profile Button */
-        .profile-btn {
-            background: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
-            transition: all 0.2s ease;
-        }
-
-            .profile-btn:hover {
-                background: rgba(255, 255, 255, 0.95);
-                border-color: rgba(14, 165, 233, 0.3);
-                box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+            .nav-logo:hover {
                 transform: translateY(-1px);
             }
 
-        .profile-avatar {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            .nav-logo img {
+                height: 30px;
+                width: auto;
+                filter: brightness(0) invert(1);
+            }
+
+        /* Nav right cluster */
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        /* Glass icon button (bell) */
+        .nav-icon-btn {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: white;
-            font-size: 0.875rem;
-            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+            background: rgba(255,255,255,.14);
+            border: 1px solid rgba(255,255,255,.22);
+            color: #fff;
+            cursor: pointer;
+            position: relative;
+            transition: background .2s, transform .2s;
+            flex-shrink: 0;
         }
 
-        .dropdown-avatar {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            .nav-icon-btn:hover {
+                background: rgba(255,255,255,.26);
+                transform: translateY(-1px);
+            }
+
+            .nav-icon-btn i {
+                font-size: .9rem;
+            }
+
+        /* Notification badge */
+        #notificationBadge {
+            display: none;
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            line-height: 1;
+            border: 2px solid var(--nav-mid);
+        }
+
+        /* Profile pill */
+        #profileBtn {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            background: rgba(255,255,255,.14);
+            border: 1px solid rgba(255,255,255,.22);
             border-radius: 12px;
+            padding: .375rem .75rem .375rem .375rem;
+            cursor: pointer;
+            transition: background .2s, transform .2s, box-shadow .2s;
+        }
+
+            #profileBtn:hover, #profileBtn.open {
+                background: rgba(255,255,255,.26);
+                box-shadow: 0 4px 16px rgba(0,0,0,.15);
+                transform: translateY(-1px);
+            }
+
+        .p-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
             display: flex;
             align-items: center;
             justify-content: center;
+            font-weight: 800;
+            font-size: .875rem;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(245,158,11,.4);
+        }
+
+        .p-text {
+            display: none;
+        }
+        @@media (min-width: 580px) {
+            .p-text
+
+        {
+            display: block;
+        }
+
+        }
+
+        .p-name {
+            font-size: .8rem;
             font-weight: 700;
-            color: white;
-            font-size: 1.125rem;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            color: #fff;
+            line-height: 1.2;
+            white-space: nowrap;
         }
 
-        /* Badge Styles */
-        .badge-superadmin {
-            background: linear-gradient(135deg, #b4d334 0%, #8fb829 100%);
-            color: white;
-            padding: 0.375rem 0.875rem;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(180, 211, 52, 0.3);
-            letter-spacing: 0.025em;
+        .p-role {
+            font-size: .7rem;
+            color: rgba(255,255,255,.72);
+            line-height: 1.2;
         }
 
-        .badge-role {
-            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-            color: white;
-            padding: 0.375rem 0.875rem;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+        .p-chevron {
+            font-size: .65rem;
+            color: rgba(255,255,255,.7);
+            transition: transform .25s;
+            margin-left: 2px;
         }
 
-        /* Footer Styles */
-        .footer-gradient {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #94a3b8;
+        #profileBtn.open .p-chevron {
+            transform: rotate(180deg);
         }
 
-        .footer-logo {
-            height: 36px;
-            width: auto;
-            opacity: 0.9;
-            transition: opacity 0.3s ease;
+        /* ─── DROPDOWN ────────────────────────────────────── */
+        #profileDropdown {
+            position: fixed; /* fixed so it's never clipped by overflow:hidden parents */
+            right: 1.5rem;
+            top: calc(var(--nav-h) + 8px);
+            width: 268px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 24px 48px -8px rgba(0,0,0,.18), 0 8px 16px rgba(0,0,0,.08);
+            border: 1px solid rgba(0,0,0,.07);
+            z-index: 1000;
+            overflow: hidden;
+            /* animation */
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(-8px) scale(.97);
+            transform-origin: top right;
+            transition: opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
         }
 
-            .footer-logo:hover {
+            #profileDropdown.open {
+                visibility: visible;
                 opacity: 1;
+                transform: translateY(0) scale(1);
+                transition-delay: 0s;
             }
 
-        .footer-link {
-            color: #94a3b8;
-            transition: color 0.2s ease;
-            text-decoration: none;
+        /* Dropdown header */
+        .dd-header {
+            padding: 1.1rem 1.1rem .9rem;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border-bottom: 1px solid #bae6fd;
         }
 
-            .footer-link:hover {
-                color: #0ea5e9;
+        .dd-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(245,158,11,.35);
+        }
+
+        .dd-meta {
+            font-size: .7rem;
+            color: #64748b;
+            font-weight: 500;
+            margin-bottom: 1px;
+        }
+
+        .dd-uname {
+            font-size: .95rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .dd-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: .5rem;
+            padding: .28rem .7rem;
+            border-radius: 7px;
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: .03em;
+        }
+
+        .dd-badge-sa {
+            background: linear-gradient(135deg,#84cc16,#65a30d);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(132,204,22,.3);
+        }
+
+        .dd-badge-r {
+            background: linear-gradient(135deg,#0ea5e9,#0284c7);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(14,165,233,.3);
+        }
+
+        /* Menu items */
+        .dd-body {
+            padding: .5rem 0;
+        }
+
+        .dd-item {
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+            padding: .6rem 1rem;
+            font-size: .83rem;
+            font-weight: 500;
+            color: #374151;
+            text-decoration: none !important;
+            border-left: 3px solid transparent;
+            transition: background .15s, color .15s, border-color .15s;
+            cursor: pointer;
+        }
+
+            .dd-item:hover, .dd-item.dd-active {
+                background: linear-gradient(90deg, #eff6ff, #dbeafe);
+                color: #0369a1;
+                border-left-color: #38bdf8;
+            }
+        /* Icon box — FIX for the black dots: wraps icon in a styled box
+                   so even if the icon class is empty/wrong nothing ugly shows */
+        .dd-icon-box {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background .15s;
+        }
+
+        .dd-item:hover .dd-icon-box, .dd-item.dd-active .dd-icon-box {
+            background: #dbeafe;
+        }
+
+        .dd-icon-box i {
+            font-size: .78rem;
+            color: #64748b;
+            /* reset conflicting global widths from DataTables or Bootstrap */
+            width: auto !important;
+            margin: 0 !important;
+        }
+
+        .dd-item:hover .dd-icon-box i, .dd-item.dd-active .dd-icon-box i {
+            color: #0284c7;
+        }
+
+        .dd-divider {
+            height: 1px;
+            background: linear-gradient(90deg,transparent,#e2e8f0,transparent);
+            margin: .4rem 0;
+        }
+
+        .dd-logout {
+            color: #dc2626;
+        }
+
+            .dd-logout .dd-icon-box {
+                background: #fef2f2;
             }
 
-        /* DataTables Styling */
-        .dataTables_length,
-        .dataTables_filter {
+                .dd-logout .dd-icon-box i {
+                    color: #dc2626;
+                }
+
+            .dd-logout:hover {
+                background: linear-gradient(90deg,#fef2f2,#fee2e2) !important;
+                color: #b91c1c !important;
+                border-left-color: #f87171 !important;
+            }
+
+                .dd-logout:hover .dd-icon-box {
+                    background: #fee2e2;
+                }
+
+                    .dd-logout:hover .dd-icon-box i {
+                        color: #b91c1c;
+                    }
+
+        /* ─── NOTIFICATION PANEL ──────────────────────────── */
+        #notificationPanel {
+            position: fixed;
+            right: 1.5rem;
+            top: calc(var(--nav-h) + 8px);
+            width: 310px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 24px 48px -8px rgba(0,0,0,.18), 0 8px 16px rgba(0,0,0,.08);
+            border: 1px solid rgba(0,0,0,.07);
+            z-index: 1000;
+            overflow: hidden;
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(-8px) scale(.97);
+            transform-origin: top right;
+            transition: opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
+        }
+
+            #notificationPanel.open {
+                visibility: visible;
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                transition-delay: 0s;
+            }
+
+        .notif-hdr {
+            padding: .7rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+            .notif-hdr span {
+                font-size: .8rem;
+                font-weight: 600;
+                color: #334155;
+            }
+
+            .notif-hdr small {
+                font-size: .7rem;
+                color: #94a3b8;
+            }
+
+        #notificationList {
+            max-height: 340px;
+            overflow-y: auto;
+            font-size: .8rem;
+        }
+
+        /* ─── FOOTER ──────────────────────────────────────── */
+        .app-footer {
+            background: linear-gradient(135deg,#0f172a,#1e293b);
+            color: #64748b;
+        }
+
+        .footer-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+            .footer-inner img {
+                height: 30px;
+                width: auto;
+                opacity: .8;
+            }
+
+            .footer-inner p {
+                font-size: .75rem;
+                margin: 0;
+            }
+
+        /* ─── DATATABLES ──────────────────────────────────── */
+        .dataTables_length, .dataTables_filter {
             display: none !important;
         }
 
         .no-footer {
             border-radius: 8px;
             border: 1px solid #e5e7eb;
-            background-color: white;
+            background-color: #fff;
         }
 
         .dataTables_info {
             margin-left: 10px;
-            font-size: 0.875rem;
+            font-size: .875rem;
             color: #6b7280;
         }
 
         .paginate_button {
-            font-size: 0.875rem;
+            font-size: .875rem;
         }
 
         .bhead {
             text-align: center;
-            padding: 0.75rem;
+            padding: .75rem;
             background-color: #f9fafb;
             border-radius: 8px;
         }
@@ -275,139 +499,126 @@
             background-color: #f9fafb;
         }
 
-        table.dataTable thead th,
-        table.dataTable thead td {
-            padding: 0.75rem;
+        table.dataTable thead th, table.dataTable thead td {
+            padding: .75rem;
         }
     </style>
     @RenderSection("Styles", required: false)
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="nav-gradient sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <a href="@Url.Action("Companies", "Companies")" class="logo-container flex items-center space-x-3">
-                    <img src="~/images/footer-logo.png" alt="SYSNET Logo" />
-                </a>
-                <div class="flex items-center space-x-4">
-                    @if (currentController == "ComputerSummary" && currentAction == "Deshboad")
-                    {
-                        <div class="relative">
-                            <button id="notificationBell"
-                                    class="w-9 h-9 rounded-full bg-white shadow flex items-center justify-center hover:bg-sky-50 border border-gray-200 relative">
-                                <i class="fas fa-bell text-gray-600 text-sm"></i>
-                                <span id="notificationBadge"
-                                      class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                    0
-                                </span>
-                            </button>
 
-                            <div id="notificationPanel"
-                                 class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50">
-                                <div class="px-3 py-2 border-b flex items-center justify-between">
-                                    <span class="text-xs font-semibold text-gray-700">Notifications</span>
-                                    <span class="text-[10px] text-gray-400" id="notificationCountLabel">0 new</span>
-                                </div>
-                                <div id="notificationList" class="max-h-80 overflow-y-auto text-xs">
-                                </div>
-                            </div>
-                        </div>
-                    }
+    <!-- NAV -->
+    <nav id="main-nav">
+        <div class="nav-inner">
 
-                    <!-- User Menu (same for all pages, including groups and dashboard) -->
-                    <div class="dropdown">
-                        <button class="profile-btn flex items-center space-x-3">
-                            <div class="profile-avatar">
-                                @(username?.Substring(0, 1).ToUpper() ?? "U")
-                            </div>
-                            <div class="text-left hidden sm:block">
-                                <p class="text-sm font-semibold text-gray-900">@username</p>
-                                <p class="text-xs text-gray-500">@(isTopLevelAdmin ? "Super Admin" : userRole)</p>
-                            </div>
-                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
-                        </button>
-                        <div class="dropdown-menu">
-                            <div class="dropdown-header">
-                                <div class="flex items-center space-x-3 mb-3">
-                                    <div class="dropdown-avatar">
-                                        @(username?.Substring(0, 1).ToUpper() ?? "U")
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-gray-500 font-medium">Signed in as</p>
-                                        <p class="font-bold text-gray-900">@username</p>
-                                    </div>
-                                </div>
-                                @if (isTopLevelAdmin)
-                                {
-                                    <span class="badge-superadmin">
-                                        <i class="fas fa-crown mr-1.5"></i>Super Admin
-                                    </span>
-                                }
-                                else if (!string.IsNullOrEmpty(userRole))
-                                {
-                                    <span class="badge-role">
-                                        <i class="fas fa-user mr-1.5"></i>@userRole
-                                    </span>
-                                }
-                            </div>
+            <a href="@Url.Action("Companies", "Companies")" class="nav-logo">
+                <img src="~/images/footer-logo.png" alt="SYSNET" />
+            </a>
 
-                            <div class="py-2">
-                                @{
-                                    var dynamicMenus = await ManageEngineWebApp.Datacontext.RoleHelper.GetDynamicMenusAsync(Context);
-                                    // Menus = page visibility only. Filtered by role's assigned menu IDs (in GetDynamicMenusAsync), NOT by permissions.
-                                    var authorizedMenus = dynamicMenus.OrderBy(m => m.SortOrder).ToList();
-                                }
+            <div class="nav-right">
+                @if (currentController == "ComputerSummary" && currentAction == "Deshboad")
+                {
+                    <button class="nav-icon-btn" id="notificationBell" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span id="notificationBadge">0</span>
+                    </button>
+                }
 
-                                @foreach (var menu in authorizedMenus)
-                                {
-                                    <a href="@Url.Action(menu.RouteAction, menu.RouteController)"
-                                       class="@(currentController == menu.RouteController && currentAction == menu.RouteAction ? "active" : "")">
-                                        <i class="@menu.MenuIcon"></i>
-                                        <span>@menu.MenuName</span>
-                                    </a>
-                                }
-
-                                <div class="dropdown-divider"></div>
-
-                                <a asp-controller="Auth" asp-action="Logout" class="logout-btn">
-                                    <i class="fas fa-sign-out-alt"></i>
-                                    <span>Logout</span>
-                                </a>
-                            </div>
-                        </div>
+                <button id="profileBtn" aria-expanded="false" aria-haspopup="true">
+                    <div class="p-avatar">@userInitial</div>
+                    <div class="p-text">
+                        <div class="p-name">@username</div>
+                        <div class="p-role">@(isTopLevelAdmin ? "Super Admin" : userRole)</div>
                     </div>
+                    <i class="fas fa-chevron-down p-chevron"></i>
+                </button>
             </div>
+
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main>
-        @RenderBody()
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer-gradient mt-auto">
-        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <div class="flex items-center space-x-3">
-                    <img src="~/images/footer-logo.png" alt="SYSNET" class="footer-logo" />
-                </div>
-
-                <div class="text-xs">
-                    <p>&copy; @DateTime.Now.Year SYSNET.</p>
+    <!-- PROFILE DROPDOWN (position:fixed, renders outside nav so no clipping) -->
+    <div id="profileDropdown" role="menu">
+        <div class="dd-header">
+            <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;">
+                <div class="dd-avatar">@userInitial</div>
+                <div>
+                    <div class="dd-meta">Signed in as</div>
+                    <div class="dd-uname">@username</div>
                 </div>
             </div>
+            @if (isTopLevelAdmin)
+            {
+                <span class="dd-badge dd-badge-sa"><i class="fas fa-crown"></i> Super Admin</span>
+            }
+            else if (!string.IsNullOrEmpty(userRole))
+            {
+                <span class="dd-badge dd-badge-r"><i class="fas fa-user-shield"></i> @userRole</span>
+            }
+        </div>
+
+        <div class="dd-body">
+            @{
+                var dynamicMenus = await ManageEngineWebApp.Datacontext.RoleHelper.GetDynamicMenusAsync(Context);
+                var authorizedMenus = dynamicMenus.OrderBy(m => m.SortOrder).ToList();
+            }
+            @foreach (var menu in authorizedMenus)
+            {
+                var isActive = currentController == menu.RouteController && currentAction == menu.RouteAction;
+                /* FIX: if MenuIcon is null/empty/whitespace the <i> tag would
+                render a raw bullet-like glyph. Fall back to a safe icon.   */
+                var iconClass = string.IsNullOrWhiteSpace(menu.MenuIcon) ? "fas fa-circle-nodes" : menu.MenuIcon;
+
+                <a href="@Url.Action(menu.RouteAction, menu.RouteController)"
+                   class="dd-item @(isActive ? "dd-active" : "")"
+                   role="menuitem">
+                    <span class="dd-icon-box"><i class="@iconClass"></i></span>
+                    <span>@menu.MenuName</span>
+                    @if (isActive)
+                    {
+                        <i class="fas fa-check" style="margin-left:auto;font-size:.6rem;color:#0284c7;"></i>
+                    }
+                </a>
+            }
+
+            <div class="dd-divider"></div>
+
+            <a asp-controller="Auth" asp-action="Logout" class="dd-item dd-logout" role="menuitem">
+                <span class="dd-icon-box"><i class="fas fa-arrow-right-from-bracket"></i></span>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION PANEL -->
+    @if (currentController == "ComputerSummary" && currentAction == "Deshboad")
+    {
+        <div id="notificationPanel">
+            <div class="notif-hdr">
+                <span>Notifications</span>
+                <small id="notificationCountLabel">0 new</small>
+            </div>
+            <div id="notificationList"></div>
+        </div>
+    }
+
+    <!-- MAIN -->
+    <main>@RenderBody()</main>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+        <div class="footer-inner">
+            <img src="~/images/footer-logo.png" alt="SYSNET" />
+            <p>&copy; @DateTime.Now.Year SYSNET. All rights reserved.</p>
         </div>
     </footer>
 
     @await RenderSectionAsync("Scripts", required: false)
 
-    <!-- Custom Dialog Modal (replaces native confirm/alert) -->
-    <div id="sysModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);z-index:9999;opacity:0;transition:opacity .2s ease;">
+    <!-- MODAL -->
+    <div id="sysModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:9999;opacity:0;transition:opacity .2s ease;">
         <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem;">
-            <div id="sysModalBox" style="background:#fff;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);max-width:420px;width:100%;transform:scale(0.95) translateY(10px);opacity:0;transition:all .25s cubic-bezier(0.4,0,0.2,1);">
+            <div id="sysModalBox" style="background:#fff;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);max-width:420px;width:100%;transform:scale(.95) translateY(10px);opacity:0;transition:all .25s cubic-bezier(.4,0,.2,1);">
                 <div style="padding:1.75rem 1.75rem 0;">
                     <div id="sysModalIconWrap" style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;"></div>
                     <h4 id="sysModalTitle" style="text-align:center;font-weight:700;font-size:1.05rem;color:#1e293b;margin-bottom:.5rem;"></h4>
@@ -418,91 +629,130 @@
         </div>
     </div>
 
-    <!-- Toast container for sysAlert -->
+    <!-- TOAST -->
     <div id="sysToastContainer" style="position:fixed;top:1.25rem;right:1.25rem;z-index:10000;display:flex;flex-direction:column;gap:.5rem;pointer-events:none;"></div>
 
     <script>
-    (function(){
-        var overlay = document.getElementById('sysModalOverlay');
-        var box = document.getElementById('sysModalBox');
-        var iconWrap = document.getElementById('sysModalIconWrap');
-        var titleEl = document.getElementById('sysModalTitle');
-        var msgEl = document.getElementById('sysModalMsg');
-        var btnsEl = document.getElementById('sysModalBtns');
+        /* ─── DROPDOWN (JS click toggle — no CSS hover = no flicker) ─── */
+        (function () {
+            var profileBtn   = document.getElementById('profileBtn');
+            var profileDrop  = document.getElementById('profileDropdown');
+            var bellBtn      = document.getElementById('notificationBell');
+            var notifPanel   = document.getElementById('notificationPanel');
 
-        function showModal() {
-            overlay.style.display = 'block';
-            requestAnimationFrame(function(){ requestAnimationFrame(function(){
-                overlay.style.opacity = '1';
-                box.style.opacity = '1';
-                box.style.transform = 'scale(1) translateY(0)';
-            }); });
-        }
-        function hideModal() {
-            overlay.style.opacity = '0';
-            box.style.opacity = '0';
-            box.style.transform = 'scale(0.95) translateY(10px)';
-            setTimeout(function(){ overlay.style.display = 'none'; }, 250);
-        }
+            function open(panel, btn) {
+                if (!panel) return;
+                panel.classList.add('open');
+                if (btn) { btn.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+            }
+            function close(panel, btn) {
+                if (!panel) return;
+                panel.classList.remove('open');
+                if (btn) { btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+            }
+            function toggle(panel, btn, other, otherBtn) {
+                var isOpen = panel && panel.classList.contains('open');
+                close(other, otherBtn);
+                isOpen ? close(panel, btn) : open(panel, btn);
+            }
 
-        var typeConfig = {
-            warning: { icon:'fas fa-exclamation-triangle', iconColor:'#f59e0b', bg:'linear-gradient(135deg,#fffbeb,#fef3c7)', title:'Confirm Action' },
-            danger:  { icon:'fas fa-trash-alt',            iconColor:'#ef4444', bg:'linear-gradient(135deg,#fef2f2,#fee2e2)', title:'Are you sure?' },
-            info:    { icon:'fas fa-info-circle',          iconColor:'#0ea5e9', bg:'linear-gradient(135deg,#f0f9ff,#e0f2fe)', title:'Information' },
-            success: { icon:'fas fa-check-circle',         iconColor:'#10b981', bg:'linear-gradient(135deg,#ecfdf5,#d1fae5)', title:'Success' },
-            error:   { icon:'fas fa-times-circle',         iconColor:'#ef4444', bg:'linear-gradient(135deg,#fef2f2,#fee2e2)', title:'Error' }
-        };
+            if (profileBtn) {
+                profileBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    toggle(profileDrop, profileBtn, notifPanel, bellBtn);
+                });
+            }
+            if (bellBtn) {
+                bellBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    toggle(notifPanel, bellBtn, profileDrop, profileBtn);
+                });
+            }
 
-        // sysConfirm(message, onConfirm, options)
-        // options: { type: 'warning'|'danger', title, confirmText, cancelText }
-        window.sysConfirm = function(message, onConfirm, options) {
-            options = options || {};
-            var t = typeConfig[options.type || 'warning'];
-            iconWrap.style.background = t.bg;
-            iconWrap.innerHTML = '<i class="'+t.icon+'" style="font-size:1.25rem;color:'+t.iconColor+';"></i>';
-            titleEl.textContent = options.title || t.title;
-            msgEl.textContent = message;
+            document.addEventListener('click', function (e) {
+                if (profileDrop && profileDrop.classList.contains('open')) {
+                    if (!profileDrop.contains(e.target) && !profileBtn.contains(e.target))
+                        close(profileDrop, profileBtn);
+                }
+                if (notifPanel && bellBtn && notifPanel.classList.contains('open')) {
+                    if (!notifPanel.contains(e.target) && !bellBtn.contains(e.target))
+                        close(notifPanel, bellBtn);
+                }
+            });
 
-            var confirmColor = (options.type === 'danger') ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#0ea5e9,#0284c7)';
-            btnsEl.innerHTML =
-                '<button id="sysModalCancel" style="flex:1;padding:.625rem 1rem;border-radius:10px;border:1px solid #e2e8f0;background:#fff;color:#475569;font-weight:600;font-size:.875rem;cursor:pointer;transition:all .15s;">'+(options.cancelText||'Cancel')+'</button>' +
-                '<button id="sysModalOk" style="flex:1;padding:.625rem 1rem;border-radius:10px;border:none;background:'+confirmColor+';color:#fff;font-weight:600;font-size:.875rem;cursor:pointer;box-shadow:0 2px 8px rgba(14,165,233,0.3);transition:all .15s;">'+(options.confirmText||'OK')+'</button>';
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') { close(profileDrop, profileBtn); close(notifPanel, bellBtn); }
+            });
+        })();
 
-            showModal();
+        /* ─── MODAL + TOAST ─── */
+        (function () {
+            var overlay  = document.getElementById('sysModalOverlay');
+            var box      = document.getElementById('sysModalBox');
+            var iconWrap = document.getElementById('sysModalIconWrap');
+            var titleEl  = document.getElementById('sysModalTitle');
+            var msgEl    = document.getElementById('sysModalMsg');
+            var btnsEl   = document.getElementById('sysModalBtns');
 
-            document.getElementById('sysModalCancel').onclick = function(){ hideModal(); };
-            document.getElementById('sysModalOk').onclick = function(){ hideModal(); if(onConfirm) onConfirm(); };
-            overlay.onclick = function(e){ if(e.target === overlay) hideModal(); };
-        };
+            function showModal() {
+                overlay.style.display = 'block';
+                requestAnimationFrame(function () { requestAnimationFrame(function () {
+                    overlay.style.opacity = '1';
+                    box.style.opacity = '1';
+                    box.style.transform = 'scale(1) translateY(0)';
+                }); });
+            }
+            function hideModal() {
+                overlay.style.opacity = '0'; box.style.opacity = '0';
+                box.style.transform = 'scale(.95) translateY(10px)';
+                setTimeout(function () { overlay.style.display = 'none'; }, 250);
+            }
 
-        // sysAlert(message, type, duration)
-        // type: 'success'|'error'|'warning'|'info' (default 'info')
-        window.sysAlert = function(message, type, duration) {
-            type = type || 'info';
-            duration = duration || 3500;
-            var t = typeConfig[type] || typeConfig.info;
-            var borderColors = { success:'#10b981', error:'#ef4444', warning:'#f59e0b', info:'#0ea5e9' };
+            var TC = {
+                warning: { icon:'fas fa-exclamation-triangle', color:'#f59e0b', bg:'linear-gradient(135deg,#fffbeb,#fef3c7)', title:'Confirm Action' },
+                danger:  { icon:'fas fa-trash-alt',            color:'#ef4444', bg:'linear-gradient(135deg,#fef2f2,#fee2e2)', title:'Are you sure?' },
+                info:    { icon:'fas fa-info-circle',          color:'#0ea5e9', bg:'linear-gradient(135deg,#f0f9ff,#e0f2fe)', title:'Information' },
+                success: { icon:'fas fa-check-circle',         color:'#10b981', bg:'linear-gradient(135deg,#ecfdf5,#d1fae5)', title:'Success' },
+                error:   { icon:'fas fa-times-circle',         color:'#ef4444', bg:'linear-gradient(135deg,#fef2f2,#fee2e2)', title:'Error' }
+            };
 
-            var toast = document.createElement('div');
-            toast.style.cssText = 'pointer-events:auto;display:flex;align-items:center;gap:.75rem;padding:.875rem 1.25rem;background:#fff;border-radius:12px;border-left:4px solid '+(borderColors[type]||'#0ea5e9')+';box-shadow:0 10px 25px -5px rgba(0,0,0,0.1),0 4px 6px -2px rgba(0,0,0,0.05);min-width:280px;max-width:420px;transform:translateX(100%);opacity:0;transition:all .3s cubic-bezier(0.4,0,0.2,1);';
-            toast.innerHTML = '<div style="width:32px;height:32px;border-radius:8px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="'+t.icon+'" style="font-size:.8rem;color:'+t.iconColor+';"></i></div>' +
-                '<div style="flex:1;font-size:.8125rem;color:#334155;line-height:1.4;font-weight:500;">'+message+'</div>' +
-                '<button onclick="this.parentElement.style.opacity=\'0\';this.parentElement.style.transform=\'translateX(100%)\';setTimeout(function(){this.parentElement&&this.parentElement.remove()}.bind(this),300);" style="border:none;background:none;color:#94a3b8;cursor:pointer;padding:2px;font-size:.875rem;"><i class="fas fa-times"></i></button>';
+            window.sysConfirm = function (msg, onConfirm, opts) {
+                opts = opts || {};
+                var t = TC[opts.type || 'warning'];
+                iconWrap.style.background = t.bg;
+                iconWrap.innerHTML = '<i class="' + t.icon + '" style="font-size:1.25rem;color:' + t.color + ';"></i>';
+                titleEl.textContent = opts.title || t.title;
+                msgEl.textContent   = msg;
+                var cc = opts.type === 'danger' ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#0ea5e9,#0284c7)';
+                btnsEl.innerHTML =
+                    '<button id="sysModalCancel" style="flex:1;padding:.625rem 1rem;border-radius:10px;border:1px solid #e2e8f0;background:#fff;color:#475569;font-weight:600;font-size:.875rem;cursor:pointer;">' + (opts.cancelText  || 'Cancel') + '</button>' +
+                    '<button id="sysModalOk"     style="flex:1;padding:.625rem 1rem;border-radius:10px;border:none;background:' + cc + ';color:#fff;font-weight:600;font-size:.875rem;cursor:pointer;">' + (opts.confirmText || 'OK') + '</button>';
+                showModal();
+                document.getElementById('sysModalCancel').onclick = hideModal;
+                document.getElementById('sysModalOk').onclick     = function () { hideModal(); if (onConfirm) onConfirm(); };
+                overlay.onclick = function (e) { if (e.target === overlay) hideModal(); };
+            };
 
-            var container = document.getElementById('sysToastContainer');
-            container.appendChild(toast);
-            requestAnimationFrame(function(){ requestAnimationFrame(function(){
-                toast.style.transform = 'translateX(0)';
-                toast.style.opacity = '1';
-            }); });
-
-            setTimeout(function(){
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(100%)';
-                setTimeout(function(){ toast.remove(); }, 300);
-            }, duration);
-        };
-    })();
+            window.sysAlert = function (msg, type, duration) {
+                type = type || 'info'; duration = duration || 3500;
+                var t  = TC[type] || TC.info;
+                var bc = { success:'#10b981', error:'#ef4444', warning:'#f59e0b', info:'#0ea5e9' };
+                var el = document.createElement('div');
+                el.style.cssText = 'pointer-events:auto;display:flex;align-items:center;gap:.75rem;padding:.875rem 1.25rem;background:#fff;border-radius:12px;border-left:4px solid ' + (bc[type]||'#0ea5e9') + ';box-shadow:0 10px 25px -5px rgba(0,0,0,.1);min-width:280px;max-width:420px;transform:translateX(110%);opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);';
+                el.innerHTML =
+                    '<div style="width:32px;height:32px;border-radius:8px;background:' + t.bg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="' + t.icon + '" style="font-size:.8rem;color:' + t.color + ';"></i></div>' +
+                    '<div style="flex:1;font-size:.8125rem;color:#334155;line-height:1.4;font-weight:500;">' + msg + '</div>' +
+                    '<button style="border:none;background:none;color:#94a3b8;cursor:pointer;padding:2px;font-size:.875rem;" onclick="(function(e){e.style.opacity=\'0\';e.style.transform=\'translateX(110%)\';setTimeout(function(){e.remove();},300);})(this.parentElement);"><i class="fas fa-times"></i></button>';
+                document.getElementById('sysToastContainer').appendChild(el);
+                requestAnimationFrame(function () { requestAnimationFrame(function () {
+                    el.style.transform = 'translateX(0)'; el.style.opacity = '1';
+                }); });
+                setTimeout(function () {
+                    el.style.opacity = '0'; el.style.transform = 'translateX(110%)';
+                    setTimeout(function () { el.remove(); }, 300);
+                }, duration);
+            };
+        })();
     </script>
 </body>
 </html>
