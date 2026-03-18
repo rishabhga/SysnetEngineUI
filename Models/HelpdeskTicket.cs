@@ -28,6 +28,10 @@ namespace ManageEngineWebApp.Models
         public DateTime? ResolvedDate { get; set; }
         public DateTime? DueDate { get; set; }
         public bool? IsSLABreached { get; set; }
+        public DateTime? FirstResponseDate { get; set; }
+        public bool? ResponseSLABreached { get; set; }
+        public int? SLABreachCount { get; set; }
+        public int? EscalationLevel { get; set; }
         public string? RequesterName { get; set; } 
         public string? RequesterEmail { get; set; } 
     }

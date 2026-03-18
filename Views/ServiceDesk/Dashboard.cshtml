@@ -185,14 +185,39 @@
                         <span>Refresh Data</span>
                         <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
                     </a>
-                    <a href="#"
-                       class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-purple-50 rounded border border-gray-100 hover:border-purple-200 transition-colors">
-                        <div class="w-7 h-7 rounded bg-purple-100 flex items-center justify-center">
-                            <i class="fas fa-chart-bar text-purple-600 text-xs"></i>
-                        </div>
-                        <span>Reports</span>
-                        <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
-                    </a>
+                    @if(ViewBag.CanManageSLA == true)
+                    {
+                        <a href="@Url.Action("SLAManagement", "ServiceDesk")"
+                           class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-rose-50 rounded border border-gray-100 hover:border-rose-200 transition-colors">
+                            <div class="w-7 h-7 rounded bg-rose-100 flex items-center justify-center">
+                                <i class="fas fa-radiation text-rose-600 text-xs"></i>
+                            </div>
+                            <span>SLA Management</span>
+                            <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                        </a>
+                    }
+                    @if(ViewBag.CanManageMasterParts == true)
+                    {
+                        <a href="@Url.Action("MasterParts", "ServiceDesk")"
+                           class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-cyan-50 rounded border border-gray-100 hover:border-cyan-200 transition-colors">
+                            <div class="w-7 h-7 rounded bg-cyan-100 flex items-center justify-center">
+                                <i class="fas fa-tools text-cyan-600 text-xs"></i>
+                            </div>
+                            <span>Master Parts</span>
+                            <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                        </a>
+                    }
+                    @if(ViewBag.CanAdminSettings == true)
+                    {
+                        <a href="@Url.Action("AdminSettings", "ServiceDesk")"
+                           class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-purple-50 rounded border border-gray-100 hover:border-purple-200 transition-colors">
+                            <div class="w-7 h-7 rounded bg-purple-100 flex items-center justify-center">
+                                <i class="fas fa-cog text-purple-600 text-xs"></i>
+                            </div>
+                            <span>Admin Settings</span>
+                            <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                        </a>
+                    }
                 </div>
             </div>
         </div>
@@ -203,7 +228,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(document).ready(function() {
-            // Set date
             const options = { weekday: 'short', month: 'short', day: 'numeric' };
             $('#currentDate').text(new Date().toLocaleDateString('en-US', options));
 
@@ -237,9 +261,7 @@
                 const select = $('#companyFilter');
                 select.empty().append('<option value="">All Companies</option>');
                 if (companies && companies.length > 0) {
-                    // Handle both response formats
                     companies.forEach(function(c) {
-                        // Try multiple property names
                         const companyId = c.id || c.companyId || c.Id;
                         const companyName = c.name || c.companyName || c.Name || 'Unknown Company';
                         select.append(`<option value="${companyId}">${companyName}</option>`);
@@ -280,7 +302,6 @@
 
             $.get(url, function(locations) {
                 if (locations && locations.length > 0) {
-                    // Handle both response formats
                     locations.forEach(function(l) {
                         const locationId = l.id || l.locationId || l.Id;
                         const locationName = l.name || l.locationName || l.Name || 'Unknown Location';
@@ -325,10 +346,11 @@
             if (statusChart) statusChart.destroy();
             if (priorityChart) priorityChart.destroy();
 
-            // Status Chart (Doughnut)
+            // Status Chart (Doughnut) - use dynamic colors from API
             const ctxStatus = document.getElementById('statusChart').getContext('2d');
             const statusLabels = data.statusBreakdown ? data.statusBreakdown.map(s => s.status) : [];
             const statusValues = data.statusBreakdown ? data.statusBreakdown.map(s => s.count) : [];
+            const statusColors = data.statusBreakdown ? data.statusBreakdown.map(s => s.color || '#6B7280') : [];
 
             statusChart = new Chart(ctxStatus, {
                 type: 'doughnut',
@@ -336,7 +358,7 @@
                     labels: statusLabels,
                     datasets: [{
                         data: statusValues,
-                        backgroundColor: ['#EF4444', '#3B82F6', '#F59E0B', '#10B981', '#6B7280'],
+                        backgroundColor: statusColors,
                         borderWidth: 1,
                         borderColor: '#fff'
                     }]
@@ -359,10 +381,11 @@
                 }
             });
 
-            // Priority Chart (Bar)
+            // Priority Chart (Bar) - use dynamic colors from API
             const ctxPriority = document.getElementById('priorityChart').getContext('2d');
             const priorityLabels = data.priorityBreakdown ? data.priorityBreakdown.map(p => p.priority) : [];
             const priorityValues = data.priorityBreakdown ? data.priorityBreakdown.map(p => p.count) : [];
+            const priorityColors = data.priorityBreakdown ? data.priorityBreakdown.map(p => p.color || '#6B7280') : [];
 
             priorityChart = new Chart(ctxPriority, {
                 type: 'bar',
@@ -370,13 +393,7 @@
                     labels: priorityLabels,
                     datasets: [{
                         data: priorityValues,
-                        backgroundColor: function(context) {
-                            const val = context.chart.data.labels[context.dataIndex];
-                            if (val === 'Urgent') return '#DC2626';
-                            if (val === 'High') return '#F97316';
-                            if (val === 'Medium') return '#3B82F6';
-                            return '#10B981';
-                        }
+                        backgroundColor: priorityColors
                     }]
                 },
                 options: {
@@ -415,7 +432,10 @@
 
                     if(data && data.length > 0) {
                         data.forEach(eng => {
-                            const statusColor = eng.activeTickets >= 3 ? 'bg-red-500' : 'bg-green-500';
+                            const isBusy = eng.currentStatus === 'Busy' || eng.currentStatus === 'Overloaded';
+                            const badgeColor = isBusy ? 'bg-red-500' : 'bg-green-500';
+                            const textColor = isBusy ? 'text-red-600' : 'text-green-600';
+                            
                             const html = `
                                 <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded transition-colors">
                                     <div class="flex items-center gap-2">
@@ -423,15 +443,15 @@
                                             <div class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold">
                                                 ${eng.name ? eng.name.charAt(0).toUpperCase() : '?'}
                                             </div>
-                                            <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 ${statusColor} rounded-full border border-white"></span>
+                                            <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 ${badgeColor} rounded-full border border-white"></span>
                                         </div>
                                         <div>
                                             <div class="text-sm font-medium text-gray-800">${eng.name || 'Unknown Engineer'}</div>
                                             <div class="text-xs text-gray-500">${eng.activeTickets || 0} active tickets</div>
                                         </div>
                                     </div>
-                                    <span class="text-xs ${eng.activeTickets >= 3 ? 'text-red-600' : 'text-green-600'}">
-                                        ${eng.activeTickets >= 3 ? 'Busy' : 'Available'}
+                                    <span class="text-xs ${textColor}">
+                                        ${eng.currentStatus || 'Available'}
                                     </span>
                                 </div>
                             `;

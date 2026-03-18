@@ -3,300 +3,422 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="min-h-screen bg-gray-50 p-4">
-    <div class="max-w-4xl mx-auto">
-        <!-- Compact Header -->
-        <div class="mb-6">
-            <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                <a href="@Url.Action("Index")" class="hover:text-blue-600">Dashboard</a>
-                <span>/</span>
-                <a href="@Url.Action("Tickets")" class="hover:text-blue-600">Tickets</a>
-                <span>/</span>
-                <span class="text-gray-700 font-medium">New Ticket</span>
+<style>
+    /* Premium UI Additions */
+    .form-input {
+        transition: all 0.2s ease;
+        border: 1px solid #e5e7eb;
+    }
+    .form-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+    .form-input:hover:not(:focus) {
+        border-color: #d1d5db;
+    }
+    .sla-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateY(0);
+    }
+    .sla-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    }
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+    }
+    .btn-primary {
+        background: linear-gradient(to right, #2563eb, #1d4ed8);
+        transition: all 0.2s;
+    }
+    .btn-primary:hover {
+        background: linear-gradient(to right, #1d4ed8, #1e40af);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    }
+    .input-icon-wrapper {
+        position: relative;
+    }
+    .input-icon-wrapper i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        transition: color 0.2s;
+    }
+    .input-icon-wrapper input, .input-icon-wrapper select {
+        padding-left: 2.5rem;
+    }
+    .input-icon-wrapper:focus-within i {
+        color: #3b82f6;
+    }
+    
+    /* Custom Scrollbar for dropdowns if needed */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>
+
+<div class="min-h-screen bg-[#f8fafc] py-8 px-4 sm:px-6 lg:px-8 font-sans">
+    <div class="max-w-6xl mx-auto">
+        
+        <!-- Premium Header -->
+        <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+            <div>
+                <nav class="flex text-sm font-medium text-gray-500 mb-2 space-x-2">
+                    <a href="@Url.Action("Index")" class="hover:text-blue-600 transition-colors">Dashboard</a>
+                    <span>/</span>
+                    <a href="@Url.Action("Tickets")" class="hover:text-blue-600 transition-colors">Tickets</a>
+                    <span>/</span>
+                    <span class="text-gray-900">New Request</span>
+                </nav>
+                <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Create Service Request</h1>
+                <p class="text-gray-500 mt-1">Fill out the details below to submit a new support ticket.</p>
             </div>
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-xl font-bold text-gray-900">New Service Request</h1>
-                    <p class="text-gray-600 text-sm mt-0.5">Create a new support ticket</p>
-                </div>
-                <div class="text-xs text-gray-500 bg-white px-2 py-1 rounded border">
-                    <i class="fas fa-hashtag text-blue-500 mr-1"></i>
-                    TKT-NEW
-                </div>
+            
+            <div class="animate-pulse bg-blue-50 text-blue-700 px-4 py-2 rounded-lg font-mono text-sm font-semibold border border-blue-100 flex items-center shadow-sm">
+                <i class="fas fa-ticket-alt mr-2 text-blue-500"></i>
+                <span class="tracking-widest">TKT-NEW</span>
             </div>
         </div>
 
-        <!-- Compact Form Card -->
-        <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <form id="createTicketForm" class="p-4 sm:p-6">
-                <!-- Requester Info - Compact -->
-                <div class="mb-5">
-                    <div class="flex items-center gap-2 mb-3">
-                        <i class="fas fa-user text-blue-500 text-sm"></i>
-                        <h3 class="font-medium text-gray-800 text-sm">Requester Information</h3>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">
-                                Full Name <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" name="requesterName" value="@Context.Session.GetString("username")" required
-                                   class="w-full h-9 text-sm border border-gray-300 rounded px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+        <form id="createTicketForm" class="flex flex-col lg:flex-row gap-6 items-start">
+            
+            <!-- Main Content Area (Left) -->
+            <div class="flex-1 w-full space-y-6">
+                
+                <!-- Requester Section -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden p-6 relative">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mr-3">
+                            <i class="fas fa-user text-sm"></i>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
-                            <input type="email" name="requesterEmail"
-                                   class="w-full h-9 text-sm border border-gray-300 rounded px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-                                   placeholder="optional">
+                        Requester Information
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Full Name <span class="text-rose-500">*</span></label>
+                            <div class="input-icon-wrapper">
+                                <i class="fas fa-id-badge text-sm"></i>
+                                <input type="text" name="requesterName" value="@Context.Session.GetString("username")" required
+                                       class="form-input w-full h-11 rounded-lg text-sm bg-gray-50 focus:bg-white text-gray-900 font-medium">
+                            </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Assignment Hierarchy - Clean Grid -->
-                <div class="mb-5">
-                    <div class="flex items-center gap-2 mb-3">
-                        <i class="fas fa-sitemap text-blue-500 text-sm"></i>
-                        <h3 class="font-medium text-gray-800 text-sm">Assignment Hierarchy</h3>
-                    </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">
-                                Company <span class="text-red-500">*</span>
-                            </label>
-                            <select name="companyId" id="companySelect" required
-                                    class="w-full h-9 text-sm border border-gray-300 rounded px-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                                <option value="">Select...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">
-                                Group <span class="text-red-500">*</span>
-                            </label>
-                            <select name="groupId" id="groupSelect" required
-                                    class="w-full h-9 text-sm border border-gray-300 rounded px-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                                <option value="">Select...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">
-                                Location <span class="text-red-500">*</span>
-                            </label>
-                            <select name="locationId" id="locationSelect" required
-                                    class="w-full h-9 text-sm border border-gray-300 rounded px-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                                <option value="">Select...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">
-                                User <span class="text-red-500">*</span>
-                            </label>
-                            <select name="userId" id="userSelect" required
-                                    class="w-full h-9 text-sm border border-gray-300 rounded px-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                                <option value="">Select...</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Issue Details - Clean Layout -->
-                <div class="mb-5">
-                    <div class="flex items-center gap-2 mb-3">
-                        <i class="fas fa-info-circle text-blue-500 text-sm"></i>
-                        <h3 class="font-medium text-gray-800 text-sm">Issue Details</h3>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">
-                            Subject <span class="text-red-500">*</span>
-                        </label>
-                        <input type="text" name="subject" required
-                               class="w-full h-9 text-sm border border-gray-300 rounded px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-medium"
-                               placeholder="Brief description of issue">
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">
-                                Category <span class="text-red-500">*</span>
-                            </label>
-                            <select name="category" id="ticketCategory" required
-                                    class="w-full h-9 text-sm border border-gray-300 rounded px-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                                <option value="">Select...</option>
-                            </select>
-                        </div>
-                        <div class="relative">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">
-                                Priority <span class="text-red-500">*</span>
-                            </label>
-                            <select name="priority" id="prioritySelect" required
-                                    class="w-full h-9 text-sm border border-gray-300 rounded px-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-                                <option value="">Select...</option>
-                            </select>
-                            <div id="slaPreview" class="absolute right-2 top-7 hidden px-2 py-0.5 rounded text-[10px] font-bold uppercase pointer-events-none">
-                                --
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Email Address</label>
+                            <div class="input-icon-wrapper">
+                                <i class="fas fa-envelope text-sm"></i>
+                                <input type="email" name="requesterEmail" placeholder="user@company.com"
+                                       class="form-input w-full h-11 rounded-lg text-sm bg-gray-50 focus:bg-white">
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">
-                            Description <span class="text-red-500">*</span>
-                        </label>
-                        <textarea name="description" rows="3" required
-                                  class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-                                  placeholder="Describe the issue in detail..."></textarea>
+                <!-- Assignment Section -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden p-6 relative">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-gray-900 flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mr-3">
+                                <i class="fas fa-sitemap text-sm"></i>
+                            </div>
+                            Assignment Hierarchy
+                        </h2>
+                        <span class="text-xs font-semibold bg-gray-100 text-gray-500 px-2.5 py-1 rounded-md uppercase tracking-wide">Routing</span>
                     </div>
                     
-                    <!-- Dynamic SLA/Due Date -->
-                    <div class="mt-3 grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">
-                                Expected Duration <span class="text-red-500">*</span>
-                            </label>
-                            <input type="number" name="slaDuration" value="24" min="1" required
-                                   class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="space-y-1">
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide">Company <span class="text-rose-500">*</span></label>
+                            <select name="companyId" id="companySelect" required class="form-input w-full h-10 rounded-lg text-sm bg-gray-50 focus:bg-white cursor-pointer">
+                                <option value="">Select...</option>
+                            </select>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">
-                                Duration Unit
-                            </label>
-                            <select name="slaUnit" class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none bg-white">
-                                <option value="Hours">Hours</option>
-                                <option value="Days">Days</option>
+                        <div class="space-y-1">
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide">Group <span class="text-rose-500">*</span></label>
+                            <select name="groupId" id="groupSelect" required disabled class="form-input w-full h-10 rounded-lg text-sm bg-gray-50 focus:bg-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                <option value="">Select Company First</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide">Location <span class="text-rose-500">*</span></label>
+                            <select name="locationId" id="locationSelect" required disabled class="form-input w-full h-10 rounded-lg text-sm bg-gray-50 focus:bg-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                <option value="">Select Group First</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide">User <span class="text-rose-500">*</span></label>
+                            <select name="userId" id="userSelect" required disabled class="form-input w-full h-10 rounded-lg text-sm bg-gray-50 focus:bg-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                <option value="">Select Location First</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <!-- Compact Actions -->
-                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
-                    <a href="@Url.Action("Index", "ServiceDesk")"
-                       class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 font-medium hover:bg-gray-50 rounded border border-gray-200">
-                        Cancel
-                    </a>
-                    <button type="submit" id="submitBtn"
-                            class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded text-sm flex items-center shadow-sm">
-                        <span id="btnText">Submit Request</span>
-                        <i id="btnIcon" class="fas fa-paper-plane ml-2 text-xs"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
+                <!-- Issue Details Section -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden p-6 relative">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mr-3">
+                            <i class="fas fa-align-left text-sm"></i>
+                        </div>
+                        Issue Description
+                    </h2>
+                    
+                    <div class="space-y-5">
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Subject / Title <span class="text-rose-500">*</span></label>
+                            <input type="text" name="subject" required maxlength="100" placeholder="What is the issue?"
+                                   class="form-input w-full h-12 rounded-lg text-base px-4 bg-gray-50 focus:bg-white font-medium text-gray-900">
+                        </div>
 
-        <!-- Compact SLA Info -->
-        <div class="mt-4 p-3 bg-blue-50 border border-blue-100 rounded text-xs text-gray-600">
-            <div class="flex items-center gap-2 mb-1">
-                <i class="fas fa-clock text-blue-500"></i>
-                <span class="font-medium">SLA Response Times:</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div class="space-y-1">
+                                <label class="block text-sm font-medium text-gray-700">Category <span class="text-rose-500">*</span></label>
+                                <div class="input-icon-wrapper">
+                                    <i class="fas fa-tags text-sm"></i>
+                                    <select name="category" id="ticketCategory" required class="form-input w-full h-11 rounded-lg text-sm bg-gray-50 focus:bg-white cursor-pointer">
+                                        <option value="">Select Category...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-sm font-medium text-gray-700">Priority Level <span class="text-rose-500">*</span></label>
+                                <div class="input-icon-wrapper">
+                                    <i class="fas fa-flag text-sm"></i>
+                                    <select name="priority" id="prioritySelect" required class="form-input w-full h-11 rounded-lg text-sm bg-gray-50 focus:bg-white cursor-pointer font-medium">
+                                        <option value="">Select Priority...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700 flex justify-between">
+                                <span>Detailed Description <span class="text-rose-500">*</span></span>
+                                <span class="text-xs text-gray-400 font-normal">Provide as much detail as possible</span>
+                            </label>
+                            <textarea name="description" rows="5" required maxlength="1000" placeholder="Steps to reproduce, error messages, environment context..."
+                                      class="form-input w-full rounded-lg text-sm p-4 bg-gray-50 focus:bg-white resize-none leading-relaxed"></textarea>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="grid grid-cols-4 gap-2 text-center" id="slaInfoGrid">
-                <!-- Populated dynamically -->
-                <div class="col-span-4 text-gray-400 italic py-2">Loading SLA definitions...</div>
+
+            <!-- Right Sidebar Panel -->
+            <div class="w-full lg:w-80 flex-shrink-0 space-y-6">
+                
+                <!-- Dynamic Request Action Card -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-lg shadow-blue-500/5 overflow-hidden sticky top-6">
+                    <div class="p-6 bg-gradient-to-br from-gray-50 to-white">
+                        <h3 class="text-base font-bold text-gray-900 mb-1">Actions</h3>
+                        <p class="text-xs text-gray-500 mb-6">Review details before submitting</p>
+                        
+                        <button type="submit" id="submitBtn" class="btn-primary w-full h-12 rounded-lg text-white font-semibold flex items-center justify-center gap-2 mb-3">
+                            <span id="btnText">Submit Ticket</span>
+                            <i id="btnIcon" class="fas fa-paper-plane text-sm"></i>
+                        </button>
+                        
+                        <a href="@Url.Action("Tickets", "ServiceDesk")" class="w-full h-10 rounded-lg text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 font-medium flex items-center justify-center text-sm transition-colors">
+                            Cancel
+                        </a>
+                    </div>
+                    
+                    <div class="border-t border-gray-100 bg-gray-50 p-5">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-6 h-6 rounded-md bg-white border border-gray-200 flex items-center justify-center shadow-sm">
+                                <i class="fas fa-stopwatch text-indigo-500 text-[10px]"></i>
+                            </div>
+                            <h4 class="text-sm font-bold text-gray-800">SLA Preview</h4>
+                        </div>
+                        
+                        <!-- Dynamic SLA UI -->
+                        <div id="slaDynamicContainer" class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+                            <div class="text-gray-400 mb-2">
+                                <i class="fas fa-hand-pointer text-xl opacity-50"></i>
+                            </div>
+                            <p class="text-xs text-gray-500 font-medium leading-relaxed">Select a priority level to view Service Level Agreement times.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Useful Tips Box -->
+                <div class="bg-amber-50 rounded-xl border border-amber-100 p-5">
+                    <h4 class="text-xs font-bold text-amber-800 uppercase tracking-wider mb-3 flex items-center">
+                        <i class="fas fa-lightbulb text-amber-500 mr-2"></i> Best Practices
+                    </h4>
+                    <ul class="space-y-2 text-xs text-amber-900/80 leading-relaxed">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check mt-0.5 text-amber-500 opacity-70"></i>
+                            <span>Provide specific error messages.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check mt-0.5 text-amber-500 opacity-70"></i>
+                            <span>Mention what you were doing when the issue occurred.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check mt-0.5 text-amber-500 opacity-70"></i>
+                            <span>Choose priority accurately based on business impact.</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
-        </div>
+            
+        </form>
     </div>
 </div>
 
-<!-- Compact Success Modal -->
-<div id="successModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-xs">
-        <div class="p-4 text-center">
-            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fas fa-check text-green-600"></i>
+<!-- Premium Success Modal -->
+<div id="successModal" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm transform scale-95 transition-transform duration-300" id="successModalContent">
+        <div class="p-8 text-center">
+            <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5 border-[8px] border-green-100/50">
+                <i class="fas fa-check text-3xl text-green-500 shadow-sm"></i>
             </div>
-            <h3 class="font-bold text-gray-900 mb-1">Request Submitted</h3>
-            <p class="text-gray-500 text-sm mb-3">Ticket created successfully</p>
-            <div class="bg-gray-50 rounded px-3 py-2 mb-3">
-                <span class="font-mono font-bold text-gray-800 text-sm">#<span id="successTicketNo"></span></span>
+            <h3 class="font-extrabold text-2xl text-gray-900 mb-2">Success!</h3>
+            <p class="text-gray-500 text-sm mb-6">Your service request has been created and assigned to the queue.</p>
+            
+            <div class="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
+                <div class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Ticket Number</div>
+                <div class="font-mono text-xl font-black text-gray-800 tracking-tight">#<span id="successTicketNo"></span></div>
             </div>
+            
             <button onclick="window.location.href='@Url.Action("Tickets", "ServiceDesk")'"
-                    class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded text-sm">
-                View Tickets
+                    class="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                <span>Go to Tickets</span>
+                <i class="fas fa-arrow-right text-xs opacity-70"></i>
             </button>
         </div>
     </div>
 </div>
 
-<!-- Compact Toast -->
-<div id="toast-container" class="fixed bottom-3 right-3 z-50 flex flex-col gap-1 max-w-xs"></div>
 
 @section Scripts {
     <script>
         $(document).ready(() => {
             loadInitialData();
 
+            // Form interactions
+            $('.form-input').on('focus', function() {
+                $(this).closest('div.bg-white').css('border-color', '#bfdbfe');
+            }).on('blur', function() {
+                $(this).closest('div.bg-white').css('border-color', '#f3f4f6');
+            });
+
+            // Hierarchy Cascading Drops
             $('#companySelect').on('change', function() {
                 const companyId = $(this).val();
-                $('#groupSelect').html('<option value="">Select...</option>');
-                $('#locationSelect').html('<option value="">Select...</option>');
-                $('#userSelect').html('<option value="">Select...</option>');
-                loadGroups(companyId);
+                resetSelect('#groupSelect', 'Select company first...');
+                resetSelect('#locationSelect', 'Select group first...');
+                resetSelect('#userSelect', 'Select location first...');
+                
+                if(companyId) {
+                    $('#groupSelect').prop('disabled', false).html('<option value="">Loading groups...</option>');
+                    loadGroups(companyId);
+                }
             });
 
             $('#groupSelect').on('change', function() {
                 const companyId = $('#companySelect').val();
                 const groupId = $(this).val();
-                $('#locationSelect').html('<option value="">Select...</option>');
-                $('#userSelect').html('<option value="">Select...</option>');
-                loadLocations(companyId, groupId);
+                resetSelect('#locationSelect', 'Select group first...');
+                resetSelect('#userSelect', 'Select location first...');
+                
+                if(groupId) {
+                    $('#locationSelect').prop('disabled', false).html('<option value="">Loading locations...</option>');
+                    loadLocations(companyId, groupId);
+                }
             });
 
             $('#locationSelect').on('change', function() {
                 const companyId = $('#companySelect').val();
                 const groupId = $('#groupSelect').val();
                 const locationId = $(this).val();
-                $('#userSelect').html('<option value="">Select...</option>');
-                loadUsers(companyId, groupId, locationId);
+                resetSelect('#userSelect', 'Select location first...');
+                
+                if(locationId) {
+                    $('#userSelect').prop('disabled', false).html('<option value="">Loading users...</option>');
+                    loadUsers(companyId, groupId, locationId);
+                }
             });
 
             $('#userSelect').on('change', function() {
                 const userName = $("#userSelect option:selected").text();
-                if (userName && !userName.includes("Select") && !userName.includes("No users")) {
-                    $('input[name="requesterName"]').val(userName);
+                if (userName && !userName.includes("Select") && !userName.includes("Loading") && !userName.includes("No users")) {
+                    $('input[name="requesterName"]').val(userName).addClass('ring-2 ring-blue-100');
+                    setTimeout(() => $('input[name="requesterName"]').removeClass('ring-2 ring-blue-100'), 500);
                 }
             });
 
+            // Priority Selection -> Dynamic Premium SLA UI
             $('#prioritySelect').on('change', function() {
                 const priority = $(this).val();
-                const preview = $('#slaPreview');
+                const container = $('#slaDynamicContainer');
                 
-                const $selected = $(this).find(':selected');
-                const color = $selected.data('color') || '#6B7280';
-                
-                const hours = window.slaStore ? (window.slaStore[priority] || null) : null;
-                
-                if (priority && hours) {
-                    preview.text(hours + 'h SLA')
-                           .css({
-                                'background-color': color + '20',
-                                'color': color,
-                                'border': `1px solid ${color}40`
-                            })
-                           .attr('class', 'absolute right-2 top-7 px-2 py-0.5 rounded text-[10px] font-bold uppercase pointer-events-none')
-                           .removeClass('hidden');
-                           
-                    $('input[name="slaDuration"]').val(hours);
-                    $('select[name="slaUnit"]').val('Hours');
-                } else {
-                    preview.addClass('hidden');
-                    if(!priority) {
-                        $('input[name="slaDuration"]').val('24');
-                        $('select[name="slaUnit"]').val('Hours');
-                    }
+                if (!priority) {
+                    container.html(`
+                        <div class="text-gray-400 mb-2"><i class="fas fa-hand-pointer text-xl opacity-50"></i></div>
+                        <p class="text-xs text-gray-500 font-medium leading-relaxed">Select a priority level to view Service Level Agreement times.</p>
+                    `);
+                    return;
                 }
+
+                const $selected = $(this).find(':selected');
+                const colorCode = $selected.data('color') || '#6B7280';
+                const hours = window.slaStore ? (window.slaStore[priority] || 0) : 0;
+                
+                // Fade out then in
+                container.animate({opacity: 0}, 150, function() {
+                    $(this).html(`
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-sm border-2" style="background-color: ${colorCode}15; border-color: ${colorCode}40; color: ${colorCode}">
+                                <i class="fas fa-bolt text-lg"></i>
+                            </div>
+                            <h5 class="text-sm font-bold text-gray-800 mb-1">${priority} Priority</h5>
+                            <div class="bg-gray-50 border border-gray-100 rounded-lg w-full p-3 mt-2">
+                                <div class="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1">Resolution Target</div>
+                                <div class="text-2xl font-black flex justify-center items-end gap-1" style="color: ${colorCode}">
+                                    ${hours} <span class="text-sm font-semibold mb-1 opacity-70 ${hours === 0 ? 'hidden' : ''}">hours</span>
+                                    <span class="text-sm font-semibold text-gray-400 mb-1 ${hours !== 0 ? 'hidden' : ''}">No SLA defined</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).animate({opacity: 1}, 150);
+                });
             });
 
+            // Form Submit
             $('#createTicketForm').on('submit', function(e) {
                 e.preventDefault();
                 submitTicket();
             });
         });
+        
+        function resetSelect(selector, text) {
+            $(selector).prop('disabled', true).html(`<option value="">${text}</option>`);
+        }
 
         function loadInitialData() {
             // Load Companies
             $.get('@Url.Action("GetCompanies", "ServiceDesk")', companies => {
                 const select = $('#companySelect');
-                select.html('<option value="">Select...</option>');
+                select.html('<option value="">Select Company...</option>');
                 if (companies && companies.length > 0) {
                    companies.forEach(c => select.append(`<option value="${c.id}">${c.companyName}</option>`));
                 }
@@ -305,9 +427,9 @@
             // Load Categories
             $.get('@Url.Action("GetCategories", "ServiceDesk")', categories => {
                 const select = $('#ticketCategory');
-                select.html('<option value="">Select...</option>');
+                select.html('<option value="">Select Category...</option>');
                 if (categories && categories.length > 0) {
-                    categories.forEach(c => select.append(`<option value="${c.value}">${c.label}</option>`));
+                    categories.forEach(c => select.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
                 }
             });
 
@@ -324,79 +446,53 @@
                 if(slas) slas.forEach(s => window.slaStore[s.priority] = s.hours);
                 
                 const select = $('#prioritySelect');
-                const infoGrid = $('#slaInfoGrid');
-                
-                select.html('<option value="">Select...</option>');
-                infoGrid.empty();
+                select.html('<option value="">Select Priority Level...</option>');
                 
                 if (priorities && priorities.length > 0) {
                     priorities.forEach(p => {
-                        const hours = window.slaStore[p.value] || 0;
-                        select.append(`<option value="${p.value}" data-color="${p.color}">${p.label}</option>`);
-                        
-                        const color = p.color || '#6B7280';
-                        infoGrid.append(`
-                            <div class="px-2 py-1 bg-white rounded border text-center cursor-pointer hover:bg-gray-50 transition-colors" 
-                                 style="border-color: ${color}40; color: ${color}"
-                                 onclick="$('#prioritySelect').val('${p.value}').trigger('change')">
-                                <div class="font-bold truncate">${p.label}</div>
-                                <div class="text-[10px] opacity-70">${hours} hours</div>
-                            </div>
-                        `);
+                        const priName = p.priorityName || p.label || p.value;
+                        const colorCode = p.colorCode || p.color || '#6B7280';
+                        select.append(`<option value="${priName}" data-color="${colorCode}">${priName}</option>`);
                     });
                 }
             });
         }
 
         function loadGroups(companyId) {
-            const select = $('#groupSelect');
-            select.html('<option value="">Loading...</option>');
-            if (!companyId) {
-                select.html('<option value="">Select company...</option>');
-                return;
-            }
             $.get(`@Url.Action("GetGroups", "ServiceDesk")?companyId=${companyId}`, groups => {
-                select.html('<option value="">Select...</option>');
+                const select = $('#groupSelect');
+                select.html('<option value="">Select Group...</option>');
                 if (groups && groups.length > 0) {
                     groups.forEach(g => select.append(`<option value="${g.id}">${g.groupName}</option>`));
+                } else {
+                    select.html('<option value="">No groups found</option>');
                 }
-            }).fail(() => select.html('<option value="">Error loading</option>'));
+            }).fail(() => resetSelect('#groupSelect', 'Error loading groups'));
         }
 
         function loadLocations(companyId, groupId) {
-            const select = $('#locationSelect');
-            select.html('<option value="">Loading...</option>');
-            if (!companyId || !groupId) {
-                select.html('<option value="">Select company & group...</option>');
-                return;
-            }
-
-            let url = `@Url.Action("GetLocations", "ServiceDesk")?companyId=${companyId}`;
-            if(groupId) url += `&groupId=${groupId}`;
-
+            let url = `@Url.Action("GetLocations", "ServiceDesk")?companyId=${companyId}&groupId=${groupId}`;
             $.get(url, locations => {
-                select.html('<option value="">Select...</option>');
+                const select = $('#locationSelect');
+                select.html('<option value="">Select Location...</option>');
                 if (locations && locations.length > 0) {
                     locations.forEach(l => select.append(`<option value="${l.id}">${l.locationName}</option>`));
+                } else {
+                    select.html('<option value="">No locations found</option>');
                 }
-            }).fail(() => select.html('<option value="">Error loading</option>'));
+            }).fail(() => resetSelect('#locationSelect', 'Error loading locations'));
         }
 
         function loadUsers(companyId, groupId, locationId) {
-            const select = $('#userSelect');
-            select.html('<option value="">Loading...</option>');
-            if (!companyId || !groupId || !locationId) {
-                select.html('<option value="">Select hierarchy...</option>');
-                return;
-            }
             $.get(`@Url.Action("GetUsersByLocation", "ServiceDesk")?companyId=${companyId}&groupId=${groupId}&locationId=${locationId}`, users => {
-                select.html('<option value="">Select...</option>');
+                const select = $('#userSelect');
+                select.html('<option value="">Select User...</option>');
                 if (users && users.length > 0) {
                     users.forEach(u => select.append(`<option value="${u.domainName}">${u.userName}</option>`));
                 } else {
                     select.html('<option value="">No users found</option>');
                 }
-            }).fail(() => select.html('<option value="">Error loading</option>'));
+            }).fail(() => resetSelect('#userSelect', 'Error loading users'));
         }
 
         function submitTicket() {
@@ -404,10 +500,11 @@
             const icon = $('#btnIcon');
             const text = $('#btnText');
 
-            // Disable button
-            btn.prop('disabled', true).addClass('opacity-75 cursor-wait');
-            text.text('Processing...');
+            // Awesome loading state
+            btn.prop('disabled', true);
+            text.text('Creating Ticket...');
             icon.removeClass('fa-paper-plane').addClass('fa-circle-notch fa-spin');
+            $('input, select, textarea').prop('disabled', true);
 
             const payload = {
                 requesterName: $('input[name="requesterName"]').val(),
@@ -419,9 +516,7 @@
                 groupId: parseInt($('select[name="groupId"]').val()) || null,
                 locationId: parseInt($('select[name="locationId"]').val()) || null,
                 clientId: $('select[name="userId"]').val(),
-                remark: $('textarea[name="description"]').val(),
-                slaDuration: parseInt($('input[name="slaDuration"]').val()) || 24,
-                slaUnit: $('select[name="slaUnit"]').val()
+                remark: $('textarea[name="description"]').val()
             };
 
             $.ajax({
@@ -430,62 +525,44 @@
                 contentType: 'application/json',
                 data: JSON.stringify(payload),
                 success: (res) => {
-                    resetBtn();
                     if (res && res.success) {
+                        // Show premium success modal with smooth animations
                         $('#successTicketNo').text(res.ticketNo || "Created");
-                        $('#successModal').removeClass('hidden');
+                        const modal = $('#successModal');
+                        const content = $('#successModalContent');
+                        
+                        modal.removeClass('hidden');
+                        // Small delay to allow display:block to apply before animating opacity
                         setTimeout(() => {
-                             window.location.href = '@Url.Action("Tickets", "ServiceDesk")';
-                        }, 2000);
+                            modal.removeClass('opacity-0').addClass('opacity-100');
+                            content.removeClass('scale-95').addClass('scale-100');
+                            // Fireworks effect could go here
+                        }, 10);
+                        
                     } else {
-                        showToast(res.message || "Failed to create ticket", "error");
+                        resetFormState();
+                        sysAlert(res.message || "Failed to create ticket", "error");
                     }
                 },
                 error: (xhr) => {
-                    resetBtn();
+                    resetFormState();
                     console.error("Create Ticket Error:", xhr);
                     let msg = "Connection error. Please try again.";
                     if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                    showToast(msg, "error");
+                    sysAlert(msg, "error");
                 }
             });
         }
-
-        function resetBtn() {
+        
+        function resetFormState() {
             const btn = $('#submitBtn');
             const icon = $('#btnIcon');
             const text = $('#btnText');
-            btn.prop('disabled', false).removeClass('opacity-75 cursor-wait');
-            text.text('Submit Request');
+            btn.prop('disabled', false);
+            text.text('Submit Ticket');
             icon.removeClass('fa-circle-notch fa-spin').addClass('fa-paper-plane');
+            $('input, select, textarea').prop('disabled', false);
         }
 
-        function showToast(message, type = 'info') {
-            const colors = {
-                success: 'bg-green-500',
-                error: 'bg-red-500',
-                info: 'bg-blue-500'
-            };
-            const icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle');
-
-            const toastHtml = `
-                <div class="${colors[type]} text-white px-3 py-2 rounded shadow flex items-center transform transition-all duration-300 translate-y-10 opacity-0 text-sm" role="alert">
-                    <i class="fas ${icon} mr-2 text-xs"></i>
-                    <span class="font-medium">${message}</span>
-                </div>
-            `;
-
-            const $toast = $(toastHtml);
-            $('#toast-container').append($toast);
-
-            requestAnimationFrame(() => {
-                $toast.removeClass('translate-y-10 opacity-0');
-            });
-
-            setTimeout(() => {
-                $toast.addClass('translate-y-10 opacity-0');
-                setTimeout(() => $toast.remove(), 300);
-            }, 3000);
-        }
     </script>
 }

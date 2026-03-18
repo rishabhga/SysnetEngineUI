@@ -4,15 +4,15 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     var username = Context.Session.GetString("username") ?? "User";
     var userId = Context.Session.GetString("userId") ?? "0";
+    var canApprove = ViewBag.CanApprove ?? false;
+    var canAssign = ViewBag.CanAssign ?? false;
+    var canDelete = ViewBag.CanDelete ?? false;
 }
 
 <div class="min-h-screen bg-gray-50 p-4">
     <!-- Sticky Header -->
-    <div class="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-2.5 flex justify-between items-center mb-4">
+    <div class="sticky top-[108px] z-30 bg-white border-b border-gray-200 px-4 py-2.5 flex justify-between items-center mb-4">
         <div class="flex items-center gap-3">
-            <a href="@Url.Action("Tickets", "ServiceDesk")" class="text-gray-400 hover:text-gray-600">
-                <i class="fas fa-arrow-left"></i>
-            </a>
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-lg font-bold text-gray-900">@Model.TicketNo</h1>
@@ -33,7 +33,7 @@
                 <!-- Main Ticket Card -->
                 <div class="bg-white rounded border border-gray-200">
                     <!-- Priority Stripe -->
-                    <div class="h-1 w-full @(Model.Priority == "Urgent" ? "bg-red-500" : Model.Priority == "High" ? "bg-orange-500" : "bg-blue-500")"></div>
+                    <div class="h-1 w-full" id="priorityStripe"></div>
 
                     <div class="p-4">
                         <!-- Requester Info -->
@@ -59,7 +59,7 @@
                             <div class="p-2.5 bg-gray-50 rounded border border-gray-100">
                                 <div class="text-xs text-gray-500 mb-1">Priority</div>
                                 <div class="font-bold text-gray-800 flex items-center gap-1.5">
-                                    <span class="w-1.5 h-1.5 rounded-full @(Model.Priority == "Urgent" ? "bg-red-500" : Model.Priority == "High" ? "bg-orange-500" : "bg-blue-500")"></span>
+                                    <span class="w-1.5 h-1.5 rounded-full" id="priorityDot"></span>
                                     @Model.Priority
                                 </div>
                             </div>
@@ -83,7 +83,7 @@
                             <div class="p-2.5 bg-gray-50 rounded border border-gray-100">
                                 <div class="text-xs text-gray-500 mb-1">Status</div>
                                 <div class="font-bold text-gray-800 flex items-center gap-1.5">
-                                    <i class="fas fa-circle text-xs @(Model.Status == "InProgress" ? "text-blue-500" : Model.Status == "Resolved" ? "text-green-500" : "text-gray-400")"></i>
+                                    <i class="fas fa-circle text-xs" id="statusDot"></i>
                                     @Model.Status
                                 </div>
                             </div>
@@ -166,6 +166,7 @@
                         <button onclick="switchTab('files')" class="flex-1 py-2 text-xs font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-300 transition-colors tab-btn" data-target="files">
                             <i class="fas fa-paperclip mr-1"></i> Files
                         </button>
+
                     </div>
 
                     <!-- Comments Tab -->
@@ -195,13 +196,15 @@
                         <div class="mb-3 p-3 border-2 border-dashed border-gray-300 rounded text-center hover:bg-gray-50 cursor-pointer" onclick="document.getElementById('fileUpload').click()">
                             <i class="fas fa-cloud-upload-alt text-gray-400 mb-1"></i>
                             <p class="text-xs text-gray-600">Click to upload file</p>
-                            <p class="text-[10px] text-gray-400 mt-0.5">Max 10MB</p>
-                            <input type="file" id="fileUpload" class="hidden" onchange="uploadFile(this)">
+                            <p class="text-[10px] text-gray-400 mt-0.5">Max 10MB • Supported: images, documents, archives</p>
+                            <input type="file" id="fileUpload" class="hidden" onchange="uploadFile(this)" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.png,.jpg,.jpeg,.gif,.bmp,.svg,.webp">
                         </div>
                         <div class="space-y-2 max-h-80 overflow-y-auto pr-2" id="attachmentsList">
                             <!-- Loaded via JS -->
                         </div>
                     </div>
+
+
                 </div>
 
                 <!-- SLA Progress -->
@@ -214,8 +217,8 @@
                         <div id="slaProgressBar" class="h-full transition-all duration-1000" style="width: 0%"></div>
                     </div>
                     <div class="flex justify-between text-[10px] text-gray-500">
-                        <span>Created: @Model.CreatedOn?.ToString("HH:mm")</span>
-                        <span>Deadline: @Model.DueDate?.ToString("HH:mm")</span>
+                        <span>Created: @Model.CreatedOn?.ToString("dd MMM HH:mm")</span>
+                        <span>Deadline: @(Model.DueDate?.ToString("dd MMM HH:mm") ?? "No SLA")</span>
                     </div>
                 </div>
             </div>
@@ -272,9 +275,11 @@
         </div>
         <div class="p-3">
             <label class="block text-xs text-gray-700 mb-2">Select Engineer</label>
-            <select id="engineerSelect" class="w-full text-sm border border-gray-300 rounded p-1.5 mb-3">
-                <option value="">Loading engineers...</option>
-            </select>
+            <input type="hidden" id="selectedEngineerId" />
+            <input type="hidden" id="selectedEngineerName" />
+            <div id="engineerList" class="max-h-64 overflow-y-auto space-y-2 mb-3 bg-white border border-gray-200 rounded p-2">
+                <div class="text-center text-xs text-gray-500 py-3">Loading engineers...</div>
+            </div>
             <label class="block text-xs text-gray-700 mb-2">Assignment Notes</label>
             <textarea id="assignNotes" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Tasks for engineer..."></textarea>
             <div class="flex gap-2">
@@ -339,6 +344,8 @@
     </div>
 </div>
 
+
+
 <style>
     .active-tab {
         border-bottom-color: #3b82f6;
@@ -352,8 +359,39 @@
         const currentStatus = "@Model.Status";
         const currentPriority = "@Model.Priority";
         const currentUser = "@username";
+        const apiBaseUrl = '@(ViewBag.ApiBaseUrl ?? "")';
+
+        // RBAC permission flags from server
+        const canApprove = @(canApprove ? "true" : "false");
+        const canAssign = @(canAssign ? "true" : "false");
+        const canDelete = @(canDelete ? "true" : "false");
 
         let connection = null;
+
+        // HTML escape to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // File type icon helper
+        function getFileIcon(fileName) {
+            if (!fileName) return 'fa-file';
+            const ext = fileName.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': 'fa-file-pdf text-red-500',
+                'doc': 'fa-file-word text-blue-600', 'docx': 'fa-file-word text-blue-600',
+                'xls': 'fa-file-excel text-green-600', 'xlsx': 'fa-file-excel text-green-600', 'csv': 'fa-file-excel text-green-600',
+                'ppt': 'fa-file-powerpoint text-orange-500', 'pptx': 'fa-file-powerpoint text-orange-500',
+                'zip': 'fa-file-archive text-yellow-600', 'rar': 'fa-file-archive text-yellow-600', '7z': 'fa-file-archive text-yellow-600',
+                'png': 'fa-file-image text-purple-500', 'jpg': 'fa-file-image text-purple-500', 'jpeg': 'fa-file-image text-purple-500',
+                'gif': 'fa-file-image text-purple-500', 'svg': 'fa-file-image text-purple-500', 'webp': 'fa-file-image text-purple-500',
+                'txt': 'fa-file-alt text-gray-500'
+            };
+            return icons[ext] || 'fa-file text-gray-400';
+        }
 
         $(document).ready(function() {
             initUI();
@@ -362,10 +400,19 @@
             loadComments();
             loadLogs();
             loadAttachments();
+
             renderActionButtons();
 
             updateSLAProgress();
             setInterval(updateSLAProgress, 60000);
+
+            // Enter key to send comment (Shift+Enter for new line)
+            $('#commentInput').on('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitComment();
+                }
+            });
 
             // SignalR Connection
             setupSignalR();
@@ -380,9 +427,31 @@
                 }
 
                 connection = new signalR.HubConnectionBuilder()
-                    .withUrl("/scanHub")
-                    .withAutomaticReconnect()
+                    .withUrl("https://localhost:7225/ticketHub")
+                    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000]) // Retry immediately, 2s, 5s, 10s, 30s
                     .build();
+
+                connection.onreconnecting(error => {
+                    sysToast('SignalR UI Indicator', 'Connection lost. Trying to reconnect...', 'warning');
+                    $('#signalrBadge').remove();
+                    $('body').append('<div id="signalrBadge" class="fixed bottom-4 right-4 bg-yellow-500 text-white px-3 py-1.5 rounded shadow-lg text-sm z-50 flex items-center gap-2"><i class="fas fa-sync fa-spin"></i> Reconnecting to live updates...</div>');
+                });
+
+                connection.onreconnected(connectionId => {
+                    $('#signalrBadge').remove();
+                    sysToast('SignalR UI Indicator', 'Reconnected to live updates.', 'success');
+                });
+
+                connection.onclose(error => {
+                    $('#signalrBadge').remove();
+                    $('body').append('<div id="signalrBadge" class="fixed bottom-4 right-4 bg-red-600 text-white px-3 py-1.5 rounded shadow-lg text-sm z-50 flex items-center gap-2"><i class="fas fa-exclamation-triangle"></i> Live updates disconnected. Refresh page.</div>');
+                });
+
+                connection.on("ReceiveComment", function (tId, comment, user, timestamp, uId) {
+                    if (parseInt(tId) === ticketId) {
+                        loadComments(true); // Reload comments for the current ticket
+                    }
+                });
 
                 connection.on("ReceiveMessagechat", (message, isClient, time, clientId) => {
                     // Refresh comments if the incoming message belongs to this ticket's client
@@ -413,27 +482,43 @@
         }
 
         function updateSLAProgress() {
-            const created = new Date("@Model.CreatedOn?.ToString("yyyy-MM-ddTHH:mm:ss")");
-            const due = new Date("@Model.DueDate?.ToString("yyyy-MM-ddTHH:mm:ss")");
+            const createdStr = "@Model.CreatedOn?.ToString("yyyy-MM-ddTHH:mm:ss")";
+            const dueStr = "@Model.DueDate?.ToString("yyyy-MM-ddTHH:mm:ss")";
+            
+            const bar = $('#slaProgressBar');
+            const txt = $('#slaPercentText');
+
+            if (!createdStr || !dueStr || createdStr === '' || dueStr === '') {
+                bar.css('width', '0%').css('background-color', '#9ca3af');
+                txt.text('No SLA').css('color', '#9ca3af');
+                return;
+            }
+
+            const created = new Date(createdStr);
+            const due = new Date(dueStr);
             const now = new Date();
 
-            if (!created || !due) return;
+            if (isNaN(created.getTime()) || isNaN(due.getTime())) {
+                bar.css('width', '0%').css('background-color', '#9ca3af');
+                txt.text('No SLA').css('color', '#9ca3af');
+                return;
+            }
 
             const total = due - created;
             const elapsed = now - created;
             let percent = Math.min(Math.max((elapsed / total) * 100, 0), 100);
 
-            const bar = $('#slaProgressBar');
-            const txt = $('#slaPercentText');
-
             bar.css('width', percent + '%');
 
-            if (now > due) {
+            if (currentStatus === 'Resolved' || currentStatus === 'Closed') {
+                bar.css('background-color', '#10b981');
+                txt.text('Completed').css('color', '#10b981');
+            } else if (now > due) {
                 bar.css('background-color', '#ef4444');
                 txt.text('BREACHED').css('color', '#ef4444');
             } else {
                 bar.css('background-color', percent > 80 ? '#f97316' : '#3b82f6');
-                txt.text(Math.round(percent) + '% elapsed');
+                txt.text(Math.round(percent) + '% elapsed').css('color', percent > 80 ? '#f97316' : '#6b7280');
             }
         }
 
@@ -445,6 +530,25 @@
             else if(s === 'resolved' || s === 'closed') badge.addClass('bg-emerald-100 text-emerald-600');
             else if(s === 'rejected') badge.addClass('bg-gray-200 text-gray-700');
             else badge.addClass('bg-blue-100 text-blue-600');
+
+            // Dynamic priority colors (BUG-3 & BUG-7 fix)
+            const p = currentPriority ? currentPriority.toLowerCase() : '';
+            let priorityColor = 'bg-blue-500';
+            if (p === 'urgent' || p === 'critical') priorityColor = 'bg-red-500';
+            else if (p === 'high') priorityColor = 'bg-orange-500';
+            else if (p === 'medium') priorityColor = 'bg-amber-500';
+            else if (p === 'low') priorityColor = 'bg-green-500';
+            $('#priorityStripe').addClass(priorityColor);
+            $('#priorityDot').addClass(priorityColor);
+
+            // Dynamic status dot color
+            let statusDotColor = 'text-gray-400';
+            if (s === 'inprogress' || s === 'assigned') statusDotColor = 'text-blue-500';
+            else if (s === 'resolved' || s === 'closed') statusDotColor = 'text-green-500';
+            else if (s === 'open') statusDotColor = 'text-red-500';
+            else if (s === 'approved') statusDotColor = 'text-emerald-500';
+            else if (s === 'rejected') statusDotColor = 'text-gray-500';
+            $('#statusDot').addClass(statusDotColor);
         }
 
         // ================= TABS =================
@@ -470,12 +574,12 @@
             const container = $('#actionButtons');
             container.empty();
 
-            if(currentStatus === 'Open') {
+            if(currentStatus === 'Open' && canApprove) {
                 container.append(`<button onclick="openModal('approveModal')" class="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-check"></i> Approve</button>`);
                 container.append(`<button onclick="openModal('rejectModal')" class="px-2.5 py-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs font-medium rounded"><i class="fas fa-times"></i> Reject</button>`);
             }
 
-            if(currentStatus === 'Approved' || currentStatus === 'Open') {
+            if((currentStatus === 'Approved' || currentStatus === 'Open') && canAssign) {
                  container.append(`<button onclick="openModal('assignModal')" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-user-tag"></i> Assign</button>`);
             }
 
@@ -489,8 +593,8 @@
                 container.append(`<button onclick="openModal('resolveModal')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-check-circle"></i> Resolve</button>`);
             }
 
-            // Delete button - available for all non-closed tickets
-            if(currentStatus !== 'Closed') {
+            // Delete button - require delete permission
+            if(currentStatus !== 'Closed' && canDelete) {
                 container.append(`<button onclick="deleteTicket()" class="px-2.5 py-1 bg-white border border-red-200 text-red-400 hover:text-red-600 hover:bg-red-50 text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-trash"></i></button>`);
             }
         }
@@ -525,18 +629,55 @@
         }
 
         function loadEngineers() {
-            $.get('@Url.Action("GetEngineers", "ServiceDesk")', function(data) {
-                const select = $('#engineerSelect');
-                select.empty().append('<option value="">Select Engineer</option>');
-                data.forEach(e => {
-                    select.append(`<option value="${e.id}" data-name="${e.name}">${e.name}</option>`);
+            $.get('@Url.Action("GetDetailedEngineers", "ServiceDesk")', function(data) {
+                const container = $('#engineerList');
+                container.empty();
+                
+                if(!data || data.length === 0) {
+                    container.append('<div class="text-center text-xs text-gray-500 py-3">No engineers found</div>');
+                    return;
+                }
+                
+                data.forEach((e, idx) => {
+                    let badgeClass = 'bg-green-100 text-green-700'; // Available
+                    if(e.currentStatus === 'Busy') badgeClass = 'bg-yellow-100 text-yellow-700';
+                    if(e.currentStatus === 'Overloaded') badgeClass = 'bg-red-100 text-red-700';
+                    
+                    let suggestedBadge = idx === 0 ? '<span class="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px] ml-2 font-bold uppercase tracking-wider">Suggested</span>' : '';
+                    
+                    let card = `
+                    <div class="eng-card border border-gray-200 rounded p-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors" 
+                         data-id="${e.id}" data-name="${e.name}" onclick="selectEngineer(this, '${e.id}', '${e.name}')">
+                        <div class="flex justify-between items-start mb-1">
+                            <div class="font-medium text-sm text-gray-800">${e.name} ${suggestedBadge}</div>
+                            <div class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${badgeClass}">${e.currentStatus}</div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <div>Role: <span class="text-gray-700">${e.role}</span></div>
+                            <div>Active: <span class="font-bold text-gray-800">${e.activeTicketCount}</span></div>
+                        </div>
+                        <div class="flex gap-2 mt-1 text-[10px]">
+                            <span class="text-red-500" title="High/Urgent Priority"><i class="fas fa-exclamation-circle text-[9px]"></i> ${e.highPriorityCount}</span>
+                            <span class="text-blue-500" title="Avg Resolution Time"><i class="fas fa-clock text-[9px]"></i> ${e.avgResolutionHours}h</span>
+                            <span class="text-emerald-500" title="Total Resolved"><i class="fas fa-check text-[9px]"></i> ${e.totalResolved}</span>
+                        </div>
+                    </div>`;
+                    
+                    container.append(card);
                 });
             });
         }
+        
+        function selectEngineer(el, id, name) {
+            $('.eng-card').removeClass('border-blue-500 bg-blue-50').addClass('border-gray-200');
+            $(el).removeClass('border-gray-200').addClass('border-blue-500 bg-blue-50');
+            $('#selectedEngineerId').val(id);
+            $('#selectedEngineerName').val(name);
+        }
 
         function submitAssignAction() {
-            const engId = $('#engineerSelect').val();
-            const engName = $('#engineerSelect option:selected').data('name');
+            const engId = $('#selectedEngineerId').val();
+            const engName = $('#selectedEngineerName').val();
             const notes = $('#assignNotes').val();
 
             if(!engId) { sysAlert('Please select an engineer', 'warning'); return; }
@@ -566,20 +707,22 @@
                 let html = '';
 
                 if(!data || data.length === 0) {
-                    html = '<div class="text-center text-gray-400 py-4 text-sm">No comments yet</div>';
+                    html = '<div class="text-center text-gray-400 py-4 text-sm"><i class="far fa-comment-dots text-2xl mb-2 block"></i>No messages yet. Start the conversation!</div>';
                 } else {
                     data.sort((a,b) => new Date(a.createdOn) - new Date(b.createdOn));
                     data.forEach(c => {
                         const isMe = c.userName === currentUser;
                         const time = new Date(c.createdOn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        const safeComment = escapeHtml(c.comment);
+                        const safeName = escapeHtml(c.userName);
 
                         html += `
                             <div class="${isMe ? 'text-right' : 'text-left'}">
-                                <div class="inline-block max-w-[80%] ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 text-gray-700'} rounded-lg px-3 py-2 text-sm">
-                                    ${c.comment}
+                                <div class="inline-block max-w-[80%] ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 text-gray-700'} rounded-lg px-3 py-2 text-sm" style="word-break: break-word;">
+                                    ${safeComment}
                                 </div>
                                 <div class="text-[10px] text-gray-500 mt-0.5">
-                                    ${c.userName} • ${time}
+                                    ${safeName} • ${time}
                                 </div>
                             </div>
                         `;
@@ -587,7 +730,7 @@
                 }
 
                 list.html(html);
-                list.scrollTop(list[0].scrollHeight);
+                if (list[0]) list.scrollTop(list[0].scrollHeight);
             });
         }
 
@@ -640,27 +783,124 @@
              });
         }
 
+        // ================= CALL LOGS =================
+        function openLogCallModal() {
+            var now = new Date();
+            var offset = now.getTimezoneOffset() * 60000;
+            var localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
+            
+            $('#callCallerName').val('');
+            $('#callType').val('Incoming');
+            $('#callChannel').val('Phone');
+            $('#callSubject').val('');
+            $('#callDescription').val('');
+            $('#callDuration').val('');
+            $('#callOutcome').val('InformationProvided');
+            openModal('logCallModal');
+        }
+
+        function loadTicketCallLogs() {
+            $.get(`@Url.Action("GetTicketCallLogs", "ServiceDesk")?ticketId=${ticketId}`, function(data) {
+                const list = $('#callsList');
+                list.empty();
+                if(!data || data.length === 0) {
+                    list.append('<div class="text-center text-gray-400 py-4 text-sm">No calls logged yet</div>');
+                    return;
+                }
+
+                data.forEach(c => {
+                    const date = new Date(c.createdOn).toLocaleString();
+                    let badgeClass = 'bg-gray-100 text-gray-700';
+                    if(c.callType === 'Incoming') badgeClass = 'bg-green-100 text-green-700';
+                    if(c.callType === 'Outgoing') badgeClass = 'bg-blue-100 text-blue-700';
+                    if(c.callType === 'Internal') badgeClass = 'bg-yellow-100 text-yellow-700';
+
+                    list.append(`
+                        <div class="p-3 bg-gray-50 rounded border border-gray-100 mb-2">
+                            <div class="flex justify-between items-start mb-1">
+                                <div class="font-medium text-sm text-gray-800">${escapeHtml(c.subject) || 'Call Record'}</div>
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium ${badgeClass}">${escapeHtml(c.callType)} - ${escapeHtml(c.channel)}</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mb-2">
+                                <i class="far fa-clock mr-1"></i> ${date} • <i class="fas fa-user-circle mx-1"></i> ${escapeHtml(c.loggedByName)}
+                            </div>
+                            <div class="text-xs text-gray-700 whitespace-pre-wrap bg-white p-2 rounded border border-gray-100">${escapeHtml(c.description)}</div>
+                            <div class="flex justify-between items-center mt-2 text-[10px] text-gray-500">
+                                <div>Caller: <span class="font-medium text-gray-700">${escapeHtml(c.callerName) || '-'}</span></div>
+                                <div>Duration: <span class="font-medium text-gray-700">${c.durationMinutes || 0} min</span></div>
+                                <div>Outcome: <span class="font-medium text-gray-700">${escapeHtml(c.outcome) || '-'}</span></div>
+                            </div>
+                        </div>
+                    `);
+                });
+            });
+        }
+
+        function submitCallLog() {
+            const data = {
+                TicketId: ticketId,
+                CallerName: $('#callCallerName').val(),
+                CallType: $('#callType').val(),
+                Channel: $('#callChannel').val(),
+                Subject: $('#callSubject').val(),
+                Description: $('#callDescription').val(),
+                DurationMinutes: parseInt($('#callDuration').val()) || null,
+                Outcome: $('#callOutcome').val(),
+                CreatedOn: new Date().toISOString(),
+                LoggedByName: currentUser
+            };
+
+            if(!data.CallerName || !data.Subject || !data.Description) {
+                sysAlert('Please fill in all required fields', 'warning');
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("AddCallLog", "ServiceDesk")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(res) {
+                    if(res.success) {
+                        closeModal('logCallModal');
+                        sysAlert('Call logged successfully', 'success');
+                        loadTicketCallLogs();
+                    } else {
+                        sysAlert(res.message, 'error');
+                    }
+                }
+            });
+        }
+
         // ================= FILES =================
         function loadAttachments() {
             $.get(`@Url.Action("GetAttachments", "ServiceDesk")?ticketId=${ticketId}`, function(data) {
                  const list = $('#attachmentsList');
                  list.empty();
-                 if(!data || data.length === 0) return;
+                 if(!data || data.length === 0) {
+                     list.html('<div class="text-center text-gray-400 py-4 text-sm"><i class="fas fa-paperclip text-2xl mb-2 block"></i>No files attached</div>');
+                     return;
+                 }
 
                  data.forEach(f => {
                      const date = new Date(f.uploadedOn).toLocaleDateString();
+                     const safeName = escapeHtml(f.fileName);
+                     const fileIcon = getFileIcon(f.fileName);
+                     const sizeStr = f.fileSize > 1048576 ? (f.fileSize/1048576).toFixed(1) + ' MB' : (f.fileSize/1024).toFixed(1) + ' KB';
+                     // File path comes from API server, proxy through WebApp
+                     const downloadUrl = `@Url.Action("DownloadAttachment", "ServiceDesk")?path=${encodeURIComponent(f.filePath)}&name=${encodeURIComponent(f.fileName)}`;
                      list.append(`
-                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-100 hover:bg-gray-100">
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-100 hover:bg-gray-100 transition-colors">
                             <div class="flex items-center gap-2">
                                 <div class="w-8 h-8 rounded bg-gray-100 flex items-center justify-center">
-                                    <i class="fas fa-file text-gray-400 text-sm"></i>
+                                    <i class="fas ${fileIcon} text-sm"></i>
                                 </div>
                                 <div class="max-w-[150px]">
-                                    <p class="text-xs font-medium text-gray-800 truncate" title="${f.fileName}">${f.fileName}</p>
-                                    <p class="text-[10px] text-gray-500">${(f.fileSize/1024).toFixed(1)} KB • ${date}</p>
+                                    <p class="text-xs font-medium text-gray-800 truncate" title="${safeName}">${safeName}</p>
+                                    <p class="text-[10px] text-gray-500">${sizeStr} • ${date}</p>
                                 </div>
                             </div>
-                            <a href="${f.filePath}" target="_blank" class="text-gray-400 hover:text-blue-600">
+                            <a href="${downloadUrl}" target="_blank" class="text-gray-400 hover:text-blue-600 p-1.5 hover:bg-blue-50 rounded transition-colors" title="Download">
                                 <i class="fas fa-download text-xs"></i>
                             </a>
                         </div>
@@ -672,10 +912,19 @@
         function uploadFile(input) {
             if(input.files && input.files[0]) {
                 const file = input.files[0];
+                
+                // Client-side file size validation (10MB)
+                const maxSize = 10 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    sysAlert('File size exceeds 10MB limit. Please choose a smaller file.', 'warning');
+                    input.value = '';
+                    return;
+                }
+
                 const formData = new FormData();
                 formData.append('file', file);
 
-                $('#attachmentsList').prepend(`<div id="uploading" class="p-2 text-center text-xs text-blue-500"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</div>`);
+                $('#attachmentsList').prepend(`<div id="uploading" class="p-2 text-center text-xs text-blue-500"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading ${escapeHtml(file.name)}...</div>`);
 
                 $.ajax({
                     url: `@Url.Action("AddAttachment", "ServiceDesk")?ticketId=${ticketId}`,
@@ -686,6 +935,7 @@
                     success: function(res) {
                         $('#uploading').remove();
                         if(res.success) {
+                            sysAlert('File uploaded successfully', 'success');
                             loadAttachments();
                         } else sysAlert(res.message || 'Upload failed', 'error');
                     },
@@ -695,6 +945,8 @@
                         sysAlert(msg, 'error'); 
                     }
                 });
+                // Reset input so same file can be re-uploaded
+                input.value = '';
             }
         }
 
@@ -713,7 +965,7 @@
                 parts.forEach(p => {
                     const t = p.quantity * p.unitCost; total += t;
                     html += `<tr class="border-b border-gray-50">
-                        <td class="py-2 text-gray-700 text-sm">${p.partName}</td>
+                        <td class="py-2 text-gray-700 text-sm">${escapeHtml(p.partName)}</td>
                         <td class="py-2 text-center text-gray-700 text-sm">${p.quantity}</td>
                         <td class="py-2 text-right text-gray-700 text-sm">₹${p.unitCost.toFixed(2)}</td>
                         <td class="py-2 text-right font-medium text-gray-800 text-sm">₹${t.toFixed(2)}</td>

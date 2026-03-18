@@ -2,6 +2,7 @@ using ManageEngineWebApp.Datacontext;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using ManageEngineWebApp.Attributes;
+using Newtonsoft.Json;
 
 namespace ManageEngineWebApp.Controllers
 {
@@ -57,6 +58,9 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.CanAssign = HasPermission("ServiceDesk.Assign") || IsTopLevelAdmin();
             ViewBag.CanApprove = HasPermission("ServiceDesk.Approve") || IsTopLevelAdmin();
             ViewBag.CanDelete = HasPermission("ServiceDesk.Delete") || IsTopLevelAdmin();
+            ViewBag.CanManageSLA = HasPermission("ServiceDesk.ManageSLA") || IsTopLevelAdmin();
+            ViewBag.CanManageMasterParts = HasPermission("ServiceDesk.ManageMasterParts") || IsTopLevelAdmin();
+            ViewBag.CanAdminSettings = HasPermission("ServiceDesk.AdminSettings") || IsTopLevelAdmin();
             ViewBag.IsSuperAdmin = IsTopLevelAdmin();
         }
 
@@ -75,18 +79,27 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetTickets(int? companyId, int? locationId, int? groupId, string? clientId)
+        public async Task<IActionResult> GetTickets(int? companyId, int? locationId, int? groupId, string? clientId, string status = "all", int pageNumber = 1, int pageSize = 50)
         {
             try
             {
-                var query = BuildScopedQuery(companyId, locationId, groupId);
+                var queryParams = BuildScopedQuery(companyId, locationId, groupId);
+                var sep = string.IsNullOrEmpty(queryParams) ? "?" : "&";
+                var fullQuery = $"{queryParams}";
+                
                 if (!string.IsNullOrEmpty(clientId))
-                    query += (string.IsNullOrEmpty(query) ? "?" : "&") + $"clientId={clientId}";
+                    fullQuery += (string.IsNullOrEmpty(fullQuery) ? "?" : "&") + $"clientId={clientId}";
 
-                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets{query}");
-                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+                fullQuery += (string.IsNullOrEmpty(fullQuery) ? "?" : "&") + $"status={status}&pageNumber={pageNumber}&pageSize={pageSize}";
+
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets{fullQuery}");
+                var content = await response.Content.ReadAsStringAsync();
+                return Content(content, "application/json");
             }
-            catch (Exception ex) { return Json(new { error = ex.Message }); }
+            catch (Exception ex)
+            {
+                return Json(new { items = new List<object>(), totalItems = 0, totalPages = 0, currentPage = 1, error = ex.Message });
+            }
         }
 
         [HttpPost]
@@ -292,6 +305,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
+        [HttpGet]
         [AuthFilter]
         public async Task<IActionResult> Details(int id)
         {
@@ -304,6 +318,7 @@ namespace ManageEngineWebApp.Controllers
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var ticket = System.Text.Json.JsonSerializer.Deserialize<ManageEngineWebApp.Models.HelpdeskTicket>(content, options);
                 SetViewPermissions();
+                ViewBag.ApiBaseUrl = _baseUrl;
                 return View(ticket);
             }
             catch { return NotFound(); }
@@ -451,10 +466,31 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> DownloadAttachment(string path, string name)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(path)) return NotFound();
+                
+                // Security: prevent directory traversal
+                if (path.Contains("..") || path.Contains("~")) return BadRequest("Invalid path");
+                
+                var response = await GetClient().GetAsync($"{_baseUrl}{path}");
+                if (!response.IsSuccessStatusCode) return NotFound();
+                
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+                return File(fileBytes, contentType, name ?? "download");
+            }
+            catch { return NotFound(); }
+        }
+
         [AuthFilter]
         public IActionResult Dashboard()
         {
-            return View();
+            return RedirectToAction("Index");
         }
 
         [HttpGet]
@@ -521,6 +557,15 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageMasterParts", "View Master Parts")]
+        public IActionResult MasterParts()
+        {
+            SetViewPermissions();
+            return View();
+        }
+
+        [HttpGet]
+        [AuthFilter]
         public async Task<IActionResult> GetMasterParts()
         {
             try
@@ -530,6 +575,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch { return Json(new List<object>()); }
         }
+
 
         [HttpPost]
         [AuthFilter]
@@ -570,5 +616,317 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
+
+
+        [HttpGet]
+        [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageSLA", "Manage SLAs")]
+        public IActionResult SLAManagement()
+        {
+            SetViewPermissions();
+            return View();
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        [DynamicPermission("ServiceDesk.ViewSLAReport", "View SLA Breaches")]
+        public async Task<IActionResult> GetSLABreaches(int? companyId, int? locationId, int? groupId, string? breachType)
+        {
+            try
+            {
+                var query = BuildScopedQuery(companyId, locationId, groupId);
+                if (!string.IsNullOrEmpty(breachType)) query += (string.IsNullOrEmpty(query) ? "?" : "&") + $"breachType={breachType}";
+
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/SLABreaches{query}");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        [DynamicPermission("ServiceDesk.ViewSLAReport", "View SLA Stats")]
+        public async Task<IActionResult> GetSLABreachStats(int? companyId, int? locationId, int? groupId)
+        {
+            try
+            {
+                var query = BuildScopedQuery(companyId, locationId, groupId);
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/SLABreaches/Stats{query}");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetTicketSLADetails(int ticketId)
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{ticketId}/SLADetails");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageSLA", "Save SLA Config")]
+        public async Task<IActionResult> SaveSLAConfig()
+        {
+            try
+            {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/SLAConfigs", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageSLA", "Delete SLA Config")]
+        public async Task<IActionResult> DeleteSLAConfig(int id)
+        {
+            try
+            {
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/DeleteSLAConfig/{id}", null);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetAllSLAConfigs()
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/SLAConfigs/All");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
+        }
+
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetDetailedEngineers(int? companyId, int? locationId, int? groupId)
+        {
+            try
+            {
+                var query = BuildScopedQuery(companyId, locationId, groupId);
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Engineers/Detailed{query}");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> CheckSLABreaches()
+        {
+            try
+            {
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/CheckSLABreaches", null);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> SeedServiceDeskPermissions()
+        {
+            try
+            {
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/SeedServiceDeskPermissions", null);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+
+        [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "View Admin Settings")]
+        public IActionResult AdminSettings()
+        {
+            SetViewPermissions();
+            return View();
+        }
+
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetAllCategories()
+        {
+            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Categories/All");
+            return Content(response, "application/json");
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> CreateCategory()
+        {
+            try {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Categories", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> UpdateCategory()
+        {
+            try {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Categories/Update", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            try {
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Categories/Delete?id={id}", null);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetAllPriorities()
+        {
+            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Priorities/All");
+            return Content(response, "application/json");
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> CreatePriority()
+        {
+            try {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Priorities", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> UpdatePriority()
+        {
+            try {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Priorities/Update", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> DeletePriority(int id)
+        {
+            try {
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Priorities/Delete?id={id}", null);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetAllStatuses()
+        {
+            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Statuses/All");
+            return Content(response, "application/json");
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> CreateTicketStatus()
+        {
+            try {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Statuses", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> UpdateTicketStatus()
+        {
+            try {
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Statuses/Update", content);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> DeleteTicketStatus(int id)
+        {
+            try {
+                var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Statuses/Delete?id={id}", null);
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+
+
+
+
+        [AuthFilter]
+        public IActionResult Reports()
+        {
+            SetViewPermissions();
+            return View();
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetTicketTrends(int days = 30)
+        {
+            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Reports/TicketTrends?days={days}");
+            return Content(response, "application/json");
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetCategoryBreakdown()
+        {
+            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Reports/CategoryBreakdown");
+            return Content(response, "application/json");
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetPriorityBreakdown()
+        {
+            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Reports/PriorityBreakdown");
+            return Content(response, "application/json");
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetEngineerPerformance()
+        {
+            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Reports/EngineerPerformance");
+            return Content(response, "application/json");
+        }
+
     }
 }

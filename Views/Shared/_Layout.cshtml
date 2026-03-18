@@ -1,4 +1,4 @@
-﻿@{
+@{
     var username = Context.Session.GetString("username");
     var userRole = Context.Session.GetString("role");
     var hierarchyLevel = Context.Session.GetString("hierarchyLevel");
@@ -55,7 +55,6 @@
             padding-bottom: 2rem;
         }
 
-        /* ─── NAV ─────────────────────────────────────────── */
         #main-nav {
             background: linear-gradient(135deg, var(--nav-from) 0%, var(--nav-mid) 55%, var(--nav-to) 100%);
             height: var(--nav-h);
@@ -75,7 +74,6 @@
             justify-content: space-between;
         }
 
-        /* Logo */
         .nav-logo {
             display: flex;
             align-items: center;
@@ -94,14 +92,12 @@
                 filter: brightness(0) invert(1);
             }
 
-        /* Nav right cluster */
         .nav-right {
             display: flex;
             align-items: center;
             gap: .5rem;
         }
 
-        /* Glass icon button (bell) */
         .nav-icon-btn {
             width: 38px;
             height: 38px;
@@ -127,7 +123,6 @@
                 font-size: .9rem;
             }
 
-        /* Notification badge */
         #notificationBadge {
             display: none;
             position: absolute;
@@ -147,7 +142,6 @@
             border: 2px solid var(--nav-mid);
         }
 
-        /* Profile pill */
         #profileBtn {
             display: flex;
             align-items: center;
@@ -218,9 +212,8 @@
             transform: rotate(180deg);
         }
 
-        /* ─── DROPDOWN ────────────────────────────────────── */
         #profileDropdown {
-            position: fixed; /* fixed so it's never clipped by overflow:hidden parents */
+            position: fixed; 
             right: 1.5rem;
             top: calc(var(--nav-h) + 8px);
             width: 268px;
@@ -230,7 +223,6 @@
             border: 1px solid rgba(0,0,0,.07);
             z-index: 1000;
             overflow: hidden;
-            /* animation */
             visibility: hidden;
             opacity: 0;
             transform: translateY(-8px) scale(.97);
@@ -245,7 +237,6 @@
                 transition-delay: 0s;
             }
 
-        /* Dropdown header */
         .dd-header {
             padding: 1.1rem 1.1rem .9rem;
             background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
@@ -304,7 +295,6 @@
             box-shadow: 0 2px 8px rgba(14,165,233,.3);
         }
 
-        /* Menu items */
         .dd-body {
             padding: .5rem 0;
         }
@@ -328,8 +318,6 @@
                 color: #0369a1;
                 border-left-color: #38bdf8;
             }
-        /* Icon box — FIX for the black dots: wraps icon in a styled box
-                   so even if the icon class is empty/wrong nothing ugly shows */
         .dd-icon-box {
             width: 28px;
             height: 28px;
@@ -349,7 +337,6 @@
         .dd-icon-box i {
             font-size: .78rem;
             color: #64748b;
-            /* reset conflicting global widths from DataTables or Bootstrap */
             width: auto !important;
             margin: 0 !important;
         }
@@ -390,7 +377,6 @@
                         color: #b91c1c;
                     }
 
-        /* ─── NOTIFICATION PANEL ──────────────────────────── */
         #notificationPanel {
             position: fixed;
             right: 1.5rem;
@@ -441,7 +427,6 @@
             font-size: .8rem;
         }
 
-        /* ─── FOOTER ──────────────────────────────────────── */
         .app-footer {
             background: linear-gradient(135deg,#0f172a,#1e293b);
             color: #64748b;
@@ -467,7 +452,6 @@
                 margin: 0;
             }
 
-        /* ─── DATATABLES ──────────────────────────────────── */
         .dataTables_length, .dataTables_filter {
             display: none !important;
         }
@@ -507,7 +491,6 @@
 </head>
 <body>
 
-    <!-- NAV -->
     <nav id="main-nav">
         <div class="nav-inner">
 
@@ -537,7 +520,6 @@
         </div>
     </nav>
 
-    <!-- PROFILE DROPDOWN (position:fixed, renders outside nav so no clipping) -->
     <div id="profileDropdown" role="menu">
         <div class="dd-header">
             <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;">
@@ -565,8 +547,6 @@
             @foreach (var menu in authorizedMenus)
             {
                 var isActive = currentController == menu.RouteController && currentAction == menu.RouteAction;
-                /* FIX: if MenuIcon is null/empty/whitespace the <i> tag would
-                render a raw bullet-like glyph. Fall back to a safe icon.   */
                 var iconClass = string.IsNullOrWhiteSpace(menu.MenuIcon) ? "fas fa-circle-nodes" : menu.MenuIcon;
 
                 <a href="@Url.Action(menu.RouteAction, menu.RouteController)"
@@ -590,7 +570,6 @@
         </div>
     </div>
 
-    <!-- NOTIFICATION PANEL -->
     @if (currentController == "ComputerSummary" && currentAction == "Deshboad")
     {
         <div id="notificationPanel">
@@ -602,10 +581,8 @@
         </div>
     }
 
-    <!-- MAIN -->
     <main>@RenderBody()</main>
 
-    <!-- FOOTER -->
     <footer class="app-footer">
         <div class="footer-inner">
             <img src="~/images/footer-logo.png" alt="SYSNET" />
@@ -615,7 +592,6 @@
 
     @await RenderSectionAsync("Scripts", required: false)
 
-    <!-- MODAL -->
     <div id="sysModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:9999;opacity:0;transition:opacity .2s ease;">
         <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem;">
             <div id="sysModalBox" style="background:#fff;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);max-width:420px;width:100%;transform:scale(.95) translateY(10px);opacity:0;transition:all .25s cubic-bezier(.4,0,.2,1);">
@@ -629,11 +605,9 @@
         </div>
     </div>
 
-    <!-- TOAST -->
     <div id="sysToastContainer" style="position:fixed;top:1.25rem;right:1.25rem;z-index:10000;display:flex;flex-direction:column;gap:.5rem;pointer-events:none;"></div>
 
     <script>
-        /* ─── DROPDOWN (JS click toggle — no CSS hover = no flicker) ─── */
         (function () {
             var profileBtn   = document.getElementById('profileBtn');
             var profileDrop  = document.getElementById('profileDropdown');
@@ -685,7 +659,19 @@
             });
         })();
 
-        /* ─── MODAL + TOAST ─── */
+        if (typeof $ !== 'undefined') {
+            $.ajaxSetup({
+                error: function(jqXHR, textStatus, errorThrown) {
+                    if (jqXHR.status === 401 || jqXHR.status === 403) {
+                        sysAlert('Session expired or unauthorized access. Redirecting...', 'error');
+                        setTimeout(function() {
+                            window.location.href = '/Auth/Login';
+                        }, 1500);
+                    }
+                }
+            });
+        }
+
         (function () {
             var overlay  = document.getElementById('sysModalOverlay');
             var box      = document.getElementById('sysModalBox');
