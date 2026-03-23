@@ -228,7 +228,10 @@ namespace ManageEngineWebApp.Controllers
                 var dto = new
                 {
                     ClientId = criticalClient.ClientId,
-                    ClientName = criticalClient.ClientName
+                    ClientName = criticalClient.ClientName,
+                    CompanyID = criticalClient.CompanyID,
+                    GroupsID = criticalClient.GroupsID,
+                    LocationID = criticalClient.LocationID
                 };
                 string jsonData = JsonConvert.SerializeObject(dto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
@@ -970,13 +973,22 @@ namespace ManageEngineWebApp.Controllers
                 HttpResponseMessage response = await client.PostAsync("", content);
 
                 string result = await response.Content.ReadAsStringAsync();
-                var jsonResponse = JsonConvert.DeserializeObject<object>(result);
-                return Json(jsonResponse);
-                //return Json(result);
-                // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
+                if (response.IsSuccessStatusCode)
+                {
+                    try {
+                        var jsonResponse = JsonConvert.DeserializeObject<object>(result);
+                        return Json(jsonResponse);
+                    } catch {
+                        return Json(new { success = true, message = result });
+                    }
+                }
+                else
+                {
+                    return Json(new { success = false, error = result });
+                }
             }
 
-            return View();
+            return Json(new { success = false, message = "Failed to process request" });
         }
 
         //UpdatewinPatchselection
@@ -1010,13 +1022,22 @@ namespace ManageEngineWebApp.Controllers
                 HttpResponseMessage response = await client.PostAsync("", content);
 
                 string result = await response.Content.ReadAsStringAsync();
-                var jsonResponse = JsonConvert.DeserializeObject<object>(result);
-                return Json(jsonResponse);
-                //return Json(result);
-                // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
+                if (response.IsSuccessStatusCode)
+                {
+                    try {
+                        var jsonResponse = JsonConvert.DeserializeObject<object>(result);
+                        return Json(jsonResponse);
+                    } catch {
+                        return Json(new { success = true, message = result });
+                    }
+                }
+                else
+                {
+                    return Json(new { success = false, error = result });
+                }
             }
 
-            return View();
+            return Json(new { success = false, message = "Failed to process request" });
         }
 
         [HttpPost]

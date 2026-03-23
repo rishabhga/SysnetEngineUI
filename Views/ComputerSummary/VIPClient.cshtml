@@ -1,4 +1,4 @@
-﻿@model List<ManageEngineWebApp.Models.VIPClient>
+@model List<ManageEngineWebApp.Models.VIPClient>
 
 @{
     ViewData["Title"] = "Critical Monitoring Management";
@@ -12,154 +12,894 @@
 
 @section Styles {
     <style>
-        .critical-card {
-            background-image: radial-gradient(circle at top right, rgba(245, 158, 11, 0.03), transparent);
+        @@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+        .vip-root {
+            font-family: 'DM Sans', sans-serif;
         }
+
+        /* --- Layout --- */
+        .vip-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px 20px;
+        }
+
+        /* --- Header --- */
+        .vip-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .vip-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vip-back-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 7px;
+            color: #64748b;
+            cursor: pointer;
+            transition: background .15s;
+            text-decoration: none;
+        }
+
+            .vip-back-btn:hover {
+                background: #f8fafc;
+            }
+
+            .vip-back-btn i {
+                font-size: 11px;
+            }
+
+        .vip-crown-btn {
+            position: relative;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .vip-crown-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .25s;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+        }
+
+            .vip-crown-box i {
+                font-size: 11px;
+                color: #94a3b8;
+                transition: color .25s;
+            }
+
+            .vip-crown-box.active {
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+                box-shadow: 0 2px 8px rgba(245,158,11,.35);
+            }
+
+                .vip-crown-box.active i {
+                    color: #fff;
+                }
+
+        .vip-site-badge {
+            position: absolute;
+            bottom: -3px;
+            right: -3px;
+            background: #f59e0b;
+            color: #fff;
+            font-size: 6px;
+            font-weight: 700;
+            padding: 1px 3px;
+            border-radius: 3px;
+            letter-spacing: .5px;
+        }
+
+        .vip-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+            margin: 0;
+        }
+
+        .vip-subtitle {
+            font-size: 11px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 0;
+        }
+
+            .vip-subtitle i {
+                font-size: 9px;
+            }
+
+        .vip-add-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #0f172a;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+            white-space: nowrap;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+            .vip-add-btn:hover {
+                background: #1e293b;
+            }
+
+            .vip-add-btn i {
+                font-size: 10px;
+                color: #94a3b8;
+            }
+
+        /* --- Stats Row --- */
+        .vip-stats-row {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .vip-stat-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        }
+
+        .vip-stat-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 2px;
+        }
+
+        .vip-stat-value {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            font-family: 'DM Mono', monospace;
+            line-height: 1;
+        }
+
+        .vip-stat-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #fffbeb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .vip-stat-icon i {
+                font-size: 13px;
+                color: #d97706;
+            }
+
+        .vip-search-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,.04);
+        }
+
+        .vip-search-wrap {
+            position: relative;
+            flex: 1;
+        }
+
+            .vip-search-wrap i {
+                position: absolute;
+                left: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #cbd5e1;
+                font-size: 11px;
+            }
+
+        .vip-search-input {
+            width: 100%;
+            padding: 6px 10px 6px 30px;
+            background: #f8fafc;
+            border: 1px solid transparent;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #1e293b;
+            outline: none;
+            transition: all .15s;
+            font-family: 'DM Sans', sans-serif;
+            box-sizing: border-box;
+        }
+
+            .vip-search-input:focus {
+                border-color: #fbbf24;
+                background: #fff;
+                box-shadow: 0 0 0 3px rgba(251,191,36,.12);
+            }
+
+            .vip-search-input::placeholder {
+                color: #cbd5e1;
+            }
+
+        /* --- States --- */
+        .vip-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background: #fff;
+            border: 1px dashed #e2e8f0;
+            border-radius: 12px;
+        }
+
+        .vip-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #f59e0b;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .vip-loading-text {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .vip-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background: #fff;
+            border: 1px dashed #e2e8f0;
+            border-radius: 12px;
+        }
+
+        .vip-empty-icon {
+            width: 44px;
+            height: 44px;
+            background: #fffbeb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+            .vip-empty-icon i {
+                font-size: 18px;
+                color: #fde68a;
+            }
+
+        .vip-empty h3 {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 4px;
+        }
+
+        .vip-empty p {
+            font-size: 11px;
+            color: #94a3b8;
+            text-align: center;
+            max-width: 280px;
+            margin: 0 0 14px;
+            line-height: 1.5;
+        }
+
+        .vip-empty-btn {
+            padding: 7px 16px;
+            background: #f59e0b;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+            .vip-empty-btn:hover {
+                background: #d97706;
+            }
+
+        /* --- Cards Grid --- */
+        .vip-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 8px;
+        }
+
+        .critical-card {
+            position: relative;
+            background: #fff;
+            border: 1px solid #f1f5f9;
+            border-radius: 10px;
+            padding: 12px;
+            cursor: default;
+            transition: all .2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,.04);
+            background-image: radial-gradient(circle at top right, rgba(245,158,11,.03), transparent);
+        }
+
+            .critical-card:hover {
+                border-color: #fde68a;
+                box-shadow: 0 4px 16px rgba(245,158,11,.1);
+                transform: translateY(-1px);
+            }
+
+        .card-crown-dot {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #f59e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity .2s;
+            box-shadow: 0 2px 6px rgba(245,158,11,.4);
+        }
+
+        .critical-card:hover .card-crown-dot {
+            opacity: 1;
+        }
+
+        .card-crown-dot i {
+            font-size: 7px;
+            color: #fff;
+        }
+
+        .card-body {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .card-icon-wrap {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background .2s;
+        }
+
+        .critical-card:hover .card-icon-wrap {
+            background: #fffbeb;
+        }
+
+        .card-icon-wrap i {
+            font-size: 13px;
+            color: #94a3b8;
+            transition: color .2s;
+        }
+
+        .critical-card:hover .card-icon-wrap i {
+            color: #d97706;
+        }
+
+        .card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .card-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-id {
+            font-size: 10px;
+            color: #94a3b8;
+            font-family: 'DM Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 7px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+            .card-id::before {
+                content: '';
+                display: inline-block;
+                width: 5px;
+                height: 5px;
+                border-radius: 50%;
+                background: #e2e8f0;
+                flex-shrink: 0;
+            }
+
+        .card-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .5px;
+            text-transform: uppercase;
+        }
+
+        .badge-manual {
+            background: #fffbeb;
+            color: #d97706;
+            border: 1px solid #fde68a;
+        }
+
+        .badge-location {
+            background: #eff6ff;
+            color: #3b82f6;
+            border: 1px solid #bfdbfe;
+        }
+
+        .card-del-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: #f8fafc;
+            border: none;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all .15s;
+        }
+
+        .critical-card:hover .card-del-btn {
+            opacity: 1;
+        }
+
+        .card-del-btn:hover {
+            background: #fff1f2;
+            color: #e11d48;
+        }
+
+        .card-del-btn i {
+            font-size: 9px;
+        }
+
+        /* --- Modal --- */
+        .vip-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 16px;
+            opacity: 0;
+            transition: opacity .25s;
+        }
+
+            .vip-modal-overlay.visible {
+                display: flex;
+            }
+
+            .vip-modal-overlay.shown {
+                opacity: 1;
+            }
+
+        .vip-modal {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.15);
+            width: 100%;
+            max-width: 340px;
+            overflow: hidden;
+            transform: scale(.96) translateY(8px);
+            transition: transform .25s;
+        }
+
+        .vip-modal-overlay.shown .vip-modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .vip-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .modal-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: #f59e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .modal-icon i {
+                font-size: 11px;
+                color: #fff;
+            }
+
+        .modal-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .modal-sub {
+            font-size: 10px;
+            color: #94a3b8;
+            font-style: italic;
+            margin: 0;
+        }
+
+        .modal-close {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            border: none;
+            background: none;
+            color: #94a3b8;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .15s;
+        }
+
+            .modal-close:hover {
+                background: #f1f5f9;
+            }
+
+            .modal-close i {
+                font-size: 11px;
+            }
+
+        .vip-modal-body {
+            padding: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 9px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 5px;
+            padding-left: 2px;
+        }
+
+        .form-field-wrap {
+            position: relative;
+        }
+
+            .form-field-wrap > i {
+                position: absolute;
+                left: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #cbd5e1;
+                font-size: 11px;
+                pointer-events: none;
+                transition: color .15s;
+            }
+
+            .form-field-wrap:focus-within > i {
+                color: #f59e0b;
+            }
+
+        .form-select, .form-input {
+            width: 100%;
+            padding: 8px 10px 8px 30px;
+            background: #f8fafc;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #1e293b;
+            outline: none;
+            transition: all .15s;
+            appearance: none;
+            box-sizing: border-box;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+            .form-select:focus, .form-input:focus {
+                border-color: #fbbf24;
+                background: #fff;
+                box-shadow: 0 0 0 3px rgba(251,191,36,.12);
+            }
+
+        .form-select {
+            padding-right: 28px;
+        }
+
+        .form-chevron {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #cbd5e1;
+            font-size: 9px;
+            pointer-events: none;
+        }
+
+        .form-hint {
+            font-size: 9px;
+            color: #cbd5e1;
+            padding-left: 2px;
+            margin-top: 3px;
+            font-style: italic;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 8px;
+            padding-top: 4px;
+        }
+
+        .btn-primary {
+            flex: 1;
+            padding: 9px;
+            background: #f59e0b;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+            .btn-primary:hover {
+                background: #d97706;
+            }
+
+            .btn-primary i {
+                font-size: 10px;
+                opacity: .8;
+            }
+
+        .btn-secondary {
+            padding: 9px 14px;
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+            .btn-secondary:hover {
+                background: #e2e8f0;
+            }
+
+        /* --- Toast --- */
+        .vip-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(0,0,0,.15);
+            z-index: 200;
+            transition: all .4s;
+            opacity: 0;
+            transform: translateY(16px);
+            font-family: 'DM Sans', sans-serif;
+        }
+
+            .vip-toast.show {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .vip-toast i {
+                font-size: 13px;
+            }
+
         select option {
             background: #fff;
             color: #1e293b;
-            padding: 12px;
         }
     </style>
 }
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Header Section -->
-    <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div class="flex items-center space-x-4">
-            <a href="javascript:history.back()" 
-               class="p-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl transition-all shadow-sm group">
-                <i class="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
-            </a>
-            <div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="toggleLocationCriticality()" class="group relative" id="locationCriticalToggleHeader" title="Toggle Location-wide Critical Monitoring">
-                        <div id="locationCrownContainer" class="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center shadow-lg transition-all duration-300">
-                            <i id="locationCrownIcon" class="fas fa-crown text-slate-400 text-lg transition-colors"></i>
-                        </div>
-                        <div id="locationStatusBadge" class="absolute -bottom-1 -right-1 px-1 bg-amber-500 text-white text-[8px] font-bold rounded-sm shadow-sm hidden">SITE</div>
-                    </button>
-                    <div>
-                        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Critical Monitoring</h1>
-                        <p class="text-sm font-medium text-slate-500 flex items-center">
-                            <i class="fas fa-building mr-1.5 text-slate-400"></i>
-                            @companyName
-                        </p>
+<div class="vip-root">
+    <div class="vip-wrap">
+
+        <!-- Header -->
+        <div class="vip-header">
+            <div class="vip-header-left">
+                <a href="javascript:history.back()" class="vip-back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <button onclick="toggleLocationCriticality()" class="vip-crown-btn" id="locationCriticalToggleHeader" title="Toggle Location-wide Critical Monitoring">
+                    <div id="locationCrownContainer" class="vip-crown-box">
+                        <i id="locationCrownIcon" class="fas fa-crown"></i>
                     </div>
+                    <div id="locationStatusBadge" class="vip-site-badge hidden">SITE</div>
+                </button>
+                <div>
+                    <h1 class="vip-title">Critical Monitoring</h1>
+                    <p class="vip-subtitle"><i class="fas fa-building"></i> @companyName</p>
+                </div>
+            </div>
+            <button onclick="openAddModal()" class="vip-add-btn">
+                <i class="fas fa-plus"></i>
+                Add Device
+            </button>
+        </div>
+
+        <!-- Stats + Search -->
+        <div class="vip-stats-row">
+            <div class="vip-stat-card">
+                <div>
+                    <div class="vip-stat-label">Monitored</div>
+                    <div class="vip-stat-value" id="criticalCount">0</div>
+                </div>
+                <div class="vip-stat-icon"><i class="fas fa-microchip"></i></div>
+            </div>
+            <div class="vip-search-card">
+                <div class="vip-search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchCritical" class="vip-search-input"
+                           placeholder="Search by ID or name..."
+                           onkeyup="filterCriticalClients()">
                 </div>
             </div>
         </div>
-        
-        <button onclick="openAddModal()" 
-                class="inline-flex items-center px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-all shadow-md shadow-slate-200 group">
-            <i class="fas fa-plus mr-2 text-slate-400 group-hover:text-white transition-colors"></i>
-            Add Critical Device
-        </button>
-    </div>
 
-    <!-- Quick Stats & Tools -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-1">Total Monitored</p>
-                <p class="text-3xl font-black text-slate-900" id="criticalCount">0</p>
-            </div>
-            <div class="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
-                <i class="fas fa-microchip text-amber-600 text-2xl"></i>
-            </div>
+        <!-- Loading -->
+        <div id="loadingState" class="vip-loading">
+            <div class="vip-spinner"></div>
+            <p class="vip-loading-text">Synchronizing critical fleet data...</p>
         </div>
 
-        <div class="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
-             <div class="relative group">
-                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors"></i>
-                <input type="text" id="searchCritical" 
-                       class="w-full pl-12 pr-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all text-sm font-medium placeholder:text-slate-400"
-                       placeholder="Search devices by ID or custom name..."
-                       onkeyup="filterCriticalClients()">
-            </div>
-        </div>
-    </div>
+        <!-- Cards Grid -->
+        <div id="criticalClientsList" class="vip-grid hidden"></div>
 
-    <!-- Content Status -->
-    <div id="loadingState" class="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
-        <div class="relative mb-4">
-             <div class="w-12 h-12 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
+        <!-- Empty State -->
+        <div id="emptyState" class="vip-empty hidden">
+            <div class="vip-empty-icon"><i class="fas fa-crown"></i></div>
+            <h3>No Devices Under Critical Watch</h3>
+            <p>Devices added here will trigger high-priority alerts across the @companyName infrastructure when resources are stressed.</p>
+            <button onclick="openAddModal()" class="vip-empty-btn">Provision First Device</button>
         </div>
-        <p class="text-slate-500 font-medium animate-pulse">Synchronizing critical fleet data...</p>
-    </div>
 
-    <div id="criticalClientsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
-        <!-- Cards will be injected here -->
-    </div>
-
-    <div id="emptyState" class="hidden flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-dashed border-slate-300">
-        <div class="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mb-6">
-            <i class="fas fa-crown text-amber-200 text-5xl"></i>
-        </div>
-        <h3 class="text-xl font-bold text-slate-900 mb-2">No Devices Under Critical Watch</h3>
-        <p class="text-slate-500 text-sm max-w-sm text-center mb-8 px-6">
-            Devices added here will trigger high-priority alerts across the entire @companyName infrastructure when resources are stressed.
-        </p>
-        <button onclick="openAddModal()" 
-                class="px-8 py-3 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-100">
-            Provision First Device
-        </button>
     </div>
 </div>
 
-<!-- Professional Add Modal -->
-<div id="addCriticalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden items-center justify-center z-[100] px-4 opacity-0 transition-opacity duration-300">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-300">
-        <div class="flex items-center justify-between p-6 border-b border-slate-100">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
-                    <i class="fas fa-plus text-white"></i>
-                </div>
+<!-- Add Modal -->
+<div id="addCriticalModal" class="vip-modal-overlay">
+    <div class="vip-modal">
+        <div class="vip-modal-header">
+            <div class="modal-header-left">
+                <div class="modal-icon"><i class="fas fa-plus"></i></div>
                 <div>
-                    <h3 class="font-bold text-slate-900">Provision Critical Device</h3>
-                    <p class="text-xs text-slate-500 font-medium italic">Hierarchy Scoped to @companyName</p>
+                    <p class="modal-title">Provision Critical Device</p>
+                    <p class="modal-sub">Scoped to @companyName</p>
                 </div>
             </div>
-            <button onclick="closeAddModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
-                <i class="fas fa-times text-slate-400"></i>
-            </button>
+            <button onclick="closeAddModal()" class="modal-close"><i class="fas fa-times"></i></button>
         </div>
-        
-        <div class="p-8">
-            <form id="addCriticalForm" class="space-y-6">
-                <div class="space-y-2">
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Source Machine</label>
-                    <div class="relative group">
-                        <i class="fas fa-desktop absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors"></i>
-                        <select id="clientId" required 
-                                class="w-full pl-12 pr-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all text-sm font-semibold appearance-none">
+        <div class="vip-modal-body">
+            <form id="addCriticalForm">
+                <div class="form-group">
+                    <label class="form-label">Source Machine</label>
+                    <div class="form-field-wrap">
+                        <i class="fas fa-desktop"></i>
+                        <select id="clientId" required class="form-select">
                             <option value="">Querying active fleet...</option>
                         </select>
-                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none text-xs"></i>
+                        <i class="fas fa-chevron-down form-chevron"></i>
                     </div>
                 </div>
-
-                <div class="space-y-2">
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Friendly Label</label>
-                    <div class="relative group">
-                        <i class="fas fa-tag absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors"></i>
-                        <input type="text" id="clientName" required 
-                               class="w-full pl-12 pr-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all text-sm font-semibold"
-                               placeholder="e.g. CEO Laptop, Main Server">
+                <div class="form-group">
+                    <label class="form-label">Friendly Label</label>
+                    <div class="form-field-wrap">
+                        <i class="fas fa-tag"></i>
+                        <input type="text" id="clientName" required class="form-input" placeholder="e.g. CEO Laptop, Main Server">
                     </div>
-                    <p class="text-[10px] text-slate-400 px-1 font-medium italic">This name will appear in all system-wide alerts.</p>
+                    <p class="form-hint">Appears in all system-wide alerts.</p>
                 </div>
-
-                <div class="pt-4 flex gap-4">
-                    <button type="submit" 
-                            class="flex-1 bg-amber-500 text-white py-4 rounded-2xl text-sm font-black hover:bg-amber-600 transition-all shadow-lg shadow-amber-100 active:scale-95">
-                        <i class="fas fa-bolt mr-2 opacity-80"></i>
-                        Activate Monitoring
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-bolt"></i> Activate Monitoring
                     </button>
-                    <button type="button" onclick="closeAddModal()" 
-                            class="px-6 bg-slate-100 text-slate-600 py-4 rounded-2xl text-sm font-bold hover:bg-slate-200 transition-all active:scale-95">
-                        Abort
-                    </button>
+                    <button type="button" onclick="closeAddModal()" class="btn-secondary">Cancel</button>
                 </div>
             </form>
         </div>
@@ -174,7 +914,6 @@
 
         let allDevices = [];
         let allCriticalClients = [];
-
         let isLocationCritical = false;
 
         $(document).ready(function() {
@@ -196,19 +935,17 @@
             const badge = $('#locationStatusBadge');
 
             if (isCritical) {
-                container.removeClass('bg-slate-200').addClass('bg-gradient-to-br from-amber-400 to-orange-600 shadow-amber-200');
-                icon.removeClass('text-slate-400').addClass('text-white');
+                container.addClass('active');
                 badge.removeClass('hidden');
             } else {
-                container.addClass('bg-slate-200').removeClass('bg-gradient-to-br from-amber-400 to-orange-600 shadow-amber-200');
-                icon.addClass('text-slate-400').removeClass('text-white');
+                container.removeClass('active');
                 badge.addClass('hidden');
             }
         }
 
         function toggleLocationCriticality() {
             const newStatus = !isLocationCritical;
-            const msg = newStatus 
+            const msg = newStatus
                 ? "Switching to SITE-WIDE critical monitoring? This will mark all existing devices in this location as critical."
                 : "Disable site-wide critical monitoring? (Individual VIP overrides will remain)";
 
@@ -244,7 +981,7 @@
         }
 
         async function loadInitialData() {
-            $('#loadingState').removeClass('hidden').addClass('flex');
+            $('#loadingState').show();
             $('#criticalClientsList').addClass('hidden');
             $('#emptyState').addClass('hidden');
 
@@ -253,12 +990,12 @@
             } catch (err) {
                 console.error("Initialization Failed", err);
             } finally {
-                $('#loadingState').addClass('hidden').removeClass('flex');
+                $('#loadingState').hide();
             }
         }
 
         function loadAllDevices() {
-             return $.ajax({
+            return $.ajax({
                 url: '@Url.Action("GetAllDevices", "ComputerSummary")',
                 type: 'GET',
                 data: { companyId, groupId, locationId },
@@ -324,37 +1061,25 @@
                 const id = client.clientId || '';
                 const name = client.clientName || 'Unnamed Device';
                 const source = client.source || 'Manual';
-                const sourceBadge = source === 'Manual' 
-                    ? '<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-600 uppercase tracking-tighter border border-amber-100">Manual Priority</span>'
-                    : '<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-600 uppercase tracking-tighter border border-blue-100">Location Default</span>';
-                
-                const card = `
-                    <div class="critical-card group relative bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-amber-500/5 hover:-translate-y-1 transition-all duration-300" 
-                         data-id="${(id || '').toLowerCase()}" data-name="${(name || '').toLowerCase()}">
-                        <div class="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-200 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fas fa-crown text-[10px] text-white"></i>
-                        </div>
-                        <div class="flex items-start space-x-4">
-                            <div class="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-50 transition-colors">
-                                <i class="fas fa-desktop text-slate-400 group-hover:text-amber-600 text-xl transition-colors"></i>
-                            </div>
-                            <div class="flex-1 min-w-0 pr-6">
-                                <h3 class="text-base font-bold text-slate-900 truncate mb-0.5">${name}</h3>
-                                <p class="text-xs font-semibold text-slate-400 mb-3 flex items-center truncate">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-200 mr-2"></span>
-                                    ${id}
-                                </p>
-                                <div class="flex items-center space-x-2">
-                                    ${sourceBadge}
-                                </div>
+                const badgeClass = source === 'Manual' ? 'badge-manual' : 'badge-location';
+                const badgeLabel = source === 'Manual' ? 'Manual Priority' : 'Location Default';
+
+                const card = $(`
+                    <div class="critical-card" data-id="${(id || '').toLowerCase()}" data-name="${(name || '').toLowerCase()}">
+                        <div class="card-crown-dot"><i class="fas fa-crown"></i></div>
+                        <div class="card-body">
+                            <div class="card-icon-wrap"><i class="fas fa-desktop"></i></div>
+                            <div class="card-info">
+                                <div class="card-name">${name}</div>
+                                <div class="card-id">${id}</div>
+                                <span class="card-badge ${badgeClass}">${badgeLabel}</span>
                             </div>
                         </div>
-                        <button onclick="removeCriticalClient('${id}', '${name.replace(/'/g, "\\'")}', '${source}')" 
-                                class="absolute top-6 right-6 w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100">
-                             <i class="fas fa-trash-alt text-xs"></i>
+                        <button class="card-del-btn" onclick="removeCriticalClient('${id}', '${name.replace(/'/g, "\\'")}', '${source}')">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
-                `;
+                `);
                 container.append(card);
             });
         }
@@ -367,32 +1092,28 @@
 
         function openAddModal() {
             const modal = $('#addCriticalModal');
-            modal.removeClass('hidden').addClass('flex');
-            setTimeout(() => {
-                modal.removeClass('opacity-0').addClass('opacity-100');
-                modal.find('> div').removeClass('scale-95').addClass('scale-100');
-            }, 10);
+            modal.addClass('visible');
+            setTimeout(() => modal.addClass('shown'), 10);
         }
 
         function closeAddModal() {
             const modal = $('#addCriticalModal');
-            modal.removeClass('opacity-100').addClass('opacity-0');
-            modal.find('> div').removeClass('scale-100').addClass('scale-95');
+            modal.removeClass('shown');
             setTimeout(() => {
-                modal.addClass('hidden').removeClass('flex');
+                modal.removeClass('visible');
                 $('#clientId').val('');
                 $('#clientName').val('');
-            }, 300);
+            }, 280);
         }
 
         function addCriticalClient(e) {
             if (e && e.preventDefault) e.preventDefault();
-            
+
             const clientId = $('#clientId').val();
             const clientName = $('#clientName').val();
 
             if (!clientId || !clientName) {
-                showToast('Execution blocked: Data requirements missing.', 'error');
+                showToast('Data requirements missing.', 'error');
                 return;
             }
 
@@ -423,7 +1144,7 @@
         }
 
         function removeCriticalClient(clientId, name, source) {
-            const msg = source === 'Location' 
+            const msg = source === 'Location'
                 ? `Confirm explicit exclusion of ${name} from critical monitoring? (It is currently inherited from location settings)`
                 : `Confirm detachment of critical monitoring for ${name}?`;
 
@@ -464,21 +1185,21 @@
 
         function showToast(message, type) {
             const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
-            const color = type === 'success' ? 'bg-emerald-600' : 'bg-rose-600';
-            
+            const bg = type === 'success' ? '#059669' : '#dc2626';
+
             const toast = $(`
-                <div class="fixed bottom-8 right-8 ${color} text-white px-6 py-4 rounded-2xl shadow-2xl z-[200] flex items-center space-x-3 transition-all duration-500 translate-y-20 opacity-0">
-                    <i class="fas ${icon} text-xl"></i>
-                    <span class="text-sm font-bold tracking-tight">${message}</span>
+                <div class="vip-toast" style="background:${bg}">
+                    <i class="fas ${icon}"></i>
+                    <span>${message}</span>
                 </div>
             `);
 
             $('body').append(toast);
-            setTimeout(() => toast.removeClass('translate-y-20 opacity-0'), 100);
+            setTimeout(() => toast.addClass('show'), 50);
             setTimeout(() => {
-                toast.addClass('translate-y-20 opacity-0');
-                setTimeout(() => toast.remove(), 500);
-            }, 4000);
+                toast.removeClass('show');
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
         }
     </script>
 }

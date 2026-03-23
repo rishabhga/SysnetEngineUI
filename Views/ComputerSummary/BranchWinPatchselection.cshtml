@@ -1,4 +1,4 @@
-﻿@model List<PatchDetail>
+@model List<PatchDetail>
 
 <!DOCTYPE html>
 <html>
@@ -13,10 +13,10 @@
 
     <link rel="stylesheet" type="text/css" href="~/css/Custom.css" />
     <link href="~/css/datepicker.css" rel="stylesheet" />
-    <script src="js/bootbox.min.js"></script>
-    <script src="js/bootstrap.min.js"></script>
-    <script src="js/bootstrap-datepicker.min.js"></script>
-    <link href="../CSS/font-awesome.min.css" rel="stylesheet" />
+    <script src="~/js/bootbox.min.js"></script>
+    <script src="~/js/bootstrap.min.js"></script>
+    <script src="~/js/bootstrap-datepicker.min.js"></script>
+    <link href="~/css/font-awesome.min.css" rel="stylesheet" />
 
     <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
     <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
@@ -158,7 +158,7 @@
 
         </div>
     </div>
-    <script src="js/jquery.min.js"></script>
+    <script src="~/js/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
     <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
@@ -189,14 +189,33 @@
             });
 
             if (selectedIds.length === 0) {
-                sysAlert("Please select at least one patch!", "warning");
+                alert("Please select at least one patch!");
                 return;
             }
 
             var idParam = selectedIds.join(',');
 
-            window.location.href =
-            `/ComputerSummary/UpdatewinPatchselection?companyid=${companyid}&groupid=${groupid}&locationid=${locationid}&selectedIds=${idParam}&domainids=${domainid}`;
+            $.ajax({
+                url: '/ComputerSummary/UpdatewinPatchselection',
+                type: 'GET',
+                data: {
+                    companyid: companyid,
+                    groupid: groupid,
+                    locationid: locationid,
+                    selectedIds: idParam,
+                    domainids: domainid
+                },
+                success: function(response) {
+                    if (response.success || response.status === 'success') {
+                        alert('Patch selection updated successfully.');
+                    } else {
+                        alert('Error: ' + (response.error || 'Failed to update patch selection.'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Error updating patch selection: ' + error);
+                }
+            });
         }
     </script>
 
