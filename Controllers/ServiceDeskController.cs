@@ -54,13 +54,13 @@ namespace ManageEngineWebApp.Controllers
         }
         private void SetViewPermissions()
         {
-            ViewBag.CanCreate = HasPermission("ServiceDesk.Create") || IsTopLevelAdmin();
-            ViewBag.CanAssign = HasPermission("ServiceDesk.Assign") || IsTopLevelAdmin();
-            ViewBag.CanApprove = HasPermission("ServiceDesk.Approve") || IsTopLevelAdmin();
-            ViewBag.CanDelete = HasPermission("ServiceDesk.Delete") || IsTopLevelAdmin();
-            ViewBag.CanManageSLA = HasPermission("ServiceDesk.ManageSLA") || IsTopLevelAdmin();
-            ViewBag.CanManageMasterParts = HasPermission("ServiceDesk.ManageMasterParts") || IsTopLevelAdmin();
-            ViewBag.CanAdminSettings = HasPermission("ServiceDesk.AdminSettings") || IsTopLevelAdmin();
+            ViewBag.CanCreate = HasPermission("ServiceDesk.Create");
+            ViewBag.CanAssign = HasPermission("ServiceDesk.Assign");
+            ViewBag.CanApprove = HasPermission("ServiceDesk.Approve");
+            ViewBag.CanDelete = HasPermission("ServiceDesk.Delete");
+            ViewBag.CanManageSLA = HasPermission("ServiceDesk.ManageSLA");
+            ViewBag.CanManageMasterParts = HasPermission("ServiceDesk.ManageMasterParts");
+            ViewBag.CanAdminSettings = HasPermission("ServiceDesk.AdminSettings");
             ViewBag.IsSuperAdmin = IsTopLevelAdmin();
         }
 
@@ -189,7 +189,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.Create", "Create Ticket")]
         public IActionResult CreateTicket()
         {
-            ViewBag.CanCreate = HasPermission("ServiceDesk.Create") || IsTopLevelAdmin();
+            ViewBag.CanCreate = HasPermission("ServiceDesk.Create");
             return View();
         }
 

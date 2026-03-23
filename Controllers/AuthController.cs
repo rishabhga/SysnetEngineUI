@@ -14,6 +14,7 @@ namespace ManageEngineWebApp.Controllers
 {
     public class AuthController : Controller
     {
+        private bool HasPerm(string code) => RoleHelper.HasPermission(HttpContext, code);
         private readonly string _baseUrl;
         private readonly string apiBaseUrl;
         private readonly IConfiguration _configuration;
@@ -234,14 +235,9 @@ namespace ManageEngineWebApp.Controllers
         }
         [HttpGet]
         [AuthFilter]
-        [SuperAdminOnlyFilter]
         [DynamicPermission("Auth.ManageRoles", "Manage User Roles")]
         public async Task<IActionResult> ManageRoles()
         {
-            if (!RoleHelper.IsTopLevelAdmin(HttpContext))
-            {
-                return RedirectToAction("AccessDenied");
-            }
             var roles = await RoleHelper.GetAllRolesAsync();
             return View(roles);
         }
@@ -256,9 +252,9 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Invalid request payload. Please check your inputs." });
                 }
 
-                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                if (!HasPerm("Auth.ManageRoles"))
                 {
-                    return Json(new { success = false, message = "Unauthorized" });
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManageRoles permission" });
                 }
             
 
@@ -287,7 +283,7 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                if (!HasPerm("Auth.ManageRoles"))
                 {
                     return Json(new List<object>());
                 }
@@ -307,9 +303,9 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                if (!HasPerm("Auth.ManageRoles"))
                 {
-                    return Json(new { success = false, message = "Unauthorized" });
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManageRoles permission" });
                 }
 
                 if (string.IsNullOrWhiteSpace(model.RoleName))
@@ -338,8 +334,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
-                    return Json(new { success = false, message = "Unauthorized" });
+                if (!HasPerm("Auth.ManageRoles"))
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManageRoles permission" });
 
                 var systemRoles = await RoleHelper.GetAllSystemRolesAsync();
                 var roleToDelete = systemRoles.FirstOrDefault(r => r.Name == model.RoleName);
@@ -364,9 +360,9 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                if (!HasPerm("Auth.ManageRoles"))
                 {
-                    return Json(new { success = false, message = "Unauthorized" });
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManageRoles permission" });
                 }
 
                 if (string.IsNullOrEmpty(model.Username))
@@ -435,11 +431,9 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        [SuperAdminOnlyFilter]
         [DynamicPermission("Auth.ManagePermissions", "Manage System Permissions")]
         public IActionResult ManagePermissions()
         {
-            if (!RoleHelper.IsTopLevelAdmin(HttpContext)) return RedirectToAction("Login");
             return View();
         }
 
@@ -492,8 +486,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
-                    return Json(new { success = false, message = "Unauthorized" });
+                if (!HasPerm("Auth.ManagePermissions"))
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManagePermissions permission" });
 
                 using var client = GetClient();
                 var response = await client.PostAsync($"{_baseUrl}/api/Permission/DeleteMenu/{id}", null);
@@ -553,8 +547,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
-                    return Json(new { success = false, message = "Unauthorized" });
+                if (!HasPerm("Auth.ManagePermissions"))
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManagePermissions permission" });
 
                 using var client = GetClient();
                 var response = await client.PostAsync($"{_baseUrl}/api/Permission/DeleteModule/{id}", null);
@@ -608,8 +602,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
-                    return Json(new { success = false, message = "Unauthorized" });
+                if (!HasPerm("Auth.ManagePermissions"))
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManagePermissions permission" });
 
                 using var client = GetClient();
                 var response = await client.PostAsync($"{_baseUrl}/api/Permission/DeletePermission/{id}", null);
@@ -739,9 +733,9 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                if (!HasPerm("Auth.ManageRoles"))
                 {
-                    return Json(new { success = false, message = "Unauthorized" });
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManageRoles permission" });
                 }
 
                 if (string.IsNullOrWhiteSpace(model.RoleName))
@@ -844,9 +838,9 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                if (!HasPerm("Auth.ManageRoles"))
                 {
-                    return Json(new { success = false, message = "Unauthorized" });
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManageRoles permission" });
                 }
 
                 if (string.IsNullOrWhiteSpace(model.RoleName))

@@ -332,8 +332,8 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("Companies.Create", "Add Company")]
         public async Task<IActionResult> CompanyAdd([FromBody] Companies company)
         {
-            if (!RoleHelper.IsTopLevelAdmin(HttpContext))
-                return Json(new { status = "error", message = "Access Denied: Only administrators can add companies." });
+            if (!RoleHelper.HasPermission(HttpContext, "Companies.Create"))
+                return Json(new { status = "error", message = "Access Denied: Missing Companies.Create permission." });
 
             try
             {
