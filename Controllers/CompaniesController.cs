@@ -1,6 +1,7 @@
 using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Models;
+using ManageEngineWebApp.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Diagnostics;
@@ -328,6 +329,7 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
+        [DynamicPermission("Companies.Create", "Add Company")]
         public async Task<IActionResult> CompanyAdd([FromBody] Companies company)
         {
             if (!RoleHelper.IsTopLevelAdmin(HttpContext))
@@ -356,6 +358,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
+        [DynamicPermission("Companies.Edit", "Update Company")]
         public async Task<IActionResult> UpdateCompany([FromBody] Companies company)
         {
             if (!RoleHelper.ValidateScope(HttpContext, company.Id))
@@ -383,6 +386,7 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
+        [DynamicPermission("Companies.View", "View Groups")]
         public async Task<IActionResult> GroupsDetails(int id, string companyName)
         {
             if (!RoleHelper.ValidateScope(HttpContext, id))
@@ -505,6 +509,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
+        [DynamicPermission("Companies.Create", "Add Group")]
         public async Task<IActionResult> GroupAdd([FromBody] Groups groups)
         {
             if (!RoleHelper.ValidateScope(HttpContext, groups.CompanyID))
@@ -551,6 +556,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
+        [DynamicPermission("Companies.View", "View Locations")]
         public async Task<IActionResult> LocationDetails(int id, int ComId, string Groupname, string companyname)
         {
             if (!RoleHelper.ValidateScope(HttpContext, ComId, id))
@@ -580,6 +586,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
+        [DynamicPermission("Companies.Create", "Add Location")]
         public async Task<IActionResult> LocationAdd([FromBody] Locations locations)
         {
             if (!RoleHelper.ValidateScope(HttpContext, locations.CompanyID, locations.GroupsID))

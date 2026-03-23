@@ -2,6 +2,7 @@ using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Models;
 using ManageEngineWebApp.UpdatesModels;
+using ManageEngineWebApp.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
@@ -22,11 +23,16 @@ namespace ManageEngineWebApp.Controllers
     public class ComputerSummaryController : Controller
     {
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly string _baseUrl;
 
-        public ComputerSummaryController(IHttpClientFactory httpClientFactory)
+        public ComputerSummaryController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory;
+            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
         }
+
+        private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
+        [DynamicPermission("ComputerSummary.View", "View Dashboard")]
         public async Task<IActionResult> Deshboad(int locationId, string locationName, int groupid, string groupName, int comId, string companyName)
         {
             ViewBag.CompanyName = companyName;
@@ -87,6 +93,7 @@ namespace ManageEngineWebApp.Controllers
             return View(dalalist);
         }
         [AuthFilter]
+        [DynamicPermission("ComputerSummary.VIP", "View VIP Clients")]
         public IActionResult VIPClient(int comId, int? groupId, int? locationId, string companyName)
         {
             ViewBag.CompanyId = comId;
@@ -379,38 +386,30 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { status = "error", error = "Domain is required" });
             }
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback =
-                    (message, cert, chain, sslPolicyErrors) => true
-            };
-
             try
             {
-                using (HttpClient client = new HttpClient(handler))
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(25);
+                string url = $"{_baseUrl}/api/RamCpuDiskData/{Uri.EscapeDataString(domain)}";
+
+                HttpResponseMessage response = await client.GetAsync(url);
+                if (response != null && response.IsSuccessStatusCode)
                 {
-                    client.Timeout = TimeSpan.FromSeconds(25);
-                    string url = $"https://localhost:7225/api/RamCpuDiskData/{Uri.EscapeDataString(domain)}";
+                    var content = await response.Content.ReadAsStringAsync();
+                    dynamic root = JsonConvert.DeserializeObject<dynamic>(content); 
+                    var inner = root.data;
 
-                    HttpResponseMessage response = await client.GetAsync(url);
-                    if (response != null && response.IsSuccessStatusCode)
+                    var formattedData = new
                     {
-                        var content = await response.Content.ReadAsStringAsync();
-                        dynamic root = JsonConvert.DeserializeObject<dynamic>(content); 
-                        var inner = root.data;
+                        cpuUsage = (double)inner.cpu,
+                        ramUsage = (double)inner.ram,
+                        diskUsage = (double)inner.disk
+                    };
 
-                        var formattedData = new
-                        {
-                            cpuUsage = (double)inner.cpu,
-                            ramUsage = (double)inner.ram,
-                            diskUsage = (double)inner.disk
-                        };
-
-                        return Json(new { status = "success", data = formattedData });
-                    }
-
-                    return Json(new { status = "error", error = "Failed to fetch data" });
+                    return Json(new { status = "success", data = formattedData });
                 }
+
+                return Json(new { status = "error", error = "Failed to fetch data" });
             }
             catch (Exception ex)
             {
@@ -418,114 +417,6 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { status = "error", error = ex.Message });
             }
         }
-
-
-        //[HttpGet]
-        //public async Task<IActionResult> GetRamCpuDiskData(string domain)
-        //{
-        //    if (string.IsNullOrEmpty(domain))
-        //    {
-        //        return Json(new { success = false, error = "Domain is required" });
-        //    }
-
-        //    HttpClientHandler handler = new HttpClientHandler
-        //    {
-        //        ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-        //    };
-
-        //    try
-        //    {
-        //        using (HttpClient client = new HttpClient(handler))
-        //        {
-        //            client.Timeout = TimeSpan.FromSeconds(25);
-        //            string url = $"https://localhost:7225/api/RamCpuDiskData/{Uri.EscapeDataString(domain)}";
-
-        //            HttpResponseMessage response = await client.GetAsync(url);
-
-        //            if (response != null && response.IsSuccessStatusCode)
-        //            {
-        //                var content = await response.Content.ReadAsStringAsync();
-        //                var apiResponse = JsonConvert.DeserializeObject<dynamic>(content);
-
-        //                if (apiResponse.status == "success" && apiResponse.data != null)
-        //                {
-        //                    string dataString = apiResponse.data.ToString();
-        //                    var usageData = ParseUsageString(dataString);
-
-        //                    return Json(new { status = "success", data = usageData });
-        //                }
-
-        //                return Json(new { status = "error", error = "Invalid response format" });
-        //            }
-        //            else if (response != null && response.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
-        //            {
-        //                return Json(new { status = "timeout", error = "Client did not respond" });
-        //            }
-
-        //            return Json(new { status = "error", error = "Failed to fetch data" });
-        //        }
-        //    }
-        //    catch (TaskCanceledException)
-        //    {
-        //        return Json(new { status = "timeout", error = "Request timeout" });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine($"GetRamCpuDiskData Error: {ex.Message}");
-        //        return Json(new { status = "error", error = ex.Message });
-        //    }
-        //}
-
-        //private object ParseUsageString(string dataString)
-        //{
-        //    try
-        //    {
-        //        var result = new Dictionary<string, double>();
-
-        //        var cleanedString = dataString.Replace("%", "").Trim();
-        //        var parts = cleanedString.Split(new[] { '|', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-        //        foreach (var part in parts)
-        //        {
-        //            var trimmedPart = part.Trim();
-
-        //            if (trimmedPart.ToUpper().StartsWith("CPU="))
-        //            {
-        //                var value = trimmedPart.Split('=')[1].Trim();
-        //                if (double.TryParse(value, out double cpuVal))
-        //                {
-        //                    result["cpuUsage"] = cpuVal;
-        //                }
-        //            }
-        //            else if (trimmedPart.ToUpper().StartsWith("RAM="))
-        //            {
-        //                var value = trimmedPart.Split('=')[1].Trim();
-        //                if (double.TryParse(value, out double ramVal))
-        //                {
-        //                    result["ramUsage"] = ramVal;
-        //                }
-        //            }
-        //            else if (trimmedPart.ToUpper().StartsWith("DISK="))
-        //            {
-        //                var value = trimmedPart.Split('=')[1].Trim();
-        //                if (double.TryParse(value, out double diskVal))
-        //                {
-        //                    result["diskUsage"] = diskVal;
-        //                }
-        //            }
-        //        }
-
-
-
-        //        return result;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine($"Error parsing usage string: {ex.Message}");
-        //        return new { cpuUsage = 0, ramUsage = 0, diskUsage = 0 };
-        //    }
-        //}
-
 
         [HttpGet]
         public async Task<IActionResult> GetLastSeenTime(string domain)
@@ -535,49 +426,42 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, error = "Domain is required" });
             }
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
             try
             {
-                using (HttpClient client = new HttpClient(handler))
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(10);
+
+                string url = $"{_baseUrl}/api/Client";
+
+                HttpResponseMessage response = await client.GetAsync(url);
+
+                if (response != null && response.IsSuccessStatusCode)
                 {
-                    client.Timeout = TimeSpan.FromSeconds(10);
+                    var content = await response.Content.ReadAsStringAsync();
+                    var allConnections = JsonConvert.DeserializeObject<List<ClientConnection>>(content);
 
-                    string url = "https://localhost:7225/api/Client";
-
-                    HttpResponseMessage response = await client.GetAsync(url);
-
-                    if (response != null && response.IsSuccessStatusCode)
+                    if (allConnections != null && allConnections.Any())
                     {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var allConnections = JsonConvert.DeserializeObject<List<ClientConnection>>(content);
+                        var deviceConnection = allConnections
+                            .Where(x => x.ComputerName.Equals(domain, StringComparison.OrdinalIgnoreCase))
+                            .OrderByDescending(x => x.ConnectedAt)
+                            .FirstOrDefault();
 
-                        if (allConnections != null && allConnections.Any())
+                        if (deviceConnection != null)
                         {
-                            var deviceConnection = allConnections
-                                .Where(x => x.ComputerName.Equals(domain, StringComparison.OrdinalIgnoreCase))
-                                .OrderByDescending(x => x.ConnectedAt)
-                                .FirstOrDefault();
-
-                            if (deviceConnection != null)
+                            return Json(new
                             {
-                                return Json(new
-                                {
-                                    success = true,
-                                    lastSeen = deviceConnection.ConnectedAt,
-                                    lastSeenFormatted = deviceConnection.ConnectedAt.ToString("MM/dd/yyyy, hh:mm tt")
-                                });
-                            }
+                                success = true,
+                                lastSeen = deviceConnection.ConnectedAt,
+                                lastSeenFormatted = deviceConnection.ConnectedAt.ToString("MM/dd/yyyy, hh:mm tt")
+                            });
                         }
-
-                        return Json(new { success = false, message = "No connection history found" });
                     }
 
-                    return Json(new { success = false, error = "Failed to fetch data" });
+                    return Json(new { success = false, message = "No connection history found" });
                 }
+
+                return Json(new { success = false, error = "Failed to fetch data" });
             }
             catch (Exception ex)
             {
@@ -594,79 +478,72 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, error = "MachineId is required" });
             }
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
             try
             {
-                using (HttpClient client = new HttpClient(handler))
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(10);
+                string url = $"{_baseUrl}/api/OtpVerification/OtpCode?Massage=ON&machineId={Uri.EscapeDataString(machineId)}";
+
+                HttpResponseMessage response = await client.GetAsync(url);
+
+                if (response != null && response.IsSuccessStatusCode)
                 {
-                    client.Timeout = TimeSpan.FromSeconds(10);
-                    string url = $"https://localhost:7225/api/OtpVerification/OtpCode?Massage=ON&machineId={Uri.EscapeDataString(machineId)}";
+                    var content = await response.Content.ReadAsStringAsync();
+                    var result = JsonConvert.DeserializeObject<dynamic>(content);
 
-                    HttpResponseMessage response = await client.GetAsync(url);
-
-                    if (response != null && response.IsSuccessStatusCode)
+                    if (result != null)
                     {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var result = JsonConvert.DeserializeObject<dynamic>(content);
-
-                        if (result != null)
+                        if (result.status == "success")
                         {
-                            if (result.status == "success")
+                            await Task.Delay(2000);
+                            var otpResponse = await client.GetAsync($"{_baseUrl}/api/OtpVerification/get-otp?machineId={Uri.EscapeDataString(machineId)}");
+                            if (otpResponse.IsSuccessStatusCode)
                             {
-                                await Task.Delay(2000);
-                                var otpResponse = await client.GetAsync($"https://localhost:7225/api/OtpVerification/get-otp?machineId={Uri.EscapeDataString(machineId)}");
-                                if (otpResponse.IsSuccessStatusCode)
-                                {
-                                    var otpContent = await otpResponse.Content.ReadAsStringAsync();
-                                    var otpData = JsonConvert.DeserializeObject<dynamic>(otpContent);
+                                var otpContent = await otpResponse.Content.ReadAsStringAsync();
+                                var otpData = JsonConvert.DeserializeObject<dynamic>(otpContent);
 
-                                    if (otpData != null)
+                                if (otpData != null)
+                                {
+                                    return Json(new
                                     {
-                                        return Json(new
-                                        {
-                                            success = true,
-                                            message = "Temp protection enabled",
-                                            otp = otpData.otp?.ToString(),
-                                            expireAt = otpData.expireAt?.ToString(),
-                                            isUsed = otpData.isUsed
-                                        });
-                                    }
+                                        success = true,
+                                        message = "Temp protection enabled",
+                                        otp = otpData.otp?.ToString(),
+                                        expireAt = otpData.expireAt?.ToString(),
+                                        isUsed = otpData.isUsed
+                                    });
                                 }
+                            }
 
-                                return Json(new { success = true, message = "Temp protection enabled" });
-                            }
-                            else if (result.status == "error")
-                            {
-                                return Json(new { success = false, error = result.msg?.ToString() ?? "Client not connected" });
-                            }
-                            if (result.otp != null)
-                            {
-                                return Json(new
-                                {
-                                    success = true,
-                                    message = "Temp protection already enabled",
-                                    otp = result.otp?.ToString(),
-                                    expireAt = result.expireAt?.ToString(),
-                                    isUsed = result.isUsed
-                                });
-                            }
+                            return Json(new { success = true, message = "Temp protection enabled" });
                         }
-
-                        return Json(new { success = true, message = "Command sent successfully" });
+                        else if (result.status == "error")
+                        {
+                            return Json(new { success = false, error = result.msg?.ToString() ?? "Client not connected" });
+                        }
+                        if (result.otp != null)
+                        {
+                            return Json(new
+                            {
+                                success = true,
+                                message = "Temp protection already enabled",
+                                otp = result.otp?.ToString(),
+                                expireAt = result.expireAt?.ToString(),
+                                isUsed = result.isUsed
+                            });
+                        }
                     }
-                    else if (response != null && response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var error = JsonConvert.DeserializeObject<dynamic>(content);
-                        return Json(new { success = false, error = error?.msg?.ToString() ?? "Client not connected" });
-                    }
 
-                    return Json(new { success = false, error = "Failed to enable temp protection" });
+                    return Json(new { success = true, message = "Command sent successfully" });
                 }
+                else if (response != null && response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var error = JsonConvert.DeserializeObject<dynamic>(content);
+                    return Json(new { success = false, error = error?.msg?.ToString() ?? "Client not connected" });
+                }
+
+                return Json(new { success = false, error = "Failed to enable temp protection" });
             }
             catch (Exception ex)
             {
@@ -683,66 +560,59 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, error = "MachineId is required" });
             }
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
             try
             {
-                using (HttpClient client = new HttpClient(handler))
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(10);
+
+                string url = $"{_baseUrl}/api/OtpVerification/get-otp?machineId={Uri.EscapeDataString(machineId)}";
+
+                HttpResponseMessage response = await client.GetAsync(url);
+
+                if (response != null && response.IsSuccessStatusCode)
                 {
-                    client.Timeout = TimeSpan.FromSeconds(10);
+                    var content = await response.Content.ReadAsStringAsync();
 
-                    string url = $"https://localhost:7225/api/OtpVerification/get-otp?machineId={Uri.EscapeDataString(machineId)}";
+                    Console.WriteLine($"Backend Response for {machineId}: {content}");
 
-                    HttpResponseMessage response = await client.GetAsync(url);
-
-                    if (response != null && response.IsSuccessStatusCode)
+                    if (!string.IsNullOrEmpty(content) && content != "null")
                     {
-                        var content = await response.Content.ReadAsStringAsync();
+                        var otpData = JsonConvert.DeserializeObject<dynamic>(content);
 
-                        Console.WriteLine($"Backend Response for {machineId}: {content}");
-
-                        if (!string.IsNullOrEmpty(content) && content != "null")
+                        if (otpData != null && otpData.otp != null)
                         {
-                            var otpData = JsonConvert.DeserializeObject<dynamic>(content);
+                            DateTime? startAt = null;
+                            DateTime? expireAt = null;
 
-                            if (otpData != null && otpData.otp != null)
+                            if (otpData.startAt != null)
                             {
-                                DateTime? startAt = null;
-                                DateTime? expireAt = null;
-
-                                if (otpData.startAt != null)
-                                {
-                                    DateTime.TryParse(otpData.startAt.ToString(), out DateTime startDt);
-                                    startAt = startDt;
-                                }
-
-                                if (otpData.expireAt != null)
-                                {
-                                    DateTime.TryParse(otpData.expireAt.ToString(), out DateTime expireDt);
-                                    expireAt = expireDt;
-                                }
-
-                                bool isUsed = otpData.isUsed ?? false;
-                                return Json(new
-                                {
-                                    success = true,
-                                    otp = otpData.otp.ToString(),
-                                    machineId = otpData.machineId?.ToString(),
-                                    startAt = startAt?.ToString("o"), 
-                                    expireAt = expireAt?.ToString("o"), 
-                                    isUsed = isUsed
-                                });
+                                DateTime.TryParse(otpData.startAt.ToString(), out DateTime startDt);
+                                startAt = startDt;
                             }
-                        }
 
-                        return Json(new { success = false, message = "No OTP found for this machine" });
+                            if (otpData.expireAt != null)
+                            {
+                                DateTime.TryParse(otpData.expireAt.ToString(), out DateTime expireDt);
+                                expireAt = expireDt;
+                            }
+
+                            bool isUsed = otpData.isUsed ?? false;
+                            return Json(new
+                            {
+                                success = true,
+                                otp = otpData.otp.ToString(),
+                                machineId = otpData.machineId?.ToString(),
+                                startAt = startAt?.ToString("o"), 
+                                expireAt = expireAt?.ToString("o"), 
+                                isUsed = isUsed
+                            });
+                        }
                     }
 
-                    return Json(new { success = false, error = "Failed to fetch OTP data" });
+                    return Json(new { success = false, message = "No OTP found for this machine" });
                 }
+
+                return Json(new { success = false, error = "Failed to fetch OTP data" });
             }
             catch (Exception ex)
             {
@@ -761,43 +631,36 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, error = "MachineId is required" });
             }
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
             try
             {
-                using (HttpClient client = new HttpClient(handler))
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(10);
+
+                string otpUrl = $"{_baseUrl}/api/OtpVerification/OtpCode?Massage=ON&machineId={Uri.EscapeDataString(machineId)}";
+                HttpResponseMessage response = await client.GetAsync(otpUrl);
+
+                if (response != null && response.IsSuccessStatusCode)
                 {
-                    client.Timeout = TimeSpan.FromSeconds(10);
+                    var content = await response.Content.ReadAsStringAsync();
+                    var otpResult = JsonConvert.DeserializeObject<dynamic>(content);
 
-                    string otpUrl = $"https://localhost:7225/api/OtpVerification/OtpCode?Massage=ON&machineId={Uri.EscapeDataString(machineId)}";
-                    HttpResponseMessage response = await client.GetAsync(otpUrl);
-
-                    if (response != null && response.IsSuccessStatusCode)
+                    if (otpResult != null && otpResult.otp != null && otpResult.isUsed != null && !otpResult.isUsed)
                     {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var otpResult = JsonConvert.DeserializeObject<dynamic>(content);
-
-                        if (otpResult != null && otpResult.otp != null && otpResult.isUsed != null && !otpResult.isUsed)
+                        var expireAt = otpResult.expireAt != null ? new DateTime((long)otpResult.expireAt) : DateTime.MinValue;
+                        if (expireAt > DateTime.UtcNow)
                         {
-                            var expireAt = otpResult.expireAt != null ? new DateTime((long)otpResult.expireAt) : DateTime.MinValue;
-                            if (expireAt > DateTime.UtcNow)
+                            return Json(new
                             {
-                                return Json(new
-                                {
-                                    success = true,
-                                    isActive = true,
-                                    hasOtp = true,
-                                    expireAt = expireAt
-                                });
-                            }
+                                success = true,
+                                isActive = true,
+                                hasOtp = true,
+                                expireAt = expireAt
+                            });
                         }
                     }
-
-                    return Json(new { success = true, isActive = false, hasOtp = false });
                 }
+
+                return Json(new { success = true, isActive = false, hasOtp = false });
             }
             catch (Exception ex)
             {
@@ -814,50 +677,43 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, error = "MachineId is required" });
             }
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
             try
             {
-                using (HttpClient client = new HttpClient(handler))
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(10);
+
+                string url = $"{_baseUrl}/api/OtpVerification/OtpGanrate?Massage=GENERATE&machineId={Uri.EscapeDataString(machineId)}";
+
+                HttpResponseMessage response = await client.GetAsync(url);
+
+                if (response != null && response.IsSuccessStatusCode)
                 {
-                    client.Timeout = TimeSpan.FromSeconds(10);
+                    var content = await response.Content.ReadAsStringAsync();
+                    var result = JsonConvert.DeserializeObject<dynamic>(content);
 
-                    string url = $"https://localhost:7225/api/OtpVerification/OtpGanrate?Massage=GENERATE&machineId={Uri.EscapeDataString(machineId)}";
-
-                    HttpResponseMessage response = await client.GetAsync(url);
-
-                    if (response != null && response.IsSuccessStatusCode)
+                    if (result != null && result.status == "success")
                     {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var result = JsonConvert.DeserializeObject<dynamic>(content);
-
-                        if (result != null && result.status == "success")
+                        return Json(new
                         {
-                            return Json(new
-                            {
-                                success = true,
-                                status = "success",
-                                otp = result.otp?.ToString(),
-                                machineId = result.machineId?.ToString(),
-                                expiry = result.expiry?.ToString(),
-                                message = "OTP generated successfully"
-                            });
-                        }
-
-                        return Json(new { success = false, error = "Failed to generate OTP" });
-                    }
-                    else if (response != null && response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                    {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var error = JsonConvert.DeserializeObject<dynamic>(content);
-                        return Json(new { success = false, error = error?.msg?.ToString() ?? "Client not connected" });
+                            success = true,
+                            status = "success",
+                            otp = result.otp?.ToString(),
+                            machineId = result.machineId?.ToString(),
+                            expiry = result.expiry?.ToString(),
+                            message = "OTP generated successfully"
+                        });
                     }
 
                     return Json(new { success = false, error = "Failed to generate OTP" });
                 }
+                else if (response != null && response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var error = JsonConvert.DeserializeObject<dynamic>(content);
+                    return Json(new { success = false, error = error?.msg?.ToString() ?? "Client not connected" });
+                }
+
+                return Json(new { success = false, error = "Failed to generate OTP" });
             }
             catch (Exception ex)
             {
@@ -875,34 +731,27 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, error = "MachineId is required" });
             }
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
             try
             {
-                using (HttpClient client = new HttpClient(handler))
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(10);
+                string url = $"{_baseUrl}/api/OtpVerification/OtpCode?Massage=OFF&machineId={Uri.EscapeDataString(machineId)}";
+
+                HttpResponseMessage response = await client.GetAsync(url);
+
+                if (response != null && response.IsSuccessStatusCode)
                 {
-                    client.Timeout = TimeSpan.FromSeconds(10);
-                    string url = $"https://localhost:7225/api/OtpVerification/OtpCode?Massage=OFF&machineId={Uri.EscapeDataString(machineId)}";
+                    var content = await response.Content.ReadAsStringAsync();
 
-                    HttpResponseMessage response = await client.GetAsync(url);
-
-                    if (response != null && response.IsSuccessStatusCode)
+                    if (!string.IsNullOrEmpty(content))
                     {
-                        var content = await response.Content.ReadAsStringAsync();
-
-                        if (!string.IsNullOrEmpty(content))
-                        {
-                            return Json(new { success = true, message = "Temp protection disabled" });
-                        }
-
-                        return Json(new { success = true, message = "OTP cleared" });
+                        return Json(new { success = true, message = "Temp protection disabled" });
                     }
 
-                    return Json(new { success = false, error = "Failed to clear OTP" });
+                    return Json(new { success = true, message = "OTP cleared" });
                 }
+
+                return Json(new { success = false, error = "Failed to clear OTP" });
             }
             catch (Exception ex)
             {
@@ -914,72 +763,48 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> BranchPatchMangnment(int companyid, int groupid, int locationid)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-
             ViewBag.companyid = companyid;
             ViewBag.groupid = groupid;
             ViewBag.locationid = locationid;
 
-
             var dalalist = new List<WindowsUserDetails>();
             var contectlist = new List<ConnectedClientDto>();
             List<string> activeComputers = new List<string>();
-            using (var httpClient = new HttpClient(handler))
+
+            try
             {
+                using var httpClient = GetClient();
 
-
-
-
-                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationid}&&groupid={groupid}&&comId={companyid}");
-                //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}");
-                //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/WindowsUserDetails/allUser?locationId={locationId}&&groupid={groupid}&&comId={comId}"); // Replace with your server's URL
-
-                //var jsonContent = JsonConvert.SerializeObject(systemInfometion);
-                //var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-                // Send POST request to the server
-                var response = await httpClient.GetAsync("");
+                string userUrl = $"{_baseUrl}/api/WindowsUserDetails/allUser?locationId={locationid}&groupid={groupid}&comId={companyid}";
+                var response = await httpClient.GetAsync(userUrl);
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                    // var datalist =  JsonSerializer.Deserialize<List<WindowsUserDetails>>(content);
-                    dalalist = data.Where(x => x.Status == "Enabled").ToList();
-                    //return View(dalalist);
+                    if (data != null)
+                    {
+                        dalalist = data.Where(x => x.Status == "Enabled").ToList();
+                    }
                 }
 
-                //var response2 = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices"); // Replace with actual path
-                //var response2 = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices"); // Replace with actual path
-                var response2 = await httpClient.GetAsync("https://localhost:7225/api/Command/GetConnectedDevices"); // Replace with actual path
-
-
-
+                var response2 = await httpClient.GetAsync($"{_baseUrl}/api/Command/GetConnectedDevices");
                 if (response2.IsSuccessStatusCode)
                 {
                     var content2 = await response2.Content.ReadAsStringAsync();
                     contectlist = !string.IsNullOrEmpty(content2) ? JsonConvert.DeserializeObject<List<ConnectedClientDto>>(content2) : null;
-
-                    activeComputers = contectlist.Select(d => d.UserName).ToList();
+                    if (contectlist != null)
+                    {
+                        activeComputers = contectlist.Select(d => d.UserName).ToList();
+                    }
                 }
-
-
-
-                //return View(dalalist);
-
             }
-            if (contectlist != null)
+            catch (Exception ex)
             {
-                ViewBag.ActiveComputers = activeComputers;
+                Console.WriteLine($"BranchPatchMangnment Error: {ex.Message}");
             }
 
-
+            ViewBag.ActiveComputers = activeComputers;
             return View(dalalist);
-
-            throw new Exception("Unable to fetch data from the API.");
         }
         public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds)
         {

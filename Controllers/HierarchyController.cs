@@ -1,6 +1,7 @@
-﻿using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Models;
+using ManageEngineWebApp.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System;
@@ -26,6 +27,7 @@ namespace ManageEngineWebApp.Controllers
 
         private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
 
+        [DynamicPermission("Hierarchy.View", "View Hierarchy List")]
         public async Task<IActionResult> Index(string searchTerm = "", string filterCompany = "all", string filterLicenseStatus = "all")
         {
             try
@@ -45,6 +47,7 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
+        [DynamicPermission("Hierarchy.View", "View Hierarchy Graph")]
         public async Task<IActionResult> GraphView()
         {
             try
