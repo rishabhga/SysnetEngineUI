@@ -58,14 +58,18 @@
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                             <div class="p-2.5 bg-gray-50 rounded border border-gray-100">
                                 <div class="text-xs text-gray-500 mb-1">Priority</div>
-                                <div class="font-bold text-gray-800 flex items-center gap-1.5">
+                                <div class="font-bold text-gray-800 flex items-center gap-1.5 cursor-pointer hover:text-blue-600 group" onclick="openTriageModal()" title="Edit Priority">
                                     <span class="w-1.5 h-1.5 rounded-full" id="priorityDot"></span>
-                                    @Model.Priority
+                                    <span id="priorityTextDisplay">@Model.Priority</span>
+                                    <i class="fas fa-pencil-alt text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
                                 </div>
                             </div>
                             <div class="p-2.5 bg-gray-50 rounded border border-gray-100">
                                 <div class="text-xs text-gray-500 mb-1">Category</div>
-                                <div class="font-bold text-gray-800">@Model.Category</div>
+                                <div class="font-bold text-gray-800 flex items-center gap-1.5 cursor-pointer hover:text-blue-600 group" onclick="openTriageModal()" title="Edit Category">
+                                    <span id="categoryTextDisplay">@Model.Category</span>
+                                    <i class="fas fa-pencil-alt text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                </div>
                             </div>
                             <div class="p-2.5 bg-gray-50 rounded border border-gray-100">
                                 <div class="text-xs text-gray-500 mb-1">Engineer</div>
@@ -228,19 +232,101 @@
 
 <!-- Compact Modals -->
 <div id="approveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-xs">
-        <div class="p-3 border-b border-gray-200 flex justify-between items-center">
+    <div class="bg-white rounded w-full max-w-xs transition-all transform animate-in fade-in zoom-in duration-200">
+        <div class="p-3 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t">
             <h3 class="font-bold text-gray-800 text-sm">Approve Ticket</h3>
             <button onclick="closeModal('approveModal')" class="text-gray-400 hover:text-gray-600">
                 <i class="fas fa-times text-sm"></i>
             </button>
         </div>
         <div class="p-3">
-            <label class="block text-xs text-gray-700 mb-2">Approval Remarks</label>
-            <textarea id="approveRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Enter comments..."></textarea>
+            <div id="approveTriageFields" class="grid grid-cols-2 gap-2 mb-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Set Priority</label>
+                    <select id="approvePriority" class="w-full text-xs border border-gray-300 rounded p-1.5 focus:border-blue-500 outline-none">
+                        <option value="">-- Keep Current --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Set Category</label>
+                    <select id="approveCategory" class="w-full text-xs border border-gray-300 rounded p-1.5 focus:border-blue-500 outline-none">
+                        <option value="">-- Keep Current --</option>
+                    </select>
+                </div>
+            </div>
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Approval Remarks</label>
+            <textarea id="approveRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Any comments..."></textarea>
             <div class="flex gap-2">
-                <button onclick="closeModal('approveModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Cancel</button>
-                <button onclick="submitStatusAction('Approved')" class="flex-1 py-1.5 bg-green-600 text-white text-sm font-medium rounded">Confirm</button>
+                <button onclick="closeModal('approveModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="submitApprove()" class="flex-1 py-1.5 bg-green-600 text-white text-sm font-medium rounded shadow-sm shadow-green-200">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Unified Triage & Status Modal -->
+<div id="statusModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded w-full max-w-sm transition-all transform animate-in fade-in zoom-in duration-200">
+        <div class="p-3 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t">
+            <h3 class="font-bold text-gray-800 text-sm">Update Status & Triage</h3>
+            <button onclick="closeModal('statusModal')" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+        </div>
+        <div class="p-3">
+            <input type="hidden" id="newStatusValue">
+            
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Priority</label>
+                    <select id="statusPriority" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none focus:border-blue-500">
+                        <option value="">-- Keep Current --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Category</label>
+                    <select id="statusCategory" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none focus:border-blue-500">
+                        <option value="">-- Keep Current --</option>
+                    </select>
+                </div>
+            </div>
+
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Remarks</label>
+            <textarea id="statusRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Any comments..."></textarea>
+            
+            <div class="flex gap-2">
+                <button onclick="closeModal('statusModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="executeStatusUpdate()" class="flex-1 py-1.5 bg-blue-600 text-white text-sm font-medium rounded shadow-sm shadow-blue-200">Update Ticket</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dedicated Quick Triage Modal -->
+<div id="triageModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded w-full max-w-xs transition-all transform animate-in fade-in zoom-in duration-200">
+        <div class="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t">
+            <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <i class="fas fa-tags text-blue-500"></i> Edit Triage info
+            </h3>
+            <button onclick="closeModal('triageModal')" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+        </div>
+        <div class="p-4">
+            <div class="space-y-4 mb-5">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Ticket Priority</label>
+                    <select id="quickPriority" class="w-full text-sm border border-gray-300 rounded-md p-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"></select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Ticket Category</label>
+                    <select id="quickCategory" class="w-full text-sm border border-gray-300 rounded-md p-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"></select>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeModal('triageModal')" class="flex-1 py-2 text-sm text-gray-500 font-semibold hover:bg-gray-100 rounded-md transition-colors">Cancel</button>
+                <button onclick="submitTriage()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md shadow-sm shadow-blue-200 transition-all active:scale-95">Save Changes</button>
             </div>
         </div>
     </div>
@@ -358,6 +444,7 @@
         const ticketId = @Model.Id;
         const currentStatus = "@Model.Status";
         const currentPriority = "@Model.Priority";
+        const currentCategory = "@Model.Category";
         const currentUser = "@username";
         const apiBaseUrl = '@(ViewBag.ApiBaseUrl ?? "")';
 
@@ -400,6 +487,8 @@
             loadComments();
             loadLogs();
             loadAttachments();
+            loadCategoriesForApprove();
+            loadPrioritiesForApprove();
 
             renderActionButtons();
 
@@ -570,12 +659,27 @@
             $(`#${id}`).addClass('hidden');
         }
 
+        function openApproveModal() {
+            $('#approveRemarks').val('');
+            $('#approvePriority').val('');
+            $('#approveCategory').val('');
+            
+            // Conditional Triaging: Show fields only if they are missing
+            if (currentPriority && currentCategory && currentPriority !== "" && currentCategory !== "") {
+                $('#approveTriageFields').hide();
+            } else {
+                $('#approveTriageFields').show();
+            }
+            
+            openModal('approveModal');
+        }
+
         function renderActionButtons() {
             const container = $('#actionButtons');
             container.empty();
 
             if(currentStatus === 'Open' && canApprove) {
-                container.append(`<button onclick="openModal('approveModal')" class="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-check"></i> Approve</button>`);
+                container.append(`<button onclick="openApproveModal()" class="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-check"></i> Approve</button>`);
                 container.append(`<button onclick="openModal('rejectModal')" class="px-2.5 py-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs font-medium rounded"><i class="fas fa-times"></i> Reject</button>`);
             }
 
@@ -599,28 +703,131 @@
             }
         }
 
-        function submitStatusAction(newStatus) {
-            let remarks = "";
-            if(newStatus === 'Approved') remarks = $('#approveRemarks').val() || "Approved via portal";
-            else if(newStatus === 'Rejected') {
-                remarks = $('#rejectRemarks').val();
-                if(!remarks) { sysAlert('Please provide rejection reason', 'warning'); return; }
-            } else {
-                sysConfirm('Update status to ' + newStatus + '?', function() {
-                    var r = 'Status updated to ' + newStatus;
-                    doStatusUpdate(newStatus, r);
-                });
-                return;
-            }
-            doStatusUpdate(newStatus, remarks);
+        function openTriageModal() {
+            $('#quickPriority').val(currentPriority);
+            openModal('triageModal');
         }
 
-        function doStatusUpdate(newStatus, remarks) {
+        function submitTriage() {
+            const prio = $('#quickPriority').val();
+            const cat = $('#quickCategory').val();
+            
+            showLoading();
             $.ajax({
                 url: '@Url.Action("UpdateStatus", "ServiceDesk")',
                 type: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ ticketId: ticketId, newStatus: newStatus, remarks: remarks, username: currentUser }),
+                data: JSON.stringify({ 
+                    ticketId: ticketId, 
+                    newStatus: currentStatus, 
+                    remarks: "Triage information updated", 
+                    username: currentUser,
+                    priority: prio,
+                    category: cat
+                }),
+                success: function(res) {
+                    if(res.success) location.reload();
+                    else sysAlert(res.message, 'error');
+                }
+            });
+        }
+
+        function submitStatusAction(newStatus) {
+            if (newStatus === 'Rejected') {
+                const remarks = $('#rejectRemarks').val();
+                if(!remarks) { sysAlert('Please provide rejection reason', 'warning'); return; }
+                doStatusUpdate(newStatus, remarks);
+            } else if (newStatus === 'Approved') {
+                submitApprove();
+            } else {
+                $('#newStatusValue').val(newStatus);
+                $('#statusPriority').val(currentPriority);
+                openModal('statusModal');
+            }
+        }
+
+        function executeStatusUpdate() {
+            const newStatus = $('#newStatusValue').val();
+            const remarks = $('#statusRemarks').val() || "Status updated to " + newStatus;
+            const prio = $('#statusPriority').val();
+            const cat = $('#statusCategory').val();
+
+            doStatusUpdate(newStatus, remarks, prio, cat);
+        }
+
+        function submitApprove() {
+            const remarks = $('#approveRemarks').val() || "Approved via portal";
+            const priority = $('#approvePriority').val();
+            const category = $('#approveCategory').val();
+
+            closeModal('approveModal');
+
+            $.ajax({
+                url: '@Url.Action("ApproveTicket", "ServiceDesk")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    ticketId: ticketId,
+                    remarks: remarks,
+                    username: currentUser,
+                    priority: priority,
+                    category: category
+                }),
+                success: function(res) {
+                    if(res.success) location.reload();
+                    else sysAlert(res.message, 'error');
+                }
+            });
+        }
+
+        function loadCategoriesForApprove() {
+            $.ajax({
+                url: '@Url.Action("GetCategories", "ServiceDesk")',
+                type: 'GET',
+                success: function (data) {
+                    const selects = $('#approveCategory, #statusCategory, #quickCategory');
+                    if (data && data.length > 0) {
+                        data.forEach(c => {
+                            const name = c.categoryName || c.CategoryName || c;
+                            selects.append(`<option value="${name}">${name}</option>`);
+                        });
+                        // Set current category in triage modal
+                        const currentCat = "@Model.Category";
+                        $('#quickCategory').val(currentCat);
+                    }
+                }
+            });
+        }
+        
+        function loadPrioritiesForApprove() {
+            $.ajax({
+                url: '@Url.Action("GetPriorities", "ServiceDesk")',
+                type: 'GET',
+                success: function (data) {
+                    const selects = $('#approvePriority, #statusPriority, #quickPriority');
+                    if (data && data.length > 0) {
+                        data.forEach(p => {
+                            const name = p.priorityName || p.PriorityName || p;
+                            selects.append(`<option value="${name}">${name}</option>`);
+                        });
+                    }
+                }
+            });
+        }
+
+        function doStatusUpdate(newStatus, remarks, prio = '', cat = '') {
+            $.ajax({
+                url: '@Url.Action("UpdateStatus", "ServiceDesk")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ 
+                    ticketId: ticketId, 
+                    newStatus: newStatus, 
+                    remarks: remarks, 
+                    username: currentUser,
+                    priority: prio,
+                    category: cat
+                }),
                 success: function(res) {
                     if(res.success) location.reload();
                     else sysAlert(res.message, 'error');

@@ -92,7 +92,21 @@
         </div>
         <div class="p-3">
             <input type="hidden" id="approveTicketId">
-            <label class="block text-xs text-gray-700 mb-2">Remarks (Optional)</label>
+            <div id="approveTriageFields" class="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                    <label class="block text-xs text-gray-700 mb-1">Set Priority <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
+                    <select id="approvePriority" class="w-full text-sm border border-gray-300 rounded p-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                        <option value="">-- Keep Current --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-700 mb-1">Set Category <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
+                    <select id="approveCategory" class="w-full text-sm border border-gray-300 rounded p-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                        <option value="">-- Keep Current --</option>
+                    </select>
+                </div>
+            </div>
+            <label class="block text-xs text-gray-700 mb-1">Remarks <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
             <textarea id="approveRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Any remarks..."></textarea>
             <div class="flex gap-2">
                 <button onclick="closeModal('approveModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Cancel</button>
@@ -219,34 +233,46 @@
 
 <!-- Status Modal -->
 <div id="statusModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-xs">
+    <div class="bg-white rounded w-full max-w-sm shadow-xl">
         <div class="p-3 border-b border-gray-200 flex items-center">
             <i class="fas fa-exchange-alt text-amber-500 mr-2 text-sm"></i>
-            <h3 class="font-medium text-gray-800 text-sm">Update Status</h3>
+            <h3 class="font-medium text-gray-800 text-sm">Update Status & Triage</h3>
             <button onclick="closeModal('statusModal')" class="ml-auto text-gray-400 hover:text-gray-600">
                 <i class="fas fa-times text-sm"></i>
             </button>
         </div>
         <div class="p-3">
             <input type="hidden" id="statusTicketId">
-            <div class="mb-3">
-                <label class="block text-xs text-gray-700 mb-1">Current Status</label>
-                <span id="currentStatusDisplay" class="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs"></span>
+            <div class="flex justify-between items-center mb-3 p-2 bg-gray-50 rounded border border-gray-100">
+                <span class="text-[10px] font-bold text-gray-400 uppercase">Current State</span>
+                <span id="currentStatusDisplay" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-bold uppercase"></span>
             </div>
-            <div class="mb-3">
-                <label class="block text-xs text-gray-700 mb-1">New Status</label>
-                <select id="newStatusSelect" class="w-full text-sm border border-gray-300 rounded p-1.5">
-                </select>
+            
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div class="col-span-2">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">New Status</label>
+                    <select id="newStatusSelect" class="w-full text-sm border border-gray-300 rounded p-1.5 focus:border-blue-500 outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Priority</label>
+                    <select id="statusPriority" class="w-full text-sm border border-gray-300 rounded p-1.5 focus:border-blue-500 outline-none">
+                        <option value="">-- Keep Current --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Category</label>
+                    <select id="statusCategory" class="w-full text-sm border border-gray-300 rounded p-1.5 focus:border-blue-500 outline-none">
+                        <option value="">-- Keep Current --</option>
+                    </select>
+                </div>
             </div>
-            <div class="mb-3">
-                <label class="block text-xs text-gray-700 mb-1">Remarks</label>
-                <textarea id="statusRemarks" class="w-full text-sm border border-gray-300 rounded p-2" rows="2" placeholder="Reason for change..."></textarea>
-            </div>
+
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Remarks</label>
+            <textarea id="statusRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Any comments..."></textarea>
+            
             <div class="flex gap-2">
-                <button onclick="closeModal('statusModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Cancel</button>
-                <button onclick="submitStatusUpdate()" class="flex-1 py-1.5 bg-amber-500 text-white text-sm font-medium rounded">
-                    <i class="fas fa-save mr-1 text-xs"></i> Update
-                </button>
+                <button onclick="closeModal('statusModal')" class="flex-1 py-2 text-sm text-gray-600 font-medium hover:bg-gray-50 rounded transition-colors">Cancel</button>
+                <button onclick="submitStatusUpdate()" class="flex-1 py-2 bg-blue-600 text-white text-sm font-medium rounded shadow-md shadow-blue-200 hover:bg-blue-700 transition-all">Update Ticket</button>
             </div>
         </div>
     </div>
@@ -321,6 +347,7 @@
             loadTickets();
             loadStatuses();
             loadPrioritiesForColors();
+            loadCategoriesForApprove();
             loadMasterPartsForSelect();
  
             $('#searchInput').on('keyup', filterTickets);
@@ -608,10 +635,28 @@
                 url: '@Url.Action("GetPriorities", "ServiceDesk")',
                 type: 'GET',
                 success: function (data) {
+                    const selects = $('#approvePriority, #statusPriority');
                     if (data && data.length > 0) {
                         data.forEach(p => {
                             const name = p.priorityName || p.PriorityName || p;
                             if (p.colorCode) priorityColorMap[name.toLowerCase()] = p.colorCode;
+                            selects.append(`<option value="${name}">${name}</option>`);
+                        });
+                    }
+                }
+            });
+        }
+
+        function loadCategoriesForApprove() {
+            $.ajax({
+                url: '@Url.Action("GetCategories", "ServiceDesk")',
+                type: 'GET',
+                success: function (data) {
+                    const selects = $('#approveCategory, #statusCategory');
+                    if (data && data.length > 0) {
+                        data.forEach(c => {
+                            const name = c.categoryName || c.CategoryName || c;
+                            selects.append(`<option value="${name}">${name}</option>`);
                         });
                     }
                 }
@@ -755,12 +800,25 @@
         function openApproveModal(ticketId) {
             $('#approveTicketId').val(ticketId);
             $('#approveRemarks').val('');
+            $('#approvePriority').val('');
+            $('#approveCategory').val('');
+            
+            // Conditional Triaging: Show fields only if they are missing
+            const ticket = allTickets.find(t => t.id === ticketId);
+            if (ticket && (ticket.priority || ticket.category)) {
+                $('#approveTriageFields').hide();
+            } else {
+                $('#approveTriageFields').show();
+            }
+            
             openModal('approveModal');
         }
 
         function submitApprove() {
             const ticketId = parseInt($('#approveTicketId').val());
             const remarks = $('#approveRemarks').val().trim() || 'Approved';
+            const priority = $('#approvePriority').val();
+            const category = $('#approveCategory').val();
 
             showLoading();
             closeModal('approveModal');
@@ -772,7 +830,9 @@
                 data: JSON.stringify({
                     ticketId: ticketId,
                     remarks: remarks,
-                    username: username
+                    username: username,
+                    priority: priority,
+                    category: category
                 }),
                 success: function (res) {
                     hideLoading();
@@ -888,6 +948,17 @@
             $('#statusTicketId').val(ticketId);
             $('#currentStatusDisplay').text(currentStatus);
             $('#newStatusSelect').val(currentStatus);
+            
+            // Try to find the ticket in allTickets to pre-select priority/category
+            const ticket = allTickets.find(t => t.id === ticketId);
+            if(ticket) {
+                $('#statusPriority').val(ticket.priority || '');
+                $('#statusCategory').val(ticket.category || '');
+            } else {
+                $('#statusPriority').val('');
+                $('#statusCategory').val('');
+            }
+            
             $('#statusRemarks').val('');
             openModal('statusModal');
         }
@@ -896,6 +967,8 @@
             const ticketId = parseInt($('#statusTicketId').val());
             const newStatus = $('#newStatusSelect').val();
             const remarks = $('#statusRemarks').val().trim();
+            const priority = $('#statusPriority').val();
+            const category = $('#statusCategory').val();
 
             showLoading();
             closeModal('statusModal');
@@ -908,12 +981,14 @@
                     ticketId: ticketId,
                     newStatus: newStatus,
                     remarks: remarks,
-                    username: username
+                    username: username,
+                    priority: priority,
+                    category: category
                 }),
                 success: function (res) {
                     hideLoading();
                     if (res && res.success) {
-                        sysAlert('Status updated', 'success');
+                        sysAlert('Ticket updated successfully', 'success');
                         loadTickets();
                     } else {
                         sysAlert('Failed: ' + (res.message || 'Error'), 'error');
