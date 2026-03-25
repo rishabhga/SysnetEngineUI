@@ -603,6 +603,7 @@
     const canDelete  = @(canDelete  ? "true" : "false");
     const currentSortOrder = @(Model.StatusSortOrder);
     const statusOrders = @Html.Raw(ViewBag.StatusOrdersJson ?? "{}");
+    const systemActions = @Html.Raw(ViewBag.SystemActionsJson ?? "{}");
     const approvedSortOrder = @(ViewBag.ApprovedStatusSortOrder ?? 10);
 
     let connection = null;
@@ -735,16 +736,20 @@
 
     function renderActionButtons() {
         const container = $('#actionButtons').empty();
-        const s = currentStatus.toLowerCase();
         
         const getOrder = (code) => {
             const u = code.toUpperCase();
             return statusOrders[u] || statusOrders[u.replace(/_/g, '')] || statusOrders[u.replace(/ /g, '_')] || 0;
         };
 
-        const assignedOrder = getOrder('ASSIGNED') || 3;
-        const inProgressOrder = getOrder('IN_PROGRESS') || getOrder('INPROGRESS') || 4;
-        const resolvedOrder = getOrder('RESOLVED') || 5;
+        const getActionOrder = (action) => {
+            const u = action.toUpperCase();
+            return systemActions[u] || 0;
+        };
+
+        const assignedOrder = getActionOrder('ASSIGN') || getOrder('ASSIGNED') || 3;
+        const inProgressOrder = getActionOrder('STARTWORK') || getOrder('IN_PROGRESS') || getOrder('INPROGRESS') || 4;
+        const resolvedOrder = getActionOrder('RESOLVE') || getOrder('RESOLVED') || 5;
 
         // Approve/Reject - only if strictly before Approval level
         if (currentSortOrder < approvedSortOrder && canApprove) {

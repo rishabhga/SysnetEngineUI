@@ -195,10 +195,17 @@ namespace ManageEngineWebApp.Controllers
                         s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
                         s => (int)s.sortOrder
                     );
+
+                    var actionMappings = statuses.Where(s => !string.IsNullOrEmpty((string)s.systemAction))
+                        .ToDictionary(
+                            s => ((string)s.systemAction).ToUpperInvariant(),
+                            s => (int)s.sortOrder
+                        );
                     
                     ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
+                    ViewBag.SystemActionsJson = Newtonsoft.Json.JsonConvert.SerializeObject(actionMappings);
                     
-                    var approvedStatus = statuses?.FirstOrDefault(s => (string)s.statusCode == "Approved" || (string)s.statusName == "Approved");
+                    var approvedStatus = statuses?.FirstOrDefault(s => (string)s.systemAction == "Approve" || (string)s.statusCode == "Approved" || (string)s.statusName == "Approved");
                     ViewBag.ApprovedStatusSortOrder = approvedStatus != null ? (int)approvedStatus.sortOrder : 2;
                 }
             }
@@ -352,9 +359,17 @@ namespace ManageEngineWebApp.Controllers
                         s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
                         s => (int)s.sortOrder
                     );
-                    ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
 
-                    var approvedStatus = statuses?.FirstOrDefault(s => (string)s.statusCode == "Approved" || (string)s.statusName == "Approved");
+                    var actionMappings = statuses.Where(s => !string.IsNullOrEmpty((string)s.systemAction))
+                        .ToDictionary(
+                            s => ((string)s.systemAction).ToUpperInvariant(),
+                            s => (int)s.sortOrder
+                        );
+
+                    ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
+                    ViewBag.SystemActionsJson = Newtonsoft.Json.JsonConvert.SerializeObject(actionMappings);
+
+                    var approvedStatus = statuses?.FirstOrDefault(s => (string)s.systemAction == "Approve" || (string)s.statusCode == "Approved" || (string)s.statusName == "Approved");
                     ViewBag.ApprovedStatusSortOrder = approvedStatus != null ? (int)approvedStatus.sortOrder : 2;
                 }
                 else
