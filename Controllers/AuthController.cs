@@ -90,25 +90,34 @@ namespace ManageEngineWebApp.Controllers
         }
         [HttpGet]
         [AllowAnonymous]
-        [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Client, NoStore = false)]
         public IActionResult Login()
         {
-            return View();
+            // Clear session for each NEW login attempt
+            HttpContext.Session.Clear();
+
+            // Clear non-essential cookies but PRESERVE RequestVerification and RememberMe
+            foreach (var cookieName in HttpContext.Request.Cookies.Keys)
+            {
+                if (!cookieName.StartsWith("__RequestVerification") && cookieName != "RememberMe_User")
+                {
+                    Response.Cookies.Delete(cookieName);
+                }
+            }
+
+            var rememberedUser = Request.Cookies["RememberMe_User"];
+            var model = new LoginDto 
+            { 
+                Username = rememberedUser, 
+                RememberMe = !string.IsNullOrEmpty(rememberedUser) 
+            };
+            return View(model);
         }
 
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> Login(LoginDto model)
         {
-            HttpContext.Session.Clear();
-            foreach (var cookieName in HttpContext.Request.Cookies.Keys)
-            {
-                if (!cookieName.StartsWith("__RequestVerification"))
-                {
-                    Response.Cookies.Delete(cookieName);
-                }
-            }
-
+            // Session clearing handled in GET
             using var client = GetClient();
             var json = JsonConvert.SerializeObject(model);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -157,6 +166,24 @@ namespace ManageEngineWebApp.Controllers
 
                 string primaryRole = roleData.Roles.First();
                 RoleHelper.SetSessionFromRoleData(HttpContext, roleData, primaryRole);
+
+                // Handle Remember Me (Remember Username)
+                if (model.RememberMe)
+                {
+                    Response.Cookies.Append("RememberMe_User", model.Username ?? "", new CookieOptions
+                    {
+                        Expires = DateTimeOffset.Now.AddDays(30),
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.Lax,
+                        IsEssential = true
+                    });
+                }
+                else
+                {
+                    Response.Cookies.Delete("RememberMe_User");
+                }
+
                 if (!string.IsNullOrEmpty(roleData.StartPage))
                 {
                     var parts = roleData.StartPage.Split('/');
