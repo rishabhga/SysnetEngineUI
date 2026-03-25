@@ -1,257 +1,247 @@
 @{
-    ViewData["Title"] = "Parts Inventory";
+    ViewData["Title"] = "Parts Inventory Management";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var canManage = ViewBag.CanManageParts ?? false;
 }
 
-<div class="p-6 bg-gray-50 min-h-screen">
-    <div class="max-w-7xl mx-auto space-y-6">
-        
+
+<div class="min-h-screen p-4" style="background:#F0F4F8;">
+    <div class="max-w-6xl mx-auto">
         <!-- Header -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800">Parts Inventory</h1>
-                <p class="text-sm text-gray-500">Manage standard parts and pricing</p>
-            </div>
-            <button onclick="openModal('partModal')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm flex items-center gap-2 transition-all">
-                <i class="fas fa-plus"></i> Add New Part
-            </button>
-        </div>
-
-        <!-- Search & Filter -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4">
-            <div class="relative flex-1">
-                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                <input type="text" id="searchInput" placeholder="Search parts..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-blue-100 text-sm">
-            </div>
-            <button onclick="loadParts()" class="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-200">
-                <i class="fas fa-sync-alt"></i> Refresh
-            </button>
-        </div>
-
-        <!-- Parts Table -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <table class="w-full text-left">
-                <thead class="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Part Name</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Part Number</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Unit Cost</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-center">Stock</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-center">Status</th>
-                        <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="partsTableBody" class="divide-y divide-gray-100">
-                    <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Add/Edit Part Modal -->
-<div id="partModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md transform transition-all scale-95 opacity-0" id="partModalContent">
-        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
-            <h3 class="font-bold text-gray-800" id="modalTitle">Add New Part</h3>
-            <button onclick="closeModal('partModal')" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="fas fa-times"></i></button>
-        </div>
-        
-        <div class="p-6 space-y-4">
-            <input type="hidden" id="partId">
-            
-            <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Part Name <span class="text-red-500">*</span></label>
-                <input type="text" id="partName" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:bg-white transition-all text-sm" placeholder="e.g. SSD 1TB">
-            </div>
-
-            <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Part Number (SKU)</label>
-                <input type="text" id="partNumber" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:bg-white transition-all text-sm" placeholder="e.g. SAMSUNG-980-1TB">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Unit Cost (₹) <span class="text-red-500">*</span></label>
-                    <input type="number" id="unitCost" step="0.01" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:bg-white transition-all text-sm" placeholder="0.00">
+                <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                    <a href="@Url.Action("Index")" class="hover:text-[#0096BE]">Dashboard</a>
+                    <span>/</span>
+                    <span class="text-gray-700 font-medium">Master Parts</span>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Stock Quantity</label>
-                    <input type="number" id="stockQty" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:bg-white transition-all text-sm" placeholder="0">
+                <h1 class="text-xl font-bold text-gray-900">Parts Inventory Management</h1>
+                <p class="text-gray-600 text-sm">Manage inventory parts and unit costs</p>
+
+            </div>
+            @if (canManage)
+            {
+                <button onclick="openAddModal()" class="px-4 py-2 text-white text-sm font-medium rounded-lg flex items-center shadow-sm" style="background:linear-gradient(135deg,#00BCEB,#0096BE);" transition-all">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add New Part
+                </button>
+            }
+        </div>
+
+        <!-- Inventory List -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 class="font-bold text-gray-800">Parts Inventory</h3>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="partsSearch" placeholder="Search parts..."
+                           class="pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg outline-none" style="transition: border-color .15s;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='';" outline-none w-64">
                 </div>
             </div>
-            
-            <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Description</label>
-                <textarea id="description" rows="3" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:bg-white transition-all text-sm resize-none"></textarea>
-            </div>
-        </div>
-
-        <div class="p-6 bg-gray-50 rounded-b-2xl border-t border-gray-100 flex justify-end gap-3">
-            <button onclick="closeModal('partModal')" class="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors">Cancel</button>
-            <button onclick="savePart()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-600/20 text-sm font-medium transition-all">Save Part</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', loadParts);
-
-    function openModal(id) {
-        const modal = document.getElementById(id);
-        const content = document.getElementById(id + 'Content');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        setTimeout(() => {
-            content.classList.remove('scale-95', 'opacity-0');
-            content.classList.add('scale-100', 'opacity-100');
-        }, 10);
-
-        if(id === 'partModal' && !document.getElementById('partId').value) {
-            resetForm();
-        }
-    }
-
-    function closeModal(id) {
-        const modal = document.getElementById(id);
-        const content = document.getElementById(id + 'Content');
-        content.classList.remove('scale-100', 'opacity-100');
-        content.classList.add('scale-95', 'opacity-0');
-        setTimeout(() => {
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
-        }, 300);
-    }
-
-    function resetForm() {
-        document.getElementById('partId').value = '';
-        document.getElementById('partName').value = '';
-        document.getElementById('partNumber').value = '';
-        document.getElementById('unitCost').value = '';
-        document.getElementById('stockQty').value = '';
-        document.getElementById('description').value = '';
-        document.getElementById('modalTitle').innerText = 'Add New Part';
-    }
-
-    function editPart(part) {
-        document.getElementById('partId').value = part.id;
-        document.getElementById('partName').value = part.partName;
-        document.getElementById('partNumber').value = part.partNumber || '';
-        document.getElementById('unitCost').value = part.unitCost;
-        document.getElementById('stockQty').value = part.stockQuantity;
-        document.getElementById('description').value = part.description || '';
-        document.getElementById('modalTitle').innerText = 'Edit Part';
-        openModal('partModal');
-    }
-
-    async function loadParts() {
-        const tbody = document.getElementById('partsTableBody');
-        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading...</td></tr>';
-
-        try {
-            const res = await fetch('/ServiceDesk/GetMasterParts');
-            const text = await res.text();
-            
-            try {
-                const data = JSON.parse(text);
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">No parts found. Add one to get started.</td></tr>';
-                    return;
-                }
-                // ... rendering logic ...
-                let html = '';
-                data.forEach(p => {
-                    html += `
-                        <tr class="hover:bg-gray-50 transition-colors group">
-                            <td class="px-6 py-4 text-sm font-medium text-gray-800">${p.partName}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 font-mono text-xs">${p.partNumber || '-'}</td>
-                            <td class="px-6 py-4 text-sm text-right text-gray-800">₹${p.unitCost.toFixed(2)}</td>
-                            <td class="px-6 py-4 text-center">
-                                <span class="px-2 py-1 text-xs font-medium rounded-full ${p.stockQuantity > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-                                    ${p.stockQuantity}
-                                </span>
-                            </td>
-                             <td class="px-6 py-4 text-center">
-                                <span class="px-2 py-1 text-xs font-medium rounded-full ${p.isActive ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}">
-                                    ${p.isActive ? 'Active' : 'Inactive'}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-center group-hover:opacity-100 opacity-60 transition-opacity">
-                                <button onclick='editPart(${JSON.stringify(p)})' class="text-blue-500 hover:text-blue-700 mx-1" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button onclick="deletePart(${p.id})" class="text-red-400 hover:text-red-600 mx-1" title="Delete"><i class="fas fa-trash"></i></button>
-                            </td>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse" id="partsTable">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Part Name</th>
+                            <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Part Number</th>
+                            <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Unit Cost</th>
+                            <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">In Stock</th>
+                            <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Description</th>
+                            <th class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                         </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
-            } catch (e) {
-                console.error("JSON Parse Error:", e, text);
-                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-red-400">Failed to parse parts data. Response: ${text.substring(0, 100)}...</td></tr>`;
-            }
-        } catch (error) {
-            console.error(error);
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-red-400">Failed to load parts</td></tr>';
-        }
-    }
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">Loading inventory...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
-    async function savePart() {
-        const id = document.getElementById('partId').value;
-        const part = {
-            id: id ? parseInt(id) : 0,
-            partName: document.getElementById('partName').value,
-            partNumber: document.getElementById('partNumber').value,
-            unitCost: parseFloat(document.getElementById('unitCost').value) || 0,
-            stockQuantity: parseInt(document.getElementById('stockQty').value) || 0,
-            description: document.getElementById('description').value,
-            isActive: true
-        };
+<!-- Add/Edit Modal -->
+<div id="partModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-gray-900" id="modalTitle">Add New Part</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="partForm" class="p-6">
+            <input type="hidden" name="Id" id="partId" value="0">
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Part Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="PartName" required
+                           class="w-full h-10 text-sm border border-gray-300 rounded-lg px-3 outline-none" style="transition: border-color .15s;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='';" outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Part Number</label>
+                    <input type="text" name="PartNumber"
+                           class="w-full h-10 text-sm border border-gray-300 rounded-lg px-3 outline-none" style="transition: border-color .15s;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='';" outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Unit Cost ($) <span class="text-red-500">*</span></label>
+                        <input type="number" step="0.01" name="UnitCost" required value="0.00"
+                               class="w-full h-10 text-sm border border-gray-300 rounded-lg px-3 outline-none" style="transition: border-color .15s;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='';" outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Quantity <span class="text-red-500">*</span></label>
+                        <input type="number" name="StockQuantity" required value="0"
+                               class="w-full h-10 text-sm border border-gray-300 rounded-lg px-3 outline-none" style="transition: border-color .15s;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='';" outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Description</label>
+                    <textarea name="Description" rows="3"
+                              class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none" style="transition: border-color .15s;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='';" outline-none"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="closeModal()"
+                        class="flex-1 py-2 text-sm text-gray-600 font-bold hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="flex-1 py-2 text-white text-sm font-bold rounded-lg shadow-md transition-all" style="background:linear-gradient(135deg,#00BCEB,#0096BE);" ">
+                    Save Part
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-        if (!part.partName || part.unitCost < 0) {
-            sysAlert("Please fill in Part Name and a valid Cost.", "warning");
-            return;
-        }
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadParts();
 
-        try {
-            const url = id ? '/ServiceDesk/UpdateMasterPart' : '/ServiceDesk/AddMasterPart';
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(part)
+            $('#partForm').submit(function(e) {
+                e.preventDefault();
+                savePart();
             });
-            const text = await res.text();
-            
-            try {
-                const result = JSON.parse(text);
-                if (result.success) {
-                    closeModal('partModal');
-                    loadParts();
-                } else {
-                    sysAlert(result.message || "Operation failed", "error");
-                }
-            } catch (e) {
-                console.error("JSON Parse Error:", e, text);
-                sysAlert(`Error saving part: Server returned invalid JSON. Content: ${text.substring(0, 150)}`, "error");
-            }
-        } catch (error) {
-            console.error(error);
-            sysAlert("Error saving part: " + error.message, "error");
-        }
-    }
 
-    function deletePart(id) {
-        sysConfirm("Are you sure you want to delete this part?", async function() {
-            try {
-                const res = await fetch(`/ServiceDesk/DeleteMasterPart?id=${id}`, { method: 'POST' });
-                const result = await res.json();
-                if (result.success) {
-                    loadParts();
-                    sysAlert("Part deleted successfully", "success");
+            $('#partsSearch').on('input', function() {
+                const search = $(this).val().toLowerCase();
+                $('#partsTable tbody tr').each(function() {
+                    const text = $(this).text().toLowerCase();
+                    $(this).toggle(text.includes(search));
+                });
+            });
+        });
+
+        function loadParts() {
+            $.get('@Url.Action("GetInventoryParts", "ServiceDesk")', function(data) {
+
+                const tbody = $('#partsTable tbody');
+                tbody.empty();
+
+                if (data && data.length > 0) {
+                    data.forEach(p => {
+                        const row = `
+                            <tr class="hover:bg-gray-50/80 transition-colors">
+                                <td class="px-4 py-3 font-medium text-gray-800">${p.partName}</td>
+                                <td class="px-4 py-3 text-sm text-gray-500 font-mono">${p.partNumber || '-'}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700 text-right font-bold">$${(p.unitCost || 0).toFixed(2)}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${p.stockQuantity > 0 ? 'text-[#5a7a00]" style="background:#F1F8E9;"' : 'bg-red-100 text-red-700'}">
+                                        ${p.stockQuantity || 0}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">${p.description || '-'}</td>
+                                <td class="px-4 py-3 text-right">
+                                    <div class="flex justify-end gap-1">
+                                        <button onclick='editPart(${JSON.stringify(p)})' class="p-1.5 rounded transition-colors" style="color:#0096BE;" onmouseover="this.style.background='#E0F7FD'" onmouseout="this.style.background='transparent'"" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deletePart(${p.id})" class="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                } else {
+                    tbody.append('<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">No parts found in inventory</td></tr>');
                 }
-                else sysAlert(result.message || "Failed to delete", "error");
-            } catch (error) {
-                console.error(error);
-                sysAlert("Error deleting part", "error");
-            }
-        }, { type: 'danger' });
-    }
-</script>
+            });
+        }
+
+        function openAddModal() {
+            $('#modalTitle').text('Add New Part');
+            $('#partId').val(0);
+            $('#partForm')[0].reset();
+            $('#partModal').removeClass('hidden');
+        }
+
+        function editPart(p) {
+            $('#modalTitle').text('Edit Part');
+            $('#partId').val(p.id);
+            $('input[name="PartName"]').val(p.partName);
+            $('input[name="PartNumber"]').val(p.partNumber);
+            $('input[name="UnitCost"]').val(p.unitCost);
+            $('input[name="StockQuantity"]').val(p.stockQuantity);
+            $('textarea[name="Description"]').val(p.description);
+            $('#partModal').removeClass('hidden');
+        }
+
+        function closeModal() {
+            $('#partModal').addClass('hidden');
+        }
+
+        function savePart() {
+            const data = $('#partForm').serializeArray().reduce((obj, item) => {
+                obj[item.name] = item.value;
+                return obj;
+            }, {});
+
+            data.Id = parseInt(data.Id);
+            data.UnitCost = parseFloat(data.UnitCost);
+            data.StockQuantity = parseInt(data.StockQuantity);
+
+            const isEdit = data.Id > 0;
+            const url = isEdit ? '@Url.Action("UpdateInventoryPart", "ServiceDesk")' : '@Url.Action("AddInventoryPart", "ServiceDesk")';
+
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(res) {
+                    if (res.success || res.id) {
+                        sysAlert(isEdit ? "Part updated successfully" : "Part added to inventory", "success");
+                        closeModal();
+                        loadParts();
+                    } else {
+                        sysAlert(res.message || "Failed to save part", "error");
+                    }
+                },
+                error: function() {
+                    sysAlert("Error connecting to server", "error");
+                }
+            });
+        }
+
+        function deletePart(id) {
+            sysConfirm("Are you sure you want to remove this part from inventory?", function() {
+                $.post('@Url.Action("DeleteInventoryPart", "ServiceDesk")?id=' + id, function(res) {
+
+                    if (res.success) {
+                        sysAlert("Part deleted from inventory", "success");
+                        loadParts();
+                    } else {
+                        sysAlert(res.message || "Failed to delete part", "error");
+                    }
+                });
+            });
+        }
+
+    </script>
+}

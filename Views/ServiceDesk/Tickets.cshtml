@@ -7,7 +7,7 @@
     var canDelete = ViewBag.CanDelete ?? false;
 }
 
-<div class="min-h-screen bg-gray-50 p-4">
+<div class="min-h-screen p-4" style="background:#F0F4F8;">
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
         <div class="mb-5">
@@ -20,7 +20,7 @@
                     @if (canCreate)
                     {
                         <a href="@Url.Action("CreateTicket", "ServiceDesk")"
-                           class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded flex items-center">
+                           class="px-3 py-1.5 text-white" style="background:linear-gradient(135deg,#00BCEB,#0096BE);" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" text-sm font-medium rounded flex items-center">
                             <i class="fas fa-plus mr-1.5 text-xs"></i>
                             New Ticket
                         </a>
@@ -36,12 +36,13 @@
                     <div class="relative">
                         <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
                         <input type="text" id="searchInput" placeholder="Search by ID or Subject..."
-                               class="w-full h-8 pl-8 pr-3 text-sm border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                               class="w-full h-8 pl-8 pr-3 text-sm border border-gray-300 rounded outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'" outline-none">
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <select id="statusFilter" class="h-8 text-sm border border-gray-300 rounded px-2 bg-white text-gray-700 min-w-[120px]">
                         <option value="all">All Statuses</option>
+                        <option value="triage">Needs Triage</option>
                     </select>
                     <div class="text-sm text-gray-500">
                         <span id="ticketCount" class="font-medium text-gray-800">--</span> tickets
@@ -53,7 +54,7 @@
         <!-- Tickets Table -->
         <div class="bg-white rounded border border-gray-200">
             <div class="overflow-x-auto">
-                <table class="w-full text-left">
+                <table class="w-full text-left min-w-[720px]">
                     <thead>
                         <tr class="bg-gray-50 text-gray-500 text-xs border-b border-gray-200">
                             <th class="px-3 py-2.5 font-medium">TICKET ID</th>
@@ -95,13 +96,13 @@
             <div id="approveTriageFields" class="grid grid-cols-2 gap-2 mb-2">
                 <div>
                     <label class="block text-xs text-gray-700 mb-1">Set Priority <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
-                    <select id="approvePriority" class="w-full text-sm border border-gray-300 rounded p-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                    <select id="approvePriority" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'" outline-none">
                         <option value="">-- Keep Current --</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs text-gray-700 mb-1">Set Category <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
-                    <select id="approveCategory" class="w-full text-sm border border-gray-300 rounded p-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                    <select id="approveCategory" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'" outline-none">
                         <option value="">-- Keep Current --</option>
                     </select>
                 </div>
@@ -110,7 +111,7 @@
             <textarea id="approveRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Any remarks..."></textarea>
             <div class="flex gap-2">
                 <button onclick="closeModal('approveModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Cancel</button>
-                <button onclick="submitApprove()" class="flex-1 py-1.5 bg-green-600 text-white text-sm font-medium rounded">
+                <button onclick="submitApprove()" class="flex-1 py-1.5 text-white text-sm font-medium rounded" style="background:linear-gradient(135deg,#B4D334,#8FB829);" ">
                     <i class="fas fa-check mr-1 text-xs"></i> Approve
                 </button>
             </div>
@@ -145,7 +146,7 @@
 <!-- Assign Modal -->
 <div id="assignModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded w-full max-w-xs">
-        <div class="p-3 border-b border-blue-100 bg-blue-50 flex items-center">
+        <div class="p-3 border-b" style="background:#E0F7FD; border-color:#b3edfb;" flex items-center">
             <i class="fas fa-user-tag text-blue-500 mr-2 text-sm"></i>
             <h3 class="font-medium text-blue-800 text-sm">Assign Engineer</h3>
             <button onclick="closeModal('assignModal')" class="ml-auto text-gray-400 hover:text-blue-400">
@@ -196,10 +197,11 @@
 
             <h4 class="font-medium text-gray-700 text-sm mb-2">Add New Part</h4>
             <div class="mb-3">
-                <label class="block text-xs text-gray-700 mb-1">Select from Master Parts</label>
-                <select id="masterPartSelect" class="w-full text-sm border border-gray-200 rounded p-1.5 focus:ring-2 focus:ring-purple-500 outline-none">
+                <label class="block text-xs text-gray-700 mb-1">Select from Inventory</label>
+                <select id="inventoryPartSelect" class="w-full text-sm border border-gray-200 rounded p-1.5 focus:ring-2 focus:ring-purple-500 outline-none">
                     <option value="">-- Choose a Part --</option>
                 </select>
+
                 <p class="text-[10px] text-gray-500 mt-1"><i class="fas fa-info-circle mr-1"></i> Selecting a part will auto-fill the details below.</p>
             </div>
             <div class="grid grid-cols-2 gap-2">
@@ -224,7 +226,7 @@
         </div>
         <div class="p-3 bg-gray-50 border-t border-gray-200 flex gap-2">
             <button onclick="closeModal('partsModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Close</button>
-            <button onclick="submitAddPart()" class="flex-1 py-1.5 bg-purple-600 text-white text-sm font-medium rounded">
+            <button onclick="submitAddPart()" class="flex-1 py-1.5 text-white" style="background:linear-gradient(135deg,#00BCEB,#0096BE);" text-sm font-medium rounded">
                 <i class="fas fa-plus mr-1 text-xs"></i> Add Part
             </button>
         </div>
@@ -245,9 +247,9 @@
             <input type="hidden" id="statusTicketId">
             <div class="flex justify-between items-center mb-3 p-2 bg-gray-50 rounded border border-gray-100">
                 <span class="text-[10px] font-bold text-gray-400 uppercase">Current State</span>
-                <span id="currentStatusDisplay" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-bold uppercase"></span>
+                <span id="currentStatusDisplay" class="px-2 py-0.5 bg-[#E0F7FD] text-blue-700 rounded text-[10px] font-bold uppercase"></span>
             </div>
-            
+
             <div class="grid grid-cols-2 gap-3 mb-3">
                 <div class="col-span-2">
                     <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">New Status</label>
@@ -269,7 +271,7 @@
 
             <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Remarks</label>
             <textarea id="statusRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Any comments..."></textarea>
-            
+
             <div class="flex gap-2">
                 <button onclick="closeModal('statusModal')" class="flex-1 py-2 text-sm text-gray-600 font-medium hover:bg-gray-50 rounded transition-colors">Cancel</button>
                 <button onclick="submitStatusUpdate()" class="flex-1 py-2 bg-blue-600 text-white text-sm font-medium rounded shadow-md shadow-blue-200 hover:bg-blue-700 transition-all">Update Ticket</button>
@@ -291,8 +293,8 @@
         <div class="p-3">
             <div class="mb-3">
                 <label class="block text-xs text-gray-700 mb-1">Resolution Notes</label>
-                <textarea id="resolveNotes" class="w-full text-sm border border-gray-300 rounded p-2" rows="4" 
-                    placeholder="Describe what was done to resolve this ticket..."></textarea>
+                <textarea id="resolveNotes" class="w-full text-sm border border-gray-300 rounded p-2" rows="4"
+                          placeholder="Describe what was done to resolve this ticket..."></textarea>
             </div>
             <div class="flex gap-2">
                 <button onclick="closeModal('resolveModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Cancel</button>
@@ -321,11 +323,13 @@
         let priorityColorMap = {}; // priorityName -> colorCode from DB
         const username = '@Context.Session.GetString("username")' || 'Admin';
         const userId = '@Context.Session.GetString("userId")' || '1';
-        
+
         // Permission flags from server
         const canAssign = @(canAssign ? "true" : "false");
         const canApprove = @(canApprove ? "true" : "false");
         const canDelete = @(canDelete ? "true" : "false");
+        const statusOrders = @Html.Raw(ViewBag.StatusOrdersJson ?? "{}");
+        const approvedSortOrder = @(ViewBag.ApprovedStatusSortOrder ?? 2);
 
         // ==================== INITIALIZATION ====================
         $(document).ready(function () {
@@ -348,12 +352,13 @@
             loadStatuses();
             loadPrioritiesForColors();
             loadCategoriesForApprove();
-            loadMasterPartsForSelect();
- 
+            loadInventoryPartsForSelect();
+
+
             $('#searchInput').on('keyup', filterTickets);
             $('#statusFilter').on('change', filterTickets);
 
-            $('#masterPartSelect').on('change', function() {
+            $('#inventoryPartSelect').on('change', function() {
                 const selected = $(this).find(':selected').data('part');
                 if (selected) {
                     $('#partName').val(selected.partName);
@@ -366,6 +371,7 @@
                     $('#stockLevelDisplay').empty();
                 }
             });
+
         });
 
         // ==================== MODAL HELPERS ====================
@@ -392,11 +398,11 @@
             tbody.html('<tr><td colspan="8" class="text-center py-8 text-blue-500"><i class="fas fa-circle-notch fa-spin mb-2 text-xl"></i><br/>Loading tickets...</td></tr>');
 
             let url = `@Url.Action("GetTickets", "ServiceDesk")?pageNumber=${pageNumber}&pageSize=50`;
-            
+
             $.get(url, function (response) {
                 const tickets = response.items || response; // support both paginated and legacy arrays
                 allTickets = tickets;
-                
+
                 tbody.empty();
                 $('#ticketCount').text(response.totalItems || tickets.length || 0);
 
@@ -414,19 +420,19 @@
                     const row = `
                         <tr class="border-b border-gray-50 hover:bg-gray-50 ${isOverdue ? 'bg-red-50/30' : ''}">
                             <td class="px-3 py-2 font-medium text-gray-700 text-sm">
-                                <a href="/ServiceDesk/Details/${t.id}" class="hover:text-blue-600">
+                                <a href="/ServiceDesk/Details/${t.id}" class="hover:text-[#0096BE]">
                                     #${t.ticketNo || t.id}
                                 </a>
                             </td>
                             <td class="px-3 py-2">
-                                <a href="/ServiceDesk/Details/${t.id}" class="text-gray-800 hover:text-blue-600 font-medium text-sm block">
+                                <a href="/ServiceDesk/Details/${t.id}" class="text-gray-800 hover:text-[#0096BE] font-medium text-sm block">
                                     ${escapeHtml(t.subject || 'No Subject')}
                                 </a>
                                 <div class="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">${escapeHtml(t.category || 'General')}</div>
                             </td>
                             <td class="px-3 py-2">
                                 <div class="flex items-center">
-                                    <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold mr-1.5">
+                                    <div class="w-6 h-6 rounded-full bg-[#E0F7FD] text-blue-600 text-xs flex items-center justify-center font-bold mr-1.5">
                                         ${(t.requesterName || 'U').charAt(0).toUpperCase()}
                                     </div>
                                     <span class="text-gray-700 text-sm truncate max-w-[120px]" title="${t.requesterName || 'Unknown'}">${t.requesterName || 'Unknown'}</span>
@@ -441,13 +447,18 @@
                                     : '<span class="text-gray-400 text-xs italic">Unassigned</span>'}
                             </td>
                             <td class="px-3 py-2">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border" 
-                                      style="color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}; border-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}80; background-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}10">
-                                    ${t.priority || 'Medium'}
-                                </span>
+                                ${!t.priority || !t.category ?
+                                    `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                        <i class="fas fa-exclamation-triangle mr-1 text-[9px]"></i> NEEDS TRIAGE
+                                    </span>` :
+                                    `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                                          style="color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}; border-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}80; background-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}10">
+                                        ${t.priority || 'Medium'}
+                                    </span>`
+                                }
                             </td>
                             <td class="px-3 py-2">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border" 
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
                                       style="color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}; border-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}80; background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}10">
                                     <span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}"></span>
                                     ${ticketStatus}
@@ -472,15 +483,15 @@
                 } else {
                     $('#paginationControls').empty();
                 }
-                
+
                 // Keep the UI filtering in sync if a status was supplied
                 if(status) {
                     // Local filtering for UX speed, since GetTickets pagination might not filter server-side
                     // Note: Ideally, GetTickets would accept 'status' server-side as well.
                     // But to adhere to your existing setup, we apply filterTickets().
-                    setTimeout(filterTickets, 50); 
+                    setTimeout(filterTickets, 50);
                 }
-                
+
             }).fail(function () {
                 tbody.html('<tr><td colspan="8" class="text-center py-8 text-red-500"><i class="fas fa-exclamation-triangle mb-2 text-xl"></i><br/>Failed to load tickets</td></tr>');
                 $('#paginationControls').empty();
@@ -511,7 +522,7 @@
 
             let startPage = Math.max(1, currentPage - 2);
             let endPage = Math.min(totalPages, currentPage + 2);
-            
+
             for (let i = startPage; i <= endPage; i++) {
                 if (i === currentPage) {
                     html += `<button aria-current="page" class="relative z-10 inline-flex items-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">${i}</button>`;
@@ -531,7 +542,7 @@
                     </div>
                 </div>
             </div>`;
-            
+
             container.html(html);
         }
 
@@ -557,11 +568,11 @@
                         let badgeClass = 'bg-green-100 text-green-700';
                         if(e.currentStatus === 'Busy') badgeClass = 'bg-yellow-100 text-yellow-700';
                         if(e.currentStatus === 'Overloaded') badgeClass = 'bg-red-100 text-red-700';
-                        
+
                         let suggestedBadge = idx === 0 ? '<span class="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px] ml-2 font-bold uppercase tracking-wider">Suggested</span>' : '';
-                        
+
                         let card = `
-                        <div class="eng-card border border-gray-200 rounded p-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors" 
+                        <div class="eng-card border border-gray-200 rounded p-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
                              data-id="${e.id}" data-name="${e.name}" onclick="selectEngineer(this, '${e.id}', '${e.name}')">
                             <div class="flex justify-between items-start mb-1">
                                 <div class="font-medium text-sm text-gray-800">${e.name} ${suggestedBadge}</div>
@@ -577,7 +588,7 @@
                                 <span class="text-emerald-500" title="Total Resolved"><i class="fas fa-check text-[9px]"></i> ${e.totalResolved}</span>
                             </div>
                         </div>`;
-                        
+
                         container.append(card);
                     });
                 },
@@ -588,9 +599,10 @@
             });
         }
 
-        function loadMasterPartsForSelect() {
-            $.get('@Url.Action("GetMasterParts", "ServiceDesk")', function(data) {
-                const select = $('#masterPartSelect');
+        function loadInventoryPartsForSelect() {
+            $.get('@Url.Action("GetInventoryParts", "ServiceDesk")', function(data) {
+
+                const select = $('#inventoryPartSelect');
                 select.find('option:not(:first)').remove();
                 if (data && data.length > 0) {
                     data.forEach(p => {
@@ -601,6 +613,7 @@
                 }
             });
         }
+
 
         function selectEngineer(el, id, name) {
             $('.eng-card').removeClass('border-blue-500 bg-blue-50').addClass('border-gray-200');
@@ -664,90 +677,12 @@
         }
 
         function getActionButtons(ticket) {
-            const status = ticket.status || 'Open';
             const id = ticket.id;
-            const ticketNo = ticket.ticketNo || ticket.id;
-            let buttons = `
-                <a href="/ServiceDesk/Details/${id}" class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="View Details">
+            return `
+                <a href="/ServiceDesk/Details/${id}" class="p-1.5 text-gray-400 hover:text-[#0096BE] hover:bg-blue-50 rounded" title="View Details">
                     <i class="fas fa-eye text-xs"></i>
                 </a>
             `;
-
-            // Approve/Reject buttons - require approval permission
-            if (status === 'Open' && canApprove) {
-                buttons += `
-                    <button onclick="openApproveModal(${id})" class="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Approve">
-                        <i class="fas fa-check text-xs"></i>
-                    </button>
-                    <button onclick="openRejectModal(${id})" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Reject">
-                        <i class="fas fa-times text-xs"></i>
-                    </button>
-                `;
-            }
-
-            // Assign button - require assign permission
-            if ((status === 'Open' || status === 'Approved') && canAssign) {
-                buttons += `
-                    <button onclick="openAssignModal(${id}, '${escapeHtml(ticketNo)}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Assign to Engineer">
-                        <i class="fas fa-user-tag text-xs"></i>
-                    </button>
-                `;
-            }
-
-            // Start Work button for Assigned tickets
-            if (status === 'Assigned') {
-                buttons += `
-                    <button onclick="startWork(${id})" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded" title="Start Work">
-                        <i class="fas fa-play text-xs"></i>
-                    </button>
-                `;
-            }
-
-            // Status update for active tickets
-            if (status === 'Assigned' || status === 'InProgress' || status === 'Approved') {
-                buttons += `
-                    <button onclick="openStatusModal(${id}, '${status}')" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded" title="Update Status">
-                        <i class="fas fa-exchange-alt text-xs"></i>
-                    </button>
-                `;
-            }
-
-            // Resolve button for InProgress tickets
-            if (status === 'InProgress') {
-                buttons += `
-                    <button onclick="openResolveModal(${id})" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded" title="Resolve Ticket">
-                        <i class="fas fa-check-circle text-xs"></i>
-                    </button>
-                `;
-            }
-
-            if (status === 'Rejected' && canApprove) {
-                buttons += `
-                    <button onclick="reopenTicket(${id})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Re-Open">
-                        <i class="fas fa-redo text-xs"></i>
-                    </button>
-                `;
-            }
-
-            // Parts management available for all open/active tickets
-            if (status !== 'Closed' && status !== 'Rejected') {
-                buttons += `
-                    <button onclick="openPartsModal(${id}, '${escapeHtml(ticketNo)}')" class="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Manage Parts">
-                        <i class="fas fa-cogs text-xs"></i>
-                    </button>
-                `;
-            }
-
-            // Delete button - require delete permission
-            if (canDelete) {
-                buttons += `
-                    <button onclick="deleteTicket(${id}, '${escapeHtml(ticketNo)}')" class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded" title="Delete Ticket">
-                        <i class="fas fa-trash text-xs"></i>
-                    </button>
-                `;
-            }
-
-            return buttons;
         }
 
         // ==================== FILTER ====================
@@ -758,7 +693,16 @@
             const filtered = allTickets.filter(t => {
                 const matchesTerm = (t.ticketNo && t.ticketNo.toLowerCase().includes(term)) ||
                                     (t.subject && t.subject.toLowerCase().includes(term));
-                const matchesStatus = status === 'all' || (t.status === status);
+
+                let matchesStatus = false;
+                if (status === 'all') {
+                    matchesStatus = true;
+                } else if (status === 'triage') {
+                    matchesStatus = (!t.priority || !t.category);
+                } else {
+                    matchesStatus = (t.status === status);
+                }
+
                 return matchesTerm && matchesStatus;
             });
 
@@ -802,15 +746,15 @@
             $('#approveRemarks').val('');
             $('#approvePriority').val('');
             $('#approveCategory').val('');
-            
+
             // Conditional Triaging: Show fields only if they are missing
             const ticket = allTickets.find(t => t.id === ticketId);
-            if (ticket && (ticket.priority || ticket.category)) {
+            if (ticket && (ticket.priority && ticket.category)) {
                 $('#approveTriageFields').hide();
             } else {
                 $('#approveTriageFields').show();
             }
-            
+
             openModal('approveModal');
         }
 
@@ -948,7 +892,7 @@
             $('#statusTicketId').val(ticketId);
             $('#currentStatusDisplay').text(currentStatus);
             $('#newStatusSelect').val(currentStatus);
-            
+
             // Try to find the ticket in allTickets to pre-select priority/category
             const ticket = allTickets.find(t => t.id === ticketId);
             if(ticket) {
@@ -958,7 +902,7 @@
                 $('#statusPriority').val('');
                 $('#statusCategory').val('');
             }
-            
+
             $('#statusRemarks').val('');
             openModal('statusModal');
         }
@@ -1195,7 +1139,7 @@
 
         // ==================== RESOLVE TICKET ====================
         let resolveTicketId = 0;
-        
+
         function openResolveModal(ticketId) {
             resolveTicketId = ticketId;
             $('#resolveNotes').val('');
@@ -1204,7 +1148,7 @@
 
         function submitResolve() {
             const notes = $('#resolveNotes').val().trim();
-            
+
             $.ajax({
                 url: '@Url.Action("ResolveTicket", "ServiceDesk")',
                 type: 'POST',

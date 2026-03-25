@@ -9,1298 +9,1061 @@
     var canDelete = ViewBag.CanDelete ?? false;
 }
 
-<div class="min-h-screen bg-gray-50 p-4">
-    <!-- Sticky Header -->
-    <div class="sticky top-[108px] z-30 bg-white border-b border-gray-200 px-4 py-2.5 flex justify-between items-center mb-4">
-        <div class="flex items-center gap-3">
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-lg font-bold text-gray-900">@Model.TicketNo</h1>
-                    <span id="headerStatusBadge" class="px-2 py-0.5 text-xs rounded font-medium uppercase">@Model.Status</span>
-                </div>
-                <p class="text-sm text-gray-600 truncate max-w-md">@Model.Subject</p>
+<style>
+    .dtl-bg { background: #F0F4F8; min-height: 100vh; }
+
+    /* ── Hero: full cyan brand gradient ── */
+    .ticket-hero {
+        background: linear-gradient(135deg, #00BCEB 0%, #0096BE 60%, #007aA0 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    .ticket-hero::before {
+        content: '';
+        position: absolute;
+        top: -40px; right: -60px;
+        width: 220px; height: 220px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.08);
+        pointer-events: none;
+    }
+    .ticket-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30px; left: -40px;
+        width: 160px; height: 160px;
+        border-radius: 50%;
+        background: rgba(180,211,52,.12);
+        pointer-events: none;
+    }
+
+    /* ── Cards ── */
+    .dtl-card {
+        background: #fff;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+    }
+    .dtl-card-hd {
+        padding: 12px 16px;
+        border-bottom: 1px solid #F1F5F9;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .dtl-hd-icon {
+        width: 28px; height: 28px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; flex-shrink: 0;
+    }
+
+    /* ── Stat pills ── */
+    .stat-pill {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 10px 14px;
+        transition: background .15s;
+    }
+    .stat-pill:hover { background: #F0F4F8; }
+
+    #priorityStripe { height: 3px; width: 100%; }
+
+    /* ── Tabs ── */
+    .dtl-tab {
+        flex: 1; padding: 9px 4px;
+        font-size: 11px; font-weight: 600;
+        color: #64748B;
+        border-bottom: 2px solid transparent;
+        transition: all .15s; text-align: center;
+    }
+    .dtl-tab.active { color: #00BCEB; border-bottom-color: #00BCEB; }
+    .dtl-tab:hover:not(.active) { color: #0096BE; border-bottom-color: #bae6ff; }
+
+    /* ── Chat bubbles ── */
+    .bubble-me {
+        background: linear-gradient(135deg,#00BCEB,#0096BE);
+        color: #fff;
+        border-radius: 16px 16px 4px 16px;
+    }
+    .bubble-them {
+        background: #F1F5F9;
+        color: #1E293B;
+        border-radius: 16px 16px 16px 4px;
+    }
+
+    /* ── Comment input ── */
+    #commentInput {
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        background: #F8FAFC;
+        font-size: 13px; color: #1e293b;
+        outline: none; resize: none;
+        transition: border-color .15s, background .15s;
+    }
+    #commentInput:focus {
+        border-color: #00BCEB;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(0,188,235,.12);
+    }
+
+    /* ── Timeline ── */
+    .log-dot { width:8px; height:8px; border-radius:50%; background:#00BCEB; flex-shrink:0; margin-top:4px; }
+    .log-line { width:1px; background:#E2E8F0; flex:1; min-height:12px; margin:2px auto 0; }
+
+    /* ── SLA bar ── */
+    #slaProgressBar { height:100%; border-radius:99px; transition:width 1s cubic-bezier(.22,1,.36,1); }
+
+    /* ── File drop zone ── */
+    .drop-zone {
+        border: 2px dashed #CBD5E1;
+        border-radius: 12px; text-align: center;
+        cursor: pointer; transition: all .15s;
+    }
+    .drop-zone:hover { border-color: #00BCEB; background: rgba(0,188,235,.04); }
+
+    /* ── Scrollbars ── */
+    .dtl-scroll { overflow-y: auto; }
+    .dtl-scroll::-webkit-scrollbar { width: 3px; }
+    .dtl-scroll::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 3px; }
+
+    /* ── Modal headers ── */
+    .modal-hd-cyan { background: linear-gradient(135deg,#00BCEB,#0096BE); }
+    .modal-hd-lime { background: linear-gradient(135deg,#B4D334,#8FB829); }
+    .modal-hd-red  { background: #FEF2F2; border-bottom: 1px solid #FECACA; }
+    .modal-hd-orange { background: linear-gradient(135deg,#F97316,#EA580C); }
+
+    /* ── Form inputs ── */
+    .inp-brand {
+        width: 100%; border: 1px solid #E2E8F0;
+        border-radius: 8px; padding: 7px 10px;
+        font-size: 13px; outline: none;
+        background: #F8FAFC; transition: border-color .15s;
+    }
+    .inp-brand:focus {
+        border-color: #00BCEB; background: #fff;
+        box-shadow: 0 0 0 3px rgba(0,188,235,.12);
+    }
+
+    /* ── Buttons ── */
+    .btn-cyan  { background: linear-gradient(135deg,#00BCEB,#0096BE); color:#fff; transition:opacity .15s; }
+    .btn-cyan:hover  { opacity:.88; }
+    .btn-lime  { background: linear-gradient(135deg,#B4D334,#8FB829); color:#fff; transition:opacity .15s; }
+    .btn-lime:hover  { opacity:.88; }
+    .btn-ghost { background:#fff; border:1px solid #E2E8F0; color:#64748B; transition:background .15s; }
+    .btn-ghost:hover { background:#F8FAFC; }
+
+    /* ── Engineer cards ── */
+    .eng-card {
+        border: 1px solid #E2E8F0; border-radius: 10px;
+        padding: 10px; cursor: pointer; transition: all .15s;
+    }
+    .eng-card:hover   { border-color: #00BCEB; background: #F0FBFF; }
+    .eng-card.selected{ border-color: #00BCEB; background: #E0F7FD; }
+</style>
+
+<div class="dtl-bg px-3 pb-12 pt-0 sm:px-4 lg:px-6">
+
+    <!-- ════ HERO BANNER (Cyan Brand) ════ -->
+    <div class="ticket-hero px-4 py-5 sm:px-6 mb-5">
+        <div class="max-w-7xl mx-auto relative z-10">
+
+            <!-- Back + Actions -->
+            <div class="flex items-center justify-between mb-4">
+                <a href="@Url.Action("Tickets","ServiceDesk")"
+                   class="flex items-center gap-1.5 text-white/70 hover:text-white text-xs font-semibold transition-colors">
+                    <i class="fas fa-arrow-left text-[10px]"></i> All Tickets
+                </a>
+                <div class="flex items-center gap-2 flex-wrap justify-end" id="actionButtons"></div>
             </div>
-        </div>
-        <div class="flex items-center gap-2" id="actionButtons">
-            <!-- Populated by JS -->
+
+            <!-- Ticket ID + Subject -->
+            <div class="flex flex-wrap items-start gap-3 mb-4">
+                <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                     style="background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.3);">
+                    <i class="fas fa-ticket-alt text-white text-sm"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <h1 class="text-lg font-black text-white tracking-tight">@Model.TicketNo</h1>
+                        <span id="headerStatusBadge"
+                              class="px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider">@Model.Status</span>
+                    </div>
+                    <p class="text-white/70 text-sm leading-snug">@Model.Subject</p>
+                </div>
+            </div>
+
+            <!-- Meta bar -->
+            <div class="flex flex-wrap items-center gap-4 pt-3 border-t border-white/20">
+                <div class="flex items-center gap-1.5 text-white/60 text-xs">
+                    <i class="fas fa-calendar-alt text-[10px]"></i>
+                    <span>@Model.CreatedOn?.ToString("dd MMM yyyy, HH:mm")</span>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.CompanyName)) {
+                <div class="flex items-center gap-1.5 text-white/60 text-xs">
+                    <i class="fas fa-building text-[10px]"></i>
+                    <span>@Model.CompanyName</span>
+                </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.AssignedToName)) {
+                <div class="flex items-center gap-1.5 text-white/60 text-xs">
+                    <i class="fas fa-user-cog text-[10px]"></i>
+                    <span>@Model.AssignedToName</span>
+                </div>
+                }
+            </div>
         </div>
     </div>
 
     <div class="max-w-7xl mx-auto">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- Left Column: Main Info -->
-            <div class="lg:col-span-2 space-y-4">
-                <!-- Main Ticket Card -->
-                <div class="bg-white rounded border border-gray-200">
-                    <!-- Priority Stripe -->
-                    <div class="h-1 w-full" id="priorityStripe"></div>
 
-                    <div class="p-4">
-                        <!-- Requester Info -->
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                                @(Model.RequesterName?.Substring(0, 1) ?? "U")
+            <!-- ══════ LEFT 2/3 ══════ -->
+            <div class="lg:col-span-2 space-y-4">
+
+                <!-- Ticket Info Card -->
+                <div class="dtl-card overflow-hidden">
+                    <div id="priorityStripe"></div>
+                    <div class="p-4 sm:p-5">
+
+                        <!-- Requester -->
+                        <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+                            <div class="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-base flex-shrink-0"
+                                 style="background:linear-gradient(135deg,#00BCEB,#0096BE); box-shadow:0 2px 10px rgba(0,188,235,.35);">
+                                @(Model.RequesterName?.Substring(0,1).ToUpper() ?? "U")
                             </div>
-                            <div>
-                                <h2 class="font-bold text-gray-900">@Model.RequesterName</h2>
-                                <p class="text-sm text-gray-600">@Model.RequesterEmail</p>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-bold text-slate-900 text-sm">@Model.RequesterName</div>
+                                <div class="text-xs text-slate-400">@Model.RequesterEmail</div>
                                 <div class="flex gap-1 mt-1">
-                                    <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-medium rounded uppercase">Requester</span>
-                                    @if (Model.ClientId != null)
-                                    {
-                                        <span class="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded uppercase">Portal User</span>
+                                    <span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-semibold rounded-full uppercase">Requester</span>
+                                    @if (Model.ClientId != null) {
+                                    <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase"
+                                          style="background:#E0F7FD; color:#0096BE;">Portal User</span>
                                     }
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Quick Stats -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                            <div class="p-2.5 bg-gray-50 rounded border border-gray-100">
-                                <div class="text-xs text-gray-500 mb-1">Priority</div>
-                                <div class="font-bold text-gray-800 flex items-center gap-1.5 cursor-pointer hover:text-blue-600 group" onclick="openTriageModal()" title="Edit Priority">
-                                    <span class="w-1.5 h-1.5 rounded-full" id="priorityDot"></span>
+                        <!-- Stat pills -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                            <div class="stat-pill cursor-pointer group" onclick="openTriageModal()" title="Click to edit">
+                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Priority</div>
+                                <div class="flex items-center gap-1.5 font-bold text-slate-800 text-sm">
+                                    <span class="w-2 h-2 rounded-full flex-shrink-0" id="priorityDot"></span>
                                     <span id="priorityTextDisplay">@Model.Priority</span>
-                                    <i class="fas fa-pencil-alt text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                    <i class="fas fa-pencil-alt text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 ml-auto transition-opacity"></i>
                                 </div>
                             </div>
-                            <div class="p-2.5 bg-gray-50 rounded border border-gray-100">
-                                <div class="text-xs text-gray-500 mb-1">Category</div>
-                                <div class="font-bold text-gray-800 flex items-center gap-1.5 cursor-pointer hover:text-blue-600 group" onclick="openTriageModal()" title="Edit Category">
-                                    <span id="categoryTextDisplay">@Model.Category</span>
-                                    <i class="fas fa-pencil-alt text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                            <div class="stat-pill cursor-pointer group" onclick="openTriageModal()" title="Click to edit">
+                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Category</div>
+                                <div class="flex items-center gap-1 font-bold text-slate-800 text-sm">
+                                    <i class="fas fa-tag text-[9px]" style="color:#00BCEB;"></i>
+                                    <span id="categoryTextDisplay" class="truncate">@(Model.Category ?? "—")</span>
+                                    <i class="fas fa-pencil-alt text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 ml-auto transition-opacity"></i>
                                 </div>
                             </div>
-                            <div class="p-2.5 bg-gray-50 rounded border border-gray-100">
-                                <div class="text-xs text-gray-500 mb-1">Engineer</div>
-                                <div class="font-bold text-gray-800">
-                                    @if (!string.IsNullOrEmpty(Model.AssignedToName))
-                                    {
-                                        <span>@Model.AssignedToName</span>
+                            <div class="stat-pill">
+                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Engineer</div>
+                                <div class="font-bold text-slate-800 text-sm flex items-center gap-1">
+                                    @if (!string.IsNullOrEmpty(Model.AssignedToName)) {
+                                        <i class="fas fa-user-check text-[9px]" style="color:#B4D334;"></i>
+                                        <span class="truncate">@Model.AssignedToName</span>
+                                    } else {
+                                        <i class="fas fa-user-slash text-[9px] text-slate-300"></i>
+                                        <span class="text-slate-400 font-normal">Unassigned</span>
                                     }
-                                    else
-                                    {
-                                        <span class="text-gray-400 text-sm">Unassigned</span>
-                                    }
                                 </div>
                             </div>
-                            <div class="p-2.5 bg-gray-50 rounded border border-gray-100">
-                                <div class="text-xs text-gray-500 mb-1">Status</div>
-                                <div class="font-bold text-gray-800 flex items-center gap-1.5">
-                                    <i class="fas fa-circle text-xs" id="statusDot"></i>
+                            <div class="stat-pill">
+                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</div>
+                                <div class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                                    <i class="fas fa-circle text-[8px]" id="statusDot"></i>
                                     @Model.Status
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Hierarchy Info -->
-                        <div class="p-3 bg-gray-50 rounded border border-gray-100 mb-4">
-                            <div class="text-xs text-gray-500 mb-2 font-medium">ASSIGNMENT HIERARCHY</div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <!-- Hierarchy -->
+                        <div class="rounded-xl border border-slate-100 p-3 mb-5" style="background:#F8FAFC;">
+                            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Assignment Hierarchy</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
-                                    <div class="text-xs text-gray-500">Company</div>
-                                    <div class="text-sm font-medium text-gray-800">@(Model.CompanyName ?? "N/A")</div>
+                                    <div class="text-[10px] text-slate-400 mb-0.5">Company</div>
+                                    <div class="text-sm font-semibold text-slate-800">@(Model.CompanyName ?? "N/A")</div>
                                 </div>
                                 <div>
-                                    <div class="text-xs text-gray-500">Location</div>
-                                    <div class="text-sm font-medium text-gray-800">@(Model.LocationName ?? "N/A")</div>
+                                    <div class="text-[10px] text-slate-400 mb-0.5">Location</div>
+                                    <div class="text-sm font-semibold text-slate-800">@(Model.LocationName ?? "N/A")</div>
                                 </div>
                                 <div>
-                                    <div class="text-xs text-gray-500">Group</div>
-                                    <div class="text-sm font-medium text-gray-800">@(Model.GroupName ?? "N/A")</div>
+                                    <div class="text-[10px] text-slate-400 mb-0.5">Group</div>
+                                    <div class="text-sm font-semibold text-slate-800">@(Model.GroupName ?? "N/A")</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Issue Description -->
+                        <!-- Description -->
                         <div>
-                            <div class="text-xs text-gray-500 mb-2 font-medium">ISSUE DESCRIPTION</div>
-                            <div class="p-3 bg-gray-50 rounded border border-gray-100">
-                                <p class="text-gray-700 text-sm whitespace-pre-wrap">@Model.Remark</p>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Issue Description</div>
+                            <div class="rounded-xl border border-slate-100 p-3 sm:p-4" style="background:#F8FAFC;">
+                                <p class="text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">@Model.Remark</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Parts Section -->
-                <div class="bg-white rounded border border-gray-200">
-                    <div class="px-4 py-2.5 border-b border-gray-100 flex justify-between items-center">
-                        <h3 class="font-medium text-gray-800 text-sm">Spare Parts / Hardware</h3>
-                        <button onclick="openPartModal()" class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded transition-colors">
-                            <i class="fas fa-plus mr-1"></i> Add Part
+                <!-- Spare Parts -->
+                <div class="dtl-card overflow-hidden">
+                    <div class="dtl-card-hd">
+                        <div class="flex items-center gap-2">
+                            <div class="dtl-hd-icon" style="background:#FFF7ED; color:#F97316;">
+                                <i class="fas fa-microchip"></i>
+                            </div>
+                            <span class="text-sm font-bold text-slate-800">Spare Parts / Hardware</span>
+                        </div>
+                        <button onclick="openPartModal()"
+                                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
+                                style="background:#E0F7FD; color:#0096BE;"
+                                onmouseover="this.style.background='#b3edfb'" onmouseout="this.style.background='#E0F7FD'">
+                            <i class="fas fa-plus text-[9px]"></i> Add Part
                         </button>
                     </div>
-                    <div class="p-3">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="text-xs text-gray-500 border-b border-gray-100">
-                                    <th class="pb-2 font-medium text-left">Part Name</th>
-                                    <th class="pb-2 font-medium text-center">Qty</th>
-                                    <th class="pb-2 font-medium text-right">Cost</th>
-                                    <th class="pb-2 font-medium text-right">Total</th>
-                                    <th class="pb-2 font-medium text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="partsTableBody">
-                                <!-- Populated by JS -->
-                            </tbody>
-                            <tfoot>
-                                <tr class="border-t border-gray-100">
-                                    <td colspan="3" class="pt-2 text-right text-xs text-gray-500">Grand Total:</td>
-                                    <td id="grandTotal" class="pt-2 text-right font-bold text-gray-800">₹0.00</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                    <div class="p-3 sm:p-4">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm min-w-[380px]">
+                                <thead>
+                                    <tr class="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                                        <th class="pb-2 text-left">Part Name</th>
+                                        <th class="pb-2 text-center">Qty</th>
+                                        <th class="pb-2 text-right">Cost</th>
+                                        <th class="pb-2 text-right">Total</th>
+                                        <th class="pb-2 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="partsTableBody"></tbody>
+                                <tfoot>
+                                    <tr class="border-t border-slate-100">
+                                        <td colspan="3" class="pt-2.5 text-right text-xs font-semibold text-slate-400">Grand Total:</td>
+                                        <td id="grandTotal" class="pt-2.5 text-right font-black text-slate-800">₹0.00</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column: Activity & Comments -->
+            <!-- ══════ RIGHT SIDEBAR ══════ -->
             <div class="space-y-4">
-                <!-- Activity Tabs -->
-                <div class="bg-white rounded border border-gray-200">
-                    <div class="flex border-b border-gray-200">
-                        <button onclick="switchTab('comments')" class="flex-1 py-2 text-xs font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-300 transition-colors tab-btn active-tab" data-target="comments">
-                            <i class="far fa-comments mr-1"></i> Chat
-                        </button>
-                        <button onclick="switchTab('activity')" class="flex-1 py-2 text-xs font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-300 transition-colors tab-btn" data-target="activity">
-                            <i class="fas fa-history mr-1"></i> Log
-                        </button>
-                        <button onclick="switchTab('files')" class="flex-1 py-2 text-xs font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-300 transition-colors tab-btn" data-target="files">
-                            <i class="fas fa-paperclip mr-1"></i> Files
-                        </button>
 
+                <!-- SLA Progress -->
+                <div class="dtl-card p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="dtl-hd-icon" style="background:#E0F7FD; color:#0096BE;">
+                            <i class="fas fa-stopwatch"></i>
+                        </div>
+                        <span class="text-sm font-bold text-slate-800">SLA Progress</span>
+                        <span id="slaPercentText" class="ml-auto text-xs font-bold" style="color:#0096BE;">Calculating...</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+                        <div id="slaProgressBar" style="width:0%;"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-400">
+                        <span><i class="fas fa-clock mr-1"></i>@Model.CreatedOn?.ToString("dd MMM HH:mm")</span>
+                        <span><i class="fas fa-flag-checkered mr-1"></i>@(Model.DueDate?.ToString("dd MMM HH:mm") ?? "No SLA")</span>
+                    </div>
+                </div>
+
+                <!-- Chat / Log / Files -->
+                <div class="dtl-card overflow-hidden">
+                    <div class="flex border-b border-slate-100">
+                        <button onclick="switchTab('comments')" class="dtl-tab active" id="dtl-tab-comments" data-target="comments">
+                            <i class="far fa-comments mr-1"></i>Chat
+                        </button>
+                        <button onclick="switchTab('activity')" class="dtl-tab" id="dtl-tab-activity" data-target="activity">
+                            <i class="fas fa-history mr-1"></i>Log
+                        </button>
+                        <button onclick="switchTab('files')" class="dtl-tab" id="dtl-tab-files" data-target="files">
+                            <i class="fas fa-paperclip mr-1"></i>Files
+                        </button>
                     </div>
 
-                    <!-- Comments Tab -->
-                    <div id="tab-comments" class="tab-content p-3">
-                        <div id="commentsList" class="space-y-3 max-h-80 overflow-y-auto pr-2 mb-3">
-                            <!-- Loaded via JS -->
-                        </div>
-                        <div class="border-t border-gray-100 pt-3">
-                            <div class="relative">
-                                <textarea id="commentInput" rows="2" class="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Type a message..."></textarea>
-                                <button onclick="submitComment()" class="absolute right-1.5 bottom-1.5 p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    <!-- Chat -->
+                    <div id="tab-comments" class="tab-content flex flex-col" style="height:360px;">
+                        <div id="commentsList" class="flex-1 dtl-scroll p-3 space-y-3 overflow-y-auto"></div>
+                        <div class="p-3 border-t border-slate-100 bg-white">
+                            <div class="flex gap-2 items-end">
+                                <textarea id="commentInput" rows="1" placeholder="Type a message… (Enter to send)"
+                                          class="flex-1 px-3 py-2 text-sm"></textarea>
+                                <button onclick="submitComment()" class="btn-cyan w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
                                     <i class="fas fa-paper-plane text-xs"></i>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Activity Tab -->
-                    <div id="tab-activity" class="tab-content hidden p-3">
-                        <div class="space-y-3 max-h-96 overflow-y-auto pr-2" id="activityList">
-                            <!-- Loaded via JS -->
-                        </div>
+                    <!-- Log -->
+                    <div id="tab-activity" class="tab-content hidden p-3 dtl-scroll" style="max-height:360px;">
+                        <div id="activityList" class="space-y-0"></div>
                     </div>
 
-                    <!-- Files Tab -->
-                    <div id="tab-files" class="tab-content hidden p-3">
-                        <div class="mb-3 p-3 border-2 border-dashed border-gray-300 rounded text-center hover:bg-gray-50 cursor-pointer" onclick="document.getElementById('fileUpload').click()">
-                            <i class="fas fa-cloud-upload-alt text-gray-400 mb-1"></i>
-                            <p class="text-xs text-gray-600">Click to upload file</p>
-                            <p class="text-[10px] text-gray-400 mt-0.5">Max 10MB • Supported: images, documents, archives</p>
-                            <input type="file" id="fileUpload" class="hidden" onchange="uploadFile(this)" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.png,.jpg,.jpeg,.gif,.bmp,.svg,.webp">
+                    <!-- Files -->
+                    <div id="tab-files" class="tab-content hidden p-3 dtl-scroll" style="max-height:360px;">
+                        <div class="drop-zone p-4 mb-3" onclick="document.getElementById('fileUpload').click()">
+                            <i class="fas fa-cloud-upload-alt text-2xl mb-1.5 block" style="color:#00BCEB; opacity:.5;"></i>
+                            <p class="text-xs font-semibold text-slate-500">Click to upload</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Max 10MB · PDF, Office, images, archives</p>
+                            <input type="file" id="fileUpload" class="hidden" onchange="uploadFile(this)"
+                                   accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.png,.jpg,.jpeg,.gif,.bmp,.svg,.webp">
                         </div>
-                        <div class="space-y-2 max-h-80 overflow-y-auto pr-2" id="attachmentsList">
-                            <!-- Loaded via JS -->
-                        </div>
+                        <div class="space-y-2" id="attachmentsList"></div>
                     </div>
-
-
                 </div>
 
-                <!-- SLA Progress -->
-                <div class="bg-white rounded border border-gray-200 p-3">
-                    <div class="flex justify-between items-center mb-2">
-                        <div class="text-xs font-medium text-gray-700">SLA Resolution</div>
-                        <span id="slaPercentText" class="text-xs font-medium">Calculating...</span>
-                    </div>
-                    <div class="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mb-1">
-                        <div id="slaProgressBar" class="h-full transition-all duration-1000" style="width: 0%"></div>
-                    </div>
-                    <div class="flex justify-between text-[10px] text-gray-500">
-                        <span>Created: @Model.CreatedOn?.ToString("dd MMM HH:mm")</span>
-                        <span>Deadline: @(Model.DueDate?.ToString("dd MMM HH:mm") ?? "No SLA")</span>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Compact Modals -->
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- Approve -->
 <div id="approveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-xs transition-all transform animate-in fade-in zoom-in duration-200">
-        <div class="p-3 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t">
-            <h3 class="font-bold text-gray-800 text-sm">Approve Ticket</h3>
-            <button onclick="closeModal('approveModal')" class="text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times text-sm"></i>
-            </button>
+    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+        <div class="modal-hd-cyan px-5 py-3.5 flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></div>
+            <h3 class="font-bold text-white text-sm">Approve Ticket</h3>
+            <button onclick="closeModal('approveModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-3">
-            <div id="approveTriageFields" class="grid grid-cols-2 gap-2 mb-3">
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Set Priority</label>
-                    <select id="approvePriority" class="w-full text-xs border border-gray-300 rounded p-1.5 focus:border-blue-500 outline-none">
-                        <option value="">-- Keep Current --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Set Category</label>
-                    <select id="approveCategory" class="w-full text-xs border border-gray-300 rounded p-1.5 focus:border-blue-500 outline-none">
-                        <option value="">-- Keep Current --</option>
-                    </select>
-                </div>
+        <div class="p-5">
+            <div id="approveTriageFields" class="grid grid-cols-2 gap-3 mb-3">
+                <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Set Priority</label>
+                    <select id="approvePriority" class="inp-brand"><option value="">-- Keep Current --</option></select></div>
+                <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Set Category</label>
+                    <select id="approveCategory" class="inp-brand"><option value="">-- Keep Current --</option></select></div>
             </div>
-            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Approval Remarks</label>
-            <textarea id="approveRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Any comments..."></textarea>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Remarks</label>
+            <textarea id="approveRemarks" class="inp-brand mb-4" rows="2" placeholder="Any comments..."></textarea>
             <div class="flex gap-2">
-                <button onclick="closeModal('approveModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium hover:bg-gray-100 rounded">Cancel</button>
-                <button onclick="submitApprove()" class="flex-1 py-1.5 bg-green-600 text-white text-sm font-medium rounded shadow-sm shadow-green-200">Confirm</button>
+                <button onclick="closeModal('approveModal')" class="flex-1 py-2 text-sm font-semibold btn-ghost rounded-lg">Cancel</button>
+                <button onclick="submitApprove()" class="flex-1 py-2 text-sm font-bold btn-lime rounded-lg">Confirm Approve</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Unified Triage & Status Modal -->
+<!-- Status Update -->
 <div id="statusModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-sm transition-all transform animate-in fade-in zoom-in duration-200">
-        <div class="p-3 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t">
-            <h3 class="font-bold text-gray-800 text-sm">Update Status & Triage</h3>
-            <button onclick="closeModal('statusModal')" class="text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times text-sm"></i>
-            </button>
+    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+        <div class="modal-hd-cyan px-5 py-3.5 flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-sync text-white text-xs"></i></div>
+            <h3 class="font-bold text-white text-sm">Update Status &amp; Triage</h3>
+            <button onclick="closeModal('statusModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-3">
+        <div class="p-5">
             <input type="hidden" id="newStatusValue">
-            
             <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Priority</label>
-                    <select id="statusPriority" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none focus:border-blue-500">
-                        <option value="">-- Keep Current --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Category</label>
-                    <select id="statusCategory" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none focus:border-blue-500">
-                        <option value="">-- Keep Current --</option>
-                    </select>
-                </div>
+                <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Priority</label>
+                    <select id="statusPriority" class="inp-brand"><option value="">-- Keep Current --</option></select></div>
+                <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Category</label>
+                    <select id="statusCategory" class="inp-brand"><option value="">-- Keep Current --</option></select></div>
             </div>
-
-            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Remarks</label>
-            <textarea id="statusRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Any comments..."></textarea>
-            
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Remarks</label>
+            <textarea id="statusRemarks" class="inp-brand mb-4" rows="2" placeholder="Any comments..."></textarea>
             <div class="flex gap-2">
-                <button onclick="closeModal('statusModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium hover:bg-gray-100 rounded">Cancel</button>
-                <button onclick="executeStatusUpdate()" class="flex-1 py-1.5 bg-blue-600 text-white text-sm font-medium rounded shadow-sm shadow-blue-200">Update Ticket</button>
+                <button onclick="closeModal('statusModal')" class="flex-1 py-2 text-sm font-semibold btn-ghost rounded-lg">Cancel</button>
+                <button onclick="executeStatusUpdate()" class="flex-1 py-2 text-sm font-bold btn-cyan rounded-lg">Update Ticket</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Dedicated Quick Triage Modal -->
+<!-- Quick Triage -->
 <div id="triageModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-xs transition-all transform animate-in fade-in zoom-in duration-200">
-        <div class="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t">
-            <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
-                <i class="fas fa-tags text-blue-500"></i> Edit Triage info
-            </h3>
-            <button onclick="closeModal('triageModal')" class="text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times text-sm"></i>
-            </button>
+    <div class="bg-white rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden">
+        <div class="modal-hd-cyan px-5 py-3.5 flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-tags text-white text-xs"></i></div>
+            <h3 class="font-bold text-white text-sm">Edit Triage</h3>
+            <button onclick="closeModal('triageModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-4">
-            <div class="space-y-4 mb-5">
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Ticket Priority</label>
-                    <select id="quickPriority" class="w-full text-sm border border-gray-300 rounded-md p-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"></select>
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Ticket Category</label>
-                    <select id="quickCategory" class="w-full text-sm border border-gray-300 rounded-md p-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"></select>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="closeModal('triageModal')" class="flex-1 py-2 text-sm text-gray-500 font-semibold hover:bg-gray-100 rounded-md transition-colors">Cancel</button>
-                <button onclick="submitTriage()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md shadow-sm shadow-blue-200 transition-all active:scale-95">Save Changes</button>
+        <div class="p-5 space-y-3">
+            <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Priority</label>
+                <select id="quickPriority" class="inp-brand"></select></div>
+            <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Category</label>
+                <select id="quickCategory" class="inp-brand"></select></div>
+            <div class="flex gap-2 pt-1">
+                <button onclick="closeModal('triageModal')" class="flex-1 py-2 text-sm font-semibold btn-ghost rounded-lg">Cancel</button>
+                <button onclick="submitTriage()" class="flex-1 py-2 text-sm font-bold btn-cyan rounded-lg">Save Changes</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Reject -->
 <div id="rejectModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-xs">
-        <div class="p-3 border-b border-red-100 bg-red-50 flex justify-between items-center">
+    <div class="bg-white rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden">
+        <div class="modal-hd-red px-5 py-3.5 flex items-center gap-2.5">
+            <i class="fas fa-times-circle text-red-500 text-sm"></i>
             <h3 class="font-bold text-red-800 text-sm">Reject Ticket</h3>
-            <button onclick="closeModal('rejectModal')" class="text-gray-400 hover:text-red-400">
-                <i class="fas fa-times text-sm"></i>
-            </button>
+            <button onclick="closeModal('rejectModal')" class="ml-auto text-gray-400 hover:text-red-400"><i class="fas fa-times text-sm"></i></button>
         </div>
-        <div class="p-3">
-            <label class="block text-xs text-gray-700 mb-2">Reason for Rejection</label>
-            <textarea id="rejectRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Explain why..."></textarea>
+        <div class="p-5">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Reason</label>
+            <textarea id="rejectRemarks" class="inp-brand mb-4" rows="3" placeholder="Explain why..."></textarea>
             <div class="flex gap-2">
-                <button onclick="closeModal('rejectModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Cancel</button>
-                <button onclick="submitStatusAction('Rejected')" class="flex-1 py-1.5 bg-red-600 text-white text-sm font-medium rounded">Reject</button>
+                <button onclick="closeModal('rejectModal')" class="flex-1 py-2 text-sm font-semibold btn-ghost rounded-lg">Cancel</button>
+                <button onclick="submitStatusAction('Rejected')" class="flex-1 py-2 text-sm font-bold rounded-lg text-white" style="background:#EF4444;">Reject</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Assign -->
 <div id="assignModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-xs">
-        <div class="p-3 border-b border-blue-100 bg-blue-50 flex justify-between items-center">
-            <h3 class="font-bold text-blue-800 text-sm">Assign Engineer</h3>
-            <button onclick="closeModal('assignModal')" class="text-gray-400 hover:text-blue-400">
-                <i class="fas fa-times text-sm"></i>
-            </button>
+    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+        <div class="modal-hd-cyan px-5 py-3.5 flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-user-tag text-white text-xs"></i></div>
+            <h3 class="font-bold text-white text-sm">Assign Engineer</h3>
+            <button onclick="closeModal('assignModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-3">
-            <label class="block text-xs text-gray-700 mb-2">Select Engineer</label>
-            <input type="hidden" id="selectedEngineerId" />
-            <input type="hidden" id="selectedEngineerName" />
-            <div id="engineerList" class="max-h-64 overflow-y-auto space-y-2 mb-3 bg-white border border-gray-200 rounded p-2">
-                <div class="text-center text-xs text-gray-500 py-3">Loading engineers...</div>
-            </div>
-            <label class="block text-xs text-gray-700 mb-2">Assignment Notes</label>
-            <textarea id="assignNotes" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Tasks for engineer..."></textarea>
+        <div class="p-5">
+            <input type="hidden" id="selectedEngineerId">
+            <input type="hidden" id="selectedEngineerName">
+            <div id="engineerList" class="max-h-52 overflow-y-auto space-y-2 mb-3"></div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Assignment Notes</label>
+            <textarea id="assignNotes" class="inp-brand mb-4" rows="2" placeholder="Tasks for engineer..."></textarea>
             <div class="flex gap-2">
-                <button onclick="closeModal('assignModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Cancel</button>
-                <button onclick="submitAssignAction()" class="flex-1 py-1.5 bg-blue-600 text-white text-sm font-medium rounded">Assign</button>
+                <button onclick="closeModal('assignModal')" class="flex-1 py-2 text-sm font-semibold btn-ghost rounded-lg">Cancel</button>
+                <button onclick="submitAssignAction()" class="flex-1 py-2 text-sm font-bold btn-cyan rounded-lg">Assign</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Add Part -->
 <div id="partModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-xs">
-        <div class="p-3 border-b border-purple-100 bg-purple-50 flex justify-between items-center">
-            <h3 class="font-bold text-purple-800 text-sm">Add Spare Part</h3>
-            <button onclick="closeModal('partModal')" class="text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times text-sm"></i>
-            </button>
+    <div class="bg-white rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden">
+        <div class="modal-hd-orange px-5 py-3.5 flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-microchip text-white text-xs"></i></div>
+            <h3 class="font-bold text-white text-sm">Add Spare Part</h3>
+            <button onclick="closeModal('partModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-3">
-            <div class="mb-2">
-                <label class="block text-xs text-gray-700 mb-1">Part Name</label>
-                <input type="text" id="partName" list="masterPartsList" class="w-full text-sm border border-gray-300 rounded p-1.5" autocomplete="off" onchange="onPartSelect(this)">
-                <datalist id="masterPartsList"></datalist>
+        <div class="p-5 space-y-3">
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Part Name</label>
+                <input type="text" id="partName" list="inventoryPartsList" class="inp-brand" autocomplete="off" onchange="onPartSelect(this)">
+                <datalist id="inventoryPartsList"></datalist>
             </div>
-            <div class="grid grid-cols-2 gap-2 mb-3">
-                <div>
-                    <label class="block text-xs text-gray-700 mb-1">Quantity</label>
-                    <input type="number" id="partQty" class="w-full text-sm border border-gray-300 rounded p-1.5" value="1">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-700 mb-1">Unit Cost</label>
-                    <input type="number" id="partCost" class="w-full text-sm border border-gray-300 rounded p-1.5" placeholder="0.00" step="0.01">
-                </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qty</label>
+                    <input type="number" id="partQty" class="inp-brand" value="1"></div>
+                <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Unit Cost</label>
+                    <input type="number" id="partCost" class="inp-brand" placeholder="0.00" step="0.01"></div>
             </div>
-            <button onclick="submitPart()" class="w-full py-1.5 bg-purple-600 text-white text-sm font-medium rounded">Add to Parts</button>
+            <button onclick="submitPart()" class="w-full py-2 text-sm font-bold rounded-lg text-white modal-hd-orange">
+                <i class="fas fa-plus mr-1.5"></i>Add to Parts
+            </button>
         </div>
     </div>
 </div>
 
-<!-- Resolve Modal -->
+<!-- Resolve -->
 <div id="resolveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-sm">
-        <div class="p-3 border-b border-emerald-100 bg-emerald-50 flex justify-between items-center">
-            <h3 class="font-bold text-emerald-800 text-sm"><i class="fas fa-check-circle mr-2"></i>Resolve Ticket</h3>
-            <button onclick="closeModal('resolveModal')" class="text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times text-sm"></i>
-            </button>
+    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+        <div class="modal-hd-lime px-5 py-3.5 flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-check-circle text-white text-xs"></i></div>
+            <h3 class="font-bold text-white text-sm">Resolve Ticket</h3>
+            <button onclick="closeModal('resolveModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-3">
-            <div class="mb-3">
-                <label class="block text-xs text-gray-700 mb-1">Resolution Notes</label>
-                <textarea id="resolveNotes" class="w-full text-sm border border-gray-300 rounded p-2" rows="4" 
-                    placeholder="Describe what was done to resolve this ticket..."></textarea>
-            </div>
+        <div class="p-5">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Resolution Notes</label>
+            <textarea id="resolveNotes" class="inp-brand mb-4" rows="4" placeholder="Describe what was done to resolve this ticket..."></textarea>
             <div class="flex gap-2">
-                <button onclick="closeModal('resolveModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Cancel</button>
-                <button onclick="submitResolve()" class="flex-1 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded">
-                    <i class="fas fa-check mr-1"></i> Mark Resolved
-                </button>
+                <button onclick="closeModal('resolveModal')" class="flex-1 py-2 text-sm font-semibold btn-ghost rounded-lg">Cancel</button>
+                <button onclick="submitResolve()" class="flex-1 py-2 text-sm font-bold btn-lime rounded-lg"><i class="fas fa-check mr-1"></i>Mark Resolved</button>
             </div>
         </div>
     </div>
 </div>
-
-
-
-<style>
-    .active-tab {
-        border-bottom-color: #3b82f6;
-        color: #2563eb;
-    }
-</style>
 
 @section Scripts {
-    <script>
-        const ticketId = @Model.Id;
-        const currentStatus = "@Model.Status";
-        const currentPriority = "@Model.Priority";
-        const currentCategory = "@Model.Category";
-        const currentUser = "@username";
-        const apiBaseUrl = '@(ViewBag.ApiBaseUrl ?? "")';
+<script>
+    const ticketId        = @Model.Id;
+    const currentStatus   = "@Model.Status";
+    const currentPriority = "@Model.Priority";
+    const currentCategory = "@Model.Category";
+    const currentUser     = "@username";
+    const apiBaseUrl      = '@(ViewBag.ApiBaseUrl ?? "")';
 
-        // RBAC permission flags from server
-        const canApprove = @(canApprove ? "true" : "false");
-        const canAssign = @(canAssign ? "true" : "false");
-        const canDelete = @(canDelete ? "true" : "false");
+    const canApprove = @(canApprove ? "true" : "false");
+    const canAssign  = @(canAssign  ? "true" : "false");
+    const canDelete  = @(canDelete  ? "true" : "false");
+    const currentSortOrder = @(Model.StatusSortOrder);
+    const statusOrders = @Html.Raw(ViewBag.StatusOrdersJson ?? "{}");
+    const approvedSortOrder = @(ViewBag.ApprovedStatusSortOrder ?? 10);
 
-        let connection = null;
+    let connection = null;
 
-        // HTML escape to prevent XSS
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 
-        // File type icon helper
-        function getFileIcon(fileName) {
-            if (!fileName) return 'fa-file';
-            const ext = fileName.split('.').pop().toLowerCase();
-            const icons = {
-                'pdf': 'fa-file-pdf text-red-500',
-                'doc': 'fa-file-word text-blue-600', 'docx': 'fa-file-word text-blue-600',
-                'xls': 'fa-file-excel text-green-600', 'xlsx': 'fa-file-excel text-green-600', 'csv': 'fa-file-excel text-green-600',
-                'ppt': 'fa-file-powerpoint text-orange-500', 'pptx': 'fa-file-powerpoint text-orange-500',
-                'zip': 'fa-file-archive text-yellow-600', 'rar': 'fa-file-archive text-yellow-600', '7z': 'fa-file-archive text-yellow-600',
-                'png': 'fa-file-image text-purple-500', 'jpg': 'fa-file-image text-purple-500', 'jpeg': 'fa-file-image text-purple-500',
-                'gif': 'fa-file-image text-purple-500', 'svg': 'fa-file-image text-purple-500', 'webp': 'fa-file-image text-purple-500',
-                'txt': 'fa-file-alt text-gray-500'
-            };
-            return icons[ext] || 'fa-file text-gray-400';
-        }
+    function getFileIcon(fileName) {
+        if (!fileName) return 'fa-file';
+        const ext = fileName.split('.').pop().toLowerCase();
+        const icons = {
+            'pdf':'fa-file-pdf text-red-500',
+            'doc':'fa-file-word text-blue-600','docx':'fa-file-word text-blue-600',
+            'xls':'fa-file-excel text-green-600','xlsx':'fa-file-excel text-green-600','csv':'fa-file-excel text-green-600',
+            'ppt':'fa-file-powerpoint text-orange-500','pptx':'fa-file-powerpoint text-orange-500',
+            'zip':'fa-file-archive text-yellow-600','rar':'fa-file-archive text-yellow-600','7z':'fa-file-archive text-yellow-600',
+            'png':'fa-file-image text-purple-500','jpg':'fa-file-image text-purple-500','jpeg':'fa-file-image text-purple-500',
+            'gif':'fa-file-image text-purple-500','svg':'fa-file-image text-purple-500','webp':'fa-file-image text-purple-500',
+            'txt':'fa-file-alt text-gray-500'
+        };
+        return icons[ext] || 'fa-file text-gray-400';
+    }
 
-        $(document).ready(function() {
-            initUI();
-            loadParts();
-            loadMasterParts();
-            loadComments();
-            loadLogs();
-            loadAttachments();
-            loadCategoriesForApprove();
-            loadPrioritiesForApprove();
-
-            renderActionButtons();
-
-            updateSLAProgress();
-            setInterval(updateSLAProgress, 60000);
-
-            // Enter key to send comment (Shift+Enter for new line)
-            $('#commentInput').on('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    submitComment();
-                }
-            });
-
-            // SignalR Connection
-            setupSignalR();
+    $(document).ready(function() {
+        initUI();
+        loadParts();
+        loadInventoryParts();
+        loadComments();
+        loadLogs();
+        loadAttachments();
+        loadCategoriesForApprove();
+        loadPrioritiesForApprove();
+        renderActionButtons();
+        updateSLAProgress();
+        setInterval(updateSLAProgress, 60000);
+        $('#commentInput').on('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); }
         });
+        setupSignalR();
+    });
 
-        async function setupSignalR() {
-            try {
-                // Ensure SignalR library is available (it's often globally included or can be fetched via CDN)
-                if (typeof signalR === "undefined") {
-                    console.warn("SignalR not found, loading from CDN...");
-                    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js");
-                }
-
-                connection = new signalR.HubConnectionBuilder()
-                    .withUrl('@ViewBag.ApiBaseUrl/ticketHub')
-                    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000]) // Retry immediately, 2s, 5s, 10s, 30s
-                    .build();
-
-                connection.onreconnecting(error => {
-                    sysToast('SignalR UI Indicator', 'Connection lost. Trying to reconnect...', 'warning');
-                    $('#signalrBadge').remove();
-                    $('body').append('<div id="signalrBadge" class="fixed bottom-4 right-4 bg-yellow-500 text-white px-3 py-1.5 rounded shadow-lg text-sm z-50 flex items-center gap-2"><i class="fas fa-sync fa-spin"></i> Reconnecting to live updates...</div>');
-                });
-
-                connection.onreconnected(connectionId => {
-                    $('#signalrBadge').remove();
-                    sysToast('SignalR UI Indicator', 'Reconnected to live updates.', 'success');
-                });
-
-                connection.onclose(error => {
-                    $('#signalrBadge').remove();
-                    $('body').append('<div id="signalrBadge" class="fixed bottom-4 right-4 bg-red-600 text-white px-3 py-1.5 rounded shadow-lg text-sm z-50 flex items-center gap-2"><i class="fas fa-exclamation-triangle"></i> Live updates disconnected. Refresh page.</div>');
-                });
-
-                connection.on("ReceiveComment", function (tId, comment, user, timestamp, uId) {
-                    if (parseInt(tId) === ticketId) {
-                        loadComments(true); // Reload comments for the current ticket
-                    }
-                });
-
-                connection.on("ReceiveMessagechat", (message, isClient, time, clientId) => {
-                    // Refresh comments if the incoming message belongs to this ticket's client
-                    if (clientId === "@Model.ClientId") {
-                        loadComments(true);
-                    }
-                });
-
-                await connection.start();
-                console.log("SignalR Connected.");
-            } catch (err) {
-                console.error("SignalR Connection Error: ", err);
-                // Fallback to polling if SignalR fails
-                setInterval(() => {
-                    if($('#tab-comments').is(':visible')) loadComments(true);
-                }, 10000);
-            }
+    async function setupSignalR() {
+        try {
+            if (typeof signalR === "undefined") await loadScript("https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js");
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl('@ViewBag.ApiBaseUrl/ticketHub')
+                .withAutomaticReconnect([0, 2000, 5000, 10000, 30000]).build();
+            connection.onreconnecting(() => { $('#signalrBadge').remove(); $('body').append('<div id="signalrBadge" class="fixed bottom-4 right-4 bg-yellow-500 text-white px-3 py-1.5 rounded shadow-lg text-sm z-50 flex items-center gap-2"><i class="fas fa-sync fa-spin"></i> Reconnecting...</div>'); });
+            connection.onreconnected(() => { $('#signalrBadge').remove(); });
+            connection.onclose(() => { $('#signalrBadge').remove(); $('body').append('<div id="signalrBadge" class="fixed bottom-4 right-4 bg-red-600 text-white px-3 py-1.5 rounded shadow-lg text-sm z-50"><i class="fas fa-exclamation-triangle mr-1"></i> Live updates disconnected</div>'); });
+            connection.on("ReceiveComment", function(tId) { if (parseInt(tId) === ticketId) loadComments(true); });
+            connection.on("ReceiveMessagechat", (message, isClient, time, clientId) => { if (clientId === "@Model.ClientId") loadComments(true); });
+            await connection.start();
+        } catch(err) {
+            console.error("SignalR Error:", err);
+            setInterval(() => { if($('#tab-comments').is(':visible')) loadComments(true); }, 10000);
         }
+    }
 
-        function loadScript(url) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement("script");
-                script.src = url;
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
+    function loadScript(url) {
+        return new Promise((resolve, reject) => { const s = document.createElement("script"); s.src=url; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); });
+    }
+
+    function updateSLAProgress() {
+        const createdStr = "@Model.CreatedOn?.ToString("yyyy-MM-ddTHH:mm:ss")";
+        const dueStr     = "@Model.DueDate?.ToString("yyyy-MM-ddTHH:mm:ss")";
+        const bar = $('#slaProgressBar'), txt = $('#slaPercentText');
+        if (!createdStr || !dueStr) { bar.css({'width':'0%','background':'#9ca3af'}); txt.text('No SLA').css('color','#9ca3af'); return; }
+        const created = new Date(createdStr), due = new Date(dueStr), now = new Date();
+        if (isNaN(created)||isNaN(due)) { bar.css({'width':'0%','background':'#9ca3af'}); txt.text('No SLA'); return; }
+        const total = due-created, elapsed = now-created;
+        let pct = Math.min(Math.max((elapsed/total)*100, 0), 100);
+        bar.css('width', pct+'%');
+        if (currentStatus==='Resolved'||currentStatus==='Closed') {
+            bar.css('background','linear-gradient(90deg,#B4D334,#8FB829)'); txt.text('Completed ✓').css('color','#8FB829');
+        } else if (now > due) {
+            bar.css('background','#EF4444'); txt.text('SLA BREACHED').css('color','#EF4444');
+        } else {
+            bar.css('background', pct>80 ? 'linear-gradient(90deg,#F97316,#EA580C)' : 'linear-gradient(90deg,#00BCEB,#0096BE)');
+            txt.text(Math.round(pct)+'% elapsed').css('color', pct>80 ? '#F97316' : '#0096BE');
         }
+    }
 
-        function updateSLAProgress() {
-            const createdStr = "@Model.CreatedOn?.ToString("yyyy-MM-ddTHH:mm:ss")";
-            const dueStr = "@Model.DueDate?.ToString("yyyy-MM-ddTHH:mm:ss")";
-            
-            const bar = $('#slaProgressBar');
-            const txt = $('#slaPercentText');
+    function initUI() {
+        const s = currentStatus.toLowerCase();
+        const badge = $('#headerStatusBadge');
+        const statusCleaned = s.replace(/_/g, '').replace(/ /g, '');
+        if (statusCleaned==='open')                          badge.css({'background':'#FEF2F2','color':'#EF4444','border':'1px solid #FECACA'});
+        else if (statusCleaned==='resolved'||statusCleaned==='closed')   badge.css({'background':'#F1F8E9','color':'#5a7a00','border':'1px solid #d1e8a0'});
+        else if (statusCleaned==='rejected')                 badge.css({'background':'rgba(255,255,255,.2)','color':'#fff','border':'1px solid rgba(255,255,255,.3)'});
+        else if (statusCleaned==='approved')                 badge.css({'background':'rgba(180,211,52,.3)','color':'#fff','border':'1px solid rgba(180,211,52,.5)'});
+        else                                     badge.css({'background':'rgba(255,255,255,.15)','color':'#fff','border':'1px solid rgba(255,255,255,.25)'});
 
-            if (!createdStr || !dueStr || createdStr === '' || dueStr === '') {
-                bar.css('width', '0%').css('background-color', '#9ca3af');
-                txt.text('No SLA').css('color', '#9ca3af');
-                return;
-            }
+        const p = currentPriority ? currentPriority.toLowerCase() : '';
+        let pColor='#00BCEB', pStripe='linear-gradient(90deg,#00BCEB,#0096BE)';
+        if (p==='urgent'||p==='critical') { pColor='#EF4444'; pStripe='linear-gradient(90deg,#EF4444,#b91c1c)'; }
+        else if (p==='high')   { pColor='#F97316'; pStripe='linear-gradient(90deg,#F97316,#EA580C)'; }
+        else if (p==='medium') { pColor='#F59E0B'; pStripe='linear-gradient(90deg,#F59E0B,#D97706)'; }
+        else if (p==='low')    { pColor='#B4D334'; pStripe='linear-gradient(90deg,#B4D334,#8FB829)'; }
+        $('#priorityStripe').css('background', pStripe);
+        $('#priorityDot').css('background', pColor);
 
-            const created = new Date(createdStr);
-            const due = new Date(dueStr);
-            const now = new Date();
+        let dotColor='#9ca3af';
+        if (statusCleaned==='inprogress'||statusCleaned==='assigned') dotColor='#0096BE';
+        else if (statusCleaned==='resolved'||statusCleaned==='closed') dotColor='#B4D334';
+        else if (statusCleaned==='open') dotColor='#EF4444';
+        else if (statusCleaned==='approved') dotColor='#B4D334';
+        $('#statusDot').css('color', dotColor);
+    }
 
-            if (isNaN(created.getTime()) || isNaN(due.getTime())) {
-                bar.css('width', '0%').css('background-color', '#9ca3af');
-                txt.text('No SLA').css('color', '#9ca3af');
-                return;
-            }
+    function switchTab(tabName) {
+        $('.tab-content').addClass('hidden');
+        $(`#tab-${tabName}`).removeClass('hidden');
+        $('.dtl-tab').removeClass('active');
+        $(`#dtl-tab-${tabName}`).addClass('active');
+    }
 
-            const total = due - created;
-            const elapsed = now - created;
-            let percent = Math.min(Math.max((elapsed / total) * 100, 0), 100);
+    function openModal(id) { $(`#${id}`).removeClass('hidden'); if(id==='assignModal') loadEngineers(); }
+    function closeModal(id){ $(`#${id}`).addClass('hidden'); }
 
-            bar.css('width', percent + '%');
+    function openApproveModal() {
+        $('#approveRemarks,#approvePriority,#approveCategory').val('');
+        if (currentPriority && currentCategory) $('#approveTriageFields').hide(); else $('#approveTriageFields').show();
+        openModal('approveModal');
+    }
 
-            if (currentStatus === 'Resolved' || currentStatus === 'Closed') {
-                bar.css('background-color', '#10b981');
-                txt.text('Completed').css('color', '#10b981');
-            } else if (now > due) {
-                bar.css('background-color', '#ef4444');
-                txt.text('BREACHED').css('color', '#ef4444');
-            } else {
-                bar.css('background-color', percent > 80 ? '#f97316' : '#3b82f6');
-                txt.text(Math.round(percent) + '% elapsed').css('color', percent > 80 ? '#f97316' : '#6b7280');
-            }
-        }
-
-        function initUI() {
-            // Status Badge Color
-            const s = currentStatus.toLowerCase();
-            const badge = $('#headerStatusBadge');
-            if(s === 'open') badge.addClass('bg-red-100 text-red-600');
-            else if(s === 'resolved' || s === 'closed') badge.addClass('bg-emerald-100 text-emerald-600');
-            else if(s === 'rejected') badge.addClass('bg-gray-200 text-gray-700');
-            else badge.addClass('bg-blue-100 text-blue-600');
-
-            // Dynamic priority colors (BUG-3 & BUG-7 fix)
-            const p = currentPriority ? currentPriority.toLowerCase() : '';
-            let priorityColor = 'bg-blue-500';
-            if (p === 'urgent' || p === 'critical') priorityColor = 'bg-red-500';
-            else if (p === 'high') priorityColor = 'bg-orange-500';
-            else if (p === 'medium') priorityColor = 'bg-amber-500';
-            else if (p === 'low') priorityColor = 'bg-green-500';
-            $('#priorityStripe').addClass(priorityColor);
-            $('#priorityDot').addClass(priorityColor);
-
-            // Dynamic status dot color
-            let statusDotColor = 'text-gray-400';
-            if (s === 'inprogress' || s === 'assigned') statusDotColor = 'text-blue-500';
-            else if (s === 'resolved' || s === 'closed') statusDotColor = 'text-green-500';
-            else if (s === 'open') statusDotColor = 'text-red-500';
-            else if (s === 'approved') statusDotColor = 'text-emerald-500';
-            else if (s === 'rejected') statusDotColor = 'text-gray-500';
-            $('#statusDot').addClass(statusDotColor);
-        }
-
-        // ================= TABS =================
-        function switchTab(tabName) {
-            $('.tab-content').addClass('hidden');
-            $(`#tab-${tabName}`).removeClass('hidden');
-
-            $('.tab-btn').removeClass('active-tab');
-            $(`button[data-target="${tabName}"]`).addClass('active-tab');
-        }
-
-        // ================= MODALS =================
-        function openModal(id) {
-            $(`#${id}`).removeClass('hidden');
-            if(id === 'assignModal') loadEngineers();
-        }
-
-        function closeModal(id) {
-            $(`#${id}`).addClass('hidden');
-        }
-
-        function openApproveModal() {
-            $('#approveRemarks').val('');
-            $('#approvePriority').val('');
-            $('#approveCategory').val('');
-            
-            // Conditional Triaging: Show fields only if they are missing
-            if (currentPriority && currentCategory && currentPriority !== "" && currentCategory !== "") {
-                $('#approveTriageFields').hide();
-            } else {
-                $('#approveTriageFields').show();
-            }
-            
-            openModal('approveModal');
-        }
-
-        function renderActionButtons() {
-            const container = $('#actionButtons');
-            container.empty();
-
-            if(currentStatus === 'Open' && canApprove) {
-                container.append(`<button onclick="openApproveModal()" class="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-check"></i> Approve</button>`);
-                container.append(`<button onclick="openModal('rejectModal')" class="px-2.5 py-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs font-medium rounded"><i class="fas fa-times"></i> Reject</button>`);
-            }
-
-            if((currentStatus === 'Approved' || currentStatus === 'Open') && canAssign) {
-                 container.append(`<button onclick="openModal('assignModal')" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-user-tag"></i> Assign</button>`);
-            }
-
-            // Start Work button for Assigned tickets
-            if(currentStatus === 'Assigned') {
-                container.append(`<button onclick="startWork()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-play"></i> Start Work</button>`);
-            }
-
-            // Resolve button opens modal for InProgress tickets
-            if(currentStatus === 'InProgress' || currentStatus === 'Assigned') {
-                container.append(`<button onclick="openModal('resolveModal')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-check-circle"></i> Resolve</button>`);
-            }
-
-            // Delete button - require delete permission
-            if(currentStatus !== 'Closed' && canDelete) {
-                container.append(`<button onclick="deleteTicket()" class="px-2.5 py-1 bg-white border border-red-200 text-red-400 hover:text-red-600 hover:bg-red-50 text-xs font-medium rounded flex items-center gap-1"><i class="fas fa-trash"></i></button>`);
-            }
-        }
-
-        function openTriageModal() {
-            $('#quickPriority').val(currentPriority);
-            openModal('triageModal');
-        }
-
-        function submitTriage() {
-            const prio = $('#quickPriority').val();
-            const cat = $('#quickCategory').val();
-            
-            showLoading();
-            $.ajax({
-                url: '@Url.Action("UpdateStatus", "ServiceDesk")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ 
-                    ticketId: ticketId, 
-                    newStatus: currentStatus, 
-                    remarks: "Triage information updated", 
-                    username: currentUser,
-                    priority: prio,
-                    category: cat
-                }),
-                success: function(res) {
-                    if(res.success) location.reload();
-                    else sysAlert(res.message, 'error');
-                }
-            });
-        }
-
-        function submitStatusAction(newStatus) {
-            if (newStatus === 'Rejected') {
-                const remarks = $('#rejectRemarks').val();
-                if(!remarks) { sysAlert('Please provide rejection reason', 'warning'); return; }
-                doStatusUpdate(newStatus, remarks);
-            } else if (newStatus === 'Approved') {
-                submitApprove();
-            } else {
-                $('#newStatusValue').val(newStatus);
-                $('#statusPriority').val(currentPriority);
-                openModal('statusModal');
-            }
-        }
-
-        function executeStatusUpdate() {
-            const newStatus = $('#newStatusValue').val();
-            const remarks = $('#statusRemarks').val() || "Status updated to " + newStatus;
-            const prio = $('#statusPriority').val();
-            const cat = $('#statusCategory').val();
-
-            doStatusUpdate(newStatus, remarks, prio, cat);
-        }
-
-        function submitApprove() {
-            const remarks = $('#approveRemarks').val() || "Approved via portal";
-            const priority = $('#approvePriority').val();
-            const category = $('#approveCategory').val();
-
-            closeModal('approveModal');
-
-            $.ajax({
-                url: '@Url.Action("ApproveTicket", "ServiceDesk")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    ticketId: ticketId,
-                    remarks: remarks,
-                    username: currentUser,
-                    priority: priority,
-                    category: category
-                }),
-                success: function(res) {
-                    if(res.success) location.reload();
-                    else sysAlert(res.message, 'error');
-                }
-            });
-        }
-
-        function loadCategoriesForApprove() {
-            $.ajax({
-                url: '@Url.Action("GetCategories", "ServiceDesk")',
-                type: 'GET',
-                success: function (data) {
-                    const selects = $('#approveCategory, #statusCategory, #quickCategory');
-                    if (data && data.length > 0) {
-                        data.forEach(c => {
-                            const name = c.categoryName || c.CategoryName || c;
-                            selects.append(`<option value="${name}">${name}</option>`);
-                        });
-                        // Set current category in triage modal
-                        const currentCat = "@Model.Category";
-                        $('#quickCategory').val(currentCat);
-                    }
-                }
-            });
-        }
+    function renderActionButtons() {
+        const container = $('#actionButtons').empty();
+        const s = currentStatus.toLowerCase();
         
-        function loadPrioritiesForApprove() {
-            $.ajax({
-                url: '@Url.Action("GetPriorities", "ServiceDesk")',
-                type: 'GET',
-                success: function (data) {
-                    const selects = $('#approvePriority, #statusPriority, #quickPriority');
-                    if (data && data.length > 0) {
-                        data.forEach(p => {
-                            const name = p.priorityName || p.PriorityName || p;
-                            selects.append(`<option value="${name}">${name}</option>`);
-                        });
-                    }
-                }
-            });
+        const getOrder = (code) => {
+            const u = code.toUpperCase();
+            return statusOrders[u] || statusOrders[u.replace(/_/g, '')] || statusOrders[u.replace(/ /g, '_')] || 0;
+        };
+
+        const assignedOrder = getOrder('ASSIGNED') || 3;
+        const inProgressOrder = getOrder('IN_PROGRESS') || getOrder('INPROGRESS') || 4;
+        const resolvedOrder = getOrder('RESOLVED') || 5;
+
+        // Approve/Reject - only if strictly before Approval level
+        if (currentSortOrder < approvedSortOrder && canApprove) {
+            container.append('<button onclick="openApproveModal()" class="px-3 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check text-[9px]"></i>Approve</button>');
+            container.append('<button onclick="openModal(\'rejectModal\')" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-white/30 text-white hover:bg-white/10"><i class="fas fa-times text-[9px]"></i>Reject</button>');
         }
 
-        function doStatusUpdate(newStatus, remarks, prio = '', cat = '') {
-            $.ajax({
-                url: '@Url.Action("UpdateStatus", "ServiceDesk")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ 
-                    ticketId: ticketId, 
-                    newStatus: newStatus, 
-                    remarks: remarks, 
-                    username: currentUser,
-                    priority: prio,
-                    category: cat
-                }),
-                success: function(res) {
-                    if(res.success) location.reload();
-                    else sysAlert(res.message, 'error');
-                }
-            });
+        // Assign - only if at Approval level
+        if (currentSortOrder == approvedSortOrder && canAssign) {
+            container.append('<button onclick="openModal(\'assignModal\')" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-white/30 text-white hover:bg-white/10"><i class="fas fa-user-tag text-[9px]"></i>Assign</button>');
         }
 
-        function loadEngineers() {
-            $.get('@Url.Action("GetDetailedEngineers", "ServiceDesk")', function(data) {
-                const container = $('#engineerList');
-                container.empty();
-                
-                if(!data || data.length === 0) {
-                    container.append('<div class="text-center text-xs text-gray-500 py-3">No engineers found</div>');
-                    return;
-                }
-                
-                data.forEach((e, idx) => {
-                    let badgeClass = 'bg-green-100 text-green-700'; // Available
-                    if(e.currentStatus === 'Busy') badgeClass = 'bg-yellow-100 text-yellow-700';
-                    if(e.currentStatus === 'Overloaded') badgeClass = 'bg-red-100 text-red-700';
-                    
-                    let suggestedBadge = idx === 0 ? '<span class="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px] ml-2 font-bold uppercase tracking-wider">Suggested</span>' : '';
-                    
-                    let card = `
-                    <div class="eng-card border border-gray-200 rounded p-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors" 
-                         data-id="${e.id}" data-name="${e.name}" onclick="selectEngineer(this, '${e.id}', '${e.name}')">
-                        <div class="flex justify-between items-start mb-1">
-                            <div class="font-medium text-sm text-gray-800">${e.name} ${suggestedBadge}</div>
-                            <div class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${badgeClass}">${e.currentStatus}</div>
+        // Start Work - only if at Assigned level
+        if (currentSortOrder == assignedOrder) {
+            container.append('<button onclick="startWork()" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 text-white" style="background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.3);"><i class="fas fa-play text-[9px]"></i>Start Work</button>');
+        }
+
+        // Resolve - only if at InProgress level
+        if (currentSortOrder == inProgressOrder) {
+            container.append('<button onclick="openModal(\'resolveModal\')" class="px-3 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check-circle text-[9px]"></i>Resolve</button>');
+        }
+
+        // Status update (Gear/Professional update) - available once approved but not resolved
+        if (currentSortOrder >= approvedSortOrder && currentSortOrder < resolvedOrder) {
+            container.append('<button onclick="openStatusModal()" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 text-white" style="background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);"><i class="fas fa-exchange-alt text-[9px]"></i>Update</button>');
+        }
+        if (currentStatus!=='Closed' && canDelete) {
+            container.append('<button onclick="deleteTicket()" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-white/30 text-white hover:bg-red-500/70 transition-colors"><i class="fas fa-trash text-[9px]"></i></button>');
+        }
+    }
+
+    function openTriageModal() { $('#quickPriority').val(currentPriority); openModal('triageModal'); }
+
+    function submitTriage() {
+        $.ajax({ url:'@Url.Action("UpdateStatus","ServiceDesk")', type:'POST', contentType:'application/json',
+            data: JSON.stringify({ ticketId, newStatus:currentStatus, remarks:"Triage updated", username:currentUser, priority:$('#quickPriority').val(), category:$('#quickCategory').val() }),
+            success: function(res){ if(res.success) location.reload(); else sysAlert(res.message,'error'); }
+        });
+    }
+
+    function submitStatusAction(newStatus) {
+        if (newStatus==='Rejected') {
+            const remarks = $('#rejectRemarks').val();
+            if(!remarks){ sysAlert('Please provide rejection reason','warning'); return; }
+            doStatusUpdate(newStatus, remarks);
+        } else if (newStatus==='Approved') { submitApprove();
+        } else { $('#newStatusValue').val(newStatus); $('#statusPriority').val(currentPriority); openModal('statusModal'); }
+    }
+
+    function executeStatusUpdate() {
+        doStatusUpdate($('#newStatusValue').val(), $('#statusRemarks').val()||'Status updated', $('#statusPriority').val(), $('#statusCategory').val());
+    }
+
+    function submitApprove() {
+        closeModal('approveModal');
+        $.ajax({ url:'@Url.Action("ApproveTicket","ServiceDesk")', type:'POST', contentType:'application/json',
+            data: JSON.stringify({ ticketId, remarks:$('#approveRemarks').val()||'Approved', username:currentUser, priority:$('#approvePriority').val(), category:$('#approveCategory').val() }),
+            success: function(res){ if(res.success) location.reload(); else sysAlert(res.message,'error'); }
+        });
+    }
+
+    function doStatusUpdate(newStatus, remarks, prio='', cat='') {
+        $.ajax({ url:'@Url.Action("UpdateStatus","ServiceDesk")', type:'POST', contentType:'application/json',
+            data: JSON.stringify({ ticketId, newStatus, remarks, username:currentUser, priority:prio, category:cat }),
+            success: function(res){ if(res.success) location.reload(); else sysAlert(res.message,'error'); }
+        });
+    }
+
+    function loadCategoriesForApprove() {
+        $.get('@Url.Action("GetCategories","ServiceDesk")', function(data) {
+            const selects = $('#approveCategory, #statusCategory, #quickCategory');
+            if (data && data.length > 0) {
+                data.forEach(c => { const name=c.categoryName||c.CategoryName||c; selects.append(`<option value="${name}">${name}</option>`); });
+                $('#quickCategory').val("@Model.Category");
+            }
+        });
+    }
+
+    function loadPrioritiesForApprove() {
+        $.get('@Url.Action("GetPriorities","ServiceDesk")', function(data) {
+            const selects = $('#approvePriority, #statusPriority, #quickPriority');
+            if (data && data.length > 0) data.forEach(p => { const name=p.priorityName||p.PriorityName||p; selects.append(`<option value="${name}">${name}</option>`); });
+        });
+    }
+
+    function loadEngineers() {
+        $.get('@Url.Action("GetDetailedEngineers","ServiceDesk")', function(data) {
+            const container = $('#engineerList').empty();
+            if (!data||data.length===0) { container.append('<div class="text-center text-xs text-slate-400 py-4">No engineers found</div>'); return; }
+            data.forEach((e, idx) => {
+                let badgeColor='#B4D334', badgeBg='#F1F8E9';
+                if (e.currentStatus==='Busy')       { badgeColor='#F97316'; badgeBg='#FFF7ED'; }
+                if (e.currentStatus==='Overloaded') { badgeColor='#EF4444'; badgeBg='#FEF2F2'; }
+                const suggestedBadge = idx===0 ? '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white ml-1" style="background:#00BCEB;">Best Match</span>' : '';
+                const initials = e.name ? e.name.charAt(0).toUpperCase() : '?';
+                const card = $(`<div class="eng-card">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style="background:linear-gradient(135deg,#00BCEB,#0096BE);">${initials}</div>
+                            <span class="font-semibold text-slate-800 text-sm">${e.name}${suggestedBadge}</span>
                         </div>
-                        <div class="flex justify-between text-xs text-gray-500">
-                            <div>Role: <span class="text-gray-700">${e.role}</span></div>
-                            <div>Active: <span class="font-bold text-gray-800">${e.activeTicketCount}</span></div>
+                        <span class="px-2 py-0.5 rounded-full text-[9px] font-bold" style="color:${badgeColor}; background:${badgeBg};">${e.currentStatus}</span>
+                    </div>
+                    <div class="flex gap-3 text-[10px] text-slate-400">
+                        <span><i class="fas fa-ticket-alt mr-0.5"></i>${e.activeTicketCount} active</span>
+                        <span><i class="fas fa-exclamation-circle mr-0.5 text-red-400"></i>${e.highPriorityCount} high</span>
+                        <span><i class="fas fa-check-circle mr-0.5" style="color:#B4D334;"></i>${e.totalResolved} resolved</span>
+                    </div>
+                </div>`);
+                card.on('click', function(){ selectEngineer(this, e.id, e.name); });
+                container.append(card);
+            });
+        });
+    }
+
+    function selectEngineer(el, id, name) {
+        $('.eng-card').removeClass('selected'); $(el).addClass('selected');
+        $('#selectedEngineerId').val(id); $('#selectedEngineerName').val(name);
+    }
+
+    function submitAssignAction() {
+        const engId=$('#selectedEngineerId').val(), engName=$('#selectedEngineerName').val();
+        if (!engId) { sysAlert('Please select an engineer','warning'); return; }
+        $.ajax({ url:'@Url.Action("AssignTicket","ServiceDesk")', type:'POST', contentType:'application/json',
+            data: JSON.stringify({ ticketId, engineerId:engId, engineerName:engName, assignedBy:currentUser, notes:$('#assignNotes').val() }),
+            success: function(res){ if(res.success) location.reload(); else sysAlert(res.message,'error'); }
+        });
+    }
+
+    function loadComments(silent=false) {
+        $.get(`@Url.Action("GetComments","ServiceDesk")?ticketId=${ticketId}`, function(data) {
+            const list = $('#commentsList');
+            if (!data||data.length===0) { list.html('<div class="flex flex-col items-center justify-center h-full text-slate-300 text-xs py-8"><i class="far fa-comment-dots text-4xl mb-2"></i>No messages yet</div>'); return; }
+            let html = '';
+            data.sort((a,b) => new Date(a.createdOn)-new Date(b.createdOn));
+            data.forEach(c => {
+                const isMe = c.userName===currentUser;
+                const time = new Date(c.createdOn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+                html += `<div class="flex ${isMe?'justify-end':'justify-start'}">
+                    <div class="max-w-[82%]">
+                        <div class="${isMe?'bubble-me':'bubble-them'} px-3 py-2 text-sm" style="word-break:break-word;">${escapeHtml(c.comment)}</div>
+                        <div class="text-[9px] text-slate-400 mt-0.5 ${isMe?'text-right':''}">${escapeHtml(c.userName)} · ${time}</div>
+                    </div>
+                </div>`;
+            });
+            list.html(html);
+            if (list[0]) list.scrollTop(list[0].scrollHeight);
+        });
+    }
+
+    function submitComment() {
+        const txt = $('#commentInput').val().trim();
+        if (!txt) return;
+        $.ajax({ url:'@Url.Action("AddComment","ServiceDesk")', type:'POST', contentType:'application/json',
+            data: JSON.stringify({ ticketId, comment:txt, userName:currentUser, userId:"@userId" }),
+            success: function(res){ if(res.success){ $('#commentInput').val(''); loadComments(); } else sysAlert(res.message||'Failed','error'); },
+            error: function(e){ sysAlert(e.responseJSON?.message||'Error','error'); }
+        });
+    }
+
+    function loadLogs() {
+        $.get(`@Url.Action("GetLogs","ServiceDesk")?ticketId=${ticketId}`, function(data) {
+            const list = $('#activityList').empty();
+            if (!data||data.length===0) { list.html('<div class="text-slate-400 text-sm text-center py-6"><i class="fas fa-history text-2xl mb-2 block opacity-40"></i>No activity yet</div>'); return; }
+            data.forEach((l, i) => {
+                const time = new Date(l.createdOn).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+                const isLast = i===data.length-1;
+                list.append(`<div class="flex gap-2">
+                    <div class="flex flex-col items-center pt-1">
+                        <div class="log-dot"></div>
+                        ${!isLast ? '<div class="log-line mt-1"></div>' : ''}
+                    </div>
+                    <div class="pb-3 flex-1 min-w-0">
+                        <div class="text-[10px] text-slate-400 mb-0.5">${time}</div>
+                        <div class="font-semibold text-slate-800 text-xs mb-1">${l.remarks||'Status Changed'}</div>
+                        <div class="flex items-center gap-1 text-[10px]">
+                            <span class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-500">${l.oldStatus}</span>
+                            <i class="fas fa-arrow-right text-[8px] text-slate-300"></i>
+                            <span class="px-1.5 py-0.5 rounded font-bold" style="background:#E0F7FD; color:#0096BE;">${l.newStatus}</span>
+                            <span class="text-slate-400 ml-1">by ${l.from}</span>
                         </div>
-                        <div class="flex gap-2 mt-1 text-[10px]">
-                            <span class="text-red-500" title="High/Urgent Priority"><i class="fas fa-exclamation-circle text-[9px]"></i> ${e.highPriorityCount}</span>
-                            <span class="text-blue-500" title="Avg Resolution Time"><i class="fas fa-clock text-[9px]"></i> ${e.avgResolutionHours}h</span>
-                            <span class="text-emerald-500" title="Total Resolved"><i class="fas fa-check text-[9px]"></i> ${e.totalResolved}</span>
+                    </div>
+                </div>`);
+            });
+        });
+    }
+
+    function loadAttachments() {
+        $.get(`@Url.Action("GetAttachments","ServiceDesk")?ticketId=${ticketId}`, function(data) {
+            const list = $('#attachmentsList').empty();
+            if (!data||data.length===0) { list.html('<div class="text-center text-slate-300 py-4 text-xs"><i class="fas fa-paperclip text-2xl mb-2 block"></i>No files attached</div>'); return; }
+            data.forEach(f => {
+                const date = new Date(f.uploadedOn).toLocaleDateString();
+                const safeName = escapeHtml(f.fileName);
+                const fileIcon = getFileIcon(f.fileName);
+                const sizeStr = f.fileSize>1048576 ? (f.fileSize/1048576).toFixed(1)+' MB' : (f.fileSize/1024).toFixed(1)+' KB';
+                const downloadUrl = `@Url.Action("DownloadAttachment","ServiceDesk")?path=${encodeURIComponent(f.filePath)}&name=${encodeURIComponent(f.fileName)}`;
+                list.append(`<div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#F1F5F9;">
+                            <i class="fas ${fileIcon} text-sm"></i>
                         </div>
-                    </div>`;
-                    
-                    container.append(card);
-                });
+                        <div class="max-w-[140px]">
+                            <p class="text-xs font-semibold text-slate-800 truncate" title="${safeName}">${safeName}</p>
+                            <p class="text-[10px] text-slate-400">${sizeStr} · ${date}</p>
+                        </div>
+                    </div>
+                    <a href="${downloadUrl}" target="_blank"
+                       class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 transition-all"
+                       onmouseover="this.style.background='#00BCEB'; this.style.color='#fff';"
+                       onmouseout="this.style.background=''; this.style.color='';">
+                        <i class="fas fa-download text-xs"></i>
+                    </a>
+                </div>`);
             });
-        }
-        
-        function selectEngineer(el, id, name) {
-            $('.eng-card').removeClass('border-blue-500 bg-blue-50').addClass('border-gray-200');
-            $(el).removeClass('border-gray-200').addClass('border-blue-500 bg-blue-50');
-            $('#selectedEngineerId').val(id);
-            $('#selectedEngineerName').val(name);
-        }
+        });
+    }
 
-        function submitAssignAction() {
-            const engId = $('#selectedEngineerId').val();
-            const engName = $('#selectedEngineerName').val();
-            const notes = $('#assignNotes').val();
-
-            if(!engId) { sysAlert('Please select an engineer', 'warning'); return; }
-
+    function uploadFile(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            if (file.size > 10*1024*1024) { sysAlert('File exceeds 10MB limit','warning'); input.value=''; return; }
+            const formData = new FormData();
+            formData.append('file', file);
+            $('#attachmentsList').prepend(`<div id="uploading" class="p-2 text-center text-xs" style="color:#0096BE;"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading ${escapeHtml(file.name)}...</div>`);
             $.ajax({
-                url: '@Url.Action("AssignTicket", "ServiceDesk")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    ticketId: ticketId,
-                    engineerId: engId,
-                    engineerName: engName,
-                    assignedBy: currentUser,
-                    notes: notes
-                }),
-                success: function(res) {
-                    if(res.success) location.reload();
-                    else sysAlert(res.message, 'error');
-                }
+                url:`@Url.Action("AddAttachment","ServiceDesk")?ticketId=${ticketId}`, type:'POST',
+                data:formData, processData:false, contentType:false,
+                success: function(res){ $('#uploading').remove(); if(res.success){ sysAlert('Uploaded','success'); loadAttachments(); } else sysAlert(res.message||'Failed','error'); },
+                error: function(e){ $('#uploading').remove(); sysAlert(e.responseJSON?.message||'Error uploading','error'); }
             });
+            input.value='';
         }
+    }
 
-        // ================= COMMENTS =================
-        function loadComments(silent = false) {
-            $.get(`@Url.Action("GetComments", "ServiceDesk")?ticketId=${ticketId}`, function(data) {
-                const list = $('#commentsList');
-                let html = '';
+    let inventoryParts = [];
+    async function loadInventoryParts() {
+        try {
+            const res = await fetch('/ServiceDesk/GetInventoryParts');
+            inventoryParts = await res.json();
+            const dl = document.getElementById('inventoryPartsList');
+            dl.innerHTML = '';
+            inventoryParts.forEach(p => { const opt=document.createElement('option'); opt.value=p.partName; opt.dataset.price=p.unitCost; dl.appendChild(opt); });
+        } catch(e) { console.error(e); }
+    }
 
-                if(!data || data.length === 0) {
-                    html = '<div class="text-center text-gray-400 py-4 text-sm"><i class="far fa-comment-dots text-2xl mb-2 block"></i>No messages yet. Start the conversation!</div>';
-                } else {
-                    data.sort((a,b) => new Date(a.createdOn) - new Date(b.createdOn));
-                    data.forEach(c => {
-                        const isMe = c.userName === currentUser;
-                        const time = new Date(c.createdOn).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                        const safeComment = escapeHtml(c.comment);
-                        const safeName = escapeHtml(c.userName);
+    function onPartSelect(input) {
+        const part = inventoryParts.find(p => p.partName===input.value);
+        if (part) document.getElementById('partCost').value = part.unitCost;
+    }
 
-                        html += `
-                            <div class="${isMe ? 'text-right' : 'text-left'}">
-                                <div class="inline-block max-w-[80%] ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-100 text-gray-700'} rounded-lg px-3 py-2 text-sm" style="word-break: break-word;">
-                                    ${safeComment}
-                                </div>
-                                <div class="text-[10px] text-gray-500 mt-0.5">
-                                    ${safeName} • ${time}
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-
-                list.html(html);
-                if (list[0]) list.scrollTop(list[0].scrollHeight);
+    async function loadParts() {
+        try {
+            const res = await fetch(`/ServiceDesk/GetParts?ticketId=${ticketId}`);
+            const parts = await res.json();
+            const tbody = document.getElementById('partsTableBody');
+            if (!parts||parts.length===0) {
+                tbody.innerHTML='<tr><td colspan="5" class="py-4 text-center text-slate-400 text-sm"><i class="fas fa-box-open mr-1"></i>No parts added</td></tr>';
+                document.getElementById('grandTotal').innerText='₹0.00'; return;
+            }
+            let html='', total=0;
+            parts.forEach(p => {
+                const t=p.quantity*p.unitCost; total+=t;
+                html+=`<tr class="border-b border-slate-50 hover:bg-slate-50">
+                    <td class="py-2 text-slate-700 text-sm">${escapeHtml(p.partName)}</td>
+                    <td class="py-2 text-center text-slate-600 text-sm">${p.quantity}</td>
+                    <td class="py-2 text-right text-slate-600 text-sm">₹${p.unitCost.toFixed(2)}</td>
+                    <td class="py-2 text-right font-bold text-slate-800 text-sm">₹${t.toFixed(2)}</td>
+                    <td class="py-2 text-center"><button onclick="deletePart(${p.id})" class="text-red-400 hover:text-red-600 text-xs transition-colors"><i class="fas fa-trash"></i></button></td>
+                </tr>`;
             });
-        }
+            tbody.innerHTML=html;
+            document.getElementById('grandTotal').innerText='₹'+total.toFixed(2);
+        } catch(e) { console.error(e); }
+    }
 
-        function submitComment() {
-            const txt = $('#commentInput').val().trim();
-            if(!txt) return;
+    function openPartModal() { openModal('partModal'); }
 
-            $.ajax({
-                url: '@Url.Action("AddComment", "ServiceDesk")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ ticketId: ticketId, comment: txt, userName: currentUser, userId: "@userId" }),
-                success: function(res) {
-                    if(res.success) {
-                        $('#commentInput').val('');
-                        loadComments();
-                    } else sysAlert(res.message || 'Failed to post comment', 'error');
+    async function submitPart() {
+        const data={ ticketId:parseInt(ticketId), partName:$('#partName').val(), quantity:parseInt($('#partQty').val()), unitCost:parseFloat($('#partCost').val()) };
+        if (!data.partName) return;
+        await fetch('/ServiceDesk/AddPart',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+        closeModal('partModal'); loadParts();
+    }
+
+    function deletePart(id) {
+        sysConfirm('Delete this part?', function() {
+            fetch('/ServiceDesk/DeletePart?id='+id,{method:'POST'}).then(function(){ loadParts(); });
+        }, {type:'danger'});
+    }
+
+    function startWork() {
+        sysConfirm('Start working on this ticket?', function() {
+            $.ajax({ url:'@Url.Action("StartWork","ServiceDesk")', type:'POST', contentType:'application/json',
+                data: JSON.stringify({ ticketId, username:currentUser, remarks:'Started working on ticket' }),
+                success: function(res){ if(res.success) location.reload(); else sysAlert(res.message||'Failed','error'); },
+                error: function(){ sysAlert('Failed to start work','error'); }
+            });
+        });
+    }
+
+    function deleteTicket() {
+        sysConfirm('Delete this ticket? This cannot be undone.', function() {
+            $.ajax({ url:'@Url.Action("DeleteTicket","ServiceDesk")'+'?id='+ticketId, type:'POST',
+                success: function(res){
+                    if(res.success){ sysAlert('Deleted','success'); setTimeout(function(){ window.location.href='@Url.Action("Tickets","ServiceDesk")'; },1500); }
+                    else sysAlert(res.message||'Failed','error');
                 },
-                error: function(e) { 
-                    console.error(e); 
-                    var msg = e.responseJSON?.message || 'Error communicating with server while posting comment';
-                    sysAlert(msg, 'error'); 
-                }
+                error: function(){ sysAlert('Failed to delete','error'); }
             });
-        }
+        }, {type:'danger'});
+    }
 
-        // ================= LOGS =================
-        function loadLogs() {
-             $.get(`@Url.Action("GetLogs", "ServiceDesk")?ticketId=${ticketId}`, function(data) {
-                 const list = $('#activityList');
-                 list.empty();
-                 if(!data || data.length === 0) list.html('<div class="text-gray-400 text-sm text-center py-4">No activity yet</div>');
-                 else {
-                     data.forEach(l => {
-                         const time = new Date(l.createdOn).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
-                         list.append(`
-                            <div class="text-sm">
-                                <div class="text-xs text-gray-500 mb-0.5">${time}</div>
-                                <div class="font-medium text-gray-800">${l.remarks || 'Status Changed'}</div>
-                                <div class="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
-                                    <span class="px-1.5 py-0.5 bg-gray-100 rounded">${l.oldStatus}</span>
-                                    <i class="fas fa-arrow-right text-[8px]"></i>
-                                    <span class="px-1.5 py-0.5 bg-gray-100 rounded font-medium">${l.newStatus}</span>
-                                    <span class="ml-1">by ${l.from}</span>
-                                </div>
-                            </div>
-                         `);
-                     });
-                 }
-             });
-        }
-
-        // ================= CALL LOGS =================
-        function openLogCallModal() {
-            var now = new Date();
-            var offset = now.getTimezoneOffset() * 60000;
-            var localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
-            
-            $('#callCallerName').val('');
-            $('#callType').val('Incoming');
-            $('#callChannel').val('Phone');
-            $('#callSubject').val('');
-            $('#callDescription').val('');
-            $('#callDuration').val('');
-            $('#callOutcome').val('InformationProvided');
-            openModal('logCallModal');
-        }
-
-        function loadTicketCallLogs() {
-            $.get(`@Url.Action("GetTicketCallLogs", "ServiceDesk")?ticketId=${ticketId}`, function(data) {
-                const list = $('#callsList');
-                list.empty();
-                if(!data || data.length === 0) {
-                    list.append('<div class="text-center text-gray-400 py-4 text-sm">No calls logged yet</div>');
-                    return;
-                }
-
-                data.forEach(c => {
-                    const date = new Date(c.createdOn).toLocaleString();
-                    let badgeClass = 'bg-gray-100 text-gray-700';
-                    if(c.callType === 'Incoming') badgeClass = 'bg-green-100 text-green-700';
-                    if(c.callType === 'Outgoing') badgeClass = 'bg-blue-100 text-blue-700';
-                    if(c.callType === 'Internal') badgeClass = 'bg-yellow-100 text-yellow-700';
-
-                    list.append(`
-                        <div class="p-3 bg-gray-50 rounded border border-gray-100 mb-2">
-                            <div class="flex justify-between items-start mb-1">
-                                <div class="font-medium text-sm text-gray-800">${escapeHtml(c.subject) || 'Call Record'}</div>
-                                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium ${badgeClass}">${escapeHtml(c.callType)} - ${escapeHtml(c.channel)}</span>
-                            </div>
-                            <div class="text-xs text-gray-500 mb-2">
-                                <i class="far fa-clock mr-1"></i> ${date} • <i class="fas fa-user-circle mx-1"></i> ${escapeHtml(c.loggedByName)}
-                            </div>
-                            <div class="text-xs text-gray-700 whitespace-pre-wrap bg-white p-2 rounded border border-gray-100">${escapeHtml(c.description)}</div>
-                            <div class="flex justify-between items-center mt-2 text-[10px] text-gray-500">
-                                <div>Caller: <span class="font-medium text-gray-700">${escapeHtml(c.callerName) || '-'}</span></div>
-                                <div>Duration: <span class="font-medium text-gray-700">${c.durationMinutes || 0} min</span></div>
-                                <div>Outcome: <span class="font-medium text-gray-700">${escapeHtml(c.outcome) || '-'}</span></div>
-                            </div>
-                        </div>
-                    `);
-                });
-            });
-        }
-
-        function submitCallLog() {
-            const data = {
-                TicketId: ticketId,
-                CallerName: $('#callCallerName').val(),
-                CallType: $('#callType').val(),
-                Channel: $('#callChannel').val(),
-                Subject: $('#callSubject').val(),
-                Description: $('#callDescription').val(),
-                DurationMinutes: parseInt($('#callDuration').val()) || null,
-                Outcome: $('#callOutcome').val(),
-                CreatedOn: new Date().toISOString(),
-                LoggedByName: currentUser
-            };
-
-            if(!data.CallerName || !data.Subject || !data.Description) {
-                sysAlert('Please fill in all required fields', 'warning');
-                return;
-            }
-
-            $.ajax({
-                url: '@Url.Action("AddCallLog", "ServiceDesk")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data),
-                success: function(res) {
-                    if(res.success) {
-                        closeModal('logCallModal');
-                        sysAlert('Call logged successfully', 'success');
-                        loadTicketCallLogs();
-                    } else {
-                        sysAlert(res.message, 'error');
-                    }
-                }
-            });
-        }
-
-        // ================= FILES =================
-        function loadAttachments() {
-            $.get(`@Url.Action("GetAttachments", "ServiceDesk")?ticketId=${ticketId}`, function(data) {
-                 const list = $('#attachmentsList');
-                 list.empty();
-                 if(!data || data.length === 0) {
-                     list.html('<div class="text-center text-gray-400 py-4 text-sm"><i class="fas fa-paperclip text-2xl mb-2 block"></i>No files attached</div>');
-                     return;
-                 }
-
-                 data.forEach(f => {
-                     const date = new Date(f.uploadedOn).toLocaleDateString();
-                     const safeName = escapeHtml(f.fileName);
-                     const fileIcon = getFileIcon(f.fileName);
-                     const sizeStr = f.fileSize > 1048576 ? (f.fileSize/1048576).toFixed(1) + ' MB' : (f.fileSize/1024).toFixed(1) + ' KB';
-                     // File path comes from API server, proxy through WebApp
-                     const downloadUrl = `@Url.Action("DownloadAttachment", "ServiceDesk")?path=${encodeURIComponent(f.filePath)}&name=${encodeURIComponent(f.fileName)}`;
-                     list.append(`
-                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-100 hover:bg-gray-100 transition-colors">
-                            <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded bg-gray-100 flex items-center justify-center">
-                                    <i class="fas ${fileIcon} text-sm"></i>
-                                </div>
-                                <div class="max-w-[150px]">
-                                    <p class="text-xs font-medium text-gray-800 truncate" title="${safeName}">${safeName}</p>
-                                    <p class="text-[10px] text-gray-500">${sizeStr} • ${date}</p>
-                                </div>
-                            </div>
-                            <a href="${downloadUrl}" target="_blank" class="text-gray-400 hover:text-blue-600 p-1.5 hover:bg-blue-50 rounded transition-colors" title="Download">
-                                <i class="fas fa-download text-xs"></i>
-                            </a>
-                        </div>
-                     `);
-                 });
-            });
-        }
-
-        function uploadFile(input) {
-            if(input.files && input.files[0]) {
-                const file = input.files[0];
-                
-                // Client-side file size validation (10MB)
-                const maxSize = 10 * 1024 * 1024;
-                if (file.size > maxSize) {
-                    sysAlert('File size exceeds 10MB limit. Please choose a smaller file.', 'warning');
-                    input.value = '';
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('file', file);
-
-                $('#attachmentsList').prepend(`<div id="uploading" class="p-2 text-center text-xs text-blue-500"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading ${escapeHtml(file.name)}...</div>`);
-
-                $.ajax({
-                    url: `@Url.Action("AddAttachment", "ServiceDesk")?ticketId=${ticketId}`,
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(res) {
-                        $('#uploading').remove();
-                        if(res.success) {
-                            sysAlert('File uploaded successfully', 'success');
-                            loadAttachments();
-                        } else sysAlert(res.message || 'Upload failed', 'error');
-                    },
-                    error: function(e) { 
-                        $('#uploading').remove(); 
-                        var msg = e.responseJSON?.message || 'Error uploading file';
-                        sysAlert(msg, 'error'); 
-                    }
-                });
-                // Reset input so same file can be re-uploaded
-                input.value = '';
-            }
-        }
-
-        // ================= PARTS =================
-        async function loadParts() {
-            try {
-                const res = await fetch(`/ServiceDesk/GetParts?ticketId=${ticketId}`);
-                const parts = await res.json();
-                const tbody = document.getElementById('partsTableBody');
-                if(!parts || parts.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-gray-400 text-sm">No parts added</td></tr>`;
-                    document.getElementById('grandTotal').innerText = "₹0.00";
-                    return;
-                }
-                let html = ''; let total = 0;
-                parts.forEach(p => {
-                    const t = p.quantity * p.unitCost; total += t;
-                    html += `<tr class="border-b border-gray-50">
-                        <td class="py-2 text-gray-700 text-sm">${escapeHtml(p.partName)}</td>
-                        <td class="py-2 text-center text-gray-700 text-sm">${p.quantity}</td>
-                        <td class="py-2 text-right text-gray-700 text-sm">₹${p.unitCost.toFixed(2)}</td>
-                        <td class="py-2 text-right font-medium text-gray-800 text-sm">₹${t.toFixed(2)}</td>
-                        <td class="py-2 text-center"><button onclick="deletePart(${p.id})" class="text-red-400 hover:text-red-600 text-xs"><i class="fas fa-trash"></i></button></td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html;
-                document.getElementById('grandTotal').innerText = "₹" + total.toFixed(2);
-            } catch(e) { console.error(e); }
-        }
-
-        function openPartModal() {
-            openModal('partModal');
-        }
-
-        async function submitPart() {
-            const data = {
-                ticketId: parseInt(ticketId),
-                partName: $('#partName').val(),
-                quantity: parseInt($('#partQty').val()),
-                unitCost: parseFloat($('#partCost').val())
-            };
-            if(!data.partName) return;
-
-            await fetch('/ServiceDesk/AddPart', {
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
-            });
-            closeModal('partModal');
-            loadParts();
-        }
-
-        function deletePart(id) {
-            sysConfirm('Delete this part?', function() {
-                fetch('/ServiceDesk/DeletePart?id=' + id, {method: 'POST'}).then(function(){ loadParts(); });
-            }, {type:'danger'});
-        }
-
-        // ================= MASTER PARTS =================
-        let masterParts = [];
-        async function loadMasterParts() {
-            try {
-                const res = await fetch('/ServiceDesk/GetMasterParts');
-                masterParts = await res.json();
-                const dl = document.getElementById('masterPartsList');
-                dl.innerHTML = '';
-                masterParts.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p.partName;
-                    opt.dataset.price = p.unitCost;
-                    opt.innerText = `₹${p.unitCost} - Stock: ${p.stockQuantity}`;
-                    dl.appendChild(opt);
-                });
-            } catch(e) { console.error("Failed to load master parts", e); }
-        }
-
-        function onPartSelect(input) {
-            const val = input.value;
-            const part = masterParts.find(p => p.partName === val);
-            if(part) {
-                document.getElementById('partCost').value = part.unitCost;
-            }
-        }
-
-        // ================= START WORK =================
-        function startWork() {
-            sysConfirm('Start working on this ticket?', function() {
-                $.ajax({
-                    url: '@Url.Action("StartWork", "ServiceDesk")',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        ticketId: ticketId,
-                        username: currentUser,
-                        remarks: 'Started working on ticket'
-                    }),
-                    success: function(res) {
-                        if(res.success) location.reload();
-                        else sysAlert(res.message || 'Failed to start work', 'error');
-                    },
-                    error: function() {
-                        sysAlert('Failed to start work', 'error');
-                    }
-                });
-            });
-        }
-
-        // ================= DELETE TICKET =================
-        function deleteTicket() {
-            sysConfirm('Are you sure you want to delete this ticket? This action cannot be undone.', function() {
-                $.ajax({
-                    url: '@Url.Action("DeleteTicket", "ServiceDesk")' + '?id=' + ticketId,
-                    type: 'POST',
-                    success: function(res) {
-                        if(res.success) {
-                            sysAlert('Ticket deleted successfully', 'success');
-                            setTimeout(function(){ window.location.href = '@Url.Action("Tickets", "ServiceDesk")'; }, 1500);
-                        } else {
-                            sysAlert(res.message || 'Failed to delete ticket', 'error');
-                        }
-                    },
-                    error: function() {
-                        sysAlert('Failed to delete ticket', 'error');
-                    }
-                });
-            }, {type:'danger'});
-        }
-
-        // ================= RESOLVE TICKET =================
-        function submitResolve() {
-            const notes = $('#resolveNotes').val().trim();
-            
-            $.ajax({
-                url: '@Url.Action("ResolveTicket", "ServiceDesk")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    ticketId: ticketId,
-                    username: currentUser,
-                    resolutionNotes: notes
-                }),
-                success: function(res) {
-                    if(res.success) location.reload();
-                    else sysAlert(res.message || 'Failed to resolve', 'error');
-                },
-                error: function() {
-                    sysAlert('Failed to resolve ticket', 'error');
-                }
-            });
-        }
-    </script>
+    function submitResolve() {
+        $.ajax({ url:'@Url.Action("ResolveTicket","ServiceDesk")', type:'POST', contentType:'application/json',
+            data: JSON.stringify({ ticketId, username:currentUser, resolutionNotes:$('#resolveNotes').val() }),
+            success: function(res){ if(res.success) location.reload(); else sysAlert(res.message||'Failed','error'); },
+            error: function(){ sysAlert('Failed to resolve','error'); }
+        });
+    }
+</script>
 }

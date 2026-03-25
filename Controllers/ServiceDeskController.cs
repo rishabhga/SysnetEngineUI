@@ -60,6 +60,8 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.CanDelete = HasPermission("ServiceDesk.Delete");
             ViewBag.CanManageSLA = HasPermission("ServiceDesk.ManageSLA");
             ViewBag.CanManageMasterParts = HasPermission("ServiceDesk.ManageMasterParts");
+            ViewBag.CanManageParts = HasPermission("ServiceDesk.ManageParts");
+
             ViewBag.CanAdminSettings = HasPermission("ServiceDesk.AdminSettings");
             ViewBag.IsSuperAdmin = IsTopLevelAdmin();
         }
@@ -179,8 +181,29 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [AuthFilter]
-        public IActionResult Tickets()
+        public async Task<IActionResult> Tickets()
         {
+            try
+            {
+                var statusResponse = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Statuses");
+                if (statusResponse.IsSuccessStatusCode)
+                {
+                    var statusJson = await statusResponse.Content.ReadAsStringAsync();
+                    var statuses = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(statusJson);
+                    
+                    var statusOrders = statuses.ToDictionary(
+                        s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
+                        s => (int)s.sortOrder
+                    );
+                    
+                    ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
+                    
+                    var approvedStatus = statuses?.FirstOrDefault(s => (string)s.statusCode == "Approved" || (string)s.statusName == "Approved");
+                    ViewBag.ApprovedStatusSortOrder = approvedStatus != null ? (int)approvedStatus.sortOrder : 2;
+                }
+            }
+            catch { }
+
             SetViewPermissions();
             return View();
         }
@@ -317,9 +340,32 @@ namespace ManageEngineWebApp.Controllers
                 var content = await response.Content.ReadAsStringAsync();
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var ticket = System.Text.Json.JsonSerializer.Deserialize<ManageEngineWebApp.Models.HelpdeskTicket>(content, options);
+                
+                // Fetch approved status sort order
+                var statusResponse = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Statuses");
+                if (statusResponse.IsSuccessStatusCode)
+                {
+                    var statusJson = await statusResponse.Content.ReadAsStringAsync();
+                    var statuses = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(statusJson);
+                    
+                    var statusOrders = statuses.ToDictionary(
+                        s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
+                        s => (int)s.sortOrder
+                    );
+                    ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
+
+                    var approvedStatus = statuses?.FirstOrDefault(s => (string)s.statusCode == "Approved" || (string)s.statusName == "Approved");
+                    ViewBag.ApprovedStatusSortOrder = approvedStatus != null ? (int)approvedStatus.sortOrder : 2;
+                }
+                else
+                {
+                    ViewBag.ApprovedStatusSortOrder = 2;
+                }
+
                 SetViewPermissions();
                 ViewBag.ApiBaseUrl = _baseUrl;
                 return View(ticket);
+
             }
             catch { return NotFound(); }
         }
@@ -552,21 +598,14 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.ManageParts", "Manage Parts Inventory")] 
         public IActionResult PartsInventory()
         {
-            return View();
-        }
-
-        [HttpGet]
-        [AuthFilter]
-        [DynamicPermission("ServiceDesk.ManageMasterParts", "View Master Parts")]
-        public IActionResult MasterParts()
-        {
             SetViewPermissions();
             return View();
         }
 
+
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetMasterParts()
+        public async Task<IActionResult> GetInventoryParts()
         {
             try
             {
@@ -577,9 +616,10 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
+
         [HttpPost]
         [AuthFilter]
-        public async Task<IActionResult> AddMasterPart()
+        public async Task<IActionResult> AddInventoryPart()
         {
             try
             {
@@ -591,9 +631,10 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
+
         [HttpPost]
         [AuthFilter]
-        public async Task<IActionResult> UpdateMasterPart()
+        public async Task<IActionResult> UpdateInventoryPart()
         {
             try
             {
@@ -605,9 +646,10 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
+
         [HttpPost]
         [AuthFilter]
-        public async Task<IActionResult> DeleteMasterPart(int id)
+        public async Task<IActionResult> DeleteInventoryPart(int id)
         {
             try
             {
@@ -616,6 +658,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
+
 
 
         [HttpGet]

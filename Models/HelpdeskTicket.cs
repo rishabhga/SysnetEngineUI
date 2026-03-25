@@ -34,5 +34,7 @@ namespace ManageEngineWebApp.Models
         public int? EscalationLevel { get; set; }
         public string? RequesterName { get; set; } 
         public string? RequesterEmail { get; set; } 
+        public int StatusSortOrder { get; set; }
     }
 }
+

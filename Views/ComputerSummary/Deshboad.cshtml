@@ -1,4 +1,4 @@
-﻿@using ManageEngineWebApp.Dtos
+@using ManageEngineWebApp.Dtos
 @model List<WindowsUserDetails>
 @{
     ViewData["Title"] = $"{ViewBag.locationName} - Devices";
@@ -16,49 +16,49 @@
 }
 
 <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-   <!-- Compact Header -->
-<div class="mb-3 flex items-center justify-between">
-    <div class="flex items-center space-x-2">
-        <a href="/Companies/GroupsDetails?id=@ViewBag.companyid&companyName=@ViewBag.CompanyName"
-           class="w-7 h-7 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center justify-center transition shadow-sm">
-            <i class="fas fa-arrow-left text-gray-600 text-xs"></i>
-        </a>
+    <!-- Compact Header -->
+    <div class="mb-3 flex items-center justify-between">
         <div class="flex items-center space-x-2">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                <i class="fas fa-map-marker-alt text-white text-xs"></i>
-            </div>
-            <div>
-                <div class="flex items-center space-x-2">
-                    <h1 class="text-base font-bold text-gray-900">@ViewBag.locationName</h1>
-                    <button id="locationCriticalToggle" class="group" onclick="toggleCurrentLocationCriticality()" title="Toggle Critical Monitoring for entire Location">
-                        <span id="locationCriticalBadge" class="hidden px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold border border-amber-200 flex items-center hover:bg-amber-200 transition-all">
-                            <i class="fas fa-crown mr-1 text-[8px]"></i> CRITICAL
-                        </span>
-                        <span id="locationNotCriticalBadge" class="px-2 py-0.5 bg-gray-50 text-gray-400 rounded text-[9px] font-bold border border-gray-200 flex items-center hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50 transition-all">
-                            <i class="fas fa-crown mr-1 text-[8px]"></i> MONITOR SITE
-                        </span>
-                    </button>
+            <a href="/Companies/GroupsDetails?id=@ViewBag.companyid&companyName=@ViewBag.CompanyName"
+               class="w-7 h-7 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center justify-center transition shadow-sm">
+                <i class="fas fa-arrow-left text-gray-600 text-xs"></i>
+            </a>
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    <i class="fas fa-map-marker-alt text-white text-xs"></i>
                 </div>
-                <p class="text-[10px] text-gray-600">@ViewBag.CompanyName › @ViewBag.groupName</p>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="text-base font-bold text-gray-900">@ViewBag.locationName</h1>
+                        <button id="locationCriticalToggle" class="group" onclick="toggleCurrentLocationCriticality()" title="Toggle Critical Monitoring for entire Location">
+                            <span id="locationCriticalBadge" class="hidden px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold border border-amber-200 flex items-center hover:bg-amber-200 transition-all">
+                                <i class="fas fa-crown mr-1 text-[8px]"></i> CRITICAL
+                            </span>
+                            <span id="locationNotCriticalBadge" class="px-2 py-0.5 bg-gray-50 text-gray-400 rounded text-[9px] font-bold border border-gray-200 flex items-center hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50 transition-all">
+                                <i class="fas fa-crown mr-1 text-[8px]"></i> MONITOR SITE
+                            </span>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-gray-600">@ViewBag.CompanyName › @ViewBag.groupName</p>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="flex items-center space-x-2">
-        <button onclick="window.location.href='/ComputerSummary/VIPClient?comId=@ViewBag.companyid&groupId=@ViewBag.groupid&locationId=@ViewBag.locationid&companyName=@System.Net.WebUtility.UrlEncode(ViewBag.CompanyName)'"
-                class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center space-x-1.5 shadow-sm"
-                style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
-            <i class="fas fa-crown text-[10px]"></i>
-            <span>Critical Monitoring</span>
-        </button>
-        <button onclick="window.location.href='./BranchPatchMangnment?companyid=@ViewBag.companyid&groupid=@ViewBag.groupid&locationId=@ViewBag.locationid'"
-                class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center space-x-1.5 shadow-sm"
-                style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-            <i class="fas fa-shield-alt text-[10px]"></i>
-            <span>Patch Management</span>
-        </button>
+        <div class="flex items-center space-x-2">
+            <button onclick="window.location.href='/ComputerSummary/VIPClient?comId=@ViewBag.companyid&groupId=@ViewBag.groupid&locationId=@ViewBag.locationid&companyName=@System.Net.WebUtility.UrlEncode(ViewBag.CompanyName)'"
+                    class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center space-x-1.5 shadow-sm"
+                    style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
+                <i class="fas fa-crown text-[10px]"></i>
+                <span>Critical Monitoring</span>
+            </button>
+            <button onclick="window.location.href='./BranchPatchMangnment?companyid=@ViewBag.companyid&groupid=@ViewBag.groupid&locationId=@ViewBag.locationid'"
+                    class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center space-x-1.5 shadow-sm"
+                    style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                <i class="fas fa-shield-alt text-[10px]"></i>
+                <span>Patch Management</span>
+            </button>
+        </div>
     </div>
- </div>
 
 
 
@@ -237,7 +237,6 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-1.5 text-[9px] mb-2">
-                        
                             <div>
                                 <p class="text-gray-500 mb-0.5">IP Address</p>
                                 <p class="font-semibold text-gray-900 ip-address-value">
@@ -315,6 +314,9 @@
 
                         <!-- Compact Action Buttons -->
                         <div class="flex gap-1">
+                            <a href="javascript:void(0)" onclick="window.openChatModal('@item.DomainName')" class="flex-none p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors" title="Chat with Client">
+                                <i class="fas fa-comment-dots"></i>
+                            </a>
                             <button class="rescan-link flex-1 px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[9px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
                                     data-domain="@item.DomainName"
                                     @(isActive ? "" : "disabled")>
@@ -410,8 +412,9 @@
                     Temporary Protection remains active until manually turned off
                 </p>
             </div>
+        </div>
     </div>
-</div>
+</div> 
 
 @section Scripts {
     <script>
@@ -419,16 +422,15 @@
         var countdownInterval = null;
         var connectedDevicesList = @Html.Raw(Json.Serialize(ViewBag.ActiveComputers ?? new List<string>()));
         var tempProtectionStates = {};
-        // Notification Bar on top
         var domainUserMap = {
         @foreach (var item in Model)
         {
-            var domain = item.DomainName?.Trim().ToUpper() ?? "";
-            var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
-            if (!string.IsNullOrEmpty(domain))
-            {
-                @: "@domain": "@name",
-            }
+                var domain = item.DomainName?.Trim().ToUpper() ?? "";
+                var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
+                if (!string.IsNullOrEmpty(domain))
+                {
+                        @: "@domain": "@name",
+                }
         }
         };
 
@@ -450,7 +452,7 @@
 
         function getCurrentMachineId() {
             var card = $('.device-card').first();
-            return card.data('domain'); 
+            return card.data('domain');
         }
 
         var allCriticalClients = [];
@@ -459,16 +461,15 @@
             loadLocationCriticalStatus();
             loadCriticalClientsList();
             loadNotifications();
-            
-            // Refresh notifications every 60 seconds
+
             setInterval(loadNotifications, 60000);
         });
 
         let isLocationCurrentlyCritical = false;
 
         function loadLocationCriticalStatus() {
-             $.get('@Url.Action("GetLocationCriticalStatus", "ComputerSummary")', 
-                { locationId: @ViewBag.locationid }, 
+             $.get('@Url.Action("GetLocationCriticalStatus", "ComputerSummary")',
+                { locationId: @ViewBag.locationid },
                 function(res) {
                     isLocationCurrentlyCritical = res && res.isCritical;
                     updateLocationBadgeUI(isLocationCurrentlyCritical);
@@ -487,7 +488,7 @@
 
         function toggleCurrentLocationCriticality() {
             const newStatus = !isLocationCurrentlyCritical;
-            const msg = newStatus 
+            const msg = newStatus
                 ? "Mark this entire location as CRITICAL? This will start monitoring resource health for all machines here."
                 : "Remove critical status from this location? (Individual VIP overrides will remain)";
 
@@ -509,7 +510,7 @@
                     success: function() {
                         isLocationCurrentlyCritical = newStatus;
                         updateLocationBadgeUI(newStatus);
-                        loadCriticalClientsList(); // Refresh the crown icons on cards
+                        loadCriticalClientsList();
                         sysAlert('Location status updated.', 'success');
                     },
                     error: function() {
@@ -523,7 +524,7 @@
         }
 
         function loadCriticalClientsList() {
-            $.get('@Url.Action("GetCriticalClients", "ComputerSummary")', 
+            $.get('@Url.Action("GetCriticalClients", "ComputerSummary")',
                 { companyId: @ViewBag.companyid, groupId: @ViewBag.groupid, locationId: @ViewBag.locationid },
                 function(res) {
                     if (res && res.success && res.data) {
@@ -534,17 +535,16 @@
         }
 
         function markCriticalDevices() {
-            const criticalIds = new HashSet(allCriticalClients.map(c => c.clientId.toUpperCase()));
+            var criticalIds = new Set(allCriticalClients.map(function(c) {
+                return c.clientId.toUpperCase();
+            }));
             $('.device-card').each(function() {
-                const domain = $(this).data('domain').toUpperCase();
+                var domain = $(this).data('domain').toUpperCase();
                 if (criticalIds.has(domain)) {
                     $(this).find('.critical-user-crown').removeClass('hidden');
                 }
             });
         }
-
-        // Simple HashSet polyfill/wrapper if needed, but modern browsers have Set
-        class HashSet extends Set {} 
 
         function loadNotifications() {
             $.get('@Url.Action("GetNotificationsByLocation", "ComputerSummary")',
@@ -555,68 +555,68 @@
         }
 
         function renderNotifications(list) {
-                var $list = $('#notificationList');
-                var $badge = $('#notificationBadge');
-                var $countLabel = $('#notificationCountLabel');
+            var $list = $('#notificationList');
+            var $badge = $('#notificationBadge');
+            var $countLabel = $('#notificationCountLabel');
 
-                $list.empty();
+            $list.empty();
 
-                if (!list || list.length === 0) {
-                    $list.append('<div class="px-3 py-3 text-gray-400 text-center">No notifications.</div>');
-                    $badge.addClass('hidden');
-                    $countLabel.text('0 new');
-                    return;
-                }
-
-                var unreadCount = 0;
-
-                list.forEach(function (n) {
-                    var isUnread = !n.isRead;
-                    if (isUnread) unreadCount++;
-
-                    var type = (n.msNotificationType || n.mSNotificationType || '').toUpperCase();
-                    var typeClass = type === 'ALERT'
-                        ? 'bg-red-50 border-red-100'
-                        : 'bg-yellow-50 border-yellow-100';
-
-                    var iconClass = type === 'ALERT'
-                        ? 'fa-exclamation-circle text-red-500'
-                        : 'fa-exclamation-triangle text-yellow-500';
-
-                    var createdAt = n.createdAt || '';
-                    var userName = getUserNameFromDomain(n.machineId);
-
-                        '<button class="w-full text-left px-3 py-2 border-b last:border-b-0 ' + typeClass +
-                        ' notification-item" data-id="' + n.id + '" data-unread="' + (isUnread ? '1' : '0') + '">' +
-                            '<div class="flex items-start space-x-2">' +
-                                '<div class="mt-0.5"><i class="fas ' + iconClass + ' text-xs"></i></div>' +
-                                '<div class="flex-1">' +
-                                    '<div class="flex items-center justify-between">' +
-                                        '<span class="font-semibold text-[11px] text-gray-800">' + (type || '') + '</span>' +
-                                        '<span class="text-[10px] text-gray-400">' + createdAt + '</span>' +
-                                    '</div>' +
-                                    (userName
-                                        ? '<p class="text-[10px] text-gray-500">User: ' + userName +
-                                          ' (' + (n.machineId || '') + ')</p>'
-                                        : '<p class="text-[10px] text-gray-500">Machine: ' + (n.machineId || '') + '</p>') +
-                                    '<p class="text-[11px] text-gray-700 mt-0.5">' + (n.message || '') + '</p>' +
-                                    (isUnread ? '<div class="text-[9px] text-blue-600 font-bold mt-1 uppercase tracking-tighter">New Alert</div>' : '') +
-                                '</div>' +
-                                (isUnread ? '<span class="w-2 h-2 rounded-full bg-blue-500 mt-1"></span>' : '') +
-                            '</div>' +
-                        '</button>';
-
-                    $list.append(row);
-                });
-
-                if (unreadCount > 0) {
-                    $badge.removeClass('hidden').text(unreadCount);
-                    $countLabel.text(unreadCount + ' new');
-                } else {
-                    $badge.addClass('hidden');
-                    $countLabel.text('0 new');
-                }
+            if (!list || list.length === 0) {
+                $list.append('<div class="px-3 py-3 text-gray-400 text-center">No notifications.</div>');
+                $badge.addClass('hidden');
+                $countLabel.text('0 new');
+                return;
             }
+
+            var unreadCount = 0;
+
+            list.forEach(function (n) {
+                var isUnread = !n.isRead;
+                if (isUnread) unreadCount++;
+
+                var type = (n.msNotificationType || n.mSNotificationType || '').toUpperCase();
+                var typeClass = type === 'ALERT'
+                    ? 'bg-red-50 border-red-100'
+                    : 'bg-yellow-50 border-yellow-100';
+
+                var iconClass = type === 'ALERT'
+                    ? 'fa-exclamation-circle text-red-500'
+                    : 'fa-exclamation-triangle text-yellow-500';
+
+                var createdAt = n.createdAt || '';
+                var userName = getUserNameFromDomain(n.machineId);
+                var row =
+                    '<button class="w-full text-left px-3 py-2 border-b last:border-b-0 ' + typeClass +
+                    ' notification-item" data-id="' + n.id + '" data-unread="' + (isUnread ? '1' : '0') + '">' +
+                        '<div class="flex items-start space-x-2">' +
+                            '<div class="mt-0.5"><i class="fas ' + iconClass + ' text-xs"></i></div>' +
+                            '<div class="flex-1">' +
+                                '<div class="flex items-center justify-between">' +
+                                    '<span class="font-semibold text-[11px] text-gray-800">' + (type || '') + '</span>' +
+                                    '<span class="text-[10px] text-gray-400">' + createdAt + '</span>' +
+                                '</div>' +
+                                (userName
+                                    ? '<p class="text-[10px] text-gray-500">User: ' + userName +
+                                      ' (' + (n.machineId || '') + ')</p>'
+                                    : '<p class="text-[10px] text-gray-500">Machine: ' + (n.machineId || '') + '</p>') +
+                                '<p class="text-[11px] text-gray-700 mt-0.5">' + (n.message || '') + '</p>' +
+                                (isUnread ? '<div class="text-[9px] text-blue-600 font-bold mt-1 uppercase tracking-tighter">New Alert</div>' : '') +
+                            '</div>' +
+                            (isUnread ? '<span class="w-2 h-2 rounded-full bg-blue-500 mt-1"></span>' : '') +
+                        '</div>' +
+                    '</button>';
+
+                $list.append(row);
+            });
+
+            if (unreadCount > 0) {
+                $badge.removeClass('hidden').text(unreadCount);
+                $countLabel.text(unreadCount + ' new');
+            } else {
+                $badge.addClass('hidden');
+                $countLabel.text('0 new');
+            }
+        }
 
 
         $(document).on('click', '.notification-item', function (e) {
@@ -1031,9 +1031,11 @@
                 .addClass('bg-green-500 hover:bg-green-600');
         }
 
+
         function startCountdownTimer(expireAt) {
             var endTime = new Date(expireAt).getTime();
-            var totalMs = 3600000;
+            var startTime = Date.now();
+            var totalMs = endTime - startTime; 
 
             $('#timerSection').removeClass('hidden');
 
@@ -1041,7 +1043,7 @@
                 clearInterval(countdownInterval);
             }
 
-            if (endTime - Date.now() <= 0) {
+            if (totalMs <= 0) {
                 handleOtpExpired();
                 return;
             }
@@ -1094,71 +1096,70 @@
         }
 
         function loadSystemUsageData(card, domain) {
-                if (!domain) {
-                    setErrorState(card);
-                    return;
-                }
-
-                var cpuValue  = card.find('.cpu-value');
-                var ramValue  = card.find('.ram-value');
-                var diskValue = card.find('.disk-value');
-
-                cpuValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
-                ramValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
-                diskValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
-
-                $.ajax({
-                    url: '@Url.Action("GetRamCpuDiskData", "ComputerSummary")',
-                    type: 'GET',
-                    data: { domain: domain },
-                    timeout: 25000,
-                    success: function (response) {
-                        if (response.status === 'success' && response.data) {
-                            var data = response.data;
-
-                            var cpuPercent  = parseFloat(data.cpuUsage);
-                            var ramPercent  = parseFloat(data.ramUsage);
-                            var diskPercent = parseFloat(data.diskUsage);
-
-                            if (!isNaN(cpuPercent)) {
-                                cpuValue.text(cpuPercent.toFixed(1) + '%');
-                                card.find('.cpu-bar').css('width', cpuPercent + '%');
-                            } else {
-                                cpuValue.text('N/A');
-                                card.find('.cpu-bar').css('width', '0%');
-                            }
-
-                            if (!isNaN(ramPercent)) {
-                                ramValue.text(ramPercent.toFixed(1) + '%');
-                                card.find('.ram-bar').css('width', ramPercent + '%');
-                            } else {
-                                ramValue.text('N/A');
-                                card.find('.ram-bar').css('width', '0%');
-                            }
-
-                            if (!isNaN(diskPercent)) {
-                                diskValue.text(diskPercent.toFixed(1) + '%');
-                                card.find('.disk-bar').css('width', diskPercent + '%');
-                            } else {
-                                diskValue.text('N/A');
-                                card.find('.disk-bar').css('width', '0%');
-                            }
-                        } else if (response.status === 'timeout') {
-                            setTimeoutState(card);
-                        } else {
-                            setErrorState(card);
-                        }
-                    },
-                    error: function (xhr, status) {
-                        if (status === 'timeout') {
-                            setTimeoutState(card);
-                        } else {
-                            setErrorState(card);
-                        }
-                    }
-                });
+            if (!domain) {
+                setErrorState(card);
+                return;
             }
 
+            var cpuValue  = card.find('.cpu-value');
+            var ramValue  = card.find('.ram-value');
+            var diskValue = card.find('.disk-value');
+
+            cpuValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
+            ramValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
+            diskValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
+
+            $.ajax({
+                url: '@Url.Action("GetRamCpuDiskData", "ComputerSummary")',
+                type: 'GET',
+                data: { domain: domain },
+                timeout: 25000,
+                success: function (response) {
+                    if (response.status === 'success' && response.data) {
+                        var data = response.data;
+
+                        var cpuPercent  = parseFloat(data.cpuUsage);
+                        var ramPercent  = parseFloat(data.ramUsage);
+                        var diskPercent = parseFloat(data.diskUsage);
+
+                        if (!isNaN(cpuPercent)) {
+                            cpuValue.text(cpuPercent.toFixed(1) + '%');
+                            card.find('.cpu-bar').css('width', cpuPercent + '%');
+                        } else {
+                            cpuValue.text('N/A');
+                            card.find('.cpu-bar').css('width', '0%');
+                        }
+
+                        if (!isNaN(ramPercent)) {
+                            ramValue.text(ramPercent.toFixed(1) + '%');
+                            card.find('.ram-bar').css('width', ramPercent + '%');
+                        } else {
+                            ramValue.text('N/A');
+                            card.find('.ram-bar').css('width', '0%');
+                        }
+
+                        if (!isNaN(diskPercent)) {
+                            diskValue.text(diskPercent.toFixed(1) + '%');
+                            card.find('.disk-bar').css('width', diskPercent + '%');
+                        } else {
+                            diskValue.text('N/A');
+                            card.find('.disk-bar').css('width', '0%');
+                        }
+                    } else if (response.status === 'timeout') {
+                        setTimeoutState(card);
+                    } else {
+                        setErrorState(card);
+                    }
+                },
+                error: function (xhr, status) {
+                    if (status === 'timeout') {
+                        setTimeoutState(card);
+                    } else {
+                        setErrorState(card);
+                    }
+                }
+            });
+        }
 
         function setErrorState(card) {
             card.find('.cpu-value').text('N/A');
@@ -1394,6 +1395,149 @@
                 window.location.href = '@Url.Action("Live", "ComputerSummary")?domain=' + $(this).data('domain');
             }
         });
+
+        $(document).on('click', '.open-chat-btn', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var domain = $(this).data('domain');
+            if (domain) {
+                openChatModal(domain);
+            }
+        });
+
+        let chatConnection = null;
+        let activeChatClientId = null;
+        const apiBaseUrl = '@ViewBag.ApiBaseUrl';
+
+        async function setupChatSignalR() {
+            if (chatConnection) return;
+
+            try {
+                if (typeof signalR === "undefined") {
+                    await $.getScript("https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js");
+                }
+
+                chatConnection = new signalR.HubConnectionBuilder()
+                    .withUrl(`${apiBaseUrl}/scanHub`)
+                    .withAutomaticReconnect()
+                    .build();
+
+                chatConnection.on("ReceiveMessagechat", function (message, isClient, time, clientId) {
+                    if (clientId === activeChatClientId) {
+                        appendMessageToUI(message, isClient, time);
+                    } else {
+                        markDeviceWithNewMessage(clientId);
+                    }
+                });
+
+                await chatConnection.start();
+            } catch (err) {
+            }
+        }
+
+        window.openChatModal = function(clientId) {
+            try {
+                if (!clientId) { return; }
+                activeChatClientId = clientId;
+                $('#chatClientName').text(clientId);
+                $('#chatMessages').html('<div class="flex justify-center py-10"><i class="fas fa-circle-notch fa-spin text-indigo-500 text-2xl"></i></div>');
+
+                var modal = document.getElementById('chatModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    modal.style.zIndex = '9999';
+                    modal.classList.remove('hidden');
+                }
+
+                $('#chatInput').val('').focus();
+
+                loadChatHistory(clientId);
+                setupChatSignalR();
+            } catch (err) {
+            }
+        };
+
+        window.closeChatModal = function() {
+            var modal = document.getElementById('chatModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.add('hidden');
+            }
+            activeChatClientId = null;
+        };
+
+        async function loadChatHistory(clientId) {
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/WindowsUserDetails/chat-history?clientId=${encodeURIComponent(clientId)}`);
+                const messages = await response.json();
+
+                $('#chatMessages').empty();
+                if (messages && messages.length > 0) {
+                    messages.forEach(m => {
+                        appendMessageToUI(m.message, m.isClient, m.time);
+                    });
+                } else {
+                    $('#chatMessages').html(`
+                        <div class="text-center py-20 opacity-30">
+                            <i class="fas fa-comments text-5xl mb-3"></i>
+                            <p class="text-sm">No messages yet. Start a conversation.</p>
+                        </div>
+                    `);
+                }
+            } catch (err) {
+                $('#chatMessages').html('<div class="text-center py-10 text-red-500 text-xs">Failed to load history</div>');
+            }
+        }
+
+        function appendMessageToUI(message, isClient, time) {
+            const date = new Date(time);
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const messageHtml = `
+                <div class="flex ${isClient ? 'justify-start' : 'justify-end'} animate-in slide-in-from-bottom-2 duration-300">
+                    <div class="max-w-[85%] rounded-2xl px-4 py-2 shadow-sm ${isClient ? 'bg-white text-gray-800 rounded-tl-none border border-gray-100' : 'text-white rounded-tr-none'}"
+                         style="${isClient ? '' : 'background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);'}">
+                        <p class="text-sm leading-relaxed">${message}</p>
+                        <p class="text-[9px] mt-1 ${isClient ? 'text-gray-400' : 'text-white/70'} text-right">${timeStr}</p>
+                    </div>
+                </div>
+            `;
+
+            const $msgArea = $('#chatMessages');
+            $msgArea.find('.opacity-30').remove();
+            $msgArea.append(messageHtml);
+            $msgArea.scrollTop($msgArea[0].scrollHeight);
+        }
+
+        async function sendChatMessage() {
+            const message = $('#chatInput').val().trim();
+            if (!message || !activeChatClientId) return;
+
+            if (!chatConnection || chatConnection.state !== signalR.HubConnectionState.Connected) {
+                sysAlert("Reconnecting to live channel...", "warning");
+                await setupChatSignalR();
+            }
+
+            try {
+                await chatConnection.invoke("SendMessagechat", message, activeChatClientId, false);
+                $('#chatInput').val('').css('height', 'auto');
+            } catch (err) {
+                sysAlert("Failed to send message", "error");
+            }
+        }
+
+        function markDeviceWithNewMessage(clientId) {
+            $(`.device-card[data-domain="${clientId}"]`).find('.open-chat-btn')
+                .addClass('animate-pulse text-red-500 bg-red-50');
+        }
+
+        $(document).on('keydown', '#chatInput', function(e) {
+            if (e.which === 13 && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+
     </script>
 
 
@@ -1409,17 +1553,15 @@
         .hidden {
             display: none !important;
         }
+
         @@keyframes pulse {
-            0%, 100%
+            0%, 100% {
+                opacity: 1;
+            }
 
-        {
-            opacity: 1;
-        }
-
-        50% {
-            opacity: 0.5;
-        }
-
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .animate-pulse {
@@ -1429,19 +1571,61 @@
         .menu-dropdown {
             animation: slideDown 0.2s ease-out;
         }
+
         @@keyframes slideDown {
-            from
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
 
-        {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 }
+
+
+<div id="chatModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col h-[520px] overflow-hidden">
+        <div class="p-4 text-white flex justify-between items-center" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                    <i class="fas fa-desktop text-xl text-white"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm leading-tight" id="chatClientName">Device Name</h3>
+                    <p class="text-[10px] text-white/80 flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> Service Hub Active
+                    </p>
+                </div>
+            </div>
+            <button type="button" onclick="window.closeChatModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                <i class="fas fa-times text-white text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Messages Area -->
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+            <div class="text-center py-20 opacity-30">
+                <i class="fas fa-comments text-5xl mb-3"></i>
+                <p class="text-sm">No messages yet. Start a conversation.</p>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 bg-white border-t border-gray-100">
+            <div class="relative flex items-center gap-2">
+                <textarea id="chatInput" rows="1" class="flex-1 text-sm border border-gray-200 rounded-xl px-4 py-3 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 outline-none resize-none bg-gray-50 transition-all font-medium" placeholder="Type your message..."></textarea>
+                <button onclick="sendChatMessage()" class="w-11 h-11 text-white rounded-xl hover:opacity-90 shadow-lg transition-all active:scale-95 flex items-center justify-center" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <p class="text-[9px] text-gray-400 mt-2 text-center flex items-center justify-center gap-1">
+                <i class="fas fa-shield-alt text-[8px]"></i>
+                End-to-end encrypted via ScanHub
+            </p>
+        </div>
+    </div>
+</div>

@@ -41,6 +41,7 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.companyid = comId;
             ViewBag.groupid = groupid;
             ViewBag.locationid = locationId;
+            ViewBag.ApiBaseUrl = _baseUrl;
 
             var dalalist = new List<WindowsUserDetails>();
             var contectlist = new List<ConnectedClientDto>();

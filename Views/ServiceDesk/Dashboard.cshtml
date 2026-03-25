@@ -7,235 +7,505 @@
     var canDelete = ViewBag.CanDelete ?? false;
 }
 
-<div class="min-h-screen bg-gray-50 p-4">
-    <div class="max-w-7xl mx-auto">
-        <!-- Compact Header -->
-        <div class="mb-5">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
-                <div>
-                    <h1 class="text-xl font-bold text-gray-900">Service Desk Dashboard</h1>
-                    <p class="text-gray-600 text-sm mt-0.5">Real-time ticket overview</p>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    cyan:    { DEFAULT: '#00BCEB', dark: '#0096BE', soft: '#E0F7FD' },
+                    lime:    { DEFAULT: '#B4D334', dark: '#8FB829', soft: '#F1F8E9' },
+                    orange:  { DEFAULT: '#F97316', dark: '#EA580C', soft: '#FFF7ED' },
+                    ink:     { DEFAULT: '#0F172A', mid: '#1E293B', light: '#334155' },
+                    surface: '#F0F4F8',
+                    card:    '#FFFFFF',
+                    bdr:     '#E2E8F0',
+                    muted:   { DEFAULT: '#64748B', light: '#94A3B8' },
+                    danger:  { DEFAULT: '#EF4444', soft: '#FEF2F2' },
+                },
+                fontFamily: {
+                    sans: ["'Segoe UI'", 'system-ui', '-apple-system', 'sans-serif'],
+                },
+                boxShadow: {
+                    card: '0 1px 3px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.06)',
+                    xs:   '0 1px 3px rgba(0,0,0,.06)',
+                    md:   '0 6px 24px rgba(0,0,0,.09)',
+                    cyan: '0 2px 10px rgba(0,188,235,.38)',
+                    'cyan-lg': '0 4px 18px rgba(0,188,235,.5)',
+                },
+                animation: {
+                    'pulse-dot': 'pulseDot 1.6s ease-in-out infinite',
+                    shimmer:     'shimmer 1.5s infinite',
+                    'fade-up':   'fadeUp .4s cubic-bezier(.22,1,.36,1) both',
+                },
+                keyframes: {
+                    pulseDot: {
+                        '0%,100%': { opacity: '1', transform: 'scale(1)' },
+                        '50%':     { opacity: '.4', transform: 'scale(.65)' },
+                    },
+                    shimmer: {
+                        '0%':   { backgroundPosition: '100% 0' },
+                        '100%': { backgroundPosition: '-100% 0' },
+                    },
+                    fadeUp: {
+                        from: { opacity: '0', transform: 'translateY(12px)' },
+                        to:   { opacity: '1', transform: 'translateY(0)' },
+                    },
+                },
+            },
+        },
+    };
+</script>
+
+<style>
+
+    .sd-bg {
+        background-color: #F0F4F8;
+        background-image: radial-gradient(ellipse 60% 40% at 0% 0%, rgba(0,188,235,.07) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 100% 100%, rgba(180,211,52,.05) 0%, transparent 60%);
+    }
+
+    .header-accent::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 3px;
+        background: linear-gradient(180deg, #00BCEB 0%, #B4D334 100%);
+        border-radius: 3px 0 0 3px;
+    }
+
+    .stat-card-hover::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        border-radius: 12px 12px 0 0;
+        opacity: 0;
+        transition: opacity .25s;
+    }
+
+    .stat-card-hover:hover::before {
+        opacity: 1;
+    }
+
+    .accent-cyan::before {
+        background: linear-gradient(90deg, #00BCEB, #0096BE);
+    }
+
+    .accent-danger::before {
+        background: linear-gradient(90deg, #EF4444, #b91c1c);
+    }
+
+    .accent-lime::before {
+        background: linear-gradient(90deg, #B4D334, #8FB829);
+    }
+
+    .accent-orange::before {
+        background: linear-gradient(90deg, #F97316, #EA580C);
+    }
+
+    .skel {
+        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+        background-size: 400% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 5px;
+    }
+
+    .eng-scroll {
+        max-height: 272px;
+        overflow-y: auto;
+        padding-right: 2px;
+    }
+
+        .eng-scroll::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .eng-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .eng-scroll::-webkit-scrollbar-thumb {
+            background: #E2E8F0;
+            border-radius: 3px;
+        }
+
+    .chart-wrap {
+        height: 188px;
+        position: relative;
+    }
+
+    .custom-select {
+        -webkit-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394A3B8'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+    }
+
+    .d1 {
+        animation-delay: .04s;
+    }
+
+    .d2 {
+        animation-delay: .09s;
+    }
+
+    .d3 {
+        animation-delay: .14s;
+    }
+
+    .d4 {
+        animation-delay: .19s;
+    }
+
+    .d5 {
+        animation-delay: .24s;
+    }
+
+    .d6 {
+        animation-delay: .29s;
+    }
+</style>
+
+<div class="sd-bg min-h-screen font-sans px-3 pt-4 pb-12 sm:px-4 sm:pt-5 lg:px-6">
+    <div class="max-w-7xl mx-auto flex flex-col gap-3.5">
+
+        <div class="animate-fade-up d1 relative flex flex-wrap items-center justify-between gap-3
+                    bg-card border border-bdr rounded-2xl px-4 py-3.5 shadow-card overflow-hidden header-accent
+                    sm:px-5 sm:py-4">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm
+                            bg-gradient-to-br from-cyan to-cyan-dark shadow-cyan">
+                    <i class="fas fa-headset"></i>
                 </div>
-                <div class="flex items-center gap-2">
-                    @if (canCreate)
-                    {
-                        <a href="@Url.Action("CreateTicket", "ServiceDesk")"
-                           class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded flex items-center">
-                            <i class="fas fa-plus mr-1.5 text-xs"></i>
-                            New Ticket
-                        </a>
-                    }
+                <div>
+                    <h1 class="text-[15px] font-bold text-ink leading-tight tracking-tight">
+                        Service Desk Dashboard
+                    </h1>
+                    <p class="text-[11px] text-muted leading-none mt-0.5">Real-time ticket overview &amp; team status</p>
                 </div>
             </div>
-
-            <!-- Date & Filters -->
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="flex items-center gap-2 text-sm text-gray-600 bg-white px-3 py-1.5 rounded border">
-                    <i class="fas fa-calendar-alt text-blue-500"></i>
+            <div class="flex items-center flex-wrap gap-2">
+                <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                             bg-lime-soft border border-lime/30 text-[10px] font-bold text-lime-dark uppercase tracking-wide">
+                    <span class="w-1.5 h-1.5 rounded-full bg-lime-dark animate-pulse-dot"></span>
+                    Live
+                </span>
+                <span class="hidden xs:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                             bg-cyan-soft border border-cyan/25 text-[10px] font-semibold text-cyan-dark">
+                    <i class="fas fa-calendar-alt text-[9px]"></i>
                     <span id="currentDate"></span>
-                </div>
-                <select id="companyFilter" class="h-8 text-sm border border-gray-300 rounded px-2 bg-white text-gray-700 min-w-[150px]">
+                </span>
+                @if (canCreate)
+                {
+                    <a href="@Url.Action("CreateTicket", "ServiceDesk")"
+                       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-white text-[11px] font-bold
+                                  bg-gradient-to-br from-cyan to-cyan-dark shadow-cyan no-underline
+                                  transition-all duration-150 hover:shadow-cyan-lg hover:-translate-y-px">
+                        <i class="fas fa-plus text-[9px]"></i>
+                        New Ticket
+                    </a>
+                }
+            </div>
+        </div>
+
+        <div class="animate-fade-up d2 flex flex-wrap items-center gap-2
+                    bg-card border border-bdr rounded-xl px-3.5 py-2.5 shadow-xs">
+            <span class="hidden sm:block text-[10px] font-bold text-muted uppercase tracking-wider mr-1">
+                <i class="fas fa-filter text-[9px] mr-1"></i>Filter
+            </span>
+
+            <div class="relative flex-1 min-w-[130px] max-w-[200px]">
+                <i class="fas fa-building absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-light text-[9px] pointer-events-none"></i>
+                <select id="companyFilter"
+                        class="custom-select w-full h-8 pl-6 pr-7 text-[11px] font-medium text-ink
+                               bg-surface border border-bdr rounded-lg outline-none cursor-pointer
+                               transition-all duration-200
+                               focus:border-cyan focus:ring-2 focus:ring-cyan/10 focus:bg-card">
                     <option value="">All Companies</option>
                 </select>
-                <select id="groupFilter" class="h-8 text-sm border border-gray-300 rounded px-2 bg-white text-gray-700 min-w-[150px]">
+            </div>
+
+            <div class="relative flex-1 min-w-[120px] max-w-[190px]">
+                <i class="fas fa-users absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-light text-[9px] pointer-events-none"></i>
+                <select id="groupFilter"
+                        class="custom-select w-full h-8 pl-6 pr-7 text-[11px] font-medium text-ink
+                               bg-surface border border-bdr rounded-lg outline-none cursor-pointer
+                               transition-all duration-200
+                               focus:border-cyan focus:ring-2 focus:ring-cyan/10 focus:bg-card">
                     <option value="">All Groups</option>
                 </select>
-                <select id="locationFilter" class="h-8 text-sm border border-gray-300 rounded px-2 bg-white text-gray-700 min-w-[150px]">
+            </div>
+
+            <div class="relative flex-1 min-w-[120px] max-w-[190px]">
+                <i class="fas fa-map-marker-alt absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-light text-[9px] pointer-events-none"></i>
+                <select id="locationFilter"
+                        class="custom-select w-full h-8 pl-6 pr-7 text-[11px] font-medium text-ink
+                               bg-surface border border-bdr rounded-lg outline-none cursor-pointer
+                               transition-all duration-200
+                               focus:border-cyan focus:ring-2 focus:ring-cyan/10 focus:bg-card">
                     <option value="">All Locations</option>
                 </select>
             </div>
         </div>
 
-        <!-- Main Stats Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-            <!-- Total Tickets -->
-            <div class="bg-white rounded border border-gray-200 p-3 hover:border-blue-300 transition-colors">
-                <div class="flex justify-between items-start mb-2">
+        <div class="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+
+            <div class="stat-card-hover accent-cyan animate-fade-up d2 relative overflow-hidden
+                        bg-card border border-bdr rounded-xl p-3.5 shadow-xs
+                        transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-default
+                        sm:p-4">
+                <div class="absolute -bottom-5 -right-5 w-20 h-20 rounded-full bg-cyan opacity-[.04] transition-all duration-200 group-hover:opacity-[.08]"></div>
+                <div class="flex items-start justify-between mb-2.5">
                     <div>
-                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Tickets</div>
-                        <div class="text-lg font-bold text-gray-800 mt-1" id="statTotal">--</div>
+                        <div class="text-[9.5px] font-bold text-muted uppercase tracking-wider mb-1.5">Total Tickets</div>
+                        <div id="statTotal" class="text-3xl font-extrabold text-ink leading-none tracking-tight tabular-nums">—</div>
                     </div>
-                    <div class="w-8 h-8 rounded bg-blue-50 flex items-center justify-center">
-                        <i class="fas fa-ticket-alt text-blue-500 text-sm"></i>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] flex-shrink-0 bg-cyan-soft text-cyan-dark shadow-xs">
+                        <i class="fas fa-ticket-alt"></i>
                     </div>
                 </div>
-                <div class="text-xs text-green-500 font-medium">
-                    <i class="fas fa-arrow-up mr-1 text-[10px]"></i>
-                    <span id="statNewToday">--</span> new today
+                <div class="h-px bg-bdr/70 mb-2"></div>
+                <div class="flex items-center gap-1 text-[10px] font-semibold text-lime-dark">
+                    <i class="fas fa-arrow-up text-[8px]"></i>
+                    <span id="statNewToday">—</span>&nbsp;new today
                 </div>
             </div>
 
-            <!-- Open Tickets -->
-            <div class="bg-white rounded border border-gray-200 p-3 hover:border-red-300 transition-colors">
-                <div class="flex justify-between items-start mb-2">
+            <div class="stat-card-hover accent-danger animate-fade-up d3 relative overflow-hidden
+                        bg-card border border-bdr rounded-xl p-3.5 shadow-xs
+                        transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-default
+                        sm:p-4">
+                <div class="absolute -bottom-5 -right-5 w-20 h-20 rounded-full bg-danger opacity-[.04]"></div>
+                <div class="flex items-start justify-between mb-2.5">
                     <div>
-                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Open / Pending</div>
-                        <div class="text-lg font-bold text-gray-800 mt-1" id="statOpen">--</div>
+                        <div class="text-[9.5px] font-bold text-muted uppercase tracking-wider mb-1.5">Open / Pending</div>
+                        <div id="statOpen" class="text-3xl font-extrabold text-ink leading-none tracking-tight tabular-nums">—</div>
                     </div>
-                    <div class="w-8 h-8 rounded bg-red-50 flex items-center justify-center">
-                        <i class="fas fa-hourglass-half text-red-500 text-sm"></i>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] flex-shrink-0 bg-danger-soft text-danger shadow-xs">
+                        <i class="fas fa-hourglass-half"></i>
                     </div>
                 </div>
-                <div class="text-xs text-gray-500">Requires attention</div>
+                <div class="h-px bg-bdr/70 mb-2"></div>
+                <div class="flex items-center gap-1 text-[10px] font-semibold text-danger">
+                    <i class="fas fa-exclamation-circle text-[8px]"></i>
+                    Requires attention
+                </div>
             </div>
 
-            <!-- Resolved Today -->
-            <div class="bg-white rounded border border-gray-200 p-3 hover:border-emerald-300 transition-colors">
-                <div class="flex justify-between items-start mb-2">
+            <div class="stat-card-hover accent-lime animate-fade-up d3 relative overflow-hidden
+                        bg-card border border-bdr rounded-xl p-3.5 shadow-xs
+                        transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-default
+                        sm:p-4">
+                <div class="absolute -bottom-5 -right-5 w-20 h-20 rounded-full bg-lime opacity-[.04]"></div>
+                <div class="flex items-start justify-between mb-2.5">
                     <div>
-                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Resolved Today</div>
-                        <div class="text-lg font-bold text-gray-800 mt-1" id="statResolved">--</div>
+                        <div class="text-[9.5px] font-bold text-muted uppercase tracking-wider mb-1.5">Resolved Today</div>
+                        <div id="statResolved" class="text-3xl font-extrabold text-ink leading-none tracking-tight tabular-nums">—</div>
                     </div>
-                    <div class="w-8 h-8 rounded bg-emerald-50 flex items-center justify-center">
-                        <i class="fas fa-check-circle text-emerald-500 text-sm"></i>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] flex-shrink-0 bg-lime-soft text-lime-dark shadow-xs">
+                        <i class="fas fa-check-circle"></i>
                     </div>
                 </div>
-                <div class="text-xs text-emerald-500 font-medium">Great job!</div>
+                <div class="h-px bg-bdr/70 mb-2"></div>
+                <div class="flex items-center gap-1 text-[10px] font-semibold text-lime-dark">
+                    <i class="fas fa-star text-[8px]"></i>
+                    Great work today
+                </div>
             </div>
 
-            <!-- SLA Breached -->
-            <div class="bg-white rounded border border-gray-200 p-3 hover:border-orange-300 transition-colors">
-                <div class="flex justify-between items-start mb-2">
+            <div class="stat-card-hover accent-orange animate-fade-up d4 relative overflow-hidden
+                        bg-card border border-bdr rounded-xl p-3.5 shadow-xs
+                        transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-default
+                        sm:p-4">
+                <div class="absolute -bottom-5 -right-5 w-20 h-20 rounded-full bg-orange opacity-[.04]"></div>
+                <div class="flex items-start justify-between mb-2.5">
                     <div>
-                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Overdue (SLA)</div>
-                        <div class="text-lg font-bold text-gray-800 mt-1" id="statSla">--</div>
+                        <div class="text-[9.5px] font-bold text-muted uppercase tracking-wider mb-1.5">Overdue (SLA)</div>
+                        <div id="statSla" class="text-3xl font-extrabold text-ink leading-none tracking-tight tabular-nums">—</div>
                     </div>
-                    <div class="w-8 h-8 rounded bg-orange-50 flex items-center justify-center">
-                        <i class="fas fa-exclamation-triangle text-orange-500 text-sm"></i>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] flex-shrink-0 bg-orange-soft text-orange shadow-xs">
+                        <i class="fas fa-exclamation-triangle"></i>
                     </div>
                 </div>
-                <div class="text-xs text-red-500 font-medium">Critical</div>
+                <div class="h-px bg-bdr/70 mb-2"></div>
+                <div class="flex items-center gap-1 text-[10px] font-semibold text-orange">
+                    <i class="fas fa-bolt text-[8px]"></i>
+                    Critical — act now
+                </div>
             </div>
+
+        </div><
+        <div class="animate-fade-up d4 grid grid-cols-1 gap-3 md:grid-cols-2">
+
+            <div class="bg-card border border-bdr rounded-xl p-3.5 shadow-xs sm:p-4">
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-bdr/70">
+                    <div class="flex items-center gap-2 text-[12px] font-bold text-ink">
+                        <span class="w-2 h-2 rounded-full flex-shrink-0"
+                              style="background:linear-gradient(135deg,#00BCEB,#B4D334);box-shadow:0 0 0 2px rgba(0,188,235,.15);"></span>
+                        Ticket Status Distribution
+                    </div>
+                    <span class="text-[10px] font-semibold text-muted bg-surface border border-bdr rounded-full px-2.5 py-0.5">Live</span>
+                </div>
+                <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+            </div>
+
+            <div class="bg-card border border-bdr rounded-xl p-3.5 shadow-xs sm:p-4">
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-bdr/70">
+                    <div class="flex items-center gap-2 text-[12px] font-bold text-ink">
+                        <span class="w-2 h-2 rounded-full flex-shrink-0"
+                              style="background:linear-gradient(135deg,#F97316,#B4D334);"></span>
+                        Tickets by Priority
+                    </div>
+                    <span class="text-[10px] font-semibold text-muted bg-surface border border-bdr rounded-full px-2.5 py-0.5">Live</span>
+                </div>
+                <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
+            </div>
+
         </div>
+        <div class="animate-fade-up d5 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_300px]">
 
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
-            <!-- Status Chart -->
-            <div class="bg-white rounded border border-gray-200 p-3">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="font-medium text-gray-800">Ticket Status Distribution</h3>
-                    <span class="text-xs text-gray-500">Today</span>
-                </div>
-                <div class="h-48">
-                    <canvas id="statusChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Priority Chart -->
-            <div class="bg-white rounded border border-gray-200 p-3">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="font-medium text-gray-800">Tickets by Priority</h3>
-                    <span class="text-xs text-gray-500">Today</span>
-                </div>
-                <div class="h-48">
-                    <canvas id="priorityChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Engineer Status & Recent Activity -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- Engineer Status -->
-            <div class="lg:col-span-2">
-                <div class="bg-white rounded border border-gray-200 p-3">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-medium text-gray-800">Engineer Status</h3>
-                        <span class="text-xs text-gray-500" id="engineerCount">-- online</span>
+            <div class="bg-card border border-bdr rounded-xl p-3.5 shadow-xs sm:p-4">
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-bdr/70">
+                    <div class="flex items-center gap-2 text-[12px] font-bold text-ink">
+                        <span class="w-2 h-2 rounded-full flex-shrink-0"
+                              style="background:linear-gradient(135deg,#00BCEB,#0096BE);"></span>
+                        Engineer Status
                     </div>
-                    <div class="space-y-2 max-h-64 overflow-y-auto pr-2" id="engineerList">
-                        <div class="animate-pulse flex items-center space-x-3">
-                            <div class="rounded-full bg-gray-200 h-7 w-7"></div>
+                    <span id="engineerCount"
+                          class="text-[10px] font-semibold text-muted bg-surface border border-bdr rounded-full px-2.5 py-0.5">
+                        Loading…
+                    </span>
+                </div>
+
+                <div class="eng-scroll" id="engineerList">
+                    @for (int i = 0; i < 5; i++)
+                    {
+                        <div class="flex items-center gap-2.5 py-2">
+                            <div class="skel w-8 h-8 rounded-full flex-shrink-0"></div>
                             <div class="flex-1">
-                                <div class="h-2 bg-gray-200 rounded w-24"></div>
-                                <div class="h-2 bg-gray-200 rounded w-16 mt-1.5"></div>
+                                <div class="skel h-2.5 w-28 mb-1.5 rounded"></div>
+                                <div class="skel h-2 w-16 rounded"></div>
                             </div>
+                            <div class="skel h-5 w-14 rounded-full"></div>
                         </div>
-                    </div>
+                    }
                 </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="bg-white rounded border border-gray-200 p-3">
-                <h3 class="font-medium text-gray-800 mb-3">Quick Actions</h3>
-                <div class="space-y-2">
+            <div class="bg-card border border-bdr rounded-xl p-3.5 shadow-xs sm:p-4">
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-bdr/70">
+                    <div class="flex items-center gap-2 text-[12px] font-bold text-ink">
+                        <span class="w-2 h-2 rounded-full flex-shrink-0"
+                              style="background:linear-gradient(135deg,#F97316,#EA580C);"></span>
+                        Quick Actions
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+
                     <a href="@Url.Action("Tickets", "ServiceDesk")"
-                       class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-blue-50 rounded border border-gray-100 hover:border-blue-200 transition-colors">
-                        <div class="w-7 h-7 rounded bg-blue-100 flex items-center justify-center">
-                            <i class="fas fa-list text-blue-600 text-xs"></i>
+                       class="qa-row group flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-bdr
+                              bg-card text-ink text-[11px] font-semibold no-underline
+                              transition-all duration-150 hover:border-cyan hover:bg-cyan-soft hover:translate-x-0.5 hover:shadow-xs">
+                        <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] flex-shrink-0 bg-cyan-soft text-cyan-dark transition-transform duration-150 group-hover:scale-105">
+                            <i class="fas fa-list"></i>
                         </div>
-                        <span>View All Tickets</span>
-                        <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                        <span class="flex-1">View All Tickets</span>
+                        <i class="fas fa-arrow-right text-[9px] text-muted-light transition-transform duration-150 group-hover:translate-x-0.5"></i>
                     </a>
+
                     @if (canCreate)
                     {
                         <a href="@Url.Action("CreateTicket", "ServiceDesk")"
-                           class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-emerald-50 rounded border border-gray-100 hover:border-emerald-200 transition-colors">
-                            <div class="w-7 h-7 rounded bg-emerald-100 flex items-center justify-center">
-                                <i class="fas fa-plus text-emerald-600 text-xs"></i>
+                           class="qa-row group flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-bdr
+                                      bg-card text-ink text-[11px] font-semibold no-underline
+                                      transition-all duration-150 hover:border-lime hover:bg-lime-soft hover:translate-x-0.5 hover:shadow-xs">
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] flex-shrink-0 bg-lime-soft text-lime-dark transition-transform duration-150 group-hover:scale-105">
+                                <i class="fas fa-plus"></i>
                             </div>
-                            <span>New Ticket</span>
-                            <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                            <span class="flex-1">New Ticket</span>
+                            <i class="fas fa-arrow-right text-[9px] text-muted-light transition-transform duration-150 group-hover:translate-x-0.5"></i>
                         </a>
                     }
-                    <a href="#" onclick="loadStats()"
-                       class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-amber-50 rounded border border-gray-100 hover:border-amber-200 transition-colors">
-                        <div class="w-7 h-7 rounded bg-amber-100 flex items-center justify-center">
-                            <i class="fas fa-sync-alt text-amber-600 text-xs"></i>
+
+                    <a href="#" onclick="loadStats();return false;"
+                       class="qa-row group flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-bdr
+                              bg-card text-ink text-[11px] font-semibold no-underline
+                              transition-all duration-150 hover:border-orange hover:bg-orange-soft hover:translate-x-0.5 hover:shadow-xs">
+                        <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] flex-shrink-0 bg-orange-soft text-orange-dark transition-transform duration-150 group-hover:scale-105">
+                            <i class="fas fa-sync-alt"></i>
                         </div>
-                        <span>Refresh Data</span>
-                        <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                        <span class="flex-1">Refresh Data</span>
+                        <i class="fas fa-arrow-right text-[9px] text-muted-light transition-transform duration-150 group-hover:translate-x-0.5"></i>
                     </a>
+
                     <a href="@Url.Action("Reports", "ServiceDesk")"
-                       class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-indigo-50 rounded border border-gray-100 hover:border-indigo-200 transition-colors">
-                        <div class="w-7 h-7 rounded bg-indigo-100 flex items-center justify-center">
-                            <i class="fas fa-chart-pie text-indigo-600 text-xs"></i>
+                       class="qa-row group flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-bdr
+                              bg-card text-ink text-[11px] font-semibold no-underline
+                              transition-all duration-150 hover:border-indigo-400 hover:bg-indigo-50 hover:translate-x-0.5 hover:shadow-xs">
+                        <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] flex-shrink-0 bg-indigo-50 text-indigo-500 transition-transform duration-150 group-hover:scale-105">
+                            <i class="fas fa-chart-pie"></i>
                         </div>
-                        <span>Reports & Analytics</span>
-                        <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                        <span class="flex-1">Reports &amp; Analytics</span>
+                        <i class="fas fa-arrow-right text-[9px] text-muted-light transition-transform duration-150 group-hover:translate-x-0.5"></i>
                     </a>
-                    @if(ViewBag.CanManageSLA == true)
+
+                    @if (ViewBag.CanManageSLA == true)
                     {
                         <a href="@Url.Action("SLAManagement", "ServiceDesk")"
-                           class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-rose-50 rounded border border-gray-100 hover:border-rose-200 transition-colors">
-                            <div class="w-7 h-7 rounded bg-rose-100 flex items-center justify-center">
-                                <i class="fas fa-radiation text-rose-600 text-xs"></i>
+                           class="qa-row group flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-bdr
+                                      bg-card text-ink text-[11px] font-semibold no-underline
+                                      transition-all duration-150 hover:border-rose-400 hover:bg-rose-50 hover:translate-x-0.5 hover:shadow-xs">
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] flex-shrink-0 bg-rose-50 text-rose-500 transition-transform duration-150 group-hover:scale-105">
+                                <i class="fas fa-radiation"></i>
                             </div>
-                            <span>SLA Management</span>
-                            <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                            <span class="flex-1">SLA Management</span>
+                            <i class="fas fa-arrow-right text-[9px] text-muted-light transition-transform duration-150 group-hover:translate-x-0.5"></i>
                         </a>
                     }
-                    @if(ViewBag.CanManageMasterParts == true)
+
+                    @if (ViewBag.CanManageParts == true)
                     {
-                        <a href="@Url.Action("MasterParts", "ServiceDesk")"
-                           class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-cyan-50 rounded border border-gray-100 hover:border-cyan-200 transition-colors">
-                            <div class="w-7 h-7 rounded bg-cyan-100 flex items-center justify-center">
-                                <i class="fas fa-tools text-cyan-600 text-xs"></i>
+                        <a href="@Url.Action("PartsInventory", "ServiceDesk")"
+                           class="qa-row group flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-bdr
+                                      bg-card text-ink text-[11px] font-semibold no-underline
+                                      transition-all duration-150 hover:border-teal-400 hover:bg-teal-50 hover:translate-x-0.5 hover:shadow-xs">
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] flex-shrink-0 bg-teal-50 text-teal-600 transition-transform duration-150 group-hover:scale-105">
+                                <i class="fas fa-tools"></i>
                             </div>
-                            <span>Master Parts</span>
-                            <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                            <span class="flex-1">Parts Inventory</span>
+                            <i class="fas fa-arrow-right text-[9px] text-muted-light transition-transform duration-150 group-hover:translate-x-0.5"></i>
                         </a>
                     }
-                    @if(ViewBag.CanAdminSettings == true)
+
+
+                    @if (ViewBag.CanAdminSettings == true)
                     {
                         <a href="@Url.Action("AdminSettings", "ServiceDesk")"
-                           class="flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-purple-50 rounded border border-gray-100 hover:border-purple-200 transition-colors">
-                            <div class="w-7 h-7 rounded bg-purple-100 flex items-center justify-center">
-                                <i class="fas fa-cog text-purple-600 text-xs"></i>
+                           class="qa-row group flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-bdr
+                                      bg-card text-ink text-[11px] font-semibold no-underline
+                                      transition-all duration-150 hover:border-purple-400 hover:bg-purple-50 hover:translate-x-0.5 hover:shadow-xs">
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] flex-shrink-0 bg-purple-50 text-purple-500 transition-transform duration-150 group-hover:scale-105">
+                                <i class="fas fa-cog"></i>
                             </div>
-                            <span>Admin Settings</span>
-                            <i class="fas fa-arrow-right ml-auto text-gray-400 text-xs"></i>
+                            <span class="flex-1">Admin Settings</span>
+                            <i class="fas fa-arrow-right text-[9px] text-muted-light transition-transform duration-150 group-hover:translate-x-0.5"></i>
                         </a>
                     }
+
                 </div>
             </div>
         </div>
+
     </div>
 </div>
-
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             const options = { weekday: 'short', month: 'short', day: 'numeric' };
             $('#currentDate').text(new Date().toLocaleDateString('en-US', options));
 
@@ -243,14 +513,14 @@
             loadStats();
             loadEngineers();
 
-            $('#companyFilter').on('change', function() {
+            $('#companyFilter').on('change', function () {
                 const cid = $(this).val();
                 loadGroups(cid);
                 loadStats();
                 loadEngineers();
             });
 
-            $('#groupFilter').on('change', function() {
+            $('#groupFilter').on('change', function () {
                 const cid = $('#companyFilter').val();
                 const gid = $(this).val();
                 loadLocations(cid, gid);
@@ -258,24 +528,24 @@
                 loadEngineers();
             });
 
-            $('#locationFilter').on('change', function() {
+            $('#locationFilter').on('change', function () {
                 loadStats();
                 loadEngineers();
             });
         });
 
         function loadInitialData() {
-            $.get('@Url.Action("GetCompanies", "ServiceDesk")', function(companies) {
+            $.get('@Url.Action("GetCompanies", "ServiceDesk")', function (companies) {
                 const select = $('#companyFilter');
                 select.empty().append('<option value="">All Companies</option>');
                 if (companies && companies.length > 0) {
-                    companies.forEach(function(c) {
-                        const companyId = c.id || c.companyId || c.Id;
+                    companies.forEach(function (c) {
+                        const companyId   = c.id || c.companyId || c.Id;
                         const companyName = c.name || c.companyName || c.Name || 'Unknown Company';
                         select.append(`<option value="${companyId}">${companyName}</option>`);
                     });
                 }
-            }).fail(function(xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 console.error('Failed to load companies:', error);
             });
         }
@@ -284,18 +554,17 @@
             const select = $('#groupFilter');
             select.html('<option value="">All Groups</option>');
             $('#locationFilter').html('<option value="">All Locations</option>');
-            
             if (!companyId) return;
 
-            $.get(`@Url.Action("GetGroups", "ServiceDesk")?companyId=${companyId}`, function(groups) {
+            $.get(`@Url.Action("GetGroups", "ServiceDesk")?companyId=${companyId}`, function (groups) {
                 if (groups && groups.length > 0) {
-                    groups.forEach(function(g) {
-                        const groupId = g.id || g.groupId || g.Id;
+                    groups.forEach(function (g) {
+                        const groupId   = g.id || g.groupId || g.Id;
                         const groupName = g.name || g.groupName || g.Name || 'Unknown Group';
                         select.append(`<option value="${groupId}">${groupName}</option>`);
                     });
                 }
-            }).fail(function(xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 console.error('Failed to load groups:', error);
             });
         }
@@ -306,58 +575,79 @@
             if (!companyId) return;
 
             let url = `@Url.Action("GetLocations", "ServiceDesk")?companyId=${companyId}`;
-            if(groupId) url += `&groupId=${groupId}`;
+            if (groupId) url += `&groupId=${groupId}`;
 
-            $.get(url, function(locations) {
+            $.get(url, function (locations) {
                 if (locations && locations.length > 0) {
-                    locations.forEach(function(l) {
-                        const locationId = l.id || l.locationId || l.Id;
+                    locations.forEach(function (l) {
+                        const locationId   = l.id || l.locationId || l.Id;
                         const locationName = l.name || l.locationName || l.Name || 'Unknown Location';
                         select.append(`<option value="${locationId}">${locationName}</option>`);
                     });
                 }
-            }).fail(function(xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 console.error('Failed to load locations:', error);
             });
         }
 
-        let statusChart = null;
+        let statusChart   = null;
         let priorityChart = null;
 
         function loadStats() {
-            const companyId = $('#companyFilter').val();
-            const groupId = $('#groupFilter').val();
+            const companyId  = $('#companyFilter').val();
+            const groupId    = $('#groupFilter').val();
             const locationId = $('#locationFilter').val();
-            const query = `?companyId=${companyId || ''}&groupId=${groupId || ''}&locationId=${locationId || ''}`;
+            const query      = `?companyId=${companyId || ''}&groupId=${groupId || ''}&locationId=${locationId || ''}`;
 
             $.ajax({
                 url: '@Url.Action("GetStats", "ServiceDesk")' + query,
                 type: 'GET',
-                success: function(data) {
-                    // Update Cards
-                    $('#statTotal').text(data.totalCount || 0);
+                success: function (data) {
+                    animateCount('statTotal',    data.totalCount       || 0);
+                    animateCount('statOpen',     data.openCount        || 0);
+                    animateCount('statResolved', data.todayResolved    || 0);
+                    animateCount('statSla',      data.slaBreachedCount || 0);
                     $('#statNewToday').text(data.todayCreated || 0);
-                    $('#statOpen').text(data.openCount || 0);
-                    $('#statResolved').text(data.todayResolved || 0);
-                    $('#statSla').text(data.slaBreachedCount || 0);
-
-                    // Render Charts
                     renderCharts(data);
                 },
-                error: function(err) {
-                    console.error("Failed to load stats", err);
+                error: function (err) {
+                    console.error('Failed to load stats', err);
                 }
             });
         }
 
+
+        function animateCount(id, target) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let start = null;
+            const dur = 550;
+            const step = ts => {
+                if (!start) start = ts;
+                const p = Math.min((ts - start) / dur, 1);
+                el.textContent = Math.round(p * target);
+                if (p < 1) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
+        }
+
         function renderCharts(data) {
-            if (statusChart) statusChart.destroy();
+            if (statusChart)   statusChart.destroy();
             if (priorityChart) priorityChart.destroy();
 
-            // Status Chart (Doughnut) - use dynamic colors from API
-            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            const tooltipCfg = {
+                backgroundColor: '#0F172A',
+                titleFont: { size: 10, family: "'Segoe UI', sans-serif" },
+                bodyFont:  { size: 10, family: "'Segoe UI', sans-serif" },
+                padding: 10,
+                cornerRadius: 8,
+                displayColors: true,
+                boxWidth: 8, boxHeight: 8
+            };
+
+            const ctxStatus    = document.getElementById('statusChart').getContext('2d');
             const statusLabels = data.statusBreakdown ? data.statusBreakdown.map(s => s.status) : [];
-            const statusValues = data.statusBreakdown ? data.statusBreakdown.map(s => s.count) : [];
+            const statusValues = data.statusBreakdown ? data.statusBreakdown.map(s => s.count)  : [];
             const statusColors = data.statusBreakdown ? data.statusBreakdown.map(s => s.color || '#6B7280') : [];
 
             statusChart = new Chart(ctxStatus, {
@@ -366,33 +656,38 @@
                     labels: statusLabels,
                     datasets: [{
                         data: statusValues,
-                        backgroundColor: statusColors,
-                        borderWidth: 1,
-                        borderColor: '#fff'
+                        backgroundColor: statusColors,   
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                        hoverOffset: 6
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: { duration: 700, easing: 'easeInOutQuart' },
                     plugins: {
                         legend: {
                             display: true,
                             position: 'bottom',
                             labels: {
                                 usePointStyle: true,
-                                font: { size: 9 },
-                                padding: 10
+                                pointStyle: 'circle',
+                                font: { size: 10, family: "'Segoe UI', sans-serif" },
+                                padding: 10,
+                                color: '#64748B',
+                                boxWidth: 7, boxHeight: 7
                             }
-                        }
+                        },
+                        tooltip: tooltipCfg
                     },
-                    cutout: '70%'
+                    cutout: '72%'
                 }
             });
 
-            // Priority Chart (Bar) - use dynamic colors from API
-            const ctxPriority = document.getElementById('priorityChart').getContext('2d');
+            const ctxPriority    = document.getElementById('priorityChart').getContext('2d');
             const priorityLabels = data.priorityBreakdown ? data.priorityBreakdown.map(p => p.priority) : [];
-            const priorityValues = data.priorityBreakdown ? data.priorityBreakdown.map(p => p.count) : [];
+            const priorityValues = data.priorityBreakdown ? data.priorityBreakdown.map(p => p.count)    : [];
             const priorityColors = data.priorityBreakdown ? data.priorityBreakdown.map(p => p.color || '#6B7280') : [];
 
             priorityChart = new Chart(ctxPriority, {
@@ -401,24 +696,31 @@
                     labels: priorityLabels,
                     datasets: [{
                         data: priorityValues,
-                        backgroundColor: priorityColors
+                        backgroundColor: priorityColors, 
+                        borderRadius: 5,
+                        borderSkipped: false,
+                        barThickness: 28
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: { duration: 700, easing: 'easeInOutQuart' },
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: tooltipCfg
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grid: { display: true },
-                            ticks: { stepSize: 1, font: { size: 9 } }
+                            grid: { color: 'rgba(0,0,0,.04)', drawBorder: false },
+                            ticks: { stepSize: 1, font: { size: 9 }, color: '#94A3B8', padding: 4 },
+                            border: { display: false }
                         },
                         x: {
                             grid: { display: false },
-                            ticks: { font: { size: 9 } }
+                            ticks: { font: { size: 9 }, color: '#94A3B8' },
+                            border: { display: false }
                         }
                     }
                 }
@@ -426,51 +728,71 @@
         }
 
         function loadEngineers() {
-            const cid = $('#companyFilter').val() || '';
-            const gid = $('#groupFilter').val() || '';
+            const cid = $('#companyFilter').val()  || '';
+            const gid = $('#groupFilter').val()    || '';
             const lid = $('#locationFilter').val() || '';
+
             $.ajax({
                 url: `@Url.Action("GetEngineers", "ServiceDesk")?companyId=${cid}&groupId=${gid}&locationId=${lid}`,
                 type: 'GET',
-                success: function(data) {
+                success: function (data) {
                     const list = $('#engineerList');
                     list.empty();
-
                     $('#engineerCount').text(data ? `${data.length} online` : '0 online');
 
-                    if(data && data.length > 0) {
+                    if (data && data.length > 0) {
                         data.forEach(eng => {
-                            const isBusy = eng.currentStatus === 'Busy' || eng.currentStatus === 'Overloaded';
-                            const badgeColor = isBusy ? 'bg-red-500' : 'bg-green-500';
-                            const textColor = isBusy ? 'text-red-600' : 'text-green-600';
-                            
-                            const html = `
-                                <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded transition-colors">
-                                    <div class="flex items-center gap-2">
-                                        <div class="relative">
-                                            <div class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold">
-                                                ${eng.name ? eng.name.charAt(0).toUpperCase() : '?'}
-                                            </div>
-                                            <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 ${badgeColor} rounded-full border border-white"></span>
+                            const status = (eng.currentStatus || 'Available').toLowerCase();
+                            const isOver = status === 'overloaded';
+                            const isBusy = status === 'busy';
+
+                            const dotBg = isOver ? '#EF4444' : isBusy ? '#F97316' : '#B4D334';
+
+                            const badgeCls = isOver
+                                ? 'text-red-600 bg-red-50 border border-red-200'
+                                : isBusy
+                                    ? 'text-orange-600 bg-orange-50 border border-orange-200'
+                                    : 'text-lime-dark bg-lime-soft border border-lime/30';
+
+                            const label    = eng.currentStatus || 'Available';
+                            const initials = eng.name ? eng.name.charAt(0).toUpperCase() : '?';
+
+                            list.append(`
+                                <div class="flex items-center justify-between px-2 py-2 rounded-lg border border-transparent
+                                            transition-colors duration-150 hover:bg-surface hover:border-bdr gap-2">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <div class="relative w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center
+                                                    text-[11px] font-bold text-white
+                                                    bg-gradient-to-br from-cyan to-cyan-dark shadow-xs">
+                                            ${initials}
+                                            <span class="absolute -bottom-px -right-px w-2.5 h-2.5 rounded-full border-2 border-white"
+                                                  style="background:${dotBg};"></span>
                                         </div>
-                                        <div>
-                                            <div class="text-sm font-medium text-gray-800">${eng.name || 'Unknown Engineer'}</div>
-                                            <div class="text-xs text-gray-500">${eng.activeTickets || 0} active tickets</div>
+                                        <div class="min-w-0">
+                                            <div class="text-[11.5px] font-semibold text-ink truncate">${eng.name || 'Unknown Engineer'}</div>
+                                            <div class="flex items-center gap-1 text-[9.5px] text-muted-light">
+                                                <i class="fas fa-ticket-alt text-[7px]"></i>
+                                                ${eng.activeTickets || 0} active tickets
+                                            </div>
                                         </div>
                                     </div>
-                                    <span class="text-xs ${textColor}">
-                                        ${eng.currentStatus || 'Available'}
-                                    </span>
-                                </div>
-                            `;
-                            list.append(html);
+                                    <span class="text-[9.5px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${badgeCls}">${label}</span>
+                                </div>`);
                         });
                     } else {
-                        list.html('<div class="text-center text-gray-400 py-4 text-sm">No engineers found</div>');
+                        list.html(`
+                            <div class="flex flex-col items-center justify-center py-8 text-muted-light text-[11px]">
+                                <i class="fas fa-user-slash text-2xl mb-2 opacity-40"></i>
+                                No engineers found
+                            </div>`);
                     }
                 },
-                error: function() {
-                    $('#engineerList').html('<div class="text-center text-red-400 py-4 text-sm">Failed to load engineers</div>');
+                error: function () {
+                    $('#engineerList').html(`
+                        <div class="flex flex-col items-center justify-center py-7 text-red-400 text-[11px]">
+                            <i class="fas fa-exclamation-triangle text-xl mb-2 opacity-60"></i>
+                            Failed to load engineers
+                        </div>`);
                 }
             });
         }
