@@ -30,10 +30,10 @@ namespace ManageEngineWebApp.Controllers
             var username = HttpContext.Session.GetString("username");
             if (RoleHelper.IsCompanyScopedRole(HttpContext))
             {
-                var companyId = RoleHelper.GetCompanyId(HttpContext);
-                if (companyId.HasValue)
+                var companyIds = RoleHelper.GetCompanyIds(HttpContext);
+                if (companyIds.Count == 1)
                 {
-                    return RedirectToAction("GroupsDetails", new { id = companyId.Value });
+                    return RedirectToAction("GroupsDetails", new { id = companyIds.First() });
                 }
             }
 
@@ -82,10 +82,10 @@ namespace ManageEngineWebApp.Controllers
                         : new List<Companies>();
                 }
 
-                var userCompanyId = RoleHelper.GetCompanyId(HttpContext);
-                if (userCompanyId.HasValue && !RoleHelper.IsTopLevelAdmin(HttpContext))
+                var userCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
+                if (userCompanyIds.Any() && !RoleHelper.IsTopLevelAdmin(HttpContext))
                 {
-                    data = data.Where(c => c.Id == userCompanyId.Value).ToList();
+                    data = data.Where(c => userCompanyIds.Contains(c.Id)).ToList();
                 }
             }
             catch (Exception ex)
@@ -202,10 +202,10 @@ namespace ManageEngineWebApp.Controllers
                 if (companies == null || !companies.Any())
                     return hierarchyList;
 
-                int? allowedCompanyId = RoleHelper.GetCompanyId(HttpContext);
-                if (allowedCompanyId.HasValue)
+                var allowedCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
+                if (allowedCompanyIds.Any())
                 {
-                    companies = companies.Where(c => c.Id == allowedCompanyId.Value).ToList();
+                    companies = companies.Where(c => allowedCompanyIds.Contains(c.Id)).ToList();
                 }
 
                 foreach (var company in companies)

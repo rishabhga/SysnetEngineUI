@@ -115,10 +115,21 @@ namespace ManageEngineWebApp.Datacontext
 
             return false;
         }
-        public static int? GetCompanyId(Microsoft.AspNetCore.Http.HttpContext context)
+        public static List<int> GetCompanyIds(Microsoft.AspNetCore.Http.HttpContext context)
         {
             var idStr = context?.Session.GetString("companyId");
-            if (int.TryParse(idStr, out int id)) return id;
+            if (string.IsNullOrEmpty(idStr)) return new List<int>();
+            return idStr.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.TryParse(s, out int id) ? id : (int?)null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id.Value)
+                        .ToList();
+        }
+
+        public static int? GetCompanyId(Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            var ids = GetCompanyIds(context);
+            if (ids.Any()) return ids.First();
             return null;
         }
 
@@ -166,8 +177,8 @@ namespace ManageEngineWebApp.Datacontext
         {
             if (IsTopLevelAdmin(context)) return true;
             
-            var userCompanyId = GetCompanyId(context);
-            if (userCompanyId.HasValue && requestedCompanyId.HasValue && userCompanyId.Value != requestedCompanyId.Value)
+            var userCompanyIds = GetCompanyIds(context);
+            if (userCompanyIds.Any() && requestedCompanyId.HasValue && !userCompanyIds.Contains(requestedCompanyId.Value))
                 return false;
                 
             var userGroupIds = GetGroupIds(context);
@@ -192,8 +203,13 @@ namespace ManageEngineWebApp.Datacontext
             context.Session.SetString("requiresDevice", roleData.RequiresDevice.ToString().ToLower());
             context.Session.SetString("isSystemRole", roleData.IsSystemRole.ToString().ToLower());
 
-            if (roleData.CompanyId.HasValue)
-                context.Session.SetString("companyId", roleData.CompanyId.Value.ToString());
+            if (!string.IsNullOrEmpty(roleData.StartPage))
+                context.Session.SetString("startPage", roleData.StartPage);
+
+            var companyIds = new List<int>();
+            if (roleData.CompanyId.HasValue) companyIds.Add(roleData.CompanyId.Value);
+            if (roleData.Mappings != null) companyIds.AddRange(roleData.Mappings.Where(m => m.CompanyId.HasValue).Select(m => m.CompanyId.Value));
+            if (companyIds.Any()) context.Session.SetString("companyId", string.Join(",", companyIds.Distinct()));
                 
             var groupIds = new List<int>();
             if (roleData.GroupId.HasValue) groupIds.Add(roleData.GroupId.Value);

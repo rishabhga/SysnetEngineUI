@@ -115,11 +115,15 @@
                                 <div class="space-y-1">
                                     @if (user.Mappings != null)
                                     {
-                                        foreach (var m in user.Mappings.Where(m => m.ScopeType == "Company" || m.CompanyId.HasValue).GroupBy(m => m.CompanyId ?? m.ScopeId).Select(g => g.First()))
+                                        foreach (var m in user.Mappings.Where(m => m.ScopeType == "Company" || m.CompanyId.HasValue))
                                         {
-                                            <div class="flex items-center space-x-1 text-[9px]">
-                                                <span class="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded text-blue-600 font-medium">
-                                                    <i class="fas fa-building mr-1"></i>@(m.CompanyName ?? "N/A")
+                                            <div class="flex items-center space-x-1 text-[9px] group/item mb-1 last:mb-0">
+                                                <span class="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded text-blue-600 font-medium flex items-center shadow-sm">
+                                                    <i class="fas fa-building mr-1 text-[8px]"></i>@(m.CompanyName ?? "N/A")
+                                                    <button onclick="deleteMapping(@m.Id, '@user.Username', '@m.RoleName', '@(m.CompanyName ?? "N/A")')" 
+                                                            class="ml-1.5 text-blue-300 hover:text-red-500 transition-colors focus:outline-none" title="Remove Assignment">
+                                                        <i class="fas fa-times-circle"></i>
+                                                    </button>
                                                 </span>
                                             </div>
                                         }
@@ -130,11 +134,15 @@
                                 <div class="space-y-1">
                                     @if (user.Mappings != null)
                                     {
-                                        foreach (var m in user.Mappings.Where(m => m.ScopeType == "Group" || m.GroupId.HasValue).GroupBy(m => m.GroupId ?? m.ScopeId).Select(g => g.First()))
+                                        foreach (var m in user.Mappings.Where(m => m.ScopeType == "Group" || m.GroupId.HasValue))
                                         {
-                                            <div class="flex items-center space-x-1 text-[9px]">
-                                                <span class="px-1.5 py-0.5 bg-orange-50 border border-orange-100 rounded text-orange-600 font-medium">
-                                                    <i class="fas fa-layer-group mr-1"></i>@(m.GroupName ?? "N/A")
+                                            <div class="flex items-center space-x-1 text-[9px] group/item mb-1 last:mb-0">
+                                                <span class="px-1.5 py-0.5 bg-orange-50 border border-orange-100 rounded text-orange-600 font-medium flex items-center shadow-sm">
+                                                    <i class="fas fa-layer-group mr-1 text-[8px]"></i>@(m.GroupName ?? "N/A")
+                                                    <button onclick="deleteMapping(@m.Id, '@user.Username', '@m.RoleName', '@(m.GroupName ?? "N/A")')" 
+                                                            class="ml-1.5 text-orange-300 hover:text-red-500 transition-colors focus:outline-none" title="Remove Assignment">
+                                                        <i class="fas fa-times-circle"></i>
+                                                    </button>
                                                 </span>
                                             </div>
                                         }
@@ -145,11 +153,15 @@
                                 <div class="space-y-1">
                                     @if (user.Mappings != null)
                                     {
-                                        foreach (var m in user.Mappings.Where(m => m.ScopeType == "Location" || m.LocationId.HasValue).GroupBy(m => m.LocationId ?? m.ScopeId).Select(g => g.First()))
+                                        foreach (var m in user.Mappings.Where(m => m.ScopeType == "Location" || m.LocationId.HasValue))
                                         {
-                                            <div class="flex items-center space-x-1 text-[9px]">
-                                                <span class="px-1.5 py-0.5 bg-emerald-50 border border-emerald-100 rounded text-emerald-600 font-medium">
-                                                    <i class="fas fa-map-marker-alt mr-1"></i>@(m.LocationName ?? "N/A")
+                                            <div class="flex items-center space-x-1 text-[9px] group/item mb-1 last:mb-0">
+                                                <span class="px-1.5 py-0.5 bg-emerald-50 border border-emerald-100 rounded text-emerald-600 font-medium flex items-center shadow-sm">
+                                                    <i class="fas fa-map-marker-alt mr-1 text-[8px]"></i>@(m.LocationName ?? "N/A")
+                                                    <button onclick="deleteMapping(@m.Id, '@user.Username', '@m.RoleName', '@(m.LocationName ?? "N/A")')" 
+                                                            class="ml-1.5 text-emerald-300 hover:text-red-500 transition-colors focus:outline-none" title="Remove Assignment">
+                                                        <i class="fas fa-times-circle"></i>
+                                                    </button>
                                                 </span>
                                             </div>
                                         }
@@ -162,9 +174,13 @@
                                     {
                                         foreach (var m in user.Mappings.Where(m => m.ScopeType == "Device"))
                                         {
-                                            <div class="flex items-center space-x-1 text-[9px]">
-                                                <span class="px-1.5 py-0.5 bg-purple-50 border border-purple-100 rounded text-purple-600 font-medium">
-                                                    <i class="fas fa-desktop mr-1"></i>@(m.ScopeName ?? "N/A")
+                                            <div class="flex items-center space-x-1 text-[9px] group/item mb-1 last:mb-0">
+                                                <span class="px-1.5 py-0.5 bg-purple-50 border border-purple-100 rounded text-purple-600 font-medium flex items-center shadow-sm">
+                                                    <i class="fas fa-desktop mr-1 text-[8px]"></i>@(m.ScopeName ?? "N/A")
+                                                    <button onclick="deleteMapping(@m.Id, '@user.Username', '@m.RoleName', '@(m.ScopeName ?? "N/A")')" 
+                                                            class="ml-1.5 text-purple-300 hover:text-red-500 transition-colors focus:outline-none" title="Remove Assignment">
+                                                        <i class="fas fa-times-circle"></i>
+                                                    </button>
                                                 </span>
                                             </div>
                                         }
@@ -1218,5 +1234,24 @@
                        setTimeout(() => div.remove(), 300);
                    }, 3000);
                }
+                function deleteMapping(mappingId, username, roleName, scopeName) {
+                    sysConfirm('Remove assignment for "' + roleName + '" in "' + scopeName + '" for user "' + username + '"?', function() {
+                        $.ajax({
+                            url: '@Url.Action("RemoveMapping", "Auth")/' + mappingId,
+                            type: 'POST',
+                            success: function (response) {
+                                if (response.success) {
+                                    showToast('Assignment removed successfully', 'success');
+                                    setTimeout(() => location.reload(), 800);
+                                } else {
+                                    showToast(response.message, 'error');
+                                }
+                            },
+                            error: function () {
+                                sysAlert('Error removing assignment', 'error');
+                            }
+                        });
+                    }, { type: 'danger' });
+                }
     </script>
 }

@@ -172,18 +172,27 @@ namespace ManageEngineWebApp.Controllers
                 {
                     return RedirectToAction("Companies", "Companies");
                 }
-                else if (roleData.RequiresCompany && roleData.CompanyId.HasValue)
+                else if (roleData.RequiresCompany)
                 {
-                    var companyMapping = roleData.Mappings?.FirstOrDefault(m =>
-                        m.CompanyId.HasValue && m.CompanyId.Value == roleData.CompanyId.Value);
-                    string companyName = companyMapping?.ScopeName ?? $"Company {roleData.CompanyId.Value}";
-                    HttpContext.Session.SetString("companyName", companyName);
-
-                    return RedirectToAction("GroupsDetails", "Companies", new
+                    var companyIds = RoleHelper.GetCompanyIds(HttpContext);
+                    if (companyIds.Count > 1)
                     {
-                        id = roleData.CompanyId.Value,
-                        companyName = companyName
-                    });
+                        return RedirectToAction("Companies", "Companies");
+                    }
+                    else if (companyIds.Count == 1)
+                    {
+                        var companyId = companyIds.First();
+                        var companyMapping = roleData.Mappings?.FirstOrDefault(m =>
+                            m.CompanyId.HasValue && m.CompanyId.Value == companyId);
+                        string companyName = companyMapping?.ScopeName ?? $"Company {companyId}";
+                        HttpContext.Session.SetString("companyName", companyName);
+
+                        return RedirectToAction("GroupsDetails", "Companies", new
+                        {
+                            id = companyId,
+                            companyName = companyName
+                        });
+                    }
                 }
                 else if (roleData.RequiresDevice)
                 {
@@ -376,6 +385,34 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = true, message = "Role removed successfully" });
                 }
                 return Json(new { success = false, message = "Failed to remove role" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> RemoveMapping(int id)
+        {
+            try
+            {
+                if (!HasPerm("Auth.ManageRoles"))
+                {
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManageRoles permission" });
+                }
+
+                using var client = GetClient();
+                var response = await client.PostAsync($"{apiBaseUrl}/role/remove-mapping/{id}", null);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadAsStringAsync();
+                    return Content(result, "application/json");
+                }
+
+                return Json(new { success = false, message = $"Backend Error: {response.StatusCode}" });
             }
             catch (Exception ex)
             {

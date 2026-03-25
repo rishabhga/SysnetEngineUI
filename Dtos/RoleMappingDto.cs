@@ -1,9 +1,11 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace ManageEngineWebApp.Dtos
 {
     public class RoleMappingDto
     {
+        [JsonProperty("id")]
+        public int Id { get; set; }
         [JsonProperty("roleName")]
         public string? RoleName { get; set; }
         [JsonProperty("scopeType")]
