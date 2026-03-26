@@ -82,9 +82,9 @@ namespace ManageEngineWebApp.Controllers
                         : new List<Companies>();
                 }
 
-                var userCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
-                if (userCompanyIds.Any() && !RoleHelper.IsTopLevelAdmin(HttpContext))
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                 {
+                    var userCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
                     data = data.Where(c => userCompanyIds.Contains(c.Id)).ToList();
                 }
             }
@@ -170,10 +170,10 @@ namespace ManageEngineWebApp.Controllers
 
                 if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                 {
-                    var userLocationId = RoleHelper.GetLocationId(HttpContext);
-                    if (userLocationId.HasValue)
+                    var userLocationIds = RoleHelper.GetLocationIds(HttpContext);
+                    if (userLocationIds.Any())
                     {
-                        locations = locations.Where(l => l.Id == userLocationId.Value).ToList();
+                        locations = locations.Where(l => userLocationIds.Contains(l.Id)).ToList();
                     }
                 }
             }
@@ -202,9 +202,9 @@ namespace ManageEngineWebApp.Controllers
                 if (companies == null || !companies.Any())
                     return hierarchyList;
 
-                var allowedCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
-                if (allowedCompanyIds.Any())
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                 {
+                    var allowedCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
                     companies = companies.Where(c => allowedCompanyIds.Contains(c.Id)).ToList();
                 }
 
@@ -225,9 +225,9 @@ namespace ManageEngineWebApp.Controllers
 
                         if (groups != null)
                         {
-                            var allowedGroupIds = RoleHelper.GetGroupIds(HttpContext);
-                            if (allowedGroupIds.Any())
+                            if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                             {
+                                var allowedGroupIds = RoleHelper.GetGroupIds(HttpContext);
                                 groups = groups.Where(g => allowedGroupIds.Contains(g.Id)).ToList();
                             }
 
@@ -248,10 +248,10 @@ namespace ManageEngineWebApp.Controllers
 
                                     if (locations != null)
                                     {
-                                        var allowedLocationIds = RoleHelper.GetLocationIds(HttpContext);
-                                        if (allowedLocationIds.Any())
+                                        if (!RoleHelper.IsTopLevelAdmin(HttpContext))
                                         {
-                                           locations = locations.Where(l => allowedLocationIds.Contains(l.Id)).ToList();
+                                            var allowedLocationIds = RoleHelper.GetLocationIds(HttpContext);
+                                            locations = locations.Where(l => allowedLocationIds.Contains(l.Id)).ToList();
                                         }
 
                                         foreach (var location in locations)
@@ -264,7 +264,7 @@ namespace ManageEngineWebApp.Controllers
                                                 Users = new List<UserHierarchyDto>()
                                             };
 
-                                            var usersResponse = await client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser?locationId={location.Id}&&groupid={group.Id}&&comId={company.Id}");
+                                            var usersResponse = await client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser?locationId={location.Id}&groupid={group.Id}&comId={company.Id}");
                                             if (usersResponse.IsSuccessStatusCode)
                                             {
                                                 var usersJson = await usersResponse.Content.ReadAsStringAsync();
@@ -481,7 +481,7 @@ namespace ManageEngineWebApp.Controllers
                                 Users = new List<UserHierarchyDto>()
                             };
 
-                            var usersResponse = await client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser?locationId={location.Id}&&groupid={group.Id}&&comId={companyId}");
+                            var usersResponse = await client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser?locationId={location.Id}&groupid={group.Id}&comId={companyId}");
                             var usersJson = await usersResponse.Content.ReadAsStringAsync();
                             var users = !string.IsNullOrEmpty(usersJson) ? JsonConvert.DeserializeObject<List<UserDetails>>(usersJson) : null;
 

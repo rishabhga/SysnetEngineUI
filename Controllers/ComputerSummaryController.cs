@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -32,9 +33,36 @@ namespace ManageEngineWebApp.Controllers
         }
 
         private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
+
+        private bool IsAuthorized(int companyId, int? groupId = null, int? locationId = null)
+        {
+            return RoleHelper.ValidateScope(HttpContext, companyId, groupId, locationId);
+        }
+
+        private async Task<bool> IsDeviceAuthorized(string machineIdOrDomain)
+        {
+            if (RoleHelper.IsTopLevelAdmin(HttpContext)) return true;
+            if (string.IsNullOrEmpty(machineIdOrDomain)) return false;
+
+            var httpClient = _httpClientFactory.CreateClient("ManageEngineApi");
+            var response = await httpClient.GetAsync("api/WindowsUserDetails/allUser");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content);
+                var machine = data?.FirstOrDefault(x => x.DomainName == machineIdOrDomain || x.UserCode == machineIdOrDomain);
+                if (machine != null)
+                {
+                    return IsAuthorized(machine.CompanyId, machine.GroupId, machine.LocationId);
+                }
+            }
+            return false;
+        }
         [DynamicPermission("ComputerSummary.View", "View Dashboard")]
         public async Task<IActionResult> Deshboad(int locationId, string locationName, int groupid, string groupName, int comId, string companyName)
         {
+            if (!IsAuthorized(comId, groupid, locationId)) return RedirectToAction("Index", "Home");
+
             ViewBag.CompanyName = companyName;
             ViewBag.groupName = groupName;
             ViewBag.locationName = locationName;
@@ -108,6 +136,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllDevices(int companyId, int groupId, int locationId)
         {
+            if (!IsAuthorized(companyId, groupId, locationId)) return Json(new { success = false, message = "Unauthorized" });
+
             try
             {
                 var httpClient = _httpClientFactory.CreateClient("ManageEngineApi");
@@ -143,6 +173,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDevicesByCompany(int companyId)
         {
+            if (!IsAuthorized(companyId)) return Json(new List<object>());
+
             try
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
@@ -166,6 +198,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDevicesByLocation(int companyId, int groupId, int locationId)
         {
+            if (!IsAuthorized(companyId, groupId, locationId)) return Json(new List<object>());
+
             try
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
@@ -189,6 +223,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetCriticalClients(int companyId, int? groupId, int? locationId)
         {
+            if (!IsAuthorized(companyId, groupId, locationId)) return Json(new { success = false, message = "Unauthorized" });
+
             try
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
@@ -287,6 +323,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetNotifications(string machineId)
         {
+            if (!await IsDeviceAuthorized(machineId)) return Json(new { success = false, error = "Unauthorized" });
+
             if (string.IsNullOrEmpty(machineId))
             {
                 return Json(new { success = false, error = "MachineId is Required" });
@@ -385,6 +423,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetRamCpuDiskData(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Json(new { status = "error", error = "Unauthorized" });
+
             if (string.IsNullOrEmpty(domain))
             {
                 return Json(new { status = "error", error = "Domain is required" });
@@ -425,6 +465,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetLastSeenTime(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Json(new { success = false, error = "Unauthorized" });
+
             if (string.IsNullOrEmpty(domain))
             {
                 return Json(new { success = false, error = "Domain is required" });
@@ -477,6 +519,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> EnableTempProtection(string machineId)
         {
+            if (!await IsDeviceAuthorized(machineId)) return Json(new { success = false, error = "Unauthorized" });
+
             if (string.IsNullOrEmpty(machineId))
             {
                 return Json(new { success = false, error = "MachineId is required" });
@@ -559,6 +603,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetOtpCode(string machineId)
         {
+            if (!await IsDeviceAuthorized(machineId)) return Json(new { success = false, error = "Unauthorized" });
+
             if (string.IsNullOrEmpty(machineId))
             {
                 return Json(new { success = false, error = "MachineId is required" });
@@ -676,6 +722,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GenerateOtpCode(string machineId)
         {
+            if (!await IsDeviceAuthorized(machineId)) return Json(new { success = false, error = "Unauthorized" });
+
             if (string.IsNullOrEmpty(machineId))
             {
                 return Json(new { success = false, error = "MachineId is required" });
@@ -730,6 +778,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> ClearOtpCode(string machineId)
         {
+            if (!await IsDeviceAuthorized(machineId)) return Json(new { success = false, error = "Unauthorized" });
+
             if (string.IsNullOrEmpty(machineId))
             {
                 return Json(new { success = false, error = "MachineId is required" });
@@ -771,7 +821,7 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.groupid = groupid;
             ViewBag.locationid = locationid;
 
-            var dalalist = new List<WindowsUserDetails>();
+            var localDatalist = new List<WindowsUserDetails>();
             var contectlist = new List<ConnectedClientDto>();
             List<string> activeComputers = new List<string>();
 
@@ -787,7 +837,7 @@ namespace ManageEngineWebApp.Controllers
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
                     if (data != null)
                     {
-                        dalalist = data.Where(x => x.Status == "Enabled").ToList();
+                        localDatalist = data.Where(x => x.Status == "Enabled").ToList();
                     }
                 }
 
@@ -798,7 +848,7 @@ namespace ManageEngineWebApp.Controllers
                     contectlist = !string.IsNullOrEmpty(content2) ? JsonConvert.DeserializeObject<List<ConnectedClientDto>>(content2) : null;
                     if (contectlist != null)
                     {
-                        activeComputers = contectlist.Select(d => d.UserName).ToList();
+                        activeComputers = contectlist.Where(d => d != null).Select(d => d.UserName ?? "Unknown").ToList();
                     }
                 }
             }
@@ -808,7 +858,7 @@ namespace ManageEngineWebApp.Controllers
             }
 
             ViewBag.ActiveComputers = activeComputers;
-            return View(dalalist);
+            return View(localDatalist);
         }
         public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds)
         {
@@ -834,7 +884,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch");
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -857,7 +907,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient2 = new HttpClient(handler1))
             {
                 // httpClient2.BaseAddress = new Uri("https://localhost:7225/api/SoftwareRepoDetails");
-                httpClient2.BaseAddress = new Uri("https://localhost:7225/api/SoftwareRepoDetails");
+                httpClient2.BaseAddress = new Uri($"{_baseUrl}/api/SoftwareRepoDetails");
 
                 var response1 = await httpClient2.GetAsync("");
                 //var response1 = await httpClient2.GetAsync("https://localhost:7225/api/SoftwareRepoDetails");
@@ -900,7 +950,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //  httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch/windowpatch");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
@@ -964,7 +1014,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
-                client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
 
                 string jsonData = JsonConvert.SerializeObject(updatePatchselectiondto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
@@ -1013,7 +1063,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
-                client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
 
                 string jsonData = JsonConvert.SerializeObject(updatewinPatchselectiondto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
@@ -1062,7 +1112,7 @@ namespace ManageEngineWebApp.Controllers
             using (HttpClient client = new HttpClient(handler))
             {
 
-                client.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails/dashboardupdate");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/WindowsUserDetails/dashboardupdate");
 
                 string jsonData = JsonConvert.SerializeObject(windowsUserDetailsupdateName);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
@@ -1109,7 +1159,7 @@ namespace ManageEngineWebApp.Controllers
 
                 //  httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UserDetails");
 
 
 
@@ -1160,8 +1210,6 @@ namespace ManageEngineWebApp.Controllers
 
 
             }
-
-
         }
 
 
@@ -1218,40 +1266,19 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> ConnectedClient()
         {
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<ClientConnection>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<WindowsUserDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {                                                                      
-
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/Client");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Client");
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/Client");
-                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
-
-                //var requestData = new { DomainName = domain }; // Include domain variable
-                //  var jsonContent = new StringContent(JsonConvert.SerializeObject(), System.Text.Encoding.UTF8, "application/json");
-
-                var response = await httpClient.GetAsync("");
-
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/Client");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ClientConnection>>(content) : null;
-
-                    return View(data); // Return the fetched data
+                    localDatalist = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ClientConnection>>(content) : new List<ClientConnection>();
                 }
-
-                return View();
-
             }
-
+            catch (Exception) { }
+            return View(localDatalist);
         }
         public async Task<IActionResult> Comanddata(string domain)
         {
@@ -1265,7 +1292,7 @@ namespace ManageEngineWebApp.Controllers
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/Command/" + domain + "");
 
-                client.BaseAddress = new Uri("https://localhost:7225/api/Command/" + domain + "");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/Command/" + domain + "");
 
                 var content = new StringContent($"\"{"Scan"}\"", Encoding.UTF8, "application/json");
 
@@ -1300,7 +1327,7 @@ namespace ManageEngineWebApp.Controllers
 
                 // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/SendScanStatus?domain={domain}");
                 //
-                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/SendScanStatus?domain={domain}");
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/SendScanStatus/" + domain + "");
 
 
@@ -1338,7 +1365,7 @@ namespace ManageEngineWebApp.Controllers
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/" + domain + "");
 
-                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/" + domain + "");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/" + domain + "");
 
                 var content = new StringContent($"\"{"Remote"}\"", Encoding.UTF8, "application/json");
 
@@ -1369,7 +1396,7 @@ namespace ManageEngineWebApp.Controllers
 
                 // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/SendScanStatus?domain={domain}");
 
-                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/SendScanStatus?domain={domain}");
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
 
 
 
@@ -1401,7 +1428,7 @@ namespace ManageEngineWebApp.Controllers
             };
             using (var httpClient = new HttpClient(handler))
             {
-                string url = $"https://localhost:7225/api/RemoteAccess/CheckStatus?domain={domain}";
+                string url = $"{_baseUrl}/api/RemoteAccess/CheckStatus?domain={domain}";
 
                 try
                 {
@@ -1428,7 +1455,7 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = new HttpClient(handler))
             {
                 // string url = $"https://localhost:7225/api/RemoteAccess/monitor?domain={domain}";
-                string url = $"https://localhost:7225/api/RemoteAccess/monitor?domain={domain}";
+                string url = $"{_baseUrl}/api/RemoteAccess/monitor?domain={domain}";
 
                 var response = await httpClient.GetAsync(url);
 
@@ -1469,7 +1496,7 @@ namespace ManageEngineWebApp.Controllers
 
 
                 //  client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseEvent/" + domain + "");
-                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseEvent/" + domain + "");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseEvent/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject(Mousedata);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
@@ -1506,7 +1533,7 @@ namespace ManageEngineWebApp.Controllers
 
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseLeftClick/" + domain + "");
-                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseLeftClick/" + domain + "");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseLeftClick/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject("");
                 //var content = new StringContent($"\"{"Scan"}\"", Encoding.UTF8, "application/json");
@@ -1544,7 +1571,7 @@ namespace ManageEngineWebApp.Controllers
 
 
                 //client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseRightClick/" + domain + "");
-                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseRightClick/" + domain + "");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseRightClick/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject("");
                 //var content = new StringContent($"\"{"Scan"}\"", Encoding.UTF8, "application/json");
@@ -1581,7 +1608,7 @@ namespace ManageEngineWebApp.Controllers
 
 
                 // client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/KeyEvent/" + domain + "");
-                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/KeyEvent?domain="+domain+"&key="+key+"");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/KeyEvent?domain="+domain+"&key="+key+"");
 
                 string jsonData = JsonConvert.SerializeObject("");
                 var content = new StringContent($"\"{key}\"", Encoding.UTF8, "application/json");
@@ -1619,32 +1646,28 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> Livestop(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            using (HttpClient client = new HttpClient(handler))
-            {
-                client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/StopRemopte/" + domain + "");
-                var content = new StringContent($"\"{"StopRemote"}\"", Encoding.UTF8, "application/json");
-                HttpResponseMessage response = await client.PostAsync("", content);
+                using var client = GetClient();
+                string url = $"{_baseUrl}/api/RemoteAccess/StopRemopte/{domain}";
+                var content = new StringContent($"\"StopRemote\"", Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync(url, content);
                 return Json(new { success = response.IsSuccessStatusCode });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false });
             }
         }
         public async Task<IActionResult> Remotemonitoring(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             ViewBag.Domain = domain;
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            using (var httpClient = new HttpClient(handler))
-            {
-                //string url = $"https://localhost:7225/api/RemoteAccess/monitor?domain={domain}";
-                string url = $"https://localhost:7225/api/RemoteAccess/monitor?domain={domain}";
-
-                var response = await httpClient.GetAsync(url);
+                using var client = GetClient();
+                string url = $"{_baseUrl}/api/RemoteAccess/monitor?domain={domain}";
+                var response = await client.GetAsync(url);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -1653,11 +1676,12 @@ namespace ManageEngineWebApp.Controllers
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
-
-                // Convert to object
                 var data = JsonConvert.DeserializeObject<monitordata>(content);
-
-                return Json(data);  // Pass data to View
+                return Json(data);
+            }
+            catch (Exception)
+            {
+                return Json(null);
             }
         }
 
@@ -1687,7 +1711,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //client.BaseAddress = new Uri("https://localhost:7225/api/Command/update/" + domain + "");
-                client.BaseAddress = new Uri("https://localhost:7225/api/Command/update/" + domain + "");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/Command/update/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject(patchUpdateRequest);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
@@ -1746,7 +1770,7 @@ namespace ManageEngineWebApp.Controllers
             using (HttpClient client = new HttpClient(handler))
             {
                 //string apiUrl = $"https://localhost:7225/api/PatchDetails/DeleteSoftware/{fileName}";
-                string apiUrl = $"https://localhost:7225/api/PatchDetails/DeleteSoftware/{fileName}";
+                string apiUrl = $"{_baseUrl}/api/PatchDetails/DeleteSoftware/{fileName}";
 
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, apiUrl);
 
@@ -1784,7 +1808,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
                 //client.BaseAddress = new Uri("https://localhost:7225/api/Command/softwareName/" + domain + "");
-                client.BaseAddress = new Uri("https://localhost:7225/api/Command/softwareName/" + domain + "");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/Command/softwareName/" + domain + "");
 
                 //var content = new StringContent($"\"{"Update"}\"", Encoding.UTF8, "application/json");
 
@@ -1828,7 +1852,7 @@ namespace ManageEngineWebApp.Controllers
 
 
                 //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/uninstallstatus?softwareName={softwareName}&domain={domain}");
-                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/uninstallstatus?softwareName={softwareName}&domain={domain}");
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/uninstallstatus?softwareName={softwareName}&domain={domain}");
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/uninstallstatus/" + domain + "");
 
 
@@ -1866,7 +1890,7 @@ namespace ManageEngineWebApp.Controllers
 
 
                 // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/installstatus?softwareName={softwareName}&domain={domain}");
-                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/installstatus?softwareName={softwareName}&domain={domain}");
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/installstatus?softwareName={softwareName}&domain={domain}");
                 // httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/installstatus/" + domain + "");
 
 
@@ -1905,7 +1929,7 @@ namespace ManageEngineWebApp.Controllers
 
 
                 // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/installers/");
-                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/installers/");
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/installers/");
 
                 //httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 //httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
@@ -1939,199 +1963,146 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> users(string domain)
         {
-
-
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<WindowsUserDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<WindowsUserDetails>();
-
-            using (var httpClient = new HttpClient(handler))
-            {
-
-
-
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsUserDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                    datalist = data.Where(x => x.DomainName == domain).ToList();
-                    return Json(datalist);
+                    localDatalist = data?.Where(x => x.DomainName == domain).ToList() ?? new List<WindowsUserDetails>();
                 }
-                return Json(datalist);
-
             }
-
-
+            catch (Exception) { }
+            return Json(localDatalist);
         }
         public async Task<IActionResult> Summary(string domain)
         {
-            string UCode = GetUCodeFromDomain(domain);
-
-
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<Summary>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-
-            var datalist = new List<Summary>();
-
-
-
-
-
-            using (var httpClient = new HttpClient(handler))
-            {
-
-
-
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/Summary");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Summary");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Summary");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<Summary>>(content) : null;
-                    datalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<Summary>();
-                    //return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<Summary>>(content);
+                    localDatalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<Summary>();
                 }
+            }
+            catch (Exception) { }
 
-                if (!datalist.Any())
-                {
-                    return Json(new { TotalHardware = 0, TotalSoftware = 0, CommercialSoftware = 0, NonCommercialSoftware = 0, ProhibitedSoftware = 0, MissingPatches = 0 });
-                }
-
-
-                var assetSummary = new
-                {
-                    TotalHardware = datalist[0].TotalHardware,
-                    TotalSoftware = datalist[0].TotalSoftware,
-                    CommercialSoftware = datalist[0].CommercialSoftware,
-                    NonCommercialSoftware = datalist[0].NonCommercialSoftware,
-                    ProhibitedSoftware = datalist[0].ProhibitedSoftware,
-                    MissingPatches = datalist[0].MissingPatches
-                };
-
-
-                return Json(assetSummary);
-
+            if (!localDatalist.Any())
+            {
+                return Json(new { TotalHardware = 0, TotalSoftware = 0, CommercialSoftware = 0, NonCommercialSoftware = 0, ProhibitedSoftware = 0, MissingPatches = 0 });
             }
 
+            var assetSummary = new
+            {
+                TotalHardware = localDatalist[0].TotalHardware,
+                TotalSoftware = localDatalist[0].TotalSoftware,
+                CommercialSoftware = localDatalist[0].CommercialSoftware,
+                NonCommercialSoftware = localDatalist[0].NonCommercialSoftware,
+                ProhibitedSoftware = localDatalist[0].ProhibitedSoftware,
+                MissingPatches = localDatalist[0].MissingPatches
+            };
 
+            return Json(assetSummary);
         }
 
         // OSSummary
         public async Task<IActionResult> OSSummary(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<OSSummary>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<OSSummary>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/OSSummary");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/OSSummary");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/OSSummary");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<OSSummary>>(content) : null;
-                    datalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<OSSummary>();
-                    //return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<OSSummary>>(content);
+                    localDatalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<OSSummary>();
                 }
-
-                if (!datalist.Any())
-                {
-                    return Json(new { OperatingSystem = "N/A", OSVersion = "N/A", RegisteredTo = "N/A", ProductID = "N/A", LicenseType = "N/A", SystemDrive = "N/A", OSCDKey = "N/A", OSServicePack = "N/A", OSBuildNumber = "N/A" });
-                }
-                //return Json(datalist);
-
-                var sosummary = new
-                {
-                    OperatingSystem = datalist[0].OperatingSystem,
-                    OSVersion = datalist[0].OSVersion,
-                    RegisteredTo = datalist[0].RegisteredTo,
-                    ProductID = datalist[0].ProductID,
-                    LicenseType = datalist[0].LicenseType,
-                    SystemDrive = datalist[0].SystemDrive,
-                    OSCDKey = datalist[0].OSCDKey,
-                    OSServicePack = datalist[0].OSServicePack,
-                    OSBuildNumber = datalist[0].OSBuildNumber,
-                };
-                return Json(sosummary);
-
             }
+            catch (Exception) { }
+
+            if (!localDatalist.Any())
+            {
+                return Json(new { OperatingSystem = "N/A", OSVersion = "N/A", RegisteredTo = "N/A", ProductID = "N/A", LicenseType = "N/A", SystemDrive = "N/A", OSCDKey = "N/A", OSServicePack = "N/A", OSBuildNumber = "N/A" });
+            }
+
+            var sosummary = new
+            {
+                OperatingSystem = localDatalist[0].OperatingSystem,
+                OSVersion = localDatalist[0].OSVersion,
+                RegisteredTo = localDatalist[0].RegisteredTo,
+                ProductID = localDatalist[0].ProductID,
+                LicenseType = localDatalist[0].LicenseType,
+                SystemDrive = localDatalist[0].SystemDrive,
+                OSCDKey = localDatalist[0].OSCDKey,
+                OSServicePack = localDatalist[0].OSServicePack,
+                OSBuildNumber = localDatalist[0].OSBuildNumber,
+            };
+            return Json(sosummary);
         }
 
         // DeviceSummary
         public async Task<IActionResult> DeviceSummary(string domain)
         {
-
             string UCode = GetUCodeFromDomain(domain);
+            var localDatalist = new List<DeviceSummary>();
 
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<DeviceSummary>();
-
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/DeviceSummary");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/DeviceSummary");
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/DeviceSummary");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DeviceSummary>>(content) : null;
-                    datalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<DeviceSummary>();
-                    //return Json(datalist);
+                    localDatalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<DeviceSummary>();
                 }
 
-                if (!datalist.Any())
+                if (!localDatalist.Any())
                 {
                     return Json(new { DeviceName = "N/A", Manufacturer = "N/A", Model = "N/A", SystemType = "N/A", SerialNumber = "N/A", Domain = "N/A", UserName = "N/A", TimeZone = "N/A", TotalPhysicalMemory = "N/A" });
                 }
-                //return Json(datalist);
+
                 var assetSummary = new
                 {
-                    DeviceManufacturer = datalist[0].DeviceManufacturer,
-                    DeviceModel = datalist[0].DeviceModel,
-                    DeviceType = datalist[0].DeviceType,
-                    Processor = datalist[0].Processor,
-                    Memory = datalist[0].Memory,
-                    SerialNumber = datalist[0].SerialNumber,
-                    ProcessorArchitecture = datalist[0].ProcessorArchitecture,
-                    AssetTag = datalist[0].AssetTag,
-                    UDID = datalist[0].UDID,
-                    EASDeviceIdentifier = datalist[0].EASDeviceIdentifier,
-                    BatteryLevel = datalist[0].BatteryLevel
+                    DeviceManufacturer = localDatalist[0].DeviceManufacturer,
+                    DeviceModel = localDatalist[0].DeviceModel,
+                    DeviceType = localDatalist[0].DeviceType,
+                    Processor = localDatalist[0].Processor,
+                    Memory = localDatalist[0].Memory,
+                    SerialNumber = localDatalist[0].SerialNumber,
+                    ProcessorArchitecture = localDatalist[0].ProcessorArchitecture,
+                    AssetTag = localDatalist[0].AssetTag,
+                    UDID = localDatalist[0].UDID,
+                    EASDeviceIdentifier = localDatalist[0].EASDeviceIdentifier,
+                    BatteryLevel = localDatalist[0].BatteryLevel
                 };
 
-
                 return Json(assetSummary);
+            }
+            catch (Exception)
+            {
+                return Json(new { DeviceName = "N/A", Manufacturer = "N/A", Model = "N/A", SystemType = "N/A", SerialNumber = "N/A", Domain = "N/A", UserName = "N/A", TimeZone = "N/A", TotalPhysicalMemory = "N/A" });
             }
         }
 
@@ -2142,756 +2113,569 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> UsegeDisk(string domain)
         {
-
             string UCode = GetUCodeFromDomain(domain);
+            var localDatalist = new List<DiskUsage>();
 
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<DiskUsage>();
-
-            using (var httpClient = new HttpClient(handler))
-            {
-
-
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/DiskUsage");
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/DiskUsage");
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/DiskUsage");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DiskUsage>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { success = false, message = "No disk data" });
                 }
 
                 var drivedata = new
                 {
-                    Drive = datalist[0].Drive,
-                    TotalSpaceGB = datalist[0].TotalSpaceGB,
-                    UsedSpaceGB = datalist[0].UsedSpaceGB,
-                    FreeSpaceGB = datalist[0].FreeSpaceGB
-
+                    Drive = localDatalist[0].Drive,
+                    TotalSpaceGB = localDatalist[0].TotalSpaceGB,
+                    UsedSpaceGB = localDatalist[0].UsedSpaceGB,
+                    FreeSpaceGB = localDatalist[0].FreeSpaceGB
                 };
 
                 return Ok(drivedata);
-                //return Json(datalist);
             }
-
-            ////return Json(datalist);
-
-
-
-
+            catch (Exception)
+            {
+                return Json(new { success = false, message = "Error fetching disk data" });
+            }
         }
 
         [HttpGet]
         public async Task<IActionResult> services(string domain)
         {
-
             string UCode = GetUCodeFromDomain(domain);
+            var localDatalist = new List<WindowsService>();
 
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<WindowsService>();
-
-            using (var httpClient = new HttpClient(handler))
-            {
-
-
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsService");
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsService");
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsService");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsService>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-
-                return Json(datalist);
             }
-
-            //return Json(datalist);
-
-
-
-
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //groups
         [HttpGet]
         public async Task<IActionResult> groups(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<WindowsGroupDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<WindowsGroupDetails>();
-
-
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsGroupDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsGroupDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsGroupDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsGroupDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<WindowsGroupDetails>>(content);
+                    localDatalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<WindowsGroupDetails>();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //drivers
         [HttpGet]
         public async Task<IActionResult> drivers(string domain)
         {
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<WindowDrivers>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<WindowDrivers>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowDrivers");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowDrivers");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowDrivers");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowDrivers>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<WindowDrivers>>(content);
+                    localDatalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<WindowDrivers>();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //BIOS
         [HttpGet]
         public async Task<IActionResult> BIOS(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-
-            var datalist = new List<BIOSDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/BIOSDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/BIOSDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                var localDatalist = new List<BIOSDetails>();
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/BIOSDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<BIOSDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<BIOSDetails>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { Manufacturer = "N/A", Version = "N/A", SMBiosVersion = "N/A", ReleaseDate = "N/A", YearOfInstallation = "N/A", Status = "N/A", Description = "N/A", DateTime = DateTime.Now });
+                }
+
                 var biosdetaildata = new
                 {
-                    Manufacturer = datalist[0].Manufacturer,
-                    Version = datalist[0].Version,
-                    SMBiosVersion = datalist[0].SMBiosVersion,
-                    ReleaseDate = datalist[0].ReleaseDate,
-                    YearOfInstallation = datalist[0].YearOfInstallation,
-                    Status = datalist[0].Status,
-                    Description = datalist[0].Description,
-                    DateTime = datalist[0].DateTime
-
+                    Manufacturer = localDatalist[0].Manufacturer,
+                    Version = localDatalist[0].Version,
+                    SMBiosVersion = localDatalist[0].SMBiosVersion,
+                    ReleaseDate = localDatalist[0].ReleaseDate,
+                    YearOfInstallation = localDatalist[0].YearOfInstallation,
+                    Status = localDatalist[0].Status,
+                    Description = localDatalist[0].Description,
+                    DateTime = localDatalist[0].DateTime
                 };
 
-
                 return Json(biosdetaildata);
-
             }
-
-
-
-
+            catch (Exception)
+            {
+                return Json(new { Manufacturer = "N/A", Version = "N/A", SMBiosVersion = "N/A", ReleaseDate = "N/A", YearOfInstallation = "N/A", Status = "N/A", Description = "N/A", DateTime = DateTime.Now });
+            }
         }
 
         //HardDisk
         [HttpGet]
         public async Task<IActionResult> HardDisk(string domain)
         {
-
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<HardDiskDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<HardDiskDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/HardDiskDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/HardDiskDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/HardDiskDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<HardDiskDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<HardDiskDetails>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
-        //HardDisk
+        //LocalDisk
         [HttpGet]
         public async Task<IActionResult> LocalDisk(string domain)
         {
-
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<LogicalDiskDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<LogicalDiskDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/LogicalDiskDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/LogicalDiskDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/LogicalDiskDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<LogicalDiskDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<LogicalDiskDetails>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         // KeyboardDetails
-
         [HttpGet]
         public async Task<IActionResult> Keyboard(string domain)
-
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<KeyboardDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<KeyboardDetails>();
-
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/KeyboardDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/KeyboardDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/KeyboardDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<KeyboardDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<KeyboardDetails>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         // MonitorInfo
-
         public async Task<IActionResult> Monitor(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<MonitorInfo>();
-
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/MonitorInfo");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MonitorInfo");
+                string UCode = GetUCodeFromDomain(domain);
+                var localDatalist = new List<MonitorInfo>();
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MonitorInfo");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MonitorInfo>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<MonitorInfo>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { Manufacturer = "N/A", MonitorType = "N/A", ScreenHeight = "N/A", ScreenWidth = "N/A", DeviceStatus = "N/A", Description = "N/A", SerialNumber = "N/A", InstalledWeek = "N/A", InstalledYear = "N/A", MonitorSize = "N/A", DateTime = DateTime.Now });
                 }
 
                 var monitordata1 = new
                 {
-                    Manufacturer = datalist[0].Manufacturer,
-                    MonitorType = datalist[0].MonitorType,
-                    ScreenHeight = datalist[0].ScreenHeight,
-                    ScreenWidth = datalist[0].ScreenWidth,
-                    DeviceStatus = datalist[0].DeviceStatus,
-                    Description = datalist[0].Description,
-                    SerialNumber = datalist[0].SerialNumber,
-                    InstalledWeek = datalist[0].InstalledWeek,
-                    InstalledYear = datalist[0].InstalledYear,
-                    MonitorSize = datalist[0].MonitorSize,
-                    DateTime = datalist[0].DateTime
-
+                    Manufacturer = localDatalist[0].Manufacturer,
+                    MonitorType = localDatalist[0].MonitorType,
+                    ScreenHeight = localDatalist[0].ScreenHeight,
+                    ScreenWidth = localDatalist[0].ScreenWidth,
+                    DeviceStatus = localDatalist[0].DeviceStatus,
+                    Description = localDatalist[0].Description,
+                    SerialNumber = localDatalist[0].SerialNumber,
+                    InstalledWeek = localDatalist[0].InstalledWeek,
+                    InstalledYear = localDatalist[0].InstalledYear,
+                    MonitorSize = localDatalist[0].MonitorSize,
+                    DateTime = localDatalist[0].DateTime
                 };
                 return Json(monitordata1);
-
+            }
+            catch (Exception)
+            {
+                return Json(new { Manufacturer = "N/A", MonitorType = "N/A", ScreenHeight = "N/A", ScreenWidth = "N/A", DeviceStatus = "N/A", Description = "N/A", SerialNumber = "N/A", InstalledWeek = "N/A", InstalledYear = "N/A", MonitorSize = "N/A", DateTime = DateTime.Now });
             }
         }
 
         [HttpGet]
         public async Task<IActionResult> Motherboard(string domain)
         {
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<MotherboardDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-
-
-            var datalist = new List<MotherboardDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/MotherboardDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MotherboardDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MotherboardDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MotherboardDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<MotherboardDetails>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         [HttpGet]
         public async Task<IActionResult> NetworkAdapters(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<NetworkAdapterDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<NetworkAdapterDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/NetworkAdapterDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/NetworkAdapterDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/NetworkAdapterDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<NetworkAdapterDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<NetworkAdapterDetails>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
-        //PhysicalMemory
-        [HttpGet]
-        public async Task<IActionResult> PhysicalMemory(string domain)
-        {
-
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            //PhysicalMemory
+            [HttpGet]
+            public async Task<IActionResult> PhysicalMemory(string domain)
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<PhysicalMemoryDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/PhysicalMemoryDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/PhysicalMemoryDetails");
-
-                var response = await httpClient.GetAsync("");
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PhysicalMemoryDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(datalist);
+                    string UCode = GetUCodeFromDomain(domain);
+                    var localDatalist = new List<PhysicalMemoryDetails>();
+                    using var httpClient = GetClient();
+                    httpClient.BaseAddress = new Uri($"{_baseUrl}/api/PhysicalMemoryDetails");
+
+                    var response = await httpClient.GetAsync("");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadAsStringAsync();
+                        var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PhysicalMemoryDetails>>(content) : null;
+                        if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                    }
+
+                    if (!localDatalist.Any())
+                    {
+                        return Json(new { MaximumSupportedRAM = "N/A", Location = "N/A", SlotsAvailable = 0, SlotsUsed = 0 });
+                    }
+
+                    var physicalmemo = new
+                    {
+                        MaximumSupportedRAM = localDatalist[0].MaximumSupportedRAM,
+                        Location = localDatalist[0].Location,
+                        SlotsAvailable = localDatalist[0].SlotsAvailable,
+                        SlotsUsed = localDatalist[0].SlotsUsed
+                    };
+                    return Json(physicalmemo);
                 }
-
-                var physicalmemo = new
+                catch (Exception)
                 {
-                    MaximumSupportedRAM = datalist[0].MaximumSupportedRAM,
-                    Location = datalist[0].Location,
-                    SlotsAvailable = datalist[0].SlotsAvailable,
-                    SlotsUsed = datalist[0].SlotsUsed,
-                    // Slots = await MemorySlotDetails.list()
-                };
-                return Json(physicalmemo);
-
+                    return Json(new { MaximumSupportedRAM = "N/A", Location = "N/A", SlotsAvailable = 0, SlotsUsed = 0 });
+                }
             }
 
 
-        }
-
-
-        //MemorySlotDetails
-        [HttpGet]
-        public async Task<IActionResult> MemorySlotDetails(string domain)
-        {
-
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            //MemorySlotDetails
+            [HttpGet]
+            public async Task<IActionResult> MemorySlotDetails(string domain)
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-
-            var datalist = new List<MemorySlotDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/MemorySlotDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MemorySlotDetails");
-
-                var response = await httpClient.GetAsync("");
-                if (response.IsSuccessStatusCode)
+                var localDatalist = new List<MemorySlotDetails>();
+                try
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MemorySlotDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    string UCode = GetUCodeFromDomain(domain);
+                    using var httpClient = GetClient();
+                    httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MemorySlotDetails");
+
+                    var response = await httpClient.GetAsync("");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadAsStringAsync();
+                        var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MemorySlotDetails>>(content) : null;
+                        if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                    }
                 }
-
-
-                return Json(datalist);
-
+                catch (Exception) { }
+                return Json(localDatalist);
             }
 
 
-        }
-
-
+        
         //PointingDeviceInfo
-
-
         public async Task<IActionResult> PointingDevices(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<PointingDeviceInfo>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<PointingDeviceInfo>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/PointingDeviceInfo");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/PointingDeviceInfo");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/PointingDeviceInfo");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PointingDeviceInfo>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         //Printers
-
         [HttpGet]
         public async Task<IActionResult> Printers(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<PrinterDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<PrinterDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/PrinterDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/PrinterDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/PrinterDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PrinterDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
         //Processors
         [HttpGet]
         public async Task<IActionResult> Processors(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<ProcessorDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<ProcessorDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/ProcessorDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/ProcessorDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/ProcessorDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ProcessorDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<ProcessorDetails>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { ProcessorSpeed = "N/A", Manufacturer = "N/A", Stepping = "N/A", Family = "N/A", NumberOfCores = 0, SocketDesignation = "N/A", Voltage = "N/A", Version = "N/A", DeviceStatus = "N/A", Description = "N/A", DateTime = DateTime.Now });
+                }
+
                 var processerdata = new
                 {
-                    ProcessorSpeed = datalist[0].ProcessorSpeed,
-                    Manufacturer = datalist[0].Manufacturer,
-                    Stepping = datalist[0].Stepping,
-                    Family = datalist[0].Family,
-                    NumberOfCores = datalist[0].NumberOfCores,
-                    SocketDesignation = datalist[0].SocketDesignation,
-                    Voltage = datalist[0].Voltage,
-                    Version = datalist[0].Version,
-                    DeviceStatus = datalist[0].DeviceStatus,
-                    Description = datalist[0].Description,
-                    DateTime = datalist[0].DateTime
-
+                    ProcessorSpeed = localDatalist[0].ProcessorSpeed,
+                    Manufacturer = localDatalist[0].Manufacturer,
+                    Stepping = localDatalist[0].Stepping,
+                    Family = localDatalist[0].Family,
+                    NumberOfCores = localDatalist[0].NumberOfCores,
+                    SocketDesignation = localDatalist[0].SocketDesignation,
+                    Voltage = localDatalist[0].Voltage,
+                    Version = localDatalist[0].Version,
+                    DeviceStatus = localDatalist[0].DeviceStatus,
+                    Description = localDatalist[0].Description,
+                    DateTime = localDatalist[0].DateTime
                 };
 
                 return Json(processerdata);
-
             }
-
+            catch (Exception)
+            {
+                return Json(new { ProcessorSpeed = "N/A", Manufacturer = "N/A", Stepping = "N/A", Family = "N/A", NumberOfCores = 0, SocketDesignation = "N/A", Voltage = "N/A", Version = "N/A", DeviceStatus = "N/A", Description = "N/A", DateTime = DateTime.Now });
+            }
         }
 
         //Sound
-
         public async Task<IActionResult> Sound(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<SoundDeviceDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<SoundDeviceDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/SoundDeviceDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/SoundDeviceDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/SoundDeviceDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SoundDeviceDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         //VideoDeviceInfo
-
         public async Task<IActionResult> VideoControllers(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<VideoDeviceInfo>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<VideoDeviceInfo>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/VideoDeviceInfo");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/VideoDeviceInfo");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/VideoDeviceInfo");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<VideoDeviceInfo>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //USBControllerInfo
-
         public async Task<IActionResult> USBControllers(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<USBControllerInfo>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<USBControllerInfo>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/USBControllerInfo");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/USBControllerInfo");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/USBControllerInfo");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<USBControllerInfo>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //USBHub
-
         public async Task<IActionResult> USBHub(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<USBHubDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<USBHubDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/USBHubDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/USBHubDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/USBHubDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<USBHubDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
@@ -2900,33 +2684,23 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> DesktopApps(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<DesktopAppsModel>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<DesktopAppsModel>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication/DesktopApps");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication/DesktopApps");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/InstalledApplication/DesktopApps");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DesktopAppsModel>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         [HttpPost]
@@ -2970,249 +2744,180 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> MicrosoftstoreApps(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<MicrosoftStoreAppDetailsClass>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<MicrosoftStoreAppDetailsClass>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/InstalledApplication");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MicrosoftStoreAppDetailsClass>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<MicrosoftStoreAppDetailsClass>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-
+            catch (Exception) { }
+            return Json(localDatalist);
         }
         //MeteredSoftware
 
         public async Task<IActionResult> MeteredSoftware(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<InstalledApplication>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-
-            var datalist = new List<InstalledApplication>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication/MeteredSoftware");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/InstalledApplication/MeteredSoftware");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/InstalledApplication/MeteredSoftware");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<InstalledApplication>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<InstalledApplication>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         //InstallationSoftware
         public async Task<IActionResult> InstallationSoft(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<SoftwareFileModel>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-
-            var data = new List<SoftwareFileModel>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/InstalledApplication/InstallationSoftlist?domain={domain}");
-                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/InstalledApplication/InstallationSoftlist?domain={domain}");
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/InstalledApplication/InstallationSoftlist?domain={domain}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SoftwareFileModel>>(content) : null;
-
-                    //return Json(datalist);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SoftwareFileModel>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //AntivirusDetails
-
         public async Task<IActionResult> Antivirus(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<AntivirusDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<AntivirusDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/AntivirusDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/AntivirusDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<AntivirusDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         //patch universe update
         public async Task<IActionResult> Missingpatch(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<PatchDetailsservice>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<PatchDetailsservice>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch");
 
                 var response = await httpClient.GetAsync("");
-
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetailsservice>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x != null && x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x != null && x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //Missingpatchwindow
-
-
         public async Task<IActionResult> Missingpatchwindow(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<PatchDetail>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<PatchDetail>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch/windowpatch");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetail>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x != null && x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x != null && x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
+            catch (Exception) { }
+            return Json(localDatalist);
         }
         //Firewall
         public async Task<IActionResult> Firewall(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<AntivirusDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<AntivirusDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/AntivirusDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/AntivirusDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/AntivirusDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<AntivirusDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         // Missing Patch
         public async Task<IActionResult> MissingPatches(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<PatchDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<PatchDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/PatchDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/PatchDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/PatchDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<PatchDetails>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         [HttpPost]
@@ -3231,120 +2936,112 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> RestrictionOnDevice(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<DeviceRestrictionDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<DeviceRestrictionDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/DeviceRestrictionDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/DeviceRestrictionDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/DeviceRestrictionDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DeviceRestrictionDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { IsCameraEnabled = "N/A", IsTelemetryEnabled = "N/A", CanModifyDateTime = "N/A", IsBluetoothEnabled = "N/A" });
+                }
+
                 var Restricationdeetailsfist = new
                 {
-                    IsCameraEnabled = datalist[0].IsCameraEnabled,
-                    IsTelemetryEnabled = datalist[0].IsTelemetryEnabled,
-                    CanModifyDateTime = datalist[0].IsCameraEnabled,
-                    IsBluetoothEnabled = datalist[0].IsBluetoothEnabled
-
-
+                    IsCameraEnabled = localDatalist[0].IsCameraEnabled,
+                    IsTelemetryEnabled = localDatalist[0].IsTelemetryEnabled,
+                    CanModifyDateTime = localDatalist[0].IsCameraEnabled,
+                    IsBluetoothEnabled = localDatalist[0].IsBluetoothEnabled
                 };
-
                 return Json(Restricationdeetailsfist);
-
+            }
+            catch (Exception)
+            {
+                return Json(new { IsCameraEnabled = "N/A", IsTelemetryEnabled = "N/A", CanModifyDateTime = "N/A", IsBluetoothEnabled = "N/A" });
             }
         }
 
         public async Task<IActionResult> RestrictionOnNetwork(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<RestrictionOnNetwork>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<RestrictionOnNetwork>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/RestrictionOnDevice/RestrictiononNetwork?domain={domain}");
-                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/RestrictionOnDevice/RestrictiononNetwork?domain={domain}");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/RestrictionOnDevice/RestrictiononNetwork?domain={domain}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<RestrictionOnNetwork>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { InternetSharing = "N/A", VPN = "N/A", WiFi = "N/A", AllowWiFiConfiguration = "N/A", AutoConnectWiFiSense = "N/A" });
+                }
+
                 var RestricationNettailsfist = new
                 {
-                    InternetSharing = datalist[0].InternetSharing,
-                    VPN = datalist[0].VPN,
-                    WiFi = datalist[0].WiFi,
-                    AllowWiFiConfiguration = datalist[0].AllowWiFiConfiguration,
-                    AutoConnectWiFiSense = datalist[0].AutoConnectWiFiSense
-
-
+                    InternetSharing = localDatalist[0].InternetSharing,
+                    VPN = localDatalist[0].VPN,
+                    WiFi = localDatalist[0].WiFi,
+                    AllowWiFiConfiguration = localDatalist[0].AllowWiFiConfiguration,
+                    AutoConnectWiFiSense = localDatalist[0].AutoConnectWiFiSense
                 };
-
                 return Json(RestricationNettailsfist);
-
+            }
+            catch (Exception)
+            {
+                return Json(new { InternetSharing = "N/A", VPN = "N/A", WiFi = "N/A", AllowWiFiConfiguration = "N/A", AutoConnectWiFiSense = "N/A" });
             }
         }
         public async Task<IActionResult> bluetootdetailsdata(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<BluetoothDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<BluetoothDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/RestrictionOnDevice/BluetoothDetails?domain={domain}");
-                httpClient.BaseAddress = new Uri($"https://localhost:7225/api/RestrictionOnDevice/BluetoothDetails?domain={domain}");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/RestrictionOnDevice/BluetoothDetails?domain={domain}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<BluetoothDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { Bluetooth = "N/A", Bluetoothdiscovery = "N/A", Bluetoothprepairing = "N/A", Bluetoothservicesadvertising = "N/A" });
+                }
+
                 var bluetootdetailslist = new
                 {
-                    Bluetooth = datalist[0].Bluetooth,
-                    Bluetoothdiscovery = datalist[0].Bluetoothdiscovery,
-                    Bluetoothprepairing = datalist[0].Bluetoothprepairing,
-                    Bluetoothservicesadvertising = datalist[0].Bluetoothservicesadvertising
-
+                    Bluetooth = localDatalist[0].Bluetooth,
+                    Bluetoothdiscovery = localDatalist[0].Bluetoothdiscovery,
+                    Bluetoothprepairing = localDatalist[0].Bluetoothprepairing,
+                    Bluetoothservicesadvertising = localDatalist[0].Bluetoothservicesadvertising
                 };
-
                 return Json(bluetootdetailslist);
-
+            }
+            catch (Exception)
+            {
+                return Json(new { Bluetooth = "N/A", Bluetoothdiscovery = "N/A", Bluetoothprepairing = "N/A", Bluetoothservicesadvertising = "N/A" });
             }
         }
 
@@ -3352,304 +3049,252 @@ namespace ManageEngineWebApp.Controllers
 
 
         //SecurityPrivacyDetails
-
         public async Task<IActionResult> SecurityPrivacyDetails(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<SecurityPrivacyDetails>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<SecurityPrivacyDetails>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/SecurityPrivacyDetails");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/SecurityPrivacyDetails");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/SecurityPrivacyDetails");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SecurityPrivacyDetails>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    // return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { LocationServices = "N/A", IsMicrosoftAccountConnected = "N/A", CanAddNonMicrosoftAccounts = "N/A", CanResetDevice = "N/A" });
                 }
 
                 var Security = new
                 {
-                    LocationServices = datalist[0].LocationServices,
-                    IsMicrosoftAccountConnected = datalist[0].IsMicrosoftAccountConnected,
-                    CanAddNonMicrosoftAccounts = datalist[0].CanAddNonMicrosoftAccounts,
-                    CanResetDevice = datalist[0].CanResetDevice,
-
+                    LocationServices = localDatalist[0].LocationServices,
+                    IsMicrosoftAccountConnected = localDatalist[0].IsMicrosoftAccountConnected,
+                    CanAddNonMicrosoftAccounts = localDatalist[0].CanAddNonMicrosoftAccounts,
+                    CanResetDevice = localDatalist[0].CanResetDevice,
                 };
                 return Json(Security);
-
+            }
+            catch (Exception)
+            {
+                return Json(new { LocationServices = "N/A", IsMicrosoftAccountConnected = "N/A", CanAddNonMicrosoftAccounts = "N/A", CanResetDevice = "N/A" });
             }
         }
 
 
         //ApplicationSettings
-
         public async Task<IActionResult> ApplicationSettings(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<ApplicationSettings>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<ApplicationSettings>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/ApplicationSettings");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/ApplicationSettings");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/ApplicationSettings");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ApplicationSettings>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    // return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { InstallNonStoreApps = "N/A", InstallAppsOnlyInDeviceMemory = "N/A", StoreAppDataOnlyInDeviceMemory = "N/A", AutoUpdateStoreApps = "N/A" });
                 }
 
                 var application = new
                 {
-                    InstallNonStoreApps = datalist[0].InstallNonStoreApps,
-                    InstallAppsOnlyInDeviceMemory = datalist[0].InstallAppsOnlyInDeviceMemory,
-                    StoreAppDataOnlyInDeviceMemory = datalist[0].StoreAppDataOnlyInDeviceMemory,
-                    AutoUpdateStoreApps = datalist[0].AutoUpdateStoreApps
+                    InstallNonStoreApps = localDatalist[0].InstallNonStoreApps,
+                    InstallAppsOnlyInDeviceMemory = localDatalist[0].InstallAppsOnlyInDeviceMemory,
+                    StoreAppDataOnlyInDeviceMemory = localDatalist[0].StoreAppDataOnlyInDeviceMemory,
+                    AutoUpdateStoreApps = localDatalist[0].AutoUpdateStoreApps
                 };
                 return Json(application);
-
+            }
+            catch (Exception)
+            {
+                return Json(new { InstallNonStoreApps = "N/A", InstallAppsOnlyInDeviceMemory = "N/A", StoreAppDataOnlyInDeviceMemory = "N/A", AutoUpdateStoreApps = "N/A" });
             }
         }
 
         //SocialSearchSettings
-
         public async Task<IActionResult> SocialSearchSettings(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<SocialSearchSettings>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<SocialSearchSettings>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/SocialSearchSettings");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/SocialSearchSettings");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/SocialSearchSettings");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SocialSearchSettings>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    // return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { CortanaEnabled = "N/A", SyncSettingsEnabled = "N/A", SearchLocationEnabled = "N/A" });
                 }
 
                 var social = new
                 {
-                    CortanaEnabled = datalist[0].CortanaEnabled,
-                    SyncSettingsEnabled = datalist[0].SyncSettingsEnabled,
-                    SearchLocationEnabled = datalist[0].SearchLocationEnabled
+                    CortanaEnabled = localDatalist[0].CortanaEnabled,
+                    SyncSettingsEnabled = localDatalist[0].SyncSettingsEnabled,
+                    SearchLocationEnabled = localDatalist[0].SearchLocationEnabled
                 };
                 return Json(social);
-
+            }
+            catch (Exception)
+            {
+                return Json(new { CortanaEnabled = "N/A", SyncSettingsEnabled = "N/A", SearchLocationEnabled = "N/A" });
             }
         }
 
 
 
         //UsbAudit
-
         public async Task<IActionResult> UsbDeviceAudit(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<USBDeviceInfo>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<USBDeviceInfo>();
-
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/UsbDeviceInfo");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UsbDeviceInfo");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UsbDeviceInfo");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<USBDeviceInfo>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         //AuditHistory
         public async Task<IActionResult> AuditHistory(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<UserAuditHistory>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            var datalist = new List<UserAuditHistory>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserAuditHistory");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserAuditHistory");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UserAuditHistory");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<UserAuditHistory>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         //LoginHistory
-
         public async Task<IActionResult> LoginHistory(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<UserLogonHistory>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<UserLogonHistory>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserLogonHistory");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserLogonHistory");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UserLogonHistory");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<UserLogonHistory>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(datalist);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                return Json(datalist);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         // Update Log user
         public async Task<IActionResult> UpdateLoguser(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<WindowsUserDetailsUpdates>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<WindowsUserDetailsUpdates>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/UpdateLogs");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UpdateLogs");
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UpdateLogs");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetailsUpdates>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetailsUpdates>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //BatteryInfo
         public async Task<IActionResult> Battery(string domain)
         {
-
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<BatteryInfo>();
             string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<BatteryInfo>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/Battery");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Battery");
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Battery");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<BatteryInfo>>(content) : null;
-                    if (data != null) datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(datalist);
+                    var data = JsonConvert.DeserializeObject<List<BatteryInfo>>(content);
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
+
+                if (!localDatalist.Any())
+                {
+                    return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
+                }
+
                 var batterydata = new
                 {
-                    Manufacturer = datalist[0].Manufacturer,
-                    Status = datalist[0].Manufacturer,
-                    Description = datalist[0].Description,
-                    BatteryLevel = datalist[0].BatteryLevel,
-                    SystemType = datalist[0].SystemType,
-                    UserCode = datalist[0].UserCode,
-                    DateTime = datalist[0].DateTime
-
+                    Manufacturer = localDatalist[0].Manufacturer,
+                    Status = localDatalist[0].Manufacturer,
+                    Description = localDatalist[0].Description,
+                    BatteryLevel = localDatalist[0].BatteryLevel,
+                    SystemType = localDatalist[0].SystemType,
+                    UserCode = localDatalist[0].UserCode,
+                    DateTime = localDatalist[0].DateTime
                 };
 
                 return Json(batterydata);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception)
+            {
+                 return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
+            }
         }
 
 
@@ -3657,68 +3302,44 @@ namespace ManageEngineWebApp.Controllers
         //SummaryUpdateLog
         public async Task<IActionResult> SummaryUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<SummaryChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<SummaryChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Summarydata/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Summarydata/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/Summarydata/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SummaryChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SummaryChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
         //OSSummarydata
         public async Task<IActionResult> OSSummaryUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<OSSummaryChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<OSSummaryChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/OSSummarydata/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/OSSummarydata/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/OSSummarydata/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<OSSummaryChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<OSSummaryChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
@@ -3726,205 +3347,133 @@ namespace ManageEngineWebApp.Controllers
         //DeviceSummaryChangeAuditUpdateLog
         public async Task<IActionResult> DeviceSummaryChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<DeviceSummaryChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<DeviceSummaryChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/DeviceSummarylist/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/DeviceSummarylist/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/DeviceSummarylist/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DeviceSummaryChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DeviceSummaryChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
         //BiosSummaryChageUpdateLog
         public async Task<IActionResult> BiosSummaryChageUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<BiosSummaryChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<BiosSummaryChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Bioslist/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Bioslist/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/Bioslist/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<BiosSummaryChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<BiosSummaryChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         //HardDiskSummaryChangeAuditUpdateLog
         public async Task<IActionResult> HardDiskSummaryChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<HardDiskSummaryChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<HardDiskSummaryChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Harddisklist/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Harddisklist/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/Harddisklist/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<HardDiskSummaryChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<HardDiskSummaryChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //KeyboardSummaryChangeAuditUpdateLog
         public async Task<IActionResult> KeyboardSummaryChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<KeyboardSummaryChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<KeyboardSummaryChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Keyboardlist/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Keyboardlist/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/Keyboardlist/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<KeyboardSummaryChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<KeyboardSummaryChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //MonitorSummaryChangeAuditUpdateLog
         public async Task<IActionResult> MonitorSummaryChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<MonitorSummaryChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<MonitorSummaryChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Monitorlist/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Monitorlist/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/Monitorlist/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MonitorSummaryChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    // return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MonitorSummaryChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //MotherboardSummaryChangeAuditUpdateLog
         public async Task<IActionResult> MotherboardSummaryChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<MotherboardSummaryChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<MotherboardSummaryChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/MotherboardSummaryChangeAudit/" + UCode +"");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/MotherboardSummaryChangeAudit/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/MotherboardSummaryChangeAudit/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MotherboardSummaryChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MotherboardSummaryChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
@@ -3933,381 +3482,243 @@ namespace ManageEngineWebApp.Controllers
         //NetworkAdapterChangeAuditUpdateLog
         public async Task<IActionResult> NetworkAdapterChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<NetworkAdapterChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<NetworkAdapterChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Networkadhapterlist/" + UCode +"");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/Networkadhapterlist/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/Networkadhapterlist/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<NetworkAdapterChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<NetworkAdapterChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //ProcessorChangeAuditUpdateLog
         public async Task<IActionResult> ProcessorChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<ProcessorChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<ProcessorChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/ProcessorChangeAuditlist/"+UCode+"");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/ProcessorChangeAuditlist/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/ProcessorChangeAuditlist/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ProcessorChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ProcessorChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
 
         //physicalMemoryDetailsChangeAudit
-
         public async Task<IActionResult> physicalMemoryDetailsChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<physicalMemoryDetailsChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<physicalMemoryDetailsChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/physicalMemoryDetailsChangeAudit/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/physicalMemoryDetailsChangeAudit/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/physicalMemoryDetailsChangeAudit/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<physicalMemoryDetailsChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<physicalMemoryDetailsChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //SoundDeviceChangeAuditUpdateLog
         public async Task<IActionResult> SoundDeviceChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<SoundDeviceChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<SoundDeviceChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/SoundDeviceChangeAuditlist/" + UCode +"");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/SoundDeviceChangeAuditlist/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/SoundDeviceChangeAuditlist/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SoundDeviceChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<SoundDeviceChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //USBControllerChangeAuditUpdateLog
         public async Task<IActionResult> USBControllerChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<OSSummaryChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<OSSummaryChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/USBControllerChangeAuditlist/" + UCode+"");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/USBControllerChangeAuditlist/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/USBControllerChangeAuditlist/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<OSSummaryChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<OSSummaryChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //WindowsUserChangeAudit
-
-
         public async Task<IActionResult> WindowsUserChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<WindowsUserChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<WindowsUserChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowsUserChangeAudit/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowsUserChangeAudit/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/WindowsUserChangeAudit/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
         //WindowsGroupChangeAudit
-
         public async Task<IActionResult> WindowsGroupChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<WindowsGroupChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<WindowsGroupChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowsGroupChangeAudit/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowsGroupChangeAudit/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/WindowsGroupChangeAudit/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsGroupChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsGroupChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //WindowDriversChangeAudit
         public async Task<IActionResult> WindowDriversChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<WindowDriversChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<WindowDriversChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowDriversChangeAudit/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/WindowDriversChangeAudit/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/WindowDriversChangeAudit/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowDriversChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowDriversChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //DesktopAppsChangeAuditUpdateLog
         public async Task<IActionResult> DesktopAppsChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<DesktopAppsChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<DesktopAppsChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/DesktopAppsChangeAudit/ " + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/DesktopAppsChangeAudit/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/DesktopAppsChangeAudit/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DesktopAppsChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    //return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DesktopAppsChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //MSStoreAppChangeAudit
-
         public async Task<IActionResult> MSStoreAppChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<MSStoreAppChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<MSStoreAppChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/MSStoreAppChangeAudit/"  + UCode +"");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/MSStoreAppChangeAudit/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/MSStoreAppChangeAudit/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MSStoreAppChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MSStoreAppChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         //AntivirusChangeAudit
-
         public async Task<IActionResult> AntivirusChangeAuditUpdateLog(string domain)
         {
-
-            string UCode = GetUCodeFromDomain(domain);
-
-            HttpClientHandler handler = new HttpClientHandler
+            var localDatalist = new List<AntivirusChangeAudit>();
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var data = new List<AntivirusChangeAudit>();
-            using (var httpClient = new HttpClient(handler))
-            {
-
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/AntivirusChangeAudit/" + UCode + "");
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/TableChangesAudit/AntivirusChangeAudit/" + UCode + "");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/AntivirusChangeAudit/{UCode}");
 
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<AntivirusChangeAudit>>(content) : null;
-
-
-                    // datalist = data.Where(x => x.UserCode == UCode).ToList();
-                    return Json(data);
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<AntivirusChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
                 }
-                return Json(data);
-
             }
-
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception) { }
+            return Json(localDatalist);
         }
 
         [HttpGet]
@@ -4315,16 +3726,10 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                HttpClientHandler handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-
-                using var httpClient = new HttpClient(handler);
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UserDetails");
 
                 var response = await httpClient.GetAsync("");
-
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -4333,14 +3738,9 @@ namespace ManageEngineWebApp.Controllers
 
                     if (userDetail != null)
                     {
-                        return Json(new
-                        {
-                            success = true,
-                            ipAddress = userDetail.IpAddress ?? "N/A"
-                        });
+                        return Json(new { success = true, ipAddress = userDetail.IpAddress ?? "N/A" });
                     }
                 }
-
                 return Json(new { success = false, message = "No data found" });
             }
             catch (Exception ex)
@@ -4355,24 +3755,15 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                string[] parts = domain.Split('-');
-                string UCode = parts[parts.Length - 1];
-
-                HttpClientHandler handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-
-                using var httpClient = new HttpClient(handler);
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/DiskUsage");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/DiskUsage");
 
                 var response = await httpClient.GetAsync("");
-
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<List<DiskUsage>>(content);
-
                     var diskData = data?.Where(x => x.UserCode == UCode)
                                         .OrderByDescending(x => x.DateTime)
                                         .FirstOrDefault();
@@ -4383,14 +3774,9 @@ namespace ManageEngineWebApp.Controllers
                         double total = Convert.ToDouble(diskData.TotalSpaceGB);
                         double usagePercent = Math.Round((used / total) * 100.0, 0);
 
-                        return Json(new
-                        {
-                            success = true,
-                            usagePercent = usagePercent
-                        });
+                        return Json(new { success = true, usagePercent = usagePercent });
                     }
                 }
-
                 return Json(new { success = false, message = "No disk data" });
             }
             catch (Exception ex)
@@ -4405,19 +3791,11 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                string[] parts = domain.Split('-');
-                string UCode = parts[parts.Length - 1];
-
-                HttpClientHandler handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-
-                using var httpClient = new HttpClient(handler);
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Summary");
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Summary");
 
                 var response = await httpClient.GetAsync("");
-
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -4434,7 +3812,6 @@ namespace ManageEngineWebApp.Controllers
                         });
                     }
                 }
-
                 return Json(new { success = false, message = "No summary data" });
             }
             catch (Exception ex)
@@ -4449,31 +3826,19 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                HttpClientHandler handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-                };
-
-                using var httpClient = new HttpClient(handler);
-                httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/GetConnectedDevices");
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/GetConnectedDevices");
 
                 var response = await httpClient.GetAsync("");
-
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-
-                    if (string.IsNullOrWhiteSpace(content))
-                    {
-                        return Json(new List<string>());
-                    }
+                    if (string.IsNullOrWhiteSpace(content)) return Json(new List<string>());
 
                     var data = JsonConvert.DeserializeObject<List<ConnectedClientDto>>(content);
                     var connectedDomains = data?.Select(x => x.UserName).Where(x => !string.IsNullOrEmpty(x)).ToList() ?? new List<string>();
-
                     return Json(connectedDomains);
                 }
-
                 return Json(new List<string>());
             }
             catch (Exception ex)

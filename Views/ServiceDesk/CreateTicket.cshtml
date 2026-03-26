@@ -383,7 +383,13 @@
             $.get('@Url.Action("GetCompanies", "ServiceDesk")', companies => {
                 const select = $('#companySelect');
                 select.html('<option value="">Select Company...</option>');
-                if (companies && companies.length > 0) companies.forEach(c => select.append(`<option value="${c.id}">${c.companyName}</option>`));
+                if (companies && companies.length > 0) {
+                    companies.forEach(c => {
+                        const id = c.id || c.Id || c.companyId || c.CompanyId;
+                        const name = c.companyName || c.CompanyName || c.name || c.Name;
+                        select.append(`<option value="${id}">${name}</option>`);
+                    });
+                }
             });
             $.get('@Url.Action("GetCategories", "ServiceDesk")', categories => {
                 const select = $('#ticketCategory');
@@ -410,7 +416,15 @@
             $.get(`@Url.Action("GetGroups", "ServiceDesk")?companyId=${companyId}`, groups => {
                 const select = $('#groupSelect');
                 select.html('<option value="">Select Group...</option>');
-                groups && groups.length > 0 ? groups.forEach(g => select.append(`<option value="${g.id}">${g.groupName}</option>`)) : select.html('<option value="">No groups found</option>');
+                if (groups && groups.length > 0) {
+                    groups.forEach(g => {
+                        const id = g.id || g.Id || g.groupId || g.GroupId;
+                        const name = g.groupName || g.GroupName || g.name || g.Name;
+                        select.append(`<option value="${id}">${name}</option>`);
+                    });
+                } else {
+                    select.html('<option value="">No groups found</option>');
+                }
             }).fail(() => resetSelect('#groupSelect', 'Error loading groups'));
         }
 
@@ -418,7 +432,15 @@
             $.get(`@Url.Action("GetLocations", "ServiceDesk")?companyId=${companyId}&groupId=${groupId}`, locations => {
                 const select = $('#locationSelect');
                 select.html('<option value="">Select Location...</option>');
-                locations && locations.length > 0 ? locations.forEach(l => select.append(`<option value="${l.id}">${l.locationName}</option>`)) : select.html('<option value="">No locations found</option>');
+                if (locations && locations.length > 0) {
+                    locations.forEach(l => {
+                        const id = l.id || l.Id || l.locationId || l.LocationId;
+                        const name = l.locationName || l.LocationName || l.name || l.Name;
+                        select.append(`<option value="${id}">${name}</option>`);
+                    });
+                } else {
+                    select.html('<option value="">No locations found</option>');
+                }
             }).fail(() => resetSelect('#locationSelect', 'Error loading locations'));
         }
 
@@ -426,7 +448,15 @@
             $.get(`@Url.Action("GetUsersByLocation", "ServiceDesk")?companyId=${companyId}&groupId=${groupId}&locationId=${locationId}`, users => {
                 const select = $('#userSelect');
                 select.html('<option value="">Select User...</option>');
-                users && users.length > 0 ? users.forEach(u => select.append(`<option value="${u.domainName}">${u.userName}</option>`)) : select.html('<option value="">No users found</option>');
+                if (users && users.length > 0) {
+                    users.forEach(u => {
+                        const id = u.domainName || u.DomainName || u.id || u.Id;
+                        const name = u.userName || u.UserName || u.name || u.Name;
+                        select.append(`<option value="${id}">${name}</option>`);
+                    });
+                } else {
+                    select.html('<option value="">No users found</option>');
+                }
             }).fail(() => resetSelect('#userSelect', 'Error loading users'));
         }
 

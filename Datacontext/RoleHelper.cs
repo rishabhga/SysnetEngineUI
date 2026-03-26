@@ -206,6 +206,11 @@ namespace ManageEngineWebApp.Datacontext
             if (!string.IsNullOrEmpty(roleData.StartPage))
                 context.Session.SetString("startPage", roleData.StartPage);
 
+            // Always clear old scope values first to prevent stale data
+            context.Session.Remove("companyId");
+            context.Session.Remove("groupId");
+            context.Session.Remove("locationId");
+
             var companyIds = new List<int>();
             if (roleData.CompanyId.HasValue) companyIds.Add(roleData.CompanyId.Value);
             if (roleData.Mappings != null) companyIds.AddRange(roleData.Mappings.Where(m => m.CompanyId.HasValue).Select(m => m.CompanyId.Value));

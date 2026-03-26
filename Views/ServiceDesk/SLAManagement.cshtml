@@ -322,11 +322,12 @@
                 success: function(data) {
                     var tbody = $('#breachLogsTable tbody');
                     tbody.empty();
-                    if (!data || !Array.isArray(data) || data.length === 0) {
+                    var breaches = data.items || data.breaches || (Array.isArray(data) ? data : []);
+                    if (!breaches || breaches.length === 0) {
                         tbody.append('<tr><td colspan="7" class="px-3 py-4 text-center text-gray-400 text-sm">No SLA breaches recorded.</td></tr>');
                         return;
                     }
-                    data.forEach(function(b) {
+                    breaches.forEach(function(b) {
                         var date = new Date(b.breachedAt).toLocaleString();
                         var target = new Date(b.expectedTime).toLocaleString();
                         var pClass = (b.priority === 'Urgent' || b.priority === 'High')

@@ -1,4 +1,4 @@
-﻿using ManageEngineWebApp.Models;
+using ManageEngineWebApp.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -7,11 +7,9 @@ namespace ManageEngineWebApp.Controllers
     public class InstallerController : Controller
     {
 
-        private readonly HttpClient _httpClient;
         private readonly IWebHostEnvironment _env;
-        public InstallerController(HttpClient httpClient, IWebHostEnvironment env) 
+        public InstallerController(IWebHostEnvironment env) 
         {
-                 _httpClient = httpClient;
                 _env = env;
         }
 

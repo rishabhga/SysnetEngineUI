@@ -1410,28 +1410,44 @@
         const apiBaseUrl = '@ViewBag.ApiBaseUrl';
 
         async function setupChatSignalR() {
-            if (chatConnection) return;
+            if (chatConnection && chatConnection.state === signalR.HubConnectionState.Connected) return;
 
             try {
                 if (typeof signalR === "undefined") {
+                    console.log("Loading SignalR library...");
                     await $.getScript("https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js");
                 }
 
-                chatConnection = new signalR.HubConnectionBuilder()
-                    .withUrl(`${apiBaseUrl}/scanHub`)
-                    .withAutomaticReconnect()
-                    .build();
+                const cleanBaseUrl = apiBaseUrl.endsWith('/') ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
+                const hubUrl = `${cleanBaseUrl}/scanHub`;
+                console.log('Connecting to ScanHub:', hubUrl);
 
-                chatConnection.on("ReceiveMessagechat", function (message, isClient, time, clientId) {
-                    if (clientId === activeChatClientId) {
-                        appendMessageToUI(message, isClient, time);
-                    } else {
-                        markDeviceWithNewMessage(clientId);
-                    }
-                });
+                if (!chatConnection) {
+                    chatConnection = new signalR.HubConnectionBuilder()
+                        .withUrl(hubUrl)
+                        .withAutomaticReconnect()
+                        .build();
 
-                await chatConnection.start();
+                    chatConnection.on("ReceiveMessagechat", function (message, isClient, time, clientId) {
+                        console.log("Message received from", clientId, ":", message);
+                        if (clientId === activeChatClientId) {
+                            appendMessageToUI(message, isClient, time);
+                        } else {
+                            markDeviceWithNewMessage(clientId);
+                        }
+                    });
+                    
+                    chatConnection.onreconnecting(error => console.warn("SignalR Reconnecting:", error));
+                    chatConnection.onreconnected(connectionId => console.log("SignalR Reconnected:", connectionId));
+                    chatConnection.onclose(error => console.error("SignalR Closed:", error));
+                }
+
+                if (chatConnection.state === signalR.HubConnectionState.Disconnected) {
+                    await chatConnection.start();
+                    console.log("SignalR Connected!");
+                }
             } catch (err) {
+                console.error("SignalR Connection Error:", err);
             }
         }
 

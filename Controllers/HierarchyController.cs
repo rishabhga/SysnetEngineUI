@@ -98,11 +98,11 @@ namespace ManageEngineWebApp.Controllers
                     return hierarchyList;
                 }
 
-                // Scope filter: restrict to user's assigned company
-                int? allowedCompanyId = RoleHelper.GetCompanyId(HttpContext);
-                if (allowedCompanyId.HasValue)
+                // Scope filter: restrict to user's assigned companies
+                var allowedCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
+                if (allowedCompanyIds.Any())
                 {
-                    companies = companies.Where(c => c.Id == allowedCompanyId.Value).ToList();
+                    companies = companies.Where(c => allowedCompanyIds.Contains(c.Id)).ToList();
                 }
 
                 foreach (var company in companies)
