@@ -1,223 +1,261 @@
 @model List<PatchDetail>
+@{
+    ViewData["Title"] = "Windows Patch Selection - SYSNET";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
 
-<!DOCTYPE html>
-<html>
-<head>
-
-
-    <link href="~/css/font-awesome.css" rel="stylesheet" type="text/css" />
-    <link href="~/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
-
-    <link href="~/css/prettify.css" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" />
-
-    <link rel="stylesheet" type="text/css" href="~/css/Custom.css" />
-    <link href="~/css/datepicker.css" rel="stylesheet" />
-    <script src="~/js/bootbox.min.js"></script>
-    <script src="~/js/bootstrap.min.js"></script>
-    <script src="~/js/bootstrap-datepicker.min.js"></script>
-    <link href="~/css/font-awesome.min.css" rel="stylesheet" />
-
-    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-    <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <style>
-        .margin {
-            margin: 30px 20px 10px 20px;
-        }
-
-        .dataTables_length {
-            display: none !important;
-        }
-
-        .dataTables_filter {
-            display: none !important;
-        }
-
-        .no-footer {
-            border-radius: 5px;
-            border: 1px solid rgb(225, 227, 232);
-            background-color: #f2f4f7;
-        }
-
-        .dataTables_info {
-            margin-left: 10px;
-            font-size: 12px;
-        }
-
-        .paginate_button {
-            font-size: 12px;
-        }
-
-        /* #example_info {
-                                            display: none !important;
-                                        }
-
-                                        #example_paginate {
-                                            display: none !important;
-                                        }*/
-
-        .bhead {
-            text-align: center;
-            padding: 10px;
-            background-color: #f2f4f7;
-        }
-
-        .table_head_color {
-            background-color: #f2f4f7;
-            /*border-radius: 5px;
-                                            border: 1px solid rgb(225, 227, 232);*/
-        }
-
-        table.dataTable thead th, table.dataTable thead td {
-            padding: 10px 10px;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-left: 10px;
-        }
-
-        .active {
-            background-color: green;
-        }
-
-        .inactive {
-            background-color: red;
-        }
-
-        .enabled-row {
-            background-color: #d4edda !important; /* light green */
-        }
-
-        .disabled-row {
-            background-color: #f8f9fa !important; /* light grey */
-            opacity: 0.6;
-        }
-    </style>
-</head>
-
-<body>
-
-
-    <div style="clear: both;"></div>
-    <div class="margin">
-        <button class="btn btn-primary" style="float:right;" onclick="goPatchSelection()">
-            Submit Selected Patches
-        </button>
-        <br />
-        <div id="datatablesholder1">
-            <table class="table table-bordered font-monospace" id="locationTable">
-                <thead>
-                    <tr>
-                        <th>PatchId</th>
-                        <th>Bulletin</th>
-                        <th>Patch Name</th>
-                        @*   <th>Patch Description</th>
-                        <th>Vendor</th> *@
-                        <th>Severity</th>
-                       
-                        @*  <th>Source</th> *@
-                       
-                        <th><input type="checkbox" id="checkAll">Select patch</th>
-                    </tr>
-                </thead>
-                <tbody>
-
-                    @foreach (var item in Model)
-                    {
-
-
-
-                        <tr>
-                            <td>@item.PatchId  </td>
-                            <td>@item.Bulletin</td>
-                            <td>@item.PatchName</td>
-                            @*  <td>@item.PatchDescription</td>
-                            <td>@item.Vendor</td> *@
-                            <td>@item.Severity</td>
-                           
-                            @*  <td>@item.Source</td> *@
-                           
-                          @*   <td>
-                                <input type="checkbox"
-                                       class="rowCheck"
-                                       value="@item.PatchId"
-                                       @(item.IsAvailableInRepo ? "" : "disabled") />
-                            </td> *@
-
-                              <td><input type="checkbox" class="rowCheck" value="@item.Id"></td> 
-
-                        </tr>
-                    }
-                </tbody>
-            </table>
-
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="flex items-center space-x-3">
+                    <a href="javascript:history.back()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            <i class="fab fa-windows text-cyan-600 mr-2"></i>Windows Patch Selection
+                        </h1>
+                        <p class="text-sm text-gray-600 mt-1">Select Windows updates to deploy to the selected devices</p>
+                    </div>
+                </div>
+            </div>
+            <button id="submitPatchBtn"
+                    onclick="goPatchSelection()"
+                    disabled
+                    class="px-5 py-2.5 text-white rounded-lg font-medium transition-all flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                <i class="fas fa-paper-plane"></i>
+                <span>Deploy Selected Patches</span>
+                <span id="selectedBadge" class="hidden ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs font-bold">0</span>
+            </button>
         </div>
     </div>
-    <script src="~/js/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-    <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
-    <script>
 
-        // $('#checkAll').click(function () {
-        //     $('.rowCheck').prop('checked', this.checked);
-        //  });
-                 // Select All checkbox
-        $("#checkAll").on("change", function () {
-            $(".rowCheck:not(:disabled)").prop("checked", $(this).prop("checked"));
-        });
+    <!-- Stats Bar -->
+    <div class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Total Updates</p>
+            <p class="text-xl font-bold text-gray-900">@(Model?.Count ?? 0)</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Critical</p>
+            <p class="text-xl font-bold text-red-600">@(Model?.Count(x => x.Severity == "Critical") ?? 0)</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Important</p>
+            <p class="text-xl font-bold text-orange-600">@(Model?.Count(x => x.Severity == "Important") ?? 0)</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Other</p>
+            <p class="text-xl font-bold text-gray-600">@(Model?.Count(x => x.Severity != "Critical" && x.Severity != "Important") ?? 0)</p>
+        </div>
+    </div>
 
-    </script>
+    <!-- Search + Select All -->
+    <div class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+        <div class="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+            <div class="relative flex-1 w-full max-w-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+                <input type="text"
+                       id="searchInput"
+                       placeholder="Search patches, KB numbers..."
+                       class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-sm"
+                       onkeyup="filterTable()">
+            </div>
+            <select id="severityFilter" onchange="filterTable()"
+                    class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-sm">
+                <option value="">All Severity</option>
+                <option value="Critical">Critical</option>
+                <option value="Important">Important</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Low">Low</option>
+            </select>
+        </div>
+        <label class="flex items-center cursor-pointer whitespace-nowrap">
+            <input type="checkbox" id="checkAll" onchange="toggleSelectAll()"
+                   class="w-4 h-4 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500">
+            <span class="ml-2 text-sm font-medium text-gray-700">Select All</span>
+        </label>
+    </div>
+
+    <!-- Patches Table -->
+    @if (Model != null && Model.Any())
+    {
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm" id="patchTable">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">KB / Patch ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Bulletin</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Patch Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Severity</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide w-16">Select</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach (var item in Model)
+                        {
+                            var severityClass = item.Severity switch
+                            {
+                                "Critical" => "bg-red-100 text-red-700",
+                                "Important" => "bg-orange-100 text-orange-700",
+                                "Moderate" => "bg-yellow-100 text-yellow-700",
+                                _ => "bg-gray-100 text-gray-600"
+                            };
+
+                            <tr class="patch-row hover:bg-gray-50 transition-colors" data-severity="@item.Severity">
+                                <td class="px-4 py-3 text-gray-900 font-mono text-xs">@item.PatchId</td>
+                                <td class="px-4 py-3 text-gray-600">@item.Bulletin</td>
+                                <td class="px-4 py-3 text-gray-900 font-medium max-w-xs truncate">@item.PatchName</td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase @severityClass">@item.Severity</span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <input type="checkbox" class="rowCheck w-4 h-4 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500"
+                                           value="@item.Id" onchange="updateSelection()">
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-4 flex items-center justify-between bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+            <div class="text-sm text-gray-700">
+                Showing <span class="font-medium">@Model.Count</span> Windows updates
+            </div>
+            <div class="text-xs text-gray-500">
+                <i class="fab fa-windows mr-1"></i>Windows Update patches detected by agents
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-20 bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fab fa-windows text-gray-400 text-2xl"></i>
+            </div>
+            <p class="text-gray-500 text-lg">No Windows updates found</p>
+            <p class="text-gray-400 text-sm mt-1">There are no missing Windows patches detected for the selected devices</p>
+        </div>
+    }
+</div>
+
+@section Scripts {
     <script>
+        function toggleSelectAll() {
+            var isChecked = document.getElementById('checkAll').checked;
+            document.querySelectorAll('.rowCheck:not(:disabled)').forEach(function(cb) {
+                var row = cb.closest('tr');
+                if (row && row.style.display !== 'none') {
+                    cb.checked = isChecked;
+                }
+            });
+            updateSelection();
+        }
+
+        function updateSelection() {
+            var checked = document.querySelectorAll('.rowCheck:checked').length;
+            var btn = document.getElementById('submitPatchBtn');
+            var badge = document.getElementById('selectedBadge');
+
+            btn.disabled = checked === 0;
+            badge.textContent = checked;
+            badge.classList.toggle('hidden', checked === 0);
+        }
+
+        function filterTable() {
+            var search = document.getElementById('searchInput').value.toLowerCase();
+            var severity = document.getElementById('severityFilter').value;
+            var rows = document.querySelectorAll('.patch-row');
+
+            rows.forEach(function(row) {
+                var text = row.textContent.toLowerCase();
+                var rowSeverity = row.getAttribute('data-severity');
+                var matchSearch = !search || text.includes(search);
+                var matchSeverity = !severity || rowSeverity === severity;
+                row.style.display = (matchSearch && matchSeverity) ? '' : 'none';
+            });
+        }
+
         function goPatchSelection() {
-
             var companyid = '@ViewBag.companyid';
             var groupid = '@ViewBag.groupid';
             var locationid = '@ViewBag.locationid';
             var domainid = '@ViewBag.selectedIds';
 
             var selectedIds = [];
-
-            $(".rowCheck:checked:not(:disabled)").each(function () {
-                selectedIds.push($(this).val());
+            document.querySelectorAll('.rowCheck:checked:not(:disabled)').forEach(function(cb) {
+                selectedIds.push(cb.value);
             });
 
             if (selectedIds.length === 0) {
-                alert("Please select at least one patch!");
+                sysAlert('Please select at least one patch!', 'warning');
                 return;
             }
 
-            var idParam = selectedIds.join(',');
+            // Show loading state
+            var btn = document.getElementById('submitPatchBtn');
+            var originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Deploying...</span>';
 
             $.ajax({
-                url: '/ComputerSummary/UpdatewinPatchselection',
-                type: 'GET',
-                data: {
-                    companyid: companyid,
-                    groupid: groupid,
-                    locationid: locationid,
-                    selectedIds: idParam,
+                url: '@Url.Action("UpdatewinPatchselection", "ComputerSummary")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    companyid: parseInt(companyid),
+                    groupid: parseInt(groupid),
+                    locationid: parseInt(locationid),
+                    selectedIds: selectedIds.join(','),
                     domainids: domainid
-                },
+                }),
                 success: function(response) {
-                    if (response.success || response.status === 'success') {
-                        alert('Patch selection updated successfully.');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    if (response.success) {
+                        showToast(response.message || 'Windows updates deployed successfully!', 'success');
+                        // Remove successfully deployed patches from the table immediately
+                        document.querySelectorAll('.rowCheck:checked').forEach(function(cb) { 
+                            var row = cb.closest('.patch-row');
+                            if (row) row.remove();
+                        });
+                        updateSelection();
                     } else {
-                        alert('Error: ' + (response.error || 'Failed to update patch selection.'));
+                        showToast(response.message || response.error || 'Failed to deploy patches.', 'error');
                     }
                 },
                 error: function(xhr, status, error) {
-                    alert('Error updating patch selection: ' + error);
+                    showToast('Error deploying patches: ' + error, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
                 }
             });
         }
-    </script>
 
-</body>
-</html>
+        function showToast(message, type) {
+            var existing = document.getElementById('toast-notification');
+            if (existing) existing.remove();
+
+            var div = document.createElement('div');
+            div.id = 'toast-notification';
+            var isError = type === 'error';
+            div.className = 'fixed top-4 right-4 px-6 py-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 z-50 flex items-center gap-3 ' + (isError ? 'bg-red-600' : 'bg-green-600');
+            div.innerHTML = '<i class="fas ' + (isError ? 'fa-exclamation-circle' : 'fa-check-circle') + ' text-xl"></i><div><h4 class="font-bold text-sm">' + (isError ? 'Error' : 'Success') + '</h4><p class="text-xs opacity-90">' + message + '</p></div>';
+            document.body.appendChild(div);
+
+            setTimeout(function() {
+                div.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(function() { div.remove(); }, 300);
+            }, 4000);
+        }
+    </script>
+}

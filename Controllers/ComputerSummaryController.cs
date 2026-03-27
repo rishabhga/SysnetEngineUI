@@ -30,6 +30,8 @@ namespace ManageEngineWebApp.Controllers
         {
             _httpClientFactory = httpClientFactory;
             _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
+
+            //_baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
         }
 
         private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
@@ -111,7 +113,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception)
             {
-                 // Proceed with empty lists to avoid crashing the view
+                // Proceed with empty lists to avoid crashing the view
             }
 
             if (contectlist != null)
@@ -142,7 +144,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 var httpClient = _httpClientFactory.CreateClient("ManageEngineApi");
                 string url = $"api/WindowsUserDetails/allUser?locationId={locationId}&groupid={groupId}&comId={companyId}";
-                
+
                 var response = await httpClient.GetAsync(url);
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -272,7 +274,7 @@ namespace ManageEngineWebApp.Controllers
                 };
                 string jsonData = JsonConvert.SerializeObject(dto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                
+
                 var response = await client.PostAsync("api/RamCpuDiskData/add", content);
 
                 if (response != null && response.IsSuccessStatusCode)
@@ -303,9 +305,9 @@ namespace ManageEngineWebApp.Controllers
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
                 string jsonData = JsonConvert.SerializeObject(clientId);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                
+
                 var response = await client.PostAsync("api/RamCpuDiskData/remove", content);
-                
+
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     return Json(new { success = true, message = "Critical Client removed successfully" });
@@ -319,7 +321,7 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, error = ex.Message });
             }
         }
-  
+
         [HttpGet]
         public async Task<IActionResult> GetNotifications(string machineId)
         {
@@ -334,7 +336,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
                 string url = $"api/RamCpuDiskData/notifications/{Uri.EscapeDataString(machineId)}";
-                
+
                 var response = await client.GetAsync(url);
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -404,7 +406,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
                 string url = $"api/RamCpuDiskData/notification/read/{id}";
-                
+
                 var response = await client.PostAsync(url, null);
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -440,7 +442,7 @@ namespace ManageEngineWebApp.Controllers
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    dynamic root = JsonConvert.DeserializeObject<dynamic>(content); 
+                    dynamic root = JsonConvert.DeserializeObject<dynamic>(content);
                     var inner = root.data;
 
                     var formattedData = new
@@ -652,8 +654,8 @@ namespace ManageEngineWebApp.Controllers
                                 success = true,
                                 otp = otpData.otp.ToString(),
                                 machineId = otpData.machineId?.ToString(),
-                                startAt = startAt?.ToString("o"), 
-                                expireAt = expireAt?.ToString("o"), 
+                                startAt = startAt?.ToString("o"),
+                                expireAt = expireAt?.ToString("o"),
                                 isUsed = isUsed
                             });
                         }
@@ -817,6 +819,8 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> BranchPatchMangnment(int companyid, int groupid, int locationid)
         {
+            if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
+
             ViewBag.companyid = companyid;
             ViewBag.groupid = groupid;
             ViewBag.locationid = locationid;
@@ -860,168 +864,100 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.ActiveComputers = activeComputers;
             return View(localDatalist);
         }
-        public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds)
+        public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
         {
-            // Convert selectedIds to list
-            var idList = selectedIds.Split(',').Select(Int32.Parse).ToList();
+            if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
 
             ViewBag.companyid = companyid;
             ViewBag.groupid = groupid;
             ViewBag.locationid = locationid;
             ViewBag.selectedIds = selectedIds;
+            ViewBag.domainids = domainids;
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            HttpClientHandler handler1 = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             var datalist = new List<PatchDetailsservice>();
             var repoList = new List<SoftwareRepoDetails>();
-            using (var httpClient = new HttpClient(handler))
+
+            try
             {
-
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch");
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch");
-
-                var response = await httpClient.GetAsync("");
+                // API 1: Get missing patches filtered by RBAC and Selected Devices
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MissingPatch?companyid={companyid}&groupid={groupid}&locationid={locationid}&deviceIds={selectedIds}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetailsservice>>(content) : null;
                     datalist = (data ?? new List<PatchDetailsservice>()).Where(x => x != null && x.UserCode != null).ToList();
-                    //return View(datalist);
                 }
 
-
-
-                // ---------- API 2 : Software Repo ----------
-
-
-                //return View(datalist);
-
-            }
-
-            using (var httpClient2 = new HttpClient(handler1))
-            {
-                // httpClient2.BaseAddress = new Uri("https://localhost:7225/api/SoftwareRepoDetails");
-                httpClient2.BaseAddress = new Uri($"{_baseUrl}/api/SoftwareRepoDetails");
-
-                var response1 = await httpClient2.GetAsync("");
-                //var response1 = await httpClient2.GetAsync("https://localhost:7225/api/SoftwareRepoDetails");
-                if (response1.IsSuccessStatusCode)
+                // API 2: Get software repo list
+                using var httpClient2 = GetClient();
+                var response2 = await httpClient2.GetAsync($"{_baseUrl}/api/SoftwareRepoDetails");
+                if (response2.IsSuccessStatusCode)
                 {
-                    var content1 = await response1.Content.ReadAsStringAsync();
-                    repoList = JsonConvert.DeserializeObject<List<SoftwareRepoDetails>>(content1);
+                    var content2 = await response2.Content.ReadAsStringAsync();
+                    repoList = JsonConvert.DeserializeObject<List<SoftwareRepoDetails>>(content2) ?? new List<SoftwareRepoDetails>();
+                }
+
+                // Match patch available version with software repo version
+                foreach (var item in datalist)
+                {
+                    item.IsAvailableInRepo = repoList.Any(s => s.Version == item.AvailableVersion);
                 }
             }
-            // ----- Compare Logic -----
-            // Match Patch name with software repo name
-            foreach (var item in datalist)
+            catch (Exception ex)
             {
-                item.IsAvailableInRepo = repoList.Any(s => s.Version == item.AvailableVersion);
+                Console.WriteLine($"BranchPatchselection Error: {ex.Message}");
             }
 
             return View(datalist);
         }
-        public async Task<IActionResult> BranchWinPatchselection(int companyid, int groupid, int locationid, string selectedIds)
+        public async Task<IActionResult> BranchWinPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
         {
-            // Convert selectedIds to list
-            var idList = selectedIds.Split(',').Select(Int32.Parse).ToList();
+            if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
 
             ViewBag.companyid = companyid;
             ViewBag.groupid = groupid;
             ViewBag.locationid = locationid;
             ViewBag.selectedIds = selectedIds;
+            ViewBag.domainids = domainids;
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            HttpClientHandler handler1 = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             var datalist = new List<PatchDetail>();
-            var repoList = new List<SoftwareRepoDetails>();
-            using (var httpClient = new HttpClient(handler))
+
+            try
             {
-
-                //  httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch/windowpatch");
-
-                var response = await httpClient.GetAsync("");
+                // API 1: Get Windows patches filtered by RBAC and Selected Devices
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MissingPatch/windowpatch?companyid={companyid}&groupid={groupid}&locationid={locationid}&deviceIds={selectedIds}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetail>>(content) : null;
-                    datalist = data.Where(x => x.UserCode != null).ToList();
-                    return View(datalist);
+                    datalist = (data ?? new List<PatchDetail>()).Where(x => x.UserCode != null).ToList();
                 }
-
-
-
-                // ---------- API 2 : Software Repo ----------
-
-
-                //return View(datalist);
-
             }
-
-            //using (var httpClient2 = new HttpClient(handler1))
-            //{
-            //    httpClient2.BaseAddress = new Uri("https://localhost:7225/api/SoftwareRepoDetails");
-
-            //    var response1 = await httpClient2.GetAsync("");
-            //    //var response1 = await httpClient2.GetAsync("https://localhost:7225/api/SoftwareRepoDetails");
-            //    if (response1.IsSuccessStatusCode)
-            //    {
-            //        var content1 = await response1.Content.ReadAsStringAsync();
-            //        repoList = JsonConvert.DeserializeObject<List<SoftwareRepoDetails>>(content1);
-            //    }
-            //}
-            //// ----- Compare Logic -----
-            //// Match Patch name with software repo name
-            //foreach (var item in datalist)
-            //{
-            //    item.IsAvailableInRepo = repoList.Any(s => s.Version == item.AvailableVersion);
-            //}
+            catch (Exception ex)
+            {
+                Console.WriteLine($"BranchWinPatchselection Error: {ex.Message}");
+            }
 
             return View(datalist);
         }
 
-        public async Task<IActionResult> UpdatePatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
+        [HttpPost]
+        public async Task<IActionResult> UpdatePatchselection([FromBody] UpdatePatchselectiondto updatePatchselectiondto)
         {
-            var idList = selectedIds.Split(',').Select(int.Parse).ToList();
+            if (!IsAuthorized(updatePatchselectiondto.companyid, updatePatchselectiondto.groupid, updatePatchselectiondto.locationid))
+                return Json(new { success = false, error = "Unauthorized access to this scope." });
 
-
-
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            UpdatePatchselectiondto updatePatchselectiondto = new UpdatePatchselectiondto();
-            updatePatchselectiondto.companyid = companyid;
-            updatePatchselectiondto.groupid = groupid;
-            updatePatchselectiondto.locationid = locationid;
-            updatePatchselectiondto.selectedIds = selectedIds;
-            updatePatchselectiondto.domainids = domainids;
-
-            using (HttpClient client = new HttpClient(handler))
-            {
-
-                // client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
-                client.BaseAddress = new Uri($"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
-
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(120); // Patch dispatch uses SignalR, needs longer timeout
                 string jsonData = JsonConvert.SerializeObject(updatePatchselectiondto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-
-
-                HttpResponseMessage response = await client.PostAsync("", content);
+                HttpResponseMessage response = await client.PostAsync(
+                    $"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty", content);
 
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
@@ -1038,39 +974,28 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, error = result });
                 }
             }
-
-            return Json(new { success = false, message = "Failed to process request" });
+            catch (Exception ex)
+            {
+                Console.WriteLine($"UpdatePatchselection Error: {ex.Message}");
+                return Json(new { success = false, error = ex.Message });
+            }
         }
 
-        //UpdatewinPatchselection
-
-        public async Task<IActionResult> UpdatewinPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
+        [HttpPost]
+        public async Task<IActionResult> UpdatewinPatchselection([FromBody] UpdatewinPatchselectiondto updatewinPatchselectiondto)
         {
+            if (!IsAuthorized(updatewinPatchselectiondto.companyid, updatewinPatchselectiondto.groupid, updatewinPatchselectiondto.locationid))
+                return Json(new { success = false, error = "Unauthorized access to this scope." });
 
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            UpdatewinPatchselectiondto updatewinPatchselectiondto = new UpdatewinPatchselectiondto();
-            updatewinPatchselectiondto.companyid = companyid;
-            updatewinPatchselectiondto.groupid = groupid;
-            updatewinPatchselectiondto.locationid = locationid;
-            updatewinPatchselectiondto.selectedIds = selectedIds;
-            updatewinPatchselectiondto.domainids = domainids;
-
-            using (HttpClient client = new HttpClient(handler))
-            {
-
-                // client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
-                client.BaseAddress = new Uri($"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
-
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(120); // Patch dispatch uses SignalR, needs longer timeout
                 string jsonData = JsonConvert.SerializeObject(updatewinPatchselectiondto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-
-
-                HttpResponseMessage response = await client.PostAsync("", content);
+                HttpResponseMessage response = await client.PostAsync(
+                    $"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch", content);
 
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
@@ -1087,8 +1012,11 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, error = result });
                 }
             }
-
-            return Json(new { success = false, message = "Failed to process request" });
+            catch (Exception ex)
+            {
+                Console.WriteLine($"UpdatewinPatchselection Error: {ex.Message}");
+                return Json(new { success = false, error = ex.Message });
+            }
         }
 
         [HttpPost]
@@ -1134,6 +1062,242 @@ namespace ManageEngineWebApp.Controllers
 
 
 
+        //public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds)
+        //{
+        //    // Convert selectedIds to list
+        //    var idList = selectedIds.Split(',').Select(Int32.Parse).ToList();
+
+        //    ViewBag.companyid = companyid;
+        //    ViewBag.groupid = groupid;
+        //    ViewBag.locationid = locationid;
+        //    ViewBag.selectedIds = selectedIds;
+
+        //    HttpClientHandler handler = new HttpClientHandler
+        //    {
+        //        ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+        //    };
+        //    HttpClientHandler handler1 = new HttpClientHandler
+        //    {
+        //        ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+        //    };
+        //    var datalist = new List<PatchDetailsservice>();
+        //    var repoList = new List<SoftwareRepoDetails>();
+        //    using (var httpClient = new HttpClient(handler))
+        //    {
+
+        //        // httpClient.BaseAddress = new Uri("https:// /api/MissingPatch");
+        //        httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch");
+
+        //        var response = await httpClient.GetAsync("");
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            var content = await response.Content.ReadAsStringAsync();
+        //            var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetailsservice>>(content) : null;
+        //            datalist = (data ?? new List<PatchDetailsservice>()).Where(x => x != null && x.UserCode != null).ToList();
+        //            //return View(datalist);
+        //        }
+
+
+
+        //        // ---------- API 2 : Software Repo ----------
+
+
+        //        //return View(datalist);
+
+        //    }
+
+        //    using (var httpClient2 = new HttpClient(handler1))
+        //    {
+        //        // httpClient2.BaseAddress = new Uri("https://localhost:7225/api/SoftwareRepoDetails");
+        //        httpClient2.BaseAddress = new Uri($"{_baseUrl}/api/SoftwareRepoDetails");
+
+        //        var response1 = await httpClient2.GetAsync("");
+        //        //var response1 = await httpClient2.GetAsync("https://localhost:7225/api/SoftwareRepoDetails");
+        //        if (response1.IsSuccessStatusCode)
+        //        {
+        //            var content1 = await response1.Content.ReadAsStringAsync();
+        //            repoList = JsonConvert.DeserializeObject<List<SoftwareRepoDetails>>(content1);
+        //        }
+        //    }
+        //    // ----- Compare Logic -----
+        //    // Match Patch name with software repo name
+        //    foreach (var item in datalist)
+        //    {
+        //        item.IsAvailableInRepo = repoList.Any(s => s.Version == item.AvailableVersion);
+        //    }
+
+        //    return View(datalist);
+        //}
+        //public async Task<IActionResult> BranchWinPatchselection(int companyid, int groupid, int locationid, string selectedIds)
+        //{
+        //    // Convert selectedIds to list
+        //    var idList = selectedIds.Split(',').Select(Int32.Parse).ToList();
+
+        //    ViewBag.companyid = companyid;
+        //    ViewBag.groupid = groupid;
+        //    ViewBag.locationid = locationid;
+        //    ViewBag.selectedIds = selectedIds;
+
+        //    HttpClientHandler handler = new HttpClientHandler
+        //    {
+        //        ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+        //    };
+        //    HttpClientHandler handler1 = new HttpClientHandler
+        //    {
+        //        ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+        //    };
+        //    var datalist = new List<PatchDetail>();
+        //    var repoList = new List<SoftwareRepoDetails>();
+        //    using (var httpClient = new HttpClient(handler))
+        //    {
+
+        //        //  httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
+        //        httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch/windowpatch");
+
+        //        var response = await httpClient.GetAsync("");
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            var content = await response.Content.ReadAsStringAsync();
+        //            var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetail>>(content) : null;
+        //            datalist = data.Where(x => x.UserCode != null).ToList();
+        //            return View(datalist);
+        //        }
+
+
+
+        //        // ---------- API 2 : Software Repo ----------
+
+
+        //        //return View(datalist);
+
+        //    }
+
+        //    //using (var httpClient2 = new HttpClient(handler1))
+        //    //{
+        //    //    httpClient2.BaseAddress = new Uri("https://localhost:7225/api/SoftwareRepoDetails");
+
+        //    //    var response1 = await httpClient2.GetAsync("");
+        //    //    //var response1 = await httpClient2.GetAsync("https://localhost:7225/api/SoftwareRepoDetails");
+        //    //    if (response1.IsSuccessStatusCode)
+        //    //    {
+        //    //        var content1 = await response1.Content.ReadAsStringAsync();
+        //    //        repoList = JsonConvert.DeserializeObject<List<SoftwareRepoDetails>>(content1);
+        //    //    }
+        //    //}
+        //    //// ----- Compare Logic -----
+        //    //// Match Patch name with software repo name
+        //    //foreach (var item in datalist)
+        //    //{
+        //    //    item.IsAvailableInRepo = repoList.Any(s => s.Version == item.AvailableVersion);
+        //    //}
+
+        //    return View(datalist);
+        //}
+
+        //public async Task<IActionResult> UpdatePatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
+        //{
+        //    var idList = selectedIds.Split(',').Select(int.Parse).ToList();
+
+
+
+        //    HttpClientHandler handler = new HttpClientHandler
+        //    {
+        //        ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+        //    };
+
+        //    UpdatePatchselectiondto updatePatchselectiondto = new UpdatePatchselectiondto();
+        //    updatePatchselectiondto.companyid = companyid;
+        //    updatePatchselectiondto.groupid = groupid;
+        //    updatePatchselectiondto.locationid = locationid;
+        //    updatePatchselectiondto.selectedIds = selectedIds;
+        //    updatePatchselectiondto.domainids = domainids;
+
+        //    using (HttpClient client = new HttpClient(handler))
+        //    {
+
+        //        // client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
+        //        client.BaseAddress = new Uri($"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
+
+        //        string jsonData = JsonConvert.SerializeObject(updatePatchselectiondto);
+        //        var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
+
+
+
+        //        HttpResponseMessage response = await client.PostAsync("", content);
+
+        //        string result = await response.Content.ReadAsStringAsync();
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            try
+        //            {
+        //                var jsonResponse = JsonConvert.DeserializeObject<object>(result);
+        //                return Json(jsonResponse);
+        //            }
+        //            catch
+        //            {
+        //                return Json(new { success = true, message = result });
+        //            }
+        //        }
+        //        else
+        //        {
+        //            return Json(new { success = false, error = result });
+        //        }
+        //    }
+
+        //    return Json(new { success = false, message = "Failed to process request" });
+        //}
+
+        ////UpdatewinPatchselection
+
+        //public async Task<IActionResult> UpdatewinPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
+        //{
+
+        //    HttpClientHandler handler = new HttpClientHandler
+        //    {
+        //        ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+        //    };
+
+        //    UpdatewinPatchselectiondto updatewinPatchselectiondto = new UpdatewinPatchselectiondto();
+        //    updatewinPatchselectiondto.companyid = companyid;
+        //    updatewinPatchselectiondto.groupid = groupid;
+        //    updatewinPatchselectiondto.locationid = locationid;
+        //    updatewinPatchselectiondto.selectedIds = selectedIds;
+        //    updatewinPatchselectiondto.domainids = domainids;
+
+        //    using (HttpClient client = new HttpClient(handler))
+        //    {
+
+        //        // client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
+        //        client.BaseAddress = new Uri($"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
+
+        //        string jsonData = JsonConvert.SerializeObject(updatewinPatchselectiondto);
+        //        var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
+
+
+
+        //        HttpResponseMessage response = await client.PostAsync("", content);
+
+        //        string result = await response.Content.ReadAsStringAsync();
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            try
+        //            {
+        //                var jsonResponse = JsonConvert.DeserializeObject<object>(result);
+        //                return Json(jsonResponse);
+        //            }
+        //            catch
+        //            {
+        //                return Json(new { success = true, message = result });
+        //            }
+        //        }
+        //        else
+        //        {
+        //            return Json(new { success = false, error = result });
+        //        }
+        //    }
+
+        //    return Json(new { success = false, message = "Failed to process request" });
+        //}
 
 
         public List<UserDetails> datalist { get; set; }
@@ -1172,7 +1336,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<UserDetails>>(content) : null;
-                    
+
                     if (data != null)
                     {
                         datalist = data.Where(x => x.domainName == domain).ToList();
@@ -2431,71 +2595,71 @@ namespace ManageEngineWebApp.Controllers
             return Json(localDatalist);
         }
 
-            //PhysicalMemory
-            [HttpGet]
-            public async Task<IActionResult> PhysicalMemory(string domain)
+        //PhysicalMemory
+        [HttpGet]
+        public async Task<IActionResult> PhysicalMemory(string domain)
+        {
+            try
             {
-                try
+                string UCode = GetUCodeFromDomain(domain);
+                var localDatalist = new List<PhysicalMemoryDetails>();
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/PhysicalMemoryDetails");
+
+                var response = await httpClient.GetAsync("");
+                if (response.IsSuccessStatusCode)
                 {
-                    string UCode = GetUCodeFromDomain(domain);
-                    var localDatalist = new List<PhysicalMemoryDetails>();
-                    using var httpClient = GetClient();
-                    httpClient.BaseAddress = new Uri($"{_baseUrl}/api/PhysicalMemoryDetails");
-
-                    var response = await httpClient.GetAsync("");
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PhysicalMemoryDetails>>(content) : null;
-                        if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
-                    }
-
-                    if (!localDatalist.Any())
-                    {
-                        return Json(new { MaximumSupportedRAM = "N/A", Location = "N/A", SlotsAvailable = 0, SlotsUsed = 0 });
-                    }
-
-                    var physicalmemo = new
-                    {
-                        MaximumSupportedRAM = localDatalist[0].MaximumSupportedRAM,
-                        Location = localDatalist[0].Location,
-                        SlotsAvailable = localDatalist[0].SlotsAvailable,
-                        SlotsUsed = localDatalist[0].SlotsUsed
-                    };
-                    return Json(physicalmemo);
+                    var content = await response.Content.ReadAsStringAsync();
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PhysicalMemoryDetails>>(content) : null;
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
-                catch (Exception)
+
+                if (!localDatalist.Any())
                 {
                     return Json(new { MaximumSupportedRAM = "N/A", Location = "N/A", SlotsAvailable = 0, SlotsUsed = 0 });
                 }
-            }
 
-
-            //MemorySlotDetails
-            [HttpGet]
-            public async Task<IActionResult> MemorySlotDetails(string domain)
-            {
-                var localDatalist = new List<MemorySlotDetails>();
-                try
+                var physicalmemo = new
                 {
-                    string UCode = GetUCodeFromDomain(domain);
-                    using var httpClient = GetClient();
-                    httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MemorySlotDetails");
-
-                    var response = await httpClient.GetAsync("");
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MemorySlotDetails>>(content) : null;
-                        if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
-                    }
-                }
-                catch (Exception) { }
-                return Json(localDatalist);
+                    MaximumSupportedRAM = localDatalist[0].MaximumSupportedRAM,
+                    Location = localDatalist[0].Location,
+                    SlotsAvailable = localDatalist[0].SlotsAvailable,
+                    SlotsUsed = localDatalist[0].SlotsUsed
+                };
+                return Json(physicalmemo);
             }
+            catch (Exception)
+            {
+                return Json(new { MaximumSupportedRAM = "N/A", Location = "N/A", SlotsAvailable = 0, SlotsUsed = 0 });
+            }
+        }
 
 
-        
+        //MemorySlotDetails
+        [HttpGet]
+        public async Task<IActionResult> MemorySlotDetails(string domain)
+        {
+            var localDatalist = new List<MemorySlotDetails>();
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MemorySlotDetails");
+
+                var response = await httpClient.GetAsync("");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<MemorySlotDetails>>(content) : null;
+                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                }
+            }
+            catch (Exception) { }
+            return Json(localDatalist);
+        }
+
+
+
         //PointingDeviceInfo
         public async Task<IActionResult> PointingDevices(string domain)
         {
@@ -3293,7 +3457,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception)
             {
-                 return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
+                return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
             }
         }
 
@@ -3850,6 +4014,32 @@ namespace ManageEngineWebApp.Controllers
 
 
 
+        [HttpGet]
+        public async Task<IActionResult> GetChatHistory(string clientId)
+        {
+            if (string.IsNullOrEmpty(clientId))
+                return Json(new List<object>());
+
+            try
+            {
+                var httpClient = _httpClientFactory.CreateClient("ManageEngineApi");
+                var response = await httpClient.GetAsync(
+                    $"api/WindowsUserDetails/chat-history?clientId={Uri.EscapeDataString(clientId)}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+
+                return Json(new List<object>());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"GetChatHistory Error: {ex.Message}");
+                return Json(new List<object>());
+            }
+        }
         private string GetUCodeFromDomain(string domain)
         {
             if (string.IsNullOrEmpty(domain)) return "";

@@ -1,4 +1,4 @@
-﻿@model List<ManageEngineWebApp.Models.WindowsUserDetails>
+@model List<ManageEngineWebApp.Models.WindowsUserDetails>
 
 @{
     ViewData["Title"] = "Patch Management - SYSNET";
@@ -273,20 +273,7 @@
         }
 
 
-        function goToPatchSelection() {
-            if (selectedDevices.length === 0) {
-                sysAlert('Please select at least one device', 'warning');
-                return;
-            }
 
-            const companyid = @companyid;
-            const groupid = @groupid;
-            const locationid = @locationid;
-            const selectedIds = selectedDevices.join(',');
-            const domainids = selectedDomains.join(',');
-
-            window.location.href = `/ComputerSummary/BranchPatchselection?companyid=${companyid}&groupid=${groupid}&locationid=${locationid}&selectedIds=${selectedIds}`;
-        }
 
         function filterCards() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
