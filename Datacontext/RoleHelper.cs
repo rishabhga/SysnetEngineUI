@@ -5,8 +5,8 @@ namespace ManageEngineWebApp.Datacontext
 {
     public static class RoleHelper
     {
-        //private static string _apiBaseUrl = "https://localhost:7225/api/Auth";
-        private static string _apiBaseUrl = "https://172.16.15.15:4431/api/Auth";
+        private static string _apiBaseUrl = "https://localhost:7225/api/Auth";
+        //private static string _apiBaseUrl = "https://172.16.15.15:4431/api/Auth";
         private static IHttpClientFactory? _httpClientFactory;
 
         public static void Configure(IConfiguration configuration, IHttpClientFactory? httpClientFactory = null)
