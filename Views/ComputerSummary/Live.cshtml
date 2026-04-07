@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = $"Remote Access - {ViewBag.Domain}";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
@@ -155,8 +155,61 @@
     let frameCount = 0;
     let lastFpsUpdate = Date.now();
     let isImageLoading = false;
-    let pendingMouseMove = null;
     let mouseThrottleTimer = null;
+    let liveConnection = null;
+
+    async function setupLiveSignalR() {
+        if (liveConnection && liveConnection.state === signalR.HubConnectionState.Connected) return;
+
+        try {
+            const hubUrl = `https://sysnetengine.sysnetglobal.in:4431/scanHub?clientId=LiveView&computerName=WebPortal`;
+            
+            if (!liveConnection) {
+                liveConnection = new signalR.HubConnectionBuilder()
+                    .withUrl(hubUrl, {
+                        transport: signalR.HttpTransportType.WebSockets |
+                                   signalR.HttpTransportType.ServerSentEvents |
+                                   signalR.HttpTransportType.LongPolling,
+                        skipNegotiation: false
+                    })
+                    .withAutomaticReconnect()
+                    .build();
+
+                liveConnection.on("RemoteStatus", function (status) {
+                    if (status.accepted) {
+                        // Approval received - start polling images immediately if not already doing so
+                        if (currentState !== 'connected') {
+                            currentState = 'connected';
+                            stopCountdown();
+                            saveSessionState();
+                            showRemoteScreen();
+                            switchToStopButton();
+                            startPolling();
+                        }
+                    } else {
+                        // Rejection received
+                        handleDenial();
+                    }
+                });
+
+                liveConnection.onreconnecting(error => { /* Silent in prod */ });
+                liveConnection.onreconnected(connectionId => {
+                    liveConnection.invoke("JoinGroup", domain);
+                    liveConnection.invoke("JoinGroup", domain.toUpperCase());
+                    liveConnection.invoke("JoinGroup", domain.toLowerCase());
+                });
+            }
+
+            if (liveConnection.state === signalR.HubConnectionState.Disconnected) {
+                await liveConnection.start();
+                await liveConnection.invoke("JoinGroup", domain);
+                await liveConnection.invoke("JoinGroup", domain.toUpperCase());
+                await liveConnection.invoke("JoinGroup", domain.toLowerCase());
+            }
+        } catch (err) {
+            console.error("Live SignalR Connection Error:", err);
+        }
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         restoreSessionState();
@@ -190,7 +243,7 @@
                             showWaitingUI();
                             startPolling();
                             startCountdown();
-                            startDenialCheck();
+                            setupLiveSignalR();
                             return;
                         } else {
                             clearSessionState();
@@ -265,12 +318,13 @@
     }
 
     function handleDenial() {
+        console.log("Handling denial...");
         stopPolling();
         stopCountdown();
         stopDenialCheck();
         clearSessionState();
-
-        showTimeoutModal('Access Denied', 'The remote user has denied your access request.', 'fa-ban', 'bg-red-500');
+ 
+        showTimeoutModal('Access Denied', 'The remote user has denied your access request. Would you like to request access again?', 'fa-ban', 'bg-red-500');
         resetToIdleState();
     }
 
@@ -288,18 +342,41 @@
     }
 
     function startDenialCheck() {
+        setupLiveSignalR();
+        
         if (denialCheckInterval) clearInterval(denialCheckInterval);
-
-        denialCheckInterval = setInterval(() => {
-            fetch(`/ComputerSummary/CheckAccessStatus?domain=${domain}&_t=${Date.now()}`)
-                .then(r => r.json())
-                .then(res => {
-                    if (res.denied === true) {
-                        handleDenial();
+        
+        denialCheckInterval = setInterval(async () => {
+            if (currentState !== 'waiting') {
+                stopDenialCheck();
+                return;
+            }
+            
+            try {
+                // Use a cache-buster timestamp to ensure we get fresh status
+                const response = await fetch(`/ComputerSummary/CheckAccessStatus?domain=${encodeURIComponent(domain)}&_t=${Date.now()}`);
+                if (!response.ok) return;
+                
+                const result = await response.json();
+                
+                if (result.denied === true) {
+                    stopDenialCheck();
+                    handleDenial();
+                } else if (result.accepted === true) {
+                    if (currentState !== 'connected') {
+                        currentState = 'connected';
+                        stopCountdown();
+                        stopDenialCheck();
+                        saveSessionState();
+                        showRemoteScreen();
+                        switchToStopButton();
+                        startPolling();
                     }
-                })
-                .catch(() => {});
-        }, 3000); 
+                }
+            } catch (err) {
+                // Silent fail for polling errors in production
+            }
+        }, 2500); 
     }
 
     function stopDenialCheck() {

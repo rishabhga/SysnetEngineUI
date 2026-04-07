@@ -17,8 +17,8 @@ builder.Services.AddScoped<ManageEngineWebApp.Filters.DynamicAuthorizationFilter
 builder.Services.AddRazorPages();
 builder.Services.AddHttpClient("ManageEngineApi", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225");
-    //client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431");
+    //client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225");
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431");
     // client.DefaultRequestHeaders.Add("X-Api-Key", builder.Configuration["Authentication:ApiKey"]);
     client.Timeout = TimeSpan.FromSeconds(10);
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
@@ -45,7 +45,7 @@ var app = builder.Build();
 var httpClientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
 ManageEngineWebApp.Datacontext.RoleHelper.Configure(app.Configuration, httpClientFactory);
 
-if (!app.Environment.IsDevelopment())
+if (!app.Environment.IsProduction())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
