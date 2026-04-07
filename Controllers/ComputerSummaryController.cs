@@ -1858,30 +1858,30 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> PatchUpdate([FromBody] InstallRequest req, string domain)
         {
-            //domain ="DESKTOP-T33QOLJ";
+            if (string.IsNullOrEmpty(domain) || req == null || string.IsNullOrEmpty(req.SoftwareName))
+            {
+                return Json(new { status = "failed", message = "Invalid request data" });
+            }
+
             HttpClientHandler handler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
             };
 
-
             var patchUpdateRequest = new PatchUpdateRequest
             {
-                //SoftwareName = "npp.8.7.8.Installer.x64.exe",
                 SoftwareName = req.SoftwareName,
-                DownloadUrl = "https://chrome.com/latest-update.exe"
+                DownloadUrl = $"{_baseUrl}/installers/{req.SoftwareName}"
             };
 
             using (HttpClient client = new HttpClient(handler))
             {
 
-                //client.BaseAddress = new Uri("https://localhost:7225/api/Command/update/" + domain + "");
                 client.BaseAddress = new Uri($"{_baseUrl}/api/Command/update/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject(patchUpdateRequest);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-                // ?? **POST Request Send Karein**
                 HttpResponseMessage response = await client.PostAsync("", content);
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
@@ -1893,9 +1893,7 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { status = "failed", message = result });
                 }
 
-                // Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
             }
-            // return Redirect("Deshboad");
 
         }
 

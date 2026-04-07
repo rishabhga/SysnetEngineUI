@@ -1,4 +1,4 @@
-﻿namespace ManageEngineWebApp.Dtos
+namespace ManageEngineWebApp.Dtos
 {
     public class UpdatewinPatchselectiondto
     {
