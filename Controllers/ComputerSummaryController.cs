@@ -989,6 +989,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
+                updatewinPatchselectiondto.deviceIds = updatewinPatchselectiondto.domainids;
                 using var client = GetClient();
                 client.Timeout = TimeSpan.FromSeconds(120); // Patch dispatch uses SignalR, needs longer timeout
                 string jsonData = JsonConvert.SerializeObject(updatewinPatchselectiondto);
