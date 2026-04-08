@@ -1,0 +1,200 @@
+﻿@model List<ManageEngineWebApp.Models.SoftwareRepoDetails>
+@{
+    ViewData["Title"] = "Software Repository";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var grouped = Model.GroupBy(s => s.SoftwareName)
+                       .Select(g => new { Name = g.Key, Count = g.Count(), Latest = g.OrderByDescending(x => x.uploaddate).First() })
+                       .ToList();
+}
+
+<style>
+    .row-hover {
+        transition: background .12s;
+    }
+
+        .row-hover:hover {
+            background: #f0fbff;
+        }
+
+    .badge {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 999px;
+        font-size: .7rem;
+        font-weight: 600;
+    }
+</style>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-box-open text-[#00BCEB]"></i> Software Repository
+            </h1>
+            <p class="text-sm text-gray-500 mt-0.5">Manage software packages and versions</p>
+        </div>
+        <a href="@Url.Action("Upload")"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE]
+                  text-white rounded-lg shadow hover:shadow-md transition text-sm font-medium">
+            <i class="fas fa-cloud-upload-alt"></i> Upload New
+        </a>
+    </div>
+
+    <!-- Alerts -->
+    @if (TempData["Message"] != null)
+    {
+        <div class="mb-4 p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center gap-2 text-sm">
+            <i class="fas fa-check-circle text-green-500"></i> @TempData["Message"]
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center gap-2 text-sm">
+            <i class="fas fa-exclamation-circle text-red-500"></i> @TempData["Error"]
+        </div>
+    }
+
+    <!-- Stats row -->
+    @if (Model.Any())
+    {
+        <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+                <p class="text-2xl font-bold text-gray-800">@Model.Count</p>
+                <p class="text-xs text-gray-500 mt-1">Total Packages</p>
+            </div>
+            <div class="bg-blue-50 rounded-xl border border-blue-200 shadow-sm p-4 text-center">
+                <p class="text-2xl font-bold text-[#00BCEB]">@grouped.Count</p>
+                <p class="text-xs text-blue-500 mt-1">Unique Software</p>
+            </div>
+            <div class="bg-purple-50 rounded-xl border border-purple-200 shadow-sm p-4 text-center">
+                <p class="text-2xl font-bold text-purple-700">
+                    @(Model.Any() ? Model.OrderByDescending(x => x.uploaddate).First().uploaddate.ToString("MMM dd") : "—")
+                </p>
+                <p class="text-xs text-purple-500 mt-1">Last Upload</p>
+            </div>
+        </div>
+    }
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        @if (Model.Any())
+        {
+            <!-- Search bar -->
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
+                <div class="relative flex-1 max-w-xs">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                    <input type="text" id="searchInput" placeholder="Search packages..."
+                           oninput="filterTable(this.value)"
+                           class="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm
+                                      focus:ring-2 focus:ring-[#00BCEB] focus:border-transparent outline-none" />
+                </div>
+                <span class="text-xs text-gray-400" id="rowCount">@Model.Count packages</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full" id="softwareTable">
+                    <thead>
+                        <tr class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                            <th class="px-6 py-3 text-left cursor-pointer hover:text-gray-700" onclick="sortTable(0)">
+                                Software Name <i class="fas fa-sort ml-1 opacity-40"></i>
+                            </th>
+                            <th class="px-6 py-3 text-left cursor-pointer hover:text-gray-700" onclick="sortTable(1)">
+                                Version <i class="fas fa-sort ml-1 opacity-40"></i>
+                            </th>
+                            <th class="px-6 py-3 text-left cursor-pointer hover:text-gray-700" onclick="sortTable(2)">
+                                Upload Date <i class="fas fa-sort ml-1 opacity-40"></i>
+                            </th>
+                            <th class="px-6 py-3 text-left">Age</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100" id="tableBody">
+                        @{
+                            var sorted = Model.OrderByDescending(x => x.uploaddate).ToList();
+                            var newest = sorted.FirstOrDefault();
+                        }
+                        @foreach (var item in sorted)
+                        {
+                            bool isNewest = item.Id == newest?.Id;
+                            var age = DateTime.Now - item.uploaddate;
+                            string ageStr = age.TotalDays < 1 ? "Today"
+                            : age.TotalDays < 2 ? "Yesterday"
+                            : age.TotalDays < 30 ? $"{(int)age.TotalDays}d ago"
+                            : age.TotalDays < 365 ? $"{(int)(age.TotalDays / 30)}mo ago"
+                            : $"{(int)(age.TotalDays / 365)}y ago";
+
+                            <tr class="row-hover data-row">
+                                <td class="px-6 py-3.5">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00BCEB] to-[#0096BE]
+                                                            flex items-center justify-center shrink-0">
+                                            <i class="fas fa-cube text-white text-xs"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">@item.SoftwareName</p>
+                                            @if (isNewest)
+                                            {
+                                                <span class="badge bg-blue-100 text-blue-700">latest</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-3.5">
+                                    <span class="badge bg-gray-100 text-gray-700 font-mono">v@item.Version</span>
+                                </td>
+                                <td class="px-6 py-3.5 text-sm text-gray-600">
+                                    @item.uploaddate.ToString("dd MMM yyyy, HH:mm")
+                                </td>
+                                <td class="px-6 py-3.5 text-xs text-gray-400">@ageStr</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-16">
+                <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-box-open text-2xl text-gray-300"></i>
+                </div>
+                <p class="text-gray-500 font-medium">No software uploaded yet</p>
+                <p class="text-gray-400 text-sm mt-1">Upload your first package to get started</p>
+                <a href="@Url.Action("Upload")"
+                   class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE]
+                              text-white rounded-lg text-sm font-medium shadow hover:shadow-md transition">
+                    <i class="fas fa-cloud-upload-alt"></i> Upload Now
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    function filterTable(query) {
+        const q = query.toLowerCase();
+        let visible = 0;
+        document.querySelectorAll('#tableBody .data-row').forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const show = text.includes(q);
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        const el = document.getElementById('rowCount');
+        if (el) el.textContent = `${visible} package${visible !== 1 ? 's' : ''}`;
+    }
+
+    let sortDir = {};
+    function sortTable(col) {
+        const tbody = document.getElementById('tableBody');
+        const rows = Array.from(tbody.querySelectorAll('.data-row'));
+        sortDir[col] = !sortDir[col];
+        rows.sort((a, b) => {
+            const av = a.cells[col]?.textContent.trim() ?? '';
+            const bv = b.cells[col]?.textContent.trim() ?? '';
+            return sortDir[col] ? av.localeCompare(bv) : bv.localeCompare(av);
+        });
+        rows.forEach(r => tbody.appendChild(r));
+    }
+</script>

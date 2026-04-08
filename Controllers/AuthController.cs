@@ -92,10 +92,8 @@ namespace ManageEngineWebApp.Controllers
         [AllowAnonymous]
         public IActionResult Login()
         {
-            // Clear session for each NEW login attempt
             HttpContext.Session.Clear();
 
-            // Clear non-essential cookies but PRESERVE RequestVerification and RememberMe
             foreach (var cookieName in HttpContext.Request.Cookies.Keys)
             {
                 if (!cookieName.StartsWith("__RequestVerification") && cookieName != "RememberMe_User")
@@ -117,7 +115,6 @@ namespace ManageEngineWebApp.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login(LoginDto model)
         {
-            // Session clearing handled in GET
             using var client = GetClient();
             var json = JsonConvert.SerializeObject(model);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -167,7 +164,6 @@ namespace ManageEngineWebApp.Controllers
                 string primaryRole = roleData.Roles.First();
                 RoleHelper.SetSessionFromRoleData(HttpContext, roleData, primaryRole);
 
-                // Handle Remember Me (Remember Username)
                 if (model.RememberMe)
                 {
                     Response.Cookies.Append("RememberMe_User", model.Username ?? "", new CookieOptions
