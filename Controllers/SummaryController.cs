@@ -21,7 +21,7 @@ namespace ManageEngineWebApp.Controllers
         public SummaryController(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
-            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
+            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
         }
 
         private HttpClient GetClient()

@@ -1,0 +1,266 @@
+﻿@{
+    ViewData["Title"] = "Upload Software";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    bool isPost = Context.Request.Method == "POST";  // ← FIX: guard all Request.Form reads
+}
+
+<style>
+    #dropZone {
+        transition: border-color .2s, background .2s;
+    }
+
+        #dropZone.drag-over {
+            border-color: #00BCEB;
+            background: #f0fbff;
+        }
+
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        from {
+            transform: rotate(0deg)
+        }
+
+        to {
+            transform: rotate(360deg)
+        }
+    }
+
+    .progress-bar {
+        transition: width .3s ease;
+    }
+</style>
+
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-2 text-sm text-gray-400 mb-5">
+        <a href="@Url.Action("Index")" class="hover:text-gray-600 transition flex items-center gap-1">
+            <i class="fas fa-arrow-left text-xs"></i> Repository
+        </a>
+        <span>/</span>
+        <span class="text-gray-700 font-medium">Upload Package</span>
+    </div>
+
+    <!-- Alerts from redirect -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center gap-2 text-sm">
+            <i class="fas fa-exclamation-circle text-red-500"></i> @TempData["Error"]
+        </div>
+    }
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-[#00BCEB]/5 to-[#0096BE]/5">
+            <h1 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-cloud-upload-alt text-[#00BCEB]"></i> Upload Software Package
+            </h1>
+            <p class="text-sm text-gray-500 mt-0.5">Add a new software package to the repository</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" id="uploadForm" class="p-6 space-y-5" novalidate>
+            @Html.AntiForgeryToken()
+
+            <!-- Software Name -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Software Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="softwareName" id="softwareName"
+                       value="@(isPost? Context.Request.Form["softwareName"].ToString() : "")"
+                       placeholder="e.g. 7-Zip, Chrome, Node.js"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                              focus:ring-2 focus:ring-[#00BCEB] focus:border-transparent outline-none transition" />
+                @* FIX: asp-validation-for doesn't work for plain params — use Html.ValidationMessage *@
+                @Html.ValidationMessage("softwareName", new { @class = "text-red-500 text-xs mt-1 block" })
+            </div>
+
+            <!-- Version -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Version <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="version" id="version"
+                       value="@(isPost? Context.Request.Form["version"].ToString() : "")"
+                       placeholder="e.g. 1.0.0, 22.04, 3.12.1"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                              focus:ring-2 focus:ring-[#00BCEB] focus:border-transparent outline-none transition font-mono" />
+                @Html.ValidationMessage("version", new { @class = "text-red-500 text-xs mt-1 block" })
+            </div>
+
+            <!-- File Drop Zone -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Software File <span class="text-red-500">*</span>
+                </label>
+
+                <!-- Hidden real input -->
+                <input type="file" name="file" id="fileInput" class="sr-only"
+                       onchange="onFileChosen(this)" />
+
+                <!-- Drop Zone UI -->
+                <div id="dropZone"
+                     class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer"
+                     onclick="document.getElementById('fileInput').click()"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event)">
+
+                    <!-- Default state -->
+                    <div id="dropDefault">
+                        <div class="w-12 h-12 rounded-full bg-[#00BCEB]/10 flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-cloud-upload-alt text-[#00BCEB] text-xl"></i>
+                        </div>
+                        <p class="text-sm font-medium text-gray-700">Drop your file here</p>
+                        <p class="text-xs text-gray-400 mt-1">or <span class="text-[#00BCEB] underline">browse</span> to choose</p>
+                        <p class="text-xs text-gray-400 mt-2">Supports: .exe, .msi, .zip, .tar.gz and more</p>
+                    </div>
+
+                    <!-- File selected state (hidden initially) -->
+                    <div id="dropSelected" class="hidden">
+                        <div class="flex items-center gap-3 justify-center">
+                            <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                                <i class="fas fa-file-alt text-green-600"></i>
+                            </div>
+                            <div class="text-left">
+                                <p id="selectedFileName" class="text-sm font-medium text-gray-800 max-w-xs truncate"></p>
+                                <p id="selectedFileSize" class="text-xs text-gray-400"></p>
+                            </div>
+                            <button type="button" onclick="clearFile(event)"
+                                    class="ml-2 text-gray-400 hover:text-red-500 transition">
+                                <i class="fas fa-times-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @Html.ValidationMessage("file", new { @class = "text-red-500 text-xs mt-1 block" })
+            </div>
+
+            <!-- Upload Progress (hidden until submit) -->
+            <div id="progressWrapper" class="hidden">
+                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>Uploading...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-2">
+                    <div id="progressBar" class="progress-bar bg-gradient-to-r from-[#00BCEB] to-[#0096BE] h-2 rounded-full" style="width:0%"></div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex justify-end gap-3 pt-2">
+                <a href="@Url.Action("Index")"
+                   class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium transition">
+                    Cancel
+                </a>
+                <button type="submit" id="submitBtn"
+                        class="px-5 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg
+                               shadow hover:shadow-md transition flex items-center gap-2 text-sm font-medium">
+                    <i class="fas fa-cloud-upload-alt" id="submitIcon"></i>
+                    <span id="submitText">Upload</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function handleDragOver(e) {
+        e.preventDefault();
+        document.getElementById('dropZone').classList.add('drag-over');
+    }
+    function handleDragLeave(e) {
+        document.getElementById('dropZone').classList.remove('drag-over');
+    }
+    function handleDrop(e) {
+        e.preventDefault();
+        document.getElementById('dropZone').classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            const input = document.getElementById('fileInput');
+            const dt = new DataTransfer();
+            dt.items.add(files[0]);
+            input.files = dt.files;
+            onFileChosen(input);
+        }
+    }
+
+    function onFileChosen(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        document.getElementById('selectedFileName').textContent = file.name;
+        document.getElementById('selectedFileSize').textContent = formatBytes(file.size);
+        document.getElementById('dropDefault').classList.add('hidden');
+        document.getElementById('dropSelected').classList.remove('hidden');
+    }
+
+    function clearFile(e) {
+        e.stopPropagation();
+        document.getElementById('fileInput').value = '';
+        document.getElementById('dropDefault').classList.remove('hidden');
+        document.getElementById('dropSelected').classList.add('hidden');
+    }
+
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let i = 0, val = bytes;
+        while (val >= 1024 && i < units.length - 1) { val /= 1024; i++; }
+        return `${val.toFixed(1)} ${units[i]}`;
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', function (e) {
+        const name = document.getElementById('softwareName').value.trim();
+        const ver  = document.getElementById('version').value.trim();
+        const file = document.getElementById('fileInput').files[0];
+
+        document.querySelectorAll('.js-error').forEach(el => el.remove());
+
+        let hasError = false;
+        function showError(inputId, msg) {
+            const el = document.getElementById(inputId);
+            const err = document.createElement('p');
+            err.className = 'js-error text-red-500 text-xs mt-1';
+            err.textContent = msg;
+            el.parentNode.appendChild(err);
+            hasError = true;
+        }
+
+        if (!name) showError('softwareName', 'Software name is required.');
+        if (!ver)  showError('version', 'Version is required.');
+        if (!file) showError('dropZone', 'Please select a file.');
+
+        if (hasError) {
+            e.preventDefault();
+            return;
+        }
+
+        document.getElementById('progressWrapper').classList.remove('hidden');
+        document.getElementById('submitIcon').className = 'fas fa-spinner spin';
+        document.getElementById('submitText').textContent = 'Uploading...';
+
+        const bar = document.getElementById('progressBar');
+        const pct = document.getElementById('progressPercent');
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress = Math.min(progress + Math.random() * 12, 90);
+            bar.style.width = progress + '%';
+            pct.textContent = Math.round(progress) + '%';
+        }, 250);
+
+        window.addEventListener('beforeunload', () => {
+            clearInterval(interval);
+            bar.style.width = '100%';
+            pct.textContent = '100%';
+        }, { once: true });
+
+  
+        setTimeout(() => {
+            document.getElementById('submitBtn').disabled = true;
+        }, 100);
+    });
+</script>

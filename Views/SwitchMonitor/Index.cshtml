@@ -1,0 +1,418 @@
+﻿@model List<ManageEngineWebApp.Models.SwitchMaster>
+@{
+    ViewData["Title"] = "Switch Monitor";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var statuses = ViewBag.DeviceStatuses as Dictionary<int, ManageEngineWebApp.Models.DeviceStatus>;
+    int totalUp = statuses?.Values.Count(s => s.Status == "Up") ?? 0;
+    int totalDown = statuses?.Values.Count(s => s.Status != "Up" && s.Status != null) ?? 0;
+}
+
+<style>
+    .status-pulse {
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: .5;
+        }
+    }
+
+    .card-hover {
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,.1);
+        }
+
+    .modal-overlay {
+        backdrop-filter: blur(4px);
+    }
+
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-network-wired text-[#00BCEB]"></i> Switch Monitor
+            </h1>
+            <p class="text-sm text-gray-500 mt-1">Real-time SNMP switch management</p>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+            <button onclick="openAddSwitchModal()"
+                    class="px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-2 text-sm font-medium">
+                <i class="fas fa-plus"></i> Add Switch
+            </button>
+            <form asp-action="TriggerPoll" method="post" id="pollForm">
+                @Html.AntiForgeryToken()
+                <button type="submit" id="pollBtn"
+                        class="px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-2 text-sm font-medium">
+                    <i class="fas fa-sync-alt" id="pollIcon"></i>
+                    <span id="pollText">Poll Now</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    @if (TempData["Message"] != null)
+    {
+        <div class="mb-4 p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center gap-2">
+            <i class="fas fa-check-circle text-green-500"></i> @TempData["Message"]
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center gap-2">
+            <i class="fas fa-exclamation-circle text-red-500"></i> @TempData["Error"]
+        </div>
+    }
+
+    <!-- Summary stats -->
+    @if (Model.Any())
+    {
+        <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-xl border border-gray-200 p-4 text-center shadow-sm">
+                <p class="text-2xl font-bold text-gray-800">@Model.Count</p>
+                <p class="text-xs text-gray-500 mt-1">Total Switches</p>
+            </div>
+            <div class="bg-green-50 rounded-xl border border-green-200 p-4 text-center shadow-sm">
+                <p class="text-2xl font-bold text-green-700">@totalUp</p>
+                <p class="text-xs text-green-600 mt-1">Online</p>
+            </div>
+            <div class="bg-red-50 rounded-xl border border-red-200 p-4 text-center shadow-sm">
+                <p class="text-2xl font-bold text-red-700">@totalDown</p>
+                <p class="text-xs text-red-600 mt-1">Offline / Error</p>
+            </div>
+        </div>
+    }
+
+    <!-- Switch Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        @foreach (var sw in Model)
+        {
+            var status = statuses != null && statuses.ContainsKey(sw.Id) ? statuses[sw.Id] : null;
+            var statusText = status?.Status ?? "Unknown";
+            bool isUp = statusText == "Up";
+            var statusBadge = isUp ? "bg-green-100 text-green-700" : (statusText == "Unknown" ? "bg-gray-100 text-gray-600" : "bg-red-100 text-red-700");
+            var uptime = status?.UpTime ?? "—";
+            var portCount = status?.Ports?.Count ?? 0;
+            var portsUp = status?.Ports?.Count(p => p.PortState == "Up") ?? 0;
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden card-hover flex flex-col">
+                <!-- Card Header -->
+                <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-start">
+                    <div class="min-w-0">
+                        <h3 class="font-semibold text-gray-900 truncate">@sw.DeviceName</h3>
+                        <p class="text-xs text-gray-500 font-mono mt-0.5">@sw.IpAddress</p>
+                    </div>
+                    <div class="flex items-center gap-2 ml-2 shrink-0">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold @statusBadge flex items-center gap-1">
+                            @if (isUp)
+                            {
+                                <span class="status-pulse inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            }
+                            @statusText
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="px-4 py-3 space-y-2 text-sm flex-1">
+                    <div class="flex justify-between text-gray-600">
+                        <span>Community</span>
+                        <span class="font-mono text-gray-800 bg-gray-50 px-1.5 rounded text-xs">@(sw.Community ?? "public")</span>
+                    </div>
+                    <div class="flex justify-between text-gray-600">
+                        <span>Type</span>
+                        <span class="text-gray-800">@sw.DeviceType</span>
+                    </div>
+                    <div class="flex justify-between text-gray-600">
+                        <span>Uptime</span>
+                        <span class="font-mono text-xs text-gray-800 truncate max-w-[160px]" title="@uptime">@uptime</span>
+                    </div>
+                    @if (portCount > 0)
+                    {
+                        <div>
+                            <div class="flex justify-between text-gray-600 mb-1">
+                                <span>Ports</span>
+                                <span class="text-gray-800 text-xs">@portsUp / @portCount up</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5">
+                                <div class="bg-green-500 h-1.5 rounded-full" style="width:@(portCount > 0 ? (portsUp * 100 / portCount) : 0)%"></div>
+                            </div>
+                        </div>
+                    }
+                    @if (!sw.IsActive)
+                    {
+                        <div class="text-xs text-amber-600 flex items-center gap-1">
+                            <i class="fas fa-pause-circle"></i> Polling disabled
+                        </div>
+                    }
+                </div>
+
+                <!-- Card Footer -->
+                <div class="px-4 py-2 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                    <div class="flex gap-3">
+                        <button onclick="editSwitch(@sw.Id)"
+                                class="text-xs text-gray-500 hover:text-[#00BCEB] flex items-center gap-1 transition">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button onclick="deleteSwitch(@sw.Id, '@Html.Raw(sw.DeviceName.Replace("'", "\\\'"))')"
+                                class="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 transition">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    </div>
+                    <a href="@Url.Action("Details", new { id = sw.Id })"
+                       class="text-xs text-[#00BCEB] hover:text-[#0096BE] font-medium flex items-center gap-1">
+                        Details <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Empty state -->
+    @if (!Model.Any())
+    {
+        <div class="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300 mt-4">
+            <i class="fas fa-network-wired text-5xl text-gray-200 mb-4"></i>
+            <p class="text-gray-500 font-medium">No switches configured yet</p>
+            <p class="text-gray-400 text-sm mt-1">Add a switch to start monitoring</p>
+            <button onclick="openAddSwitchModal()"
+                    class="mt-4 px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg text-sm font-medium shadow hover:shadow-md transition">
+                <i class="fas fa-plus mr-1"></i> Add First Switch
+            </button>
+        </div>
+    }
+</div>
+
+<div id="switchModal"
+     class="modal-overlay fixed inset-0 bg-black/50 items-center justify-center z-50 hidden"
+     onclick="handleOverlayClick(event)">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4" onclick="event.stopPropagation()">
+        <div class="px-6 py-4 rounded-t-2xl bg-gradient-to-r from-[#00BCEB] to-[#0096BE] flex justify-between items-center">
+            <h3 id="modalTitle" class="text-base font-bold text-white">Add Switch</h3>
+            <button onclick="closeSwitchModal()" class="text-white/80 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="modalBody">
+                <div class="flex justify-center py-8">
+                    <i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i>
+                </div>
+            </div>
+            <div id="modalFooter" class="flex justify-end gap-3 mt-6">
+                <button type="button" onclick="closeSwitchModal()"
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium transition">
+                    Cancel
+                </button>
+                <button type="button" id="modalSaveBtn"
+                        class="px-5 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg text-sm font-medium shadow hover:shadow-md transition flex items-center gap-2">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="deleteModal"
+     class="modal-overlay fixed inset-0 bg-black/50 items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4">
+        <div class="p-6 text-center">
+            <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-trash-alt text-red-500 text-xl"></i>
+            </div>
+            <h3 class="font-bold text-gray-900 text-lg">Delete Switch</h3>
+            <p class="text-gray-500 text-sm mt-2">Are you sure you want to delete <strong id="deleteDeviceName"></strong>? This action cannot be undone.</p>
+            <div class="flex gap-3 mt-5 justify-center">
+                <button onclick="closeDeleteModal()"
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium">
+                    Cancel
+                </button>
+                <button id="confirmDeleteBtn"
+                        class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentSwitchId = 0;
+    let pendingDeleteId = 0;
+
+    document.getElementById('pollForm').addEventListener('submit', function () {
+        document.getElementById('pollIcon').className = 'fas fa-sync-alt spin';
+        document.getElementById('pollText').textContent = 'Polling...';
+        document.getElementById('pollBtn').disabled = true;
+    });
+
+    function openModal(id) {
+        const el = document.getElementById(id);
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+    }
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+    }
+    function handleOverlayClick(e) {
+        if (e.target === document.getElementById('switchModal')) closeSwitchModal();
+    }
+    function closeSwitchModal() { closeModal('switchModal'); }
+    function closeDeleteModal() { closeModal('deleteModal'); }
+
+    function openAddSwitchModal() {
+        currentSwitchId = 0;
+        document.getElementById('modalTitle').innerText = 'Add Switch';
+        document.getElementById('modalBody').innerHTML =
+            '<div class="flex justify-center py-8"><i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i></div>';
+        openModal('switchModal');
+        fetch('/SwitchMonitor/Create')
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to load form');
+                return res.text();
+            })
+            .then(html => { document.getElementById('modalBody').innerHTML = html; })
+            .catch(err => {
+                document.getElementById('modalBody').innerHTML =
+                    `<p class="text-red-500 text-sm"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;
+            });
+    }
+
+    function editSwitch(id) {
+        currentSwitchId = id;
+        document.getElementById('modalTitle').innerText = 'Edit Switch';
+        document.getElementById('modalBody').innerHTML =
+            '<div class="flex justify-center py-8"><i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i></div>';
+        openModal('switchModal');
+        fetch(`/SwitchMonitor/Edit/${id}`)
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to load form');
+                return res.text();
+            })
+            .then(html => { document.getElementById('modalBody').innerHTML = html; })
+            .catch(err => {
+                document.getElementById('modalBody').innerHTML =
+                    `<p class="text-red-500 text-sm"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;
+            });
+    }
+
+    document.getElementById('modalSaveBtn').addEventListener('click', function () {
+        const btn = this;
+        const formData = {};
+
+        // Collect all inputs (skip the ASP.NET hidden checkbox "false" — take only real values)
+        const seen = new Set();
+        document.querySelectorAll('#modalBody input, #modalBody select').forEach(el => {
+            if (!el.name) return;
+            if (el.type === 'checkbox') {
+                formData[el.name] = el.checked;   // ← FIX: always use checkbox.checked (not hidden false)
+                seen.add(el.name);
+            } else if (!seen.has(el.name)) {      
+                formData[el.name] = el.value;
+                seen.add(el.name);
+            }
+        });
+
+        // Parse Id properly
+        if (formData['Id'] !== undefined) formData['Id'] = parseInt(formData['Id']) || 0;
+
+        const url = currentSwitchId === 0
+            ? '/SwitchMonitor/Create'
+            : `/SwitchMonitor/Edit/${currentSwitchId}`;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner spin"></i> Saving...';
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                closeSwitchModal();
+                location.reload();
+            } else {
+                showModalError(data.message || 'Operation failed');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save';
+            }
+        })
+        .catch(err => {
+            showModalError('Network error: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Save';
+        });
+    });
+
+    function showModalError(msg) {
+        let errEl = document.getElementById('modalError');
+        if (!errEl) {
+            errEl = document.createElement('div');
+            errEl.id = 'modalError';
+            errEl.className = 'mt-3 p-2 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-1';
+            document.getElementById('modalFooter').insertAdjacentElement('beforebegin', errEl);
+        }
+        errEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${msg}`;
+    }
+
+    function deleteSwitch(id, name) {
+        pendingDeleteId = id;
+        document.getElementById('deleteDeviceName').textContent = name;
+        openModal('deleteModal');
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+
+        fetch(`/SwitchMonitor/Delete/${pendingDeleteId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Delete failed');
+                    closeDeleteModal();
+                    btn.disabled = false;
+                    btn.textContent = 'Delete';
+                }
+            })
+            .catch(err => {
+                alert('Network error: ' + err.message);
+                closeDeleteModal();
+                btn.disabled = false;
+                btn.textContent = 'Delete';
+            });
+    });
+</script>

@@ -1,0 +1,273 @@
+﻿@model ManageEngineWebApp.Models.DeviceStatus
+@{
+    ViewData["Title"] = "Switch Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var sw = ViewBag.Switch as ManageEngineWebApp.Models.SwitchMaster;
+    var agentHistory = ViewBag.AgentHistory as List<ManageEngineWebApp.Models.AgentPollHistory>;
+    bool isUp = Model?.Status == "Up";
+    bool hasPolled = Model?.Status != "Not Polled Yet" && Model?.CreatedOn > DateTime.MinValue;
+    var portsUp = Model?.Ports?.Count(p => p.PortState == "Up") ?? 0;
+    var portsDown = Model?.Ports?.Count(p => p.PortState != "Up") ?? 0;
+    var totalPorts = (portsUp + portsDown);
+}
+
+<style>
+    .status-pulse {
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: .4;
+        }
+    }
+
+    .tab-btn {
+        border-bottom: 2px solid transparent;
+    }
+
+        .tab-btn.active {
+            border-color: #00BCEB;
+            color: #00BCEB;
+        }
+</style>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Breadcrumb + Title -->
+    <div class="flex items-center gap-3 mb-6 flex-wrap">
+        <a href="@Url.Action("Index")"
+           class="text-gray-400 hover:text-gray-600 transition flex items-center gap-1 text-sm">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+        <span class="text-gray-300">/</span>
+        <h1 class="text-xl font-bold text-gray-900">@(sw?.DeviceName ?? "Switch")</h1>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1
+            @(isUp ? "bg-green-100 text-green-700" : (Model?.Status == "Not Polled Yet" ? "bg-gray-100 text-gray-600" : "bg-red-100 text-red-700"))">
+            @if (isUp)
+            {
+                <span class="status-pulse inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
+            }
+            @(Model?.Status ?? "Unknown")
+        </span>
+        @if (!hasPolled)
+        {
+            <form asp-action="TriggerPoll" method="post" class="ml-auto">
+                @Html.AntiForgeryToken()
+                <button type="submit"
+                        class="px-3 py-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg text-sm font-medium shadow hover:shadow-md transition flex items-center gap-1.5">
+                    <i class="fas fa-sync-alt"></i> Poll Now
+                </button>
+            </form>
+        }
+    </div>
+
+    <!-- Top row: Device info + Port summary -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+
+        <!-- Device Info Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 class="font-semibold text-gray-800 text-sm uppercase tracking-wide mb-3 flex items-center gap-2">
+                <i class="fas fa-server text-[#00BCEB]"></i> Device Information
+            </h2>
+            <dl class="space-y-2.5 text-sm">
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">IP Address</dt>
+                    <dd class="font-mono text-gray-800 bg-gray-50 px-2 py-0.5 rounded text-xs">@sw?.IpAddress</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Community</dt>
+                    <dd class="font-mono text-gray-800 bg-gray-50 px-2 py-0.5 rounded text-xs">@(sw?.Community ?? "public")</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Device Type</dt>
+                    <dd class="text-gray-800">@sw?.DeviceType</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Polling</dt>
+                    <dd>
+                        @if (sw?.IsActive == true)
+                        {
+                            <span class="text-green-600 text-xs font-medium"><i class="fas fa-check-circle mr-1"></i>Active</span>
+                        }
+                        else
+                        {
+                            <span class="text-amber-500 text-xs font-medium"><i class="fas fa-pause-circle mr-1"></i>Disabled</span>
+                        }
+                    </dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Last Poll</dt>
+                    <dd class="text-gray-800 text-xs">
+                        @(hasPolled? Model.CreatedOn.ToString("yyyy-MM-dd HH:mm:ss") : "Never")
+                    </dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500">Uptime</dt>
+                    <dd class="font-mono text-gray-800 text-xs truncate max-w-[160px]" title="@Model?.UpTime">
+                        @(string.IsNullOrEmpty(Model?.UpTime) ? "—" : Model.UpTime)
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Port Summary Cards -->
+        <div class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4 content-start">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+                <p class="text-3xl font-bold text-gray-800">@totalPorts</p>
+                <p class="text-xs text-gray-500 mt-1">Total Ports</p>
+            </div>
+            <div class="bg-green-50 rounded-xl shadow-sm border border-green-200 p-4 text-center">
+                <p class="text-3xl font-bold text-green-700">@portsUp</p>
+                <p class="text-xs text-green-600 mt-1">Ports Up</p>
+            </div>
+            <div class="bg-red-50 rounded-xl shadow-sm border border-red-200 p-4 text-center">
+                <p class="text-3xl font-bold text-red-700">@portsDown</p>
+                <p class="text-xs text-red-600 mt-1">Ports Down</p>
+            </div>
+
+            @if (totalPorts > 0)
+            {
+                <!-- Port utilisation bar -->
+                <div class="col-span-2 sm:col-span-3 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <div class="flex justify-between text-xs text-gray-500 mb-2">
+                        <span>Port Utilisation</span>
+                        <span>@portsUp / @totalPorts up (@((portsUp * 100 / totalPorts))%)</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-3">
+                        <div class="bg-gradient-to-r from-green-400 to-green-500 h-3 rounded-full transition-all"
+                             style="width:@(portsUp * 100 / totalPorts)%"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Ports Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-5">
+        <h2 class="font-semibold text-gray-800 text-sm uppercase tracking-wide mb-3 flex items-center gap-2">
+            <i class="fas fa-ethernet text-[#00BCEB]"></i> Port Status
+            @if (totalPorts > 0)
+            {
+                <span class="ml-auto text-xs font-normal text-gray-500 normal-case">
+                    <input type="text" id="portSearch" placeholder="Filter ports..."
+                           class="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#00BCEB]"
+                           oninput="filterPorts(this.value)" />
+                </span>
+            }
+        </h2>
+        @if (Model?.Ports != null && Model.Ports.Any())
+        {
+            <div class="overflow-x-auto rounded-lg border border-gray-100">
+                <table class="min-w-full text-sm" id="portsTable">
+                    <thead>
+                        <tr class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                            <th class="px-4 py-2.5 text-left">Port Name</th>
+                            <th class="px-4 py-2.5 text-left">State</th>
+                            <th class="px-4 py-2.5 text-right">RX</th>
+                            <th class="px-4 py-2.5 text-right">TX</th>
+                            <th class="px-4 py-2.5 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach (var port in Model.Ports.OrderBy(p => p.PortName))
+                        {
+                            bool portUp = port.PortState == "Up";
+                            <tr class="hover:bg-gray-50 transition port-row">
+                                <td class="px-4 py-2.5 font-mono text-xs text-gray-800">@port.PortName</td>
+                                <td class="px-4 py-2.5">
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-medium
+                                                @(portUp ? "text-green-700" : "text-red-600")">
+                                        <span class="w-1.5 h-1.5 rounded-full @(portUp ? "bg-green-500" : "bg-red-500")"></span>
+                                        @port.PortState
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2.5 text-right text-xs text-gray-700 font-mono">@FormatBytes(port.RX)</td>
+                                <td class="px-4 py-2.5 text-right text-xs text-gray-700 font-mono">@FormatBytes(port.TX)</td>
+                                <td class="px-4 py-2.5 text-right text-xs text-gray-500 font-mono">@FormatBytes(port.RX + port.TX)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-10 border border-dashed border-gray-200 rounded-lg">
+                <i class="fas fa-plug text-3xl text-gray-200 mb-3"></i>
+                <p class="text-gray-500 text-sm">No port data available.</p>
+                <p class="text-gray-400 text-xs mt-1">Run a poll to collect port information.</p>
+            </div>
+        }
+    </div>
+
+    <!-- Agent Poll History -->
+    @if (agentHistory != null && agentHistory.Any())
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 class="font-semibold text-gray-800 text-sm uppercase tracking-wide mb-3 flex items-center gap-2">
+                <i class="fas fa-history text-[#00BCEB]"></i> Agent Poll History
+                <span class="text-xs font-normal text-gray-400 normal-case">(last @agentHistory.Count polls)</span>
+            </h2>
+            <div class="overflow-x-auto rounded-lg border border-gray-100">
+                <table class="min-w-full text-xs">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-500 uppercase tracking-wide">
+                            <th class="px-3 py-2.5 text-left">Time</th>
+                            <th class="px-3 py-2.5 text-left">Status</th>
+                            <th class="px-3 py-2.5 text-left">CPU</th>
+                            <th class="px-3 py-2.5 text-left">RAM</th>
+                            <th class="px-3 py-2.5 text-left">Disk</th>
+                            <th class="px-3 py-2.5 text-left">Uptime</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach (var h in agentHistory)
+                        {
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-3 py-2 font-mono text-gray-600">@h.PollTime.ToString("MM-dd HH:mm:ss")</td>
+                                <td class="px-3 py-2">
+                                    <span class="inline-flex items-center gap-1 font-medium
+                                                @(h.Status == "Up" ? "text-green-700" : "text-red-600")">
+                                        <span class="w-1.5 h-1.5 rounded-full @(h.Status == "Up" ? "bg-green-500" : "bg-red-500")"></span>
+                                        @h.Status
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2 text-gray-700">@(h.Cpu ?? "—")</td>
+                                <td class="px-3 py-2 text-gray-700">@(h.Ram ?? "—")</td>
+                                <td class="px-3 py-2 text-gray-700">@(h.Disk ?? "—")</td>
+                                <td class="px-3 py-2 font-mono text-gray-600 truncate max-w-[100px]">@(h.UpTime ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@functions {
+    string FormatBytes(long bytes)
+    {
+        if (bytes <= 0) return "0 B";
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        int i = 0;
+        double val = bytes;
+        while (val >= 1024 && i < units.Length - 1) { val /= 1024; i++; }
+        return $"{val:0.##} {units[i]}";
+    }
+}
+
+<script>
+    function filterPorts(query) {
+        const q = query.toLowerCase();
+        document.querySelectorAll('#portsTable .port-row').forEach(row => {
+            const name = row.querySelector('td')?.textContent.toLowerCase() ?? '';
+            row.style.display = name.includes(q) ? '' : 'none';
+        });
+    }
+</script>
