@@ -519,6 +519,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
+        [DynamicPermission("ComputerSummary.OTP", "Enable OTP Protection")]
         public async Task<IActionResult> EnableTempProtection(string machineId)
         {
             if (!await IsDeviceAuthorized(machineId)) return Json(new { success = false, error = "Unauthorized" });
@@ -722,6 +723,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
+        [DynamicPermission("ComputerSummary.OTP", "Generate OTP")]
         public async Task<IActionResult> GenerateOtpCode(string machineId)
         {
             if (!await IsDeviceAuthorized(machineId)) return Json(new { success = false, error = "Unauthorized" });
@@ -901,7 +903,9 @@ namespace ManageEngineWebApp.Controllers
                 // Match patch available version with software repo version
                 foreach (var item in datalist)
                 {
-                    item.IsAvailableInRepo = repoList.Any(s => s.Version == item.AvailableVersion);
+                    item.IsAvailableInRepo = repoList.Any(s =>
+                    s.Version == item.AvailableVersion &&
+                    s.SoftwareName.Equals(item.PatchName, StringComparison.OrdinalIgnoreCase));
                 }
             }
             catch (Exception ex)
@@ -1445,6 +1449,7 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception) { }
             return View(localDatalist);
         }
+        [DynamicPermission("ComputerSummary.RemoteAccess", "Execute Remote Command")]
         public async Task<IActionResult> Comanddata(string domain)
         {
             HttpClientHandler handler = new HttpClientHandler
@@ -1518,6 +1523,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
+        [DynamicPermission("ComputerSummary.RemoteAccess", "Remote Control")]
         public async Task<IActionResult> RemoteAccess(string domain)
         {
             HttpClientHandler handler = new HttpClientHandler
@@ -1809,6 +1815,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
+        [DynamicPermission("ComputerSummary.RemoteAccess", "Stop Remote Session")]
         public async Task<IActionResult> Livestop(string domain)
         {
             try
@@ -2143,6 +2150,7 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception) { }
             return Json(localDatalist);
         }
+        [DynamicPermission("ComputerSummary.View", "Device Summary")]
         public async Task<IActionResult> Summary(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
@@ -2182,6 +2190,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         // OSSummary
+        [DynamicPermission("ComputerSummary.View", "OS Details")]
         public async Task<IActionResult> OSSummary(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
@@ -2479,6 +2488,7 @@ namespace ManageEngineWebApp.Controllers
 
         // KeyboardDetails
         [HttpGet]
+        [DynamicPermission("ComputerSummary.View", "Computer Dashboard")]
         public async Task<IActionResult> Keyboard(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
@@ -2867,6 +2877,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
+        [DynamicPermission("ComputerSummary.Software", "Uninstall Software")]
         public IActionResult Uninstall([FromBody] UninstallRequest request, string domain)
         {
             try
@@ -2905,6 +2916,7 @@ namespace ManageEngineWebApp.Controllers
 
         //MicrosoftstoreApps
 
+        [DynamicPermission("ComputerSummary.View", "Store Apps")]
         public async Task<IActionResult> MicrosoftstoreApps(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
@@ -2928,6 +2940,7 @@ namespace ManageEngineWebApp.Controllers
         }
         //MeteredSoftware
 
+        [DynamicPermission("ComputerSummary.View", "Metered Software")]
         public async Task<IActionResult> MeteredSoftware(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
@@ -2952,6 +2965,7 @@ namespace ManageEngineWebApp.Controllers
 
 
         //InstallationSoftware
+        [DynamicPermission("ComputerSummary.View", "Installation Software")]
         public async Task<IActionResult> InstallationSoft(string domain)
         {
             var localDatalist = new List<SoftwareFileModel>();
@@ -2973,6 +2987,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         //AntivirusDetails
+        [DynamicPermission("ComputerSummary.View", "Antivirus Details")]
         public async Task<IActionResult> Antivirus(string domain)
         {
             var localDatalist = new List<AntivirusDetails>();
@@ -2996,6 +3011,7 @@ namespace ManageEngineWebApp.Controllers
 
 
         //patch universe update
+        [DynamicPermission("ComputerSummary.View", "Missing Patches")]
         public async Task<IActionResult> Missingpatch(string domain)
         {
             var localDatalist = new List<PatchDetailsservice>();
@@ -3018,6 +3034,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         //Missingpatchwindow
+        [DynamicPermission("ComputerSummary.View", "Windows Missing Patches")]
         public async Task<IActionResult> Missingpatchwindow(string domain)
         {
             var localDatalist = new List<PatchDetail>();
@@ -3039,6 +3056,7 @@ namespace ManageEngineWebApp.Controllers
             return Json(localDatalist);
         }
         //Firewall
+        [DynamicPermission("ComputerSummary.View", "Firewall Details")]
         public async Task<IActionResult> Firewall(string domain)
         {
             var localDatalist = new List<AntivirusDetails>();
@@ -3061,6 +3079,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         // Missing Patch
+        [DynamicPermission("ComputerSummary.View", "Missing Patches List")]
         public async Task<IActionResult> MissingPatches(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
@@ -3084,6 +3103,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
+        [DynamicPermission("ComputerSummary.DeployPatch", "Install Patches")]
         public IActionResult UpdatePatches([FromBody] List<string> patches, string domain)
         {
             foreach (var patchId in patches)
@@ -3097,6 +3117,7 @@ namespace ManageEngineWebApp.Controllers
 
         // RestrictionOnDevice
 
+        [DynamicPermission("ComputerSummary.View", "Device Restrictions")]
         public async Task<IActionResult> RestrictionOnDevice(string domain)
         {
             var localDatalist = new List<DeviceRestrictionDetails>();
@@ -3134,6 +3155,7 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
+        [DynamicPermission("ComputerSummary.View", "Network Restrictions")]
         public async Task<IActionResult> RestrictionOnNetwork(string domain)
         {
             var localDatalist = new List<RestrictionOnNetwork>();

@@ -30,14 +30,25 @@
                 <div>
                     <div class="flex items-center space-x-2">
                         <h1 class="text-base font-bold text-gray-900">@ViewBag.locationName</h1>
-                        <button id="locationCriticalToggle" class="group" onclick="toggleCurrentLocationCriticality()" title="Toggle Critical Monitoring for entire Location">
-                            <span id="locationCriticalBadge" class="hidden px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold border border-amber-200 flex items-center hover:bg-amber-200 transition-all">
-                                <i class="fas fa-crown mr-1 text-[8px]"></i> CRITICAL
-                            </span>
-                            <span id="locationNotCriticalBadge" class="px-2 py-0.5 bg-gray-50 text-gray-400 rounded text-[9px] font-bold border border-gray-200 flex items-center hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50 transition-all">
-                                <i class="fas fa-crown mr-1 text-[8px]"></i> MONITOR SITE
-                            </span>
-                        </button>
+                        @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Edit"))
+                        {
+                            <button id="locationCriticalToggle" class="group" onclick="toggleCurrentLocationCriticality()" title="Toggle Critical Monitoring for entire Location">
+                                <span id="locationCriticalBadge" class="hidden px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold border border-amber-200 flex items-center hover:bg-amber-200 transition-all">
+                                    <i class="fas fa-crown mr-1 text-[8px]"></i> CRITICAL
+                                </span>
+                                <span id="locationNotCriticalBadge" class="px-2 py-0.5 bg-gray-50 text-gray-400 rounded text-[9px] font-bold border border-gray-200 flex items-center hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50 transition-all">
+                                    <i class="fas fa-crown mr-1 text-[8px]"></i> MONITOR SITE
+                                </span>
+                            </button>
+                        }
+                        else
+                        {
+                            <div id="locationCriticalBadgeStatus">
+                                <span id="locationCriticalBadge" class="hidden px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold border border-amber-200 flex items-center">
+                                    <i class="fas fa-crown mr-1 text-[8px]"></i> CRITICAL
+                                </span>
+                            </div>
+                        }
                     </div>
                     <p class="text-[10px] text-gray-600">@ViewBag.CompanyName › @ViewBag.groupName</p>
                 </div>
@@ -45,18 +56,24 @@
         </div>
 
         <div class="flex items-center flex-wrap gap-2">
-            <button onclick="window.location.href='/ComputerSummary/VIPClient?comId=@ViewBag.companyid&groupId=@ViewBag.groupid&locationId=@ViewBag.locationid&companyName=@System.Net.WebUtility.UrlEncode(ViewBag.CompanyName)'"
-                    class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap"
-                    style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
-                <i class="fas fa-crown text-[10px]"></i>
-                <span>Critical Monitoring</span>
-            </button>
-            <button onclick="window.location.href='./BranchPatchMangnment?companyid=@ViewBag.companyid&groupid=@ViewBag.groupid&locationId=@ViewBag.locationid'"
-                    class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap"
-                    style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                <i class="fas fa-shield-alt text-[10px]"></i>
-                <span>Patch Management</span>
-            </button>
+            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.VIP"))
+            {
+                <button onclick="window.location.href='/ComputerSummary/VIPClient?comId=@ViewBag.companyid&groupId=@ViewBag.groupid&locationId=@ViewBag.locationid&companyName=@System.Net.WebUtility.UrlEncode(ViewBag.CompanyName)'"
+                        class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap"
+                        style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
+                    <i class="fas fa-crown text-[10px]"></i>
+                    <span>Critical Monitoring</span>
+                </button>
+            }
+            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.DeployPatch"))
+            {
+                <button onclick="window.location.href='./BranchPatchMangnment?companyid=@ViewBag.companyid&groupid=@ViewBag.groupid&locationId=@ViewBag.locationid'"
+                        class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap"
+                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    <i class="fas fa-shield-alt text-[10px]"></i>
+                    <span>Patch Management</span>
+                </button>
+            }
         </div>
     </div>
 
@@ -165,9 +182,12 @@
                                         </a>
                                         <div class="flex items-center">
                                             <p class="text-[9px] text-gray-500 truncate">@item.AccountType</p>
-                                            <button class="edit-name-btn ml-1 text-gray-400 hover:text-blue-500 transition-colors" title="Edit Name">
-                                                <i class="fas fa-edit text-[9px]"></i>
-                                            </button>
+                                            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Edit"))
+                                            {
+                                                <button class="edit-name-btn ml-1 text-gray-400 hover:text-blue-500 transition-colors" title="Edit Name">
+                                                    <i class="fas fa-edit text-[9px]"></i>
+                                                </button>
+                                            }
                                         </div>
                                     </div>
                                     <div class="edit-section hidden mt-1">
@@ -198,7 +218,7 @@
                                         offline
                                     </span>
                                 }
-                                @if (userRole == "SuperAdmin" || userRole == "CompanyAdmin")
+                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.OTP"))
                                 {
                                     <div class="relative device-menu">
                                         <button class="menu-toggle w-5 h-5 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
@@ -314,25 +334,34 @@
 
                         <!-- Compact Action Buttons -->
                         <div class="flex gap-1">
-                            <a href="javascript:void(0)" onclick="window.openChatModal('@item.DomainName')" class="open-chat-btn relative flex-none p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors" title="Chat with Client">
-                                <i class="fas fa-comment-dots"></i>
-                                <span class="chat-unread-badge hidden">0</span>
-                            </a>
-                            <button class="rescan-link flex-1 px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[9px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
-                                    data-domain="@item.DomainName"
-                                    @(isActive ? "" : "disabled")>
-                                <span class="rescan-text">
-                                    <i class="fas fa-sync-alt mr-0.5"></i>@(isActive ? "Re-Scan" : "Offline")
-                                </span>
-                            </button>
-                            <button class="remote-link flex-1 px-2 py-1 text-white rounded-lg text-[9px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
-                                    style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"
-                                    data-domain="@item.DomainName"
-                                    @(isActive ? "" : "disabled")>
-                                <span class="remote-text">
-                                    <i class="fas fa-desktop mr-0.5"></i>@(isActive ? "Remote" : "Offline")
-                                </span>
-                            </button>
+                            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Chat"))
+                            {
+                                <a href="javascript:void(0)" onclick="window.openChatModal('@item.DomainName')" class="open-chat-btn relative flex-none p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors" title="Chat with Client">
+                                    <i class="fas fa-comment-dots"></i>
+                                    <span class="chat-unread-badge hidden">0</span>
+                                </a>
+                            }
+                            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Scan"))
+                            {
+                                <button class="rescan-link flex-1 px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[9px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
+                                        data-domain="@item.DomainName"
+                                        @(isActive ? "" : "disabled")>
+                                    <span class="rescan-text">
+                                        <i class="fas fa-sync-alt mr-0.5"></i>@(isActive ? "Re-Scan" : "Offline")
+                                    </span>
+                                </button>
+                            }
+                            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.RemoteAccess"))
+                            {
+                                <button class="remote-link flex-1 px-2 py-1 text-white rounded-lg text-[9px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
+                                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"
+                                        data-domain="@item.DomainName"
+                                        @(isActive ? "" : "disabled")>
+                                    <span class="remote-text">
+                                        <i class="fas fa-desktop mr-0.5"></i>@(isActive ? "Remote" : "Offline")
+                                    </span>
+                                </button>
+                            }
                         </div>
                     </div>
                 </div>

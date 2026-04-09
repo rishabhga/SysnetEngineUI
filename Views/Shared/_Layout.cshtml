@@ -759,32 +759,6 @@
                 </a>
             }
 
-            @{
-                var isSwitchActive = currentController == "SwitchMonitor";
-            }
-            <a href="@Url.Action("Index", "SwitchMonitor")"
-               class="dd-item @(isSwitchActive ? "dd-active" : "")"
-               role="menuitem">
-                <span class="dd-icon-box"><i class="fas fa-network-wired"></i></span>
-                <span>Switch Monitor</span>
-                @if (isSwitchActive)
-                {
-                    <i class="fas fa-check" style="margin-left:auto;font-size:.6rem;color:#0284c7;"></i>
-                }
-            </a>
-            @{
-                var isSoftwareActive = currentController == "SoftwareRepo";
-            }
-            <a href="@Url.Action("Index", "SoftwareRepo")"
-               class="dd-item @(isSoftwareActive ? "dd-active" : "")"
-               role="menuitem">
-                <span class="dd-icon-box"><i class="fas fa-database"></i></span>
-                <span>Software Repository</span>
-                @if (isSoftwareActive)
-                {
-                    <i class="fas fa-check" style="margin-left:auto;font-size:.6rem;color:#0284c7;"></i>
-                }
-
             <div class="dd-divider"></div>
 
             <a asp-controller="Auth" asp-action="Logout" class="dd-item dd-logout" role="menuitem">

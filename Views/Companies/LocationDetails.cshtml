@@ -97,26 +97,32 @@
                         <th>LocationName</th>
                         <th>Alert Status</th>
                         <th>Download EXE</th>
-                        <th>Actions</th>
+                        @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Edit"))
+                        {
+                            <th>Actions</th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>Group</td>
-                        <td>
-                            <input type="text" id="newlocationName" class="form-control" placeholder="Enter new Location" />
-                            <input type="hidden" id="locationIdHidden" value="@ViewBag.CompanyId" />
-                            <input type="hidden" id="locationgroupIdHidden" value="@ViewBag.groupId" />
-                        </td>
-                        <td>
-                            <div class="checkbox">
-                                <label><input type="checkbox" id="newLocationCritical"> Critical</label>
-                            </div>
-                        </td>
-                        <td>
-                            <button id="addlocationInlineBtn" class="btn btn-success"><i class="fas fa-plus-circle"></i> Add</button>
-                        </td>
-                    </tr>
+                    @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Create"))
+                    {
+                        <tr>
+                            <td>Group</td>
+                            <td>
+                                <input type="text" id="newlocationName" class="form-control" placeholder="Enter new Location" />
+                                <input type="hidden" id="locationIdHidden" value="@ViewBag.CompanyId" />
+                                <input type="hidden" id="locationgroupIdHidden" value="@ViewBag.groupId" />
+                            </td>
+                            <td>
+                                <div class="checkbox">
+                                    <label><input type="checkbox" id="newLocationCritical"> Critical</label>
+                                </div>
+                            </td>
+                            <td>
+                                <button id="addlocationInlineBtn" class="btn btn-success"><i class="fas fa-plus-circle"></i> Add</button>
+                            </td>
+                        </tr>
+                    }
 
                     @foreach (var item in Model)
                     {
@@ -131,9 +137,10 @@
                                 <button class="btn btn-sm btn-warning d-none update-btn">Update</button>
                             </td>
                             <td>
-                                <button onclick="toggleLocationCritical(@item.Id, @item.IsCritical.ToString().ToLower(), @item.GroupsID, @item.CompanyID)" 
+                                <button onclick="@(ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Edit") ? $"toggleLocationCritical({item.Id}, {item.IsCritical.ToString().ToLower()}, {item.GroupsID}, {item.CompanyID})" : "sysAlert('Permission Denied', 'error')")" 
                                         class="btn btn-sm @(item.IsCritical ? "btn-danger" : "btn-default")"
-                                        title="@(item.IsCritical ? "Highly Critical - Click to demote" : "Mark as Critical")">
+                                        title="@(item.IsCritical ? "Highly Critical - Click to demote" : "Mark as Critical")"
+                                        @(ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Edit") ? "" : "disabled")>
                                     <i class="fas fa-crown"></i> @(item.IsCritical ? "Critical" : "Standard")
                                 </button>
                             </td>
@@ -144,10 +151,12 @@
 
                             </td>
 
-                            <td>
-                                <a href="/ComputerSummary/Deshboad?locationId=@item.Id&&locationName=@item.LocationName&&groupid=@item.GroupsID&&groupName=@ViewBag.groupName&&comId=@item.CompanyID&&companyName=@ViewBag.CompanyName">view Branch</a>
-                                
-                            </td>
+                            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Edit"))
+                            {
+                                <td>
+                                    <a href="/ComputerSummary/Deshboad?locationId=@item.Id&&locationName=@item.LocationName&&groupid=@item.GroupsID&&groupName=@ViewBag.groupName&&comId=@item.CompanyID&&companyName=@ViewBag.CompanyName">view Branch</a>
+                                </td>
+                            }
                         </tr>
                     }
                 </tbody>

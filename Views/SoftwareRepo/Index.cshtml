@@ -427,9 +427,12 @@
                     Manage software packages and versions
                 </p>
             </div>
-            <button type="button" onclick="openUploadModal()" class="btn-primary">
-                <i class="fas fa-plus"></i> Upload Package
-            </button>
+            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SoftwareRepo.Upload"))
+            {
+                <button type="button" onclick="openUploadModal()" class="btn-primary">
+                    <i class="fas fa-plus"></i> Upload Package
+                </button>
+            }
         </div>
 
         @if (Model.Any())
@@ -562,9 +565,12 @@
                     <p style="font-size:.84rem;color:var(--muted);margin:0 0 24px;">
                         Upload your first software package to get started
                     </p>
-                    <a href="@Url.Action("Upload")" class="btn-primary">
-                        <i class="fas fa-cloud-upload-alt"></i> Upload Now
-                    </a>
+                    @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SoftwareRepo.Upload"))
+                    {
+                        <a href="@Url.Action("Upload")" class="btn-primary">
+                            <i class="fas fa-cloud-upload-alt"></i> Upload Now
+                        </a>
+                    }
                 </div>
             }
         </div>

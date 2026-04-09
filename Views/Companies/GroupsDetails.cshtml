@@ -58,7 +58,7 @@
                 </div>
             </div>
         </div>
-        @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ManageCompanies"))
+        @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Create"))
         {
             <button onclick="openAddGroupModal()"
                     class="px-3 py-1.5 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 shadow-sm"
@@ -166,7 +166,7 @@
                                     <p class="text-[10px] text-gray-500">@groupOnline/@groupUsers Online</p>
                                 </div>
                             </div>
-                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ManageCompanies"))
+                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Create"))
                                 {
                                     <button class="edit-group-btn w-7 h-7 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors"
                                             data-group-id="@group.GroupId"
@@ -241,7 +241,7 @@
                     </div>
                     <!-- Action Buttons -->
                     <div class="p-2.5 bg-white border-t border-gray-200 flex-shrink-0">
-                        @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ManageCompanies"))
+                        @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Create"))
                         {
                             @if (group.Locations != null && group.Locations.Any())
                             {
@@ -432,7 +432,7 @@
     </div>
 </div>
 @section Scripts {
-    <script src="~/js/groups.js"></script>
+    <script src="~/js/groups.js" asp-append-version="true"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const dropdown = document.querySelector('.dropdown');
@@ -500,6 +500,8 @@
         }
         function saveGroupEdit() {
             const $btn = $('#updateGroupButton');
+            if ($btn.hasClass('processing')) return;
+
             const groupId = $btn.data('group-id');
             const companyId = $btn.data('company-id');
             const newName = $('#editGroupNameInput').val().trim();
@@ -507,8 +509,11 @@
                 $('#editGroupError').text('Group name cannot be empty').removeClass('hidden');
                 return;
             }
-            $btn.prop('disabled', true);
+
+            $btn.prop('disabled', true).addClass('processing');
+            const originalText = $btn.find('.button-text').text();
             $btn.find('.button-text').text('Updating...');
+
             $.ajax({
                 url: '/Companies/Groupupdate',
                 type: 'POST',
@@ -519,12 +524,16 @@
                     CompanyID: companyId
                 }),
                 success: function (response) {
-                    location.reload();
+                    closeEditGroupModal();
+                    if (typeof showSuccessMessage === 'function') {
+                        showSuccessMessage('Group updated successfully');
+                    }
+                    setTimeout(() => location.reload(), 500);
                 },
                 error: function (xhr) {
                     $('#editGroupError').text('Error updating group').removeClass('hidden');
-                    $btn.prop('disabled', false);
-                    $btn.find('.button-text').text('Update');
+                    $btn.prop('disabled', false).removeClass('processing');
+                    $btn.find('.button-text').text(originalText);
                 }
             });
         }
@@ -551,15 +560,24 @@
             document.getElementById('editLocationNameError').classList.add('hidden');
         }
         function updateLocation() {
+            const $btn = $('#updateLocationBtn');
+            if ($btn.hasClass('processing')) return;
+
             const locationId = document.getElementById('editLocationId').value;
             const locationName = document.getElementById('editLocationName').value.trim();
             const groupId = document.getElementById('editLocationGroupId').value;
             const companyId = document.getElementById('editLocationCompanyId').value;
+
             if (!locationName) {
                 document.getElementById('editLocationNameError').textContent = 'Location name is required';
                 document.getElementById('editLocationNameError').classList.remove('hidden');
                 return;
             }
+
+            $btn.prop('disabled', true).addClass('processing');
+            const originalText = $btn.text();
+            $btn.html('<i class="fas fa-spinner fa-spin mr-1"></i>Updating...');
+
             $.ajax({
                 url: '/Companies/Locationupdate',
                 type: 'POST',
@@ -571,10 +589,15 @@
                     CompanyID: parseInt(companyId)
                 }),
                 success: function() {
-                    location.reload();
+                    closeEditLocationModal();
+                    if (typeof showSuccessMessage === 'function') {
+                        showSuccessMessage('Location updated successfully');
+                    }
+                    setTimeout(() => location.reload(), 500);
                 },
                 error: function(xhr) {
-                    sysAlert('Error updating location', 'error');
+                    $btn.prop('disabled', false).removeClass('processing').text(originalText);
+                    if (typeof sysAlert === 'function') sysAlert('Error updating location', 'error');
                 }
             });
         }
@@ -625,14 +648,23 @@
             document.getElementById('addLocationNameError').classList.add('hidden');
         }
         function addLocation() {
+            const $btn = $('#addLocationBtn');
+            if ($btn.hasClass('processing')) return;
+
             const locationName = document.getElementById('addLocationName').value.trim();
             const groupId = document.getElementById('addLocationGroupId').value;
             const companyId = document.getElementById('addLocationCompanyId').value;
+
             if (!locationName) {
                 document.getElementById('addLocationNameError').textContent = 'Location name is required';
                 document.getElementById('addLocationNameError').classList.remove('hidden');
                 return;
             }
+
+            $btn.prop('disabled', true).addClass('processing');
+            const originalText = $btn.text();
+            $btn.html('<i class="fas fa-spinner fa-spin mr-1"></i>Adding...');
+
             $.ajax({
                 url: '/Companies/LocationAdd',
                 type: 'POST',
@@ -644,10 +676,15 @@
                     IsCritical: false
                 }),
                 success: function() {
-                    location.reload();
+                    closeAddLocationModal();
+                    if (typeof showSuccessMessage === 'function') {
+                        showSuccessMessage('Location added successfully');
+                    }
+                    setTimeout(() => location.reload(), 500);
                 },
                 error: function(xhr) {
-                    sysAlert('Error adding location', 'error');
+                    $btn.prop('disabled', false).removeClass('processing').text(originalText);
+                    if (typeof sysAlert === 'function') sysAlert('Error adding location', 'error');
                 }
             });
         }

@@ -1,4 +1,4 @@
-﻿@model List<ManageEngineWebApp.Models.SwitchMaster>
+@model List<ManageEngineWebApp.Models.SwitchMaster>
 @{
     ViewData["Title"] = "Switch Monitor";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -61,18 +61,24 @@
             <p class="text-sm text-gray-500 mt-1">Real-time SNMP switch management</p>
         </div>
         <div class="flex gap-3 flex-wrap">
-            <button onclick="openAddSwitchModal()"
-                    class="px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-2 text-sm font-medium">
-                <i class="fas fa-plus"></i> Add Switch
-            </button>
-            <form asp-action="TriggerPoll" method="post" id="pollForm">
-                @Html.AntiForgeryToken()
-                <button type="submit" id="pollBtn"
+            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Create"))
+            {
+                <button onclick="openAddSwitchModal()"
                         class="px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-2 text-sm font-medium">
-                    <i class="fas fa-sync-alt" id="pollIcon"></i>
-                    <span id="pollText">Poll Now</span>
+                    <i class="fas fa-plus"></i> Add Switch
                 </button>
-            </form>
+            }
+            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Poll"))
+            {
+                <form asp-action="TriggerPoll" method="post" id="pollForm">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" id="pollBtn"
+                            class="px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-2 text-sm font-medium">
+                        <i class="fas fa-sync-alt" id="pollIcon"></i>
+                        <span id="pollText">Poll Now</span>
+                    </button>
+                </form>
+            }
         </div>
     </div>
 
@@ -176,14 +182,20 @@
                 <!-- Card Footer -->
                 <div class="px-4 py-2 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
                     <div class="flex gap-3">
-                        <button onclick="editSwitch(@sw.Id)"
-                                class="text-xs text-gray-500 hover:text-[#00BCEB] flex items-center gap-1 transition">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                        <button onclick="deleteSwitch(@sw.Id, '@Html.Raw(sw.DeviceName.Replace("'", "\\\'"))')"
-                                class="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 transition">
-                            <i class="fas fa-trash-alt"></i> Delete
-                        </button>
+                        @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Edit"))
+                        {
+                            <button onclick="editSwitch(@sw.Id)"
+                                    class="text-xs text-gray-500 hover:text-[#00BCEB] flex items-center gap-1 transition">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        }
+                        @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Delete"))
+                        {
+                            <button onclick="deleteSwitch(@sw.Id, '@Html.Raw(sw.DeviceName.Replace("'", "\\\'"))')"
+                                    class="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 transition">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </button>
+                        }
                     </div>
                     <a href="@Url.Action("Details", new { id = sw.Id })"
                        class="text-xs text-[#00BCEB] hover:text-[#0096BE] font-medium flex items-center gap-1">
@@ -201,10 +213,13 @@
             <i class="fas fa-network-wired text-5xl text-gray-200 mb-4"></i>
             <p class="text-gray-500 font-medium">No switches configured yet</p>
             <p class="text-gray-400 text-sm mt-1">Add a switch to start monitoring</p>
-            <button onclick="openAddSwitchModal()"
-                    class="mt-4 px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg text-sm font-medium shadow hover:shadow-md transition">
-                <i class="fas fa-plus mr-1"></i> Add First Switch
-            </button>
+            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Create"))
+            {
+                <button onclick="openAddSwitchModal()"
+                        class="mt-4 px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg text-sm font-medium shadow hover:shadow-md transition">
+                    <i class="fas fa-plus mr-1"></i> Add First Switch
+                </button>
+            }
         </div>
     }
 </div>
