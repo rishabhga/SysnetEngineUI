@@ -1,4 +1,4 @@
-﻿namespace ManageEngineWebApp.Models
+namespace ManageEngineWebApp.Models
 {
     public class SoftwareRepoDetails
     {

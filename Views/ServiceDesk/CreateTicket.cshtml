@@ -1,499 +1,664 @@
-@{
-    ViewData["Title"] = "New Service Ticket";
-    Layout = "~/Views/Shared/_Layout.cshtml";
-}
-
-@section Styles {
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Service Ticket | Enhanced UI</title>
     <style>
-        .field-icon-wrap {
-            position: relative;
+        .section-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
         }
 
-            .field-icon-wrap > i {
-                position: absolute;
-                left: 10px;
-                top: 50%;
-                transform: translateY(-50%);
-                color: #cbd5e1;
-                font-size: 11px;
-                pointer-events: none;
-                transition: color .15s;
-            }
-
-            .field-icon-wrap:focus-within > i {
-                color: #00BCEB;
-            }
-
-            .field-icon-wrap input,
-            .field-icon-wrap select {
-                padding-left: 30px;
+            .section-card:hover {
+                box-shadow: 0 8px 20px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.02);
+                border-color: #e2edff;
             }
 
         .t-input {
-            width: 100%;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 13px;
-            color: #1e293b;
-            transition: all .15s;
-            outline: none;
-            appearance: none;
+            transition: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
         }
-
-            .t-input:hover:not(:focus) {
-                border-color: #cbd5e1;
-            }
-
-            .t-input:focus {
-                border-color: #00BCEB;
-                background: #fff;
-                box-shadow: 0 0 0 3px rgba(0,188,235,.12);
-            }
-
-            .t-input:disabled {
-                opacity: .5;
-                cursor: not-allowed;
-            }
-
-            .t-input::placeholder {
-                color: #cbd5e1;
-            }
-
-        select.t-input {
-            padding-right: 28px;
-        }
-
-        .section-card {
-            background: #fff;
-            border: 1px solid #f1f5f9;
-            border-radius: 12px;
-            box-shadow: 0 1px 4px rgba(0,0,0,.04);
-            overflow: hidden;
-            position: relative;
-        }
-
-            .section-card:focus-within {
-                border-color: #bae6ff;
-            }
 
         .btn-submit {
-            background: linear-gradient(135deg, #00BCEB, #0096BE);
-            transition: all .2s;
+            transition: all 0.25s ease;
+            background-size: 200% auto;
         }
 
             .btn-submit:hover:not(:disabled) {
-                background: linear-gradient(135deg, #0096BE, #007a9c);
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(0,188,235,.35);
+                background-position: right center;
             }
 
-            .btn-submit:disabled {
-                opacity: .7;
-                cursor: not-allowed;
-                transform: none !important;
-            }
-
-        ::-webkit-scrollbar {
-            width: 5px;
+        .field-icon-wrap > i {
+            transition: color 0.2s, transform 0.1s;
         }
 
-        ::-webkit-scrollbar-track {
-            background: transparent;
+        .field-icon-wrap:focus-within > i {
+            transform: translateY(-50%) scale(1.05);
+        }
+        .t-input:focus {
+            box-shadow: 0 0 0 4px rgba(0,188,235,0.12), 0 0 0 1px #00BCEB;
+            border-color: #00BCEB;
         }
 
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
+        select.t-input {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.2rem;
+            appearance: none;
+            padding-right: 2rem;
+        }
+
+        .priority-badge {
+            transition: all 0.2s;
+        }
+        #successModal {
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+
+        #successModalContent {
+            transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1), opacity 0.2s;
+        }
+
+        .animate-glow {
+            animation: subtleGlow 1.8s infinite ease-in-out;
+        }
+        @@keyframes subtleGlow {
+            0%
+
+        {
+            box-shadow: 0 0 0 0 rgba(0,188,235,0.2);
+            border-color: #b3edfb;
+        }
+
+        70% {
+            box-shadow: 0 0 0 6px rgba(0,188,235,0);
+            border-color: #00BCEB;
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(0,188,235,0);
+            border-color: #b3edfb;
+        }
+
+        }
+        .sticky-sidebar-scroll {
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+        .loading-spinner-bg {
+            background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"%3E%3Ccircle class="opacity-25" cx="12" cy="12" r="10" stroke="%2394a3b8" stroke-width="4"%3E%3C/circle%3E%3Cpath class="opacity-75" fill="%2300BCEB" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"%3E%3C/path%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.6rem center;
+            background-size: 1rem;
         }
     </style>
-}
+</head>
+<body>
+    @{
+        ViewData["Title"] = "New Service Ticket";
+        Layout = "~/Views/Shared/_Layout.cshtml";
+    }
 
-<div class="min-h-screen py-5 px-3 sm:px-5 lg:px-8" style="background:#F0F4F8;">
-    <div class="max-w-5xl mx-auto">
+    @section Styles {
+        <style>
+            .field-icon-wrap {
+                position: relative;
+            }
 
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-            <div>
-                <nav class="flex items-center gap-1.5 text-xs font-medium text-slate-400 mb-1.5">
-                    <a href="@Url.Action("Index")" class="hover:text-[#00BCEB] transition-colors">Dashboard</a>
-                    <i class="fas fa-chevron-right text-[9px]"></i>
-                    <a href="@Url.Action("Tickets")" class="hover:text-[#00BCEB] transition-colors">Tickets</a>
-                    <i class="fas fa-chevron-right text-[9px]"></i>
-                    <span class="text-slate-600">New Request</span>
-                </nav>
-                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Create Service Request</h1>
-                <p class="text-xs text-slate-400 mt-0.5">Fill out the details below to submit a new support ticket.</p>
-            </div>
-            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-bold self-start sm:self-auto shadow-sm animate-pulse"
-                 style="background:#E0F7FD; border:1px solid #b3edfb; color:#0096BE;">
-                <i class="fas fa-ticket-alt" style="color:#00BCEB;"></i>
-                <span class="tracking-widest">TKT-NEW</span>
-            </div>
-        </div>
+                .field-icon-wrap > i {
+                    position: absolute;
+                    left: 12px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: #94a3b8;
+                    font-size: 12px;
+                    pointer-events: none;
+                    transition: color .2s, transform .1s;
+                    z-index: 2;
+                }
 
-        <form id="createTicketForm" class="flex flex-col lg:flex-row gap-4 items-start">
+                .field-icon-wrap:focus-within > i {
+                    color: #00BCEB;
+                }
 
-            <!-- Left Column -->
-            <div class="flex-1 w-full space-y-4">
+                .field-icon-wrap input,
+                .field-icon-wrap select {
+                    padding-left: 34px;
+                }
 
-                <!-- Requester -->
-                <div class="section-card">
-                    <div class="absolute top-0 left-0 w-1 h-full rounded-l-xl" style="background:linear-gradient(180deg,#00BCEB,#0096BE);"></div>
-                    <div class="p-4 pl-5">
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#E0F7FD; color:#0096BE;">
-                                <i class="fas fa-user text-xs"></i>
-                            </div>
-                            <h2 class="text-sm font-bold text-slate-900">Requester Information</h2>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div class="space-y-1">
-                                <label class="block text-xs font-semibold text-slate-500">Full Name <span class="text-rose-500">*</span></label>
-                                <div class="field-icon-wrap">
-                                    <i class="fas fa-id-badge"></i>
-                                    <input type="text" name="requesterName" value="@Context.Session.GetString("username")" required class="t-input h-9 px-3 font-medium">
-                                </div>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="block text-xs font-semibold text-slate-500">Email Address</label>
-                                <div class="field-icon-wrap">
-                                    <i class="fas fa-envelope"></i>
-                                    <input type="email" name="requesterEmail" placeholder="user@company.com" class="t-input h-9 px-3">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            .t-input {
+                width: 100%;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                font-size: 13px;
+                font-weight: 500;
+                color: #0f172a;
+                transition: all .2s;
+                outline: none;
+                appearance: none;
+                height: 42px;
+                padding: 0 14px;
+            }
+
+                .t-input:hover:not(:focus) {
+                    border-color: #cbd5e1;
+                    background-color: #fefefe;
+                }
+
+                .t-input:focus {
+                    border-color: #00BCEB;
+                    background: #ffffff;
+                    box-shadow: 0 0 0 3px rgba(0,188,235,.12);
+                }
+
+                .t-input:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    background: #f1f5f9;
+                }
+
+                .t-input::placeholder {
+                    color: #cbd5e1;
+                    font-weight: 400;
+                }
+
+            select.t-input {
+                cursor: pointer;
+                padding-right: 32px;
+            }
+
+            .section-card {
+                background: #ffffff;
+                border: 1px solid #eef2ff;
+                border-radius: 20px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.03);
+                overflow: hidden;
+                position: relative;
+                transition: all 0.25s ease;
+            }
+
+                .section-card:focus-within {
+                    border-color: #bae6ff;
+                }
+
+            .btn-submit {
+                background: linear-gradient(105deg, #00BCEB, #0092b8, #00BCEB);
+                background-size: 200% auto;
+                transition: all 0.25s ease;
+                border-radius: 40px;
+                font-weight: 700;
+                letter-spacing: 0.3px;
+            }
+
+                .btn-submit:hover:not(:disabled) {
+                    background-position: right center;
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 18px rgba(0,188,235,.32);
+                }
+
+                .btn-submit:disabled {
+                    opacity: 0.7;
+                    cursor: not-allowed;
+                }
+
+            ::-webkit-scrollbar {
+                width: 5px;
+                height: 5px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: #eef2ff;
+                border-radius: 10px;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #b9c3da;
+                border-radius: 10px;
+            }
+
+            .form-label {
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.02em;
+                color: #475569;
+                text-transform: uppercase;
+                margin-bottom: 4px;
+                display: block;
+            }
+
+            .required-star {
+                color: #f43f5e;
+                margin-left: 2px;
+            }
+
+            .badge-preview {
+                background: linear-gradient(135deg, #F0F9FF, #E6F7FE);
+                border-radius: 60px;
+            }
+        </style>
+    }
+
+    <div class="min-h-screen py-6 px-4 sm:px-6 lg:px-8" style="background: linear-gradient(145deg, #F1F5F9 0%, #EFF3F8 100%);">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div>
+                    <nav class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-2">
+                        <a href="@Url.Action("Index")" class="hover:text-[#00BCEB] transition-colors flex items-center gap-1"><i class="fas fa-home text-[10px]"></i> Dashboard</a>
+                        <i class="fas fa-chevron-right text-[8px] text-slate-300"></i>
+                        <a href="@Url.Action("Tickets")" class="hover:text-[#00BCEB] transition-colors">Tickets</a>
+                        <i class="fas fa-chevron-right text-[8px] text-slate-300"></i>
+                        <span class="text-slate-700 font-semibold">New Request</span>
+                    </nav>
+                    <h1 class="text-2xl font-black tracking-tight text-slate-800 flex items-center gap-2">
+                        <i class="fas fa-pen-alt text-[#00BCEB] text-xl"></i>
+                        Create Service Request
+                    </h1>
+                    <p class="text-sm text-slate-500 mt-1 max-w-xl">Submit a detailed request and our support team will route it to the right engineer.</p>
                 </div>
-
-                <!-- Assignment Hierarchy -->
-                <div class="section-card">
-                    <div class="absolute top-0 left-0 w-1 h-full rounded-l-xl" style="background:linear-gradient(180deg,#B4D334,#8FB829);"></div>
-                    <div class="p-4 pl-5">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#F1F8E9; color:#8FB829;">
-                                    <i class="fas fa-sitemap text-xs"></i>
-                                </div>
-                                <h2 class="text-sm font-bold text-slate-900">Assignment Hierarchy</h2>
-                            </div>
-                            <span class="text-[9px] font-bold bg-slate-100 text-slate-400 px-2 py-0.5 rounded uppercase tracking-wider">Routing</span>
-                        </div>
-                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                            <div class="space-y-1">
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Company <span class="text-rose-500">*</span></label>
-                                <select name="companyId" id="companySelect" required class="t-input h-9 px-3"><option value="">Select...</option></select>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Group <span class="text-rose-500">*</span></label>
-                                <select name="groupId" id="groupSelect" required disabled class="t-input h-9 px-3"><option value="">Company first</option></select>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Location <span class="text-rose-500">*</span></label>
-                                <select name="locationId" id="locationSelect" required disabled class="t-input h-9 px-3"><option value="">Group first</option></select>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">User <span class="text-rose-500">*</span></label>
-                                <select name="userId" id="userSelect" required disabled class="t-input h-9 px-3"><option value="">Location first</option></select>
-                            </div>
-                        </div>
-                    </div>
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold shadow-sm bg-white border border-[#b3edfb]"
+                     style="background: linear-gradient(115deg, #EFFAFE, white); color:#007a9c;">
+                    <i class="fas fa-ticket-alt text-[#00BCEB] text-sm"></i>
+                    <span class="tracking-wide">NEW TICKET · DRAFT</span>
                 </div>
+            </div>
 
-                <!-- Issue Details -->
-                <div class="section-card">
-                    <div class="absolute top-0 left-0 w-1 h-full rounded-l-xl" style="background:linear-gradient(180deg,#F97316,#EA580C);"></div>
-                    <div class="p-4 pl-5">
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#FFF7ED; color:#EA580C;">
-                                <i class="fas fa-align-left text-xs"></i>
+            <form id="createTicketForm" class="flex flex-col lg:flex-row gap-6 items-start">
+                <div class="flex-1 w-full space-y-5">
+                    <div class="section-card">
+                        <div class="absolute top-0 left-0 w-1.5 h-full rounded-l-2xl" style="background:linear-gradient(180deg,#00BCEB,#1D4ED8);"></div>
+                        <div class="p-5 pl-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm" style="background:#E0F7FD; color:#0096BE;">
+                                    <i class="fas fa-user-astronaut text-sm"></i>
+                                </div>
+                                <h2 class="text-base font-extrabold text-slate-800">Requester Information</h2>
+                                <span class="text-[10px] font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Auto-filled</span>
                             </div>
-                            <h2 class="text-sm font-bold text-slate-900">Issue Description</h2>
-                        </div>
-                        <div class="space-y-3">
-                            <div class="space-y-1">
-                                <label class="block text-xs font-semibold text-slate-500">Subject / Title <span class="text-rose-500">*</span></label>
-                                <input type="text" name="subject" required maxlength="100" placeholder="What is the issue?" class="t-input h-9 px-3 font-medium">
-                            </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div class="space-y-1">
-                                    <label class="block text-xs font-semibold text-slate-500">Category <span class="text-rose-500">*</span></label>
+                                    <label class="form-label">Full Name <span class="required-star">*</span></label>
                                     <div class="field-icon-wrap">
-                                        <i class="fas fa-tags"></i>
-                                        <select name="category" id="ticketCategory" required class="t-input h-9 px-3">
-                                            <option value="">Select Category...</option>
+                                        <i class="fas fa-id-card"></i>
+                                        <input type="text" name="requesterName" value="@Context.Session.GetString("username")" required class="t-input font-medium" placeholder="e.g. John Carter">
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="form-label">Email Address <span class="text-slate-300 text-[9px]">(optional)</span></label>
+                                    <div class="field-icon-wrap">
+                                        <i class="fas fa-envelope-open-text"></i>
+                                        <input type="email" name="requesterEmail" placeholder="user@company.com" class="t-input">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <div class="absolute top-0 left-0 w-1.5 h-full rounded-l-2xl" style="background:linear-gradient(180deg,#B4D334,#7C9C1F);"></div>
+                        <div class="p-5 pl-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:#F0F6E6; color:#6E9917;">
+                                        <i class="fas fa-diagram-project text-sm"></i>
+                                    </div>
+                                    <h2 class="text-base font-extrabold text-slate-800">Assignment Hierarchy</h2>
+                                </div>
+                                <span class="text-[9px] font-mono bg-slate-100 text-slate-500 px-2 py-1 rounded-md"><i class="fas fa-sitemap mr-1"></i> dynamic routing</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div class="space-y-1">
+                                    <label class="form-label">Company <span class="required-star">*</span></label>
+                                    <div class="field-icon-wrap">
+                                        <i class="fas fa-building"></i>
+                                        <select name="companyId" id="companySelect" required class="t-input">
+                                            <option value="">Select company</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="block text-xs font-semibold text-slate-500">Priority Level <span class="text-rose-500">*</span></label>
+                                    <label class="form-label">Group <span class="required-star">*</span></label>
                                     <div class="field-icon-wrap">
-                                        <i class="fas fa-flag"></i>
-                                        <select name="priority" id="prioritySelect" required class="t-input h-9 px-3 font-medium">
-                                            <option value="">Select Priority...</option>
+                                        <i class="fas fa-layer-group"></i>
+                                        <select name="groupId" id="groupSelect" required disabled class="t-input">
+                                            <option value="">Company first</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="form-label">Location <span class="required-star">*</span></label>
+                                    <div class="field-icon-wrap">
+                                        <i class="fas fa-location-dot"></i>
+                                        <select name="locationId" id="locationSelect" required disabled class="t-input">
+                                            <option value="">Group first</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="form-label">Assigned User <span class="required-star">*</span></label>
+                                    <div class="field-icon-wrap">
+                                        <i class="fas fa-user-check"></i>
+                                        <select name="userId" id="userSelect" required disabled class="t-input">
+                                            <option value="">Location first</option>
                                         </select>
                                     </div>
                                 </div>
                             </div>
-                            <div class="space-y-1">
-                                <label class="flex justify-between text-xs font-semibold text-slate-500">
-                                    <span>Detailed Description <span class="text-rose-500">*</span></span>
-                                    <span class="text-[10px] text-slate-300 font-normal">Be as specific as possible</span>
-                                </label>
-                                <textarea name="description" rows="4" required maxlength="1000"
-                                          placeholder="Steps to reproduce, error messages, environment context..."
-                                          class="t-input px-3 py-2 resize-none leading-relaxed"></textarea>
-                            </div>
                         </div>
                     </div>
-                </div>
 
-            </div>
-
-            <!-- Right Sidebar -->
-            <div class="w-full lg:w-64 flex-shrink-0 space-y-3 lg:sticky lg:top-4">
-                <div class="section-card overflow-hidden">
-                    <div class="p-4 border-b border-slate-100" style="background:linear-gradient(135deg,#f8fafc,#fff);">
-                        <p class="text-xs font-bold text-slate-900 mb-0.5">Ready to Submit?</p>
-                        <p class="text-[10px] text-slate-400 mb-3">Review all details before submitting.</p>
-
-                        <button type="submit" id="submitBtn"
-                                class="btn-submit w-full h-9 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-2 mb-2">
-                            <span id="btnText">Submit Ticket</span>
-                            <i id="btnIcon" class="fas fa-paper-plane text-[10px]"></i>
-                        </button>
-
-                        <a href="@Url.Action("Tickets", "ServiceDesk")"
-                           class="w-full h-8 rounded-lg text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 font-medium flex items-center justify-center text-xs transition-colors">
-                            Cancel
-                        </a>
-                    </div>
-
-                    <!-- SLA Preview -->
-                    <div class="p-4">
-                        <div class="flex items-center gap-2 mb-2">
-                            <div class="w-5 h-5 rounded-md bg-white border border-slate-200 flex items-center justify-center shadow-sm">
-                                <i class="fas fa-stopwatch text-[9px]" style="color:#00BCEB;"></i>
+                    <div class="section-card">
+                        <div class="absolute top-0 left-0 w-1.5 h-full rounded-l-2xl" style="background:linear-gradient(180deg,#F97316,#C2410C);"></div>
+                        <div class="p-5 pl-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:#FFF3E6; color:#EA580C;">
+                                    <i class="fas fa-clipboard-list text-sm"></i>
+                                </div>
+                                <h2 class="text-base font-extrabold text-slate-800">Issue Details</h2>
                             </div>
-                            <h4 class="text-xs font-bold text-slate-700">SLA Preview</h4>
-                        </div>
-                        <div id="slaDynamicContainer" class="bg-slate-50 border border-slate-100 rounded-lg p-3 text-center">
-                            <i class="fas fa-hand-pointer text-slate-300 text-lg mb-1.5 block"></i>
-                            <p class="text-[10px] text-slate-400 font-medium leading-relaxed">Select a priority to see SLA times.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Success Modal -->
-<div id="successModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xs transform scale-95 transition-transform duration-300" id="successModalContent">
-        <div class="p-6 text-center">
-            <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 border-4" style="background:#E0F7FD; border-color:#b3edfb;">
-                <i class="fas fa-check text-xl" style="color:#00BCEB;"></i>
-            </div>
-            <h3 class="font-extrabold text-lg text-slate-900 mb-1">Ticket Created!</h3>
-            <p class="text-slate-400 text-xs mb-4">Your request has been submitted and assigned to the queue.</p>
-            <div class="bg-slate-50 rounded-xl p-3 mb-4 border border-slate-100">
-                <div class="text-[9px] text-slate-400 uppercase font-bold tracking-wider mb-1">Ticket Number</div>
-                <div class="font-mono text-lg font-black text-slate-800">#<span id="successTicketNo"></span></div>
-            </div>
-            <button onclick="window.location.href='@Url.Action("Tickets", "ServiceDesk")'"
-                    class="w-full h-9 text-white font-semibold rounded-lg text-xs transition-colors flex items-center justify-center gap-2"
-                    style="background:linear-gradient(135deg,#00BCEB,#0096BE);">
-                <span>Go to Tickets</span>
-                <i class="fas fa-arrow-right text-[10px] opacity-70"></i>
-            </button>
-        </div>
-    </div>
-</div>
-
-@section Scripts {
-    <script>
-        $(document).ready(() => {
-            loadInitialData();
-
-            $('#companySelect').on('change', function() {
-                const companyId = $(this).val();
-                resetSelect('#groupSelect', 'Select company first...');
-                resetSelect('#locationSelect', 'Select group first...');
-                resetSelect('#userSelect', 'Select location first...');
-                if (companyId) { $('#groupSelect').prop('disabled', false).html('<option value="">Loading groups...</option>'); loadGroups(companyId); }
-            });
-
-            $('#groupSelect').on('change', function() {
-                const companyId = $('#companySelect').val(), groupId = $(this).val();
-                resetSelect('#locationSelect', 'Select group first...');
-                resetSelect('#userSelect', 'Select location first...');
-                if (groupId) { $('#locationSelect').prop('disabled', false).html('<option value="">Loading locations...</option>'); loadLocations(companyId, groupId); }
-            });
-
-            $('#locationSelect').on('change', function() {
-                const companyId = $('#companySelect').val(), groupId = $('#groupSelect').val(), locationId = $(this).val();
-                resetSelect('#userSelect', 'Select location first...');
-                if (locationId) { $('#userSelect').prop('disabled', false).html('<option value="">Loading users...</option>'); loadUsers(companyId, groupId, locationId); }
-            });
-
-            $('#userSelect').on('change', function() {
-                const userName = $("#userSelect option:selected").text();
-                if (userName && !userName.includes("Select") && !userName.includes("Loading") && !userName.includes("No users")) {
-                    $('input[name="requesterName"]').val(userName);
-                }
-            });
-
-            $('#prioritySelect').on('change', function() {
-                const priority = $(this).val();
-                const container = $('#slaDynamicContainer');
-                if (!priority) {
-                    container.html(`<i class="fas fa-hand-pointer text-slate-300 text-lg mb-1.5 block"></i><p class="text-[10px] text-slate-400 font-medium leading-relaxed">Select a priority to see SLA times.</p>`);
-                    return;
-                }
-                const $selected = $(this).find(':selected');
-                const colorCode = $selected.data('color') || '#6B7280';
-                const hours = window.slaStore ? (window.slaStore[priority] || 0) : 0;
-                container.animate({ opacity: 0 }, 120, function() {
-                    $(this).html(`
-                        <div class="flex flex-col items-center">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 border-2 shadow-sm"
-                                 style="background:${colorCode}15; border-color:${colorCode}40; color:${colorCode}">
-                                <i class="fas fa-bolt text-sm"></i>
-                            </div>
-                            <p class="text-xs font-bold text-slate-800 mb-2">${priority} Priority</p>
-                            <div class="bg-white border border-slate-100 rounded-lg w-full p-2.5">
-                                <div class="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Resolution Target</div>
-                                <div class="text-xl font-black flex justify-center items-end gap-1" style="color:${colorCode}">
-                                    ${hours}
-                                    <span class="text-xs font-semibold mb-0.5 opacity-70 ${hours === 0 ? 'hidden' : ''}">hrs</span>
-                                    <span class="text-xs font-semibold text-slate-400 mb-0.5 ${hours !== 0 ? 'hidden' : ''}">No SLA</span>
+                            <div class="space-y-4">
+                                <div class="space-y-1">
+                                    <label class="form-label">Subject / Title <span class="required-star">*</span></label>
+                                    <div class="field-icon-wrap">
+                                        <i class="fas fa-heading"></i>
+                                        <input type="text" name="subject" required maxlength="100" placeholder="Brief and descriptive title..." class="t-input font-medium">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="space-y-1">
+                                        <label class="form-label">Category <span class="required-star">*</span></label>
+                                        <div class="field-icon-wrap">
+                                            <i class="fas fa-tag"></i>
+                                            <select name="category" id="ticketCategory" required class="t-input">
+                                                <option value="">Select category</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="form-label">Priority Level <span class="required-star">*</span></label>
+                                        <div class="field-icon-wrap">
+                                            <i class="fas fa-chart-line"></i>
+                                            <select name="priority" id="prioritySelect" required class="t-input font-medium">
+                                                <option value="">Select priority</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between items-center">
+                                        <label class="form-label">Detailed Description <span class="required-star">*</span></label>
+                                        <span class="text-[9px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full"><i class="far fa-comment-dots mr-1"></i>Markdown ready</span>
+                                    </div>
+                                    <textarea name="description" rows="4" required maxlength="1000"
+                                              placeholder="Provide step-by-step reproduction, error codes, screenshots (if any), and environment details..."
+                                              class="t-input px-4 py-3 resize-none leading-relaxed" style="height: 110px;"></textarea>
                                 </div>
                             </div>
-                        </div>`).animate({ opacity: 1 }, 120);
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full lg:w-72 flex-shrink-0 space-y-5 lg:sticky lg:top-6">
+                    <div class="section-card overflow-hidden shadow-lg">
+                        <div class="p-5 border-b border-slate-100" style="background: linear-gradient(115deg, #FAFDFF, #ffffff);">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="fas fa-rocket text-[#00BCEB] text-sm"></i>
+                                <p class="text-sm font-black text-slate-800">Ready to submit?</p>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mb-4">Review hierarchy & issue details before creating ticket.</p>
+
+                            <button type="submit" id="submitBtn"
+                                    class="btn-submit w-full h-11 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 mb-3 shadow-md transition-all">
+                                <span id="btnText">Create ticket</span>
+                                <i id="btnIcon" class="fas fa-paper-plane text-xs"></i>
+                            </button>
+
+                            <a href="@Url.Action("Tickets", "ServiceDesk")"
+                               class="w-full h-10 rounded-xl text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 font-semibold flex items-center justify-center text-xs transition-all gap-1">
+                                <i class="fas fa-times-circle text-slate-400"></i> Cancel
+                            </a>
+                        </div>
+
+                        <div class="p-5">
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-50 to-blue-50 flex items-center justify-center shadow-sm">
+                                    <i class="fas fa-hourglass-half text-[11px] text-[#00BCEB]"></i>
+                                </div>
+                                <h4 class="text-xs font-extrabold text-slate-700 uppercase tracking-wide">SLA Commitment</h4>
+                            </div>
+                            <div id="slaDynamicContainer" class="bg-gradient-to-br from-slate-50 to-white border border-slate-100 rounded-2xl p-4 text-center transition-all duration-200 shadow-inner">
+                                <i class="fas fa-hand-peace text-slate-300 text-xl mb-2 block"></i>
+                                <p class="text-[11px] text-slate-500 font-medium">Pick a priority to see resolution target</p>
+                            </div>
+                        </div>
+
+                        <div class="px-5 pb-4">
+                            <div class="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-50 rounded-xl py-2 px-3">
+                                <i class="fas fa-shield-alt text-[#00BCEB] text-[10px]"></i>
+                                <span>All tickets are SLA tracked and audited</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="successModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 opacity-0 transition-all duration-300">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm transform scale-95 transition-all duration-300 overflow-hidden" id="successModalContent">
+            <div class="relative">
+                <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE]"></div>
+                <div class="p-6 text-center">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[#E0F7FD] to-[#CCF0FA] border-4 border-white shadow-lg">
+                        <i class="fas fa-check-circle text-2xl" style="color:#00BCEB;"></i>
+                    </div>
+                    <h3 class="font-black text-xl text-slate-800 mb-1">Ticket created 🎉</h3>
+                    <p class="text-slate-500 text-xs mb-4">Your request has been successfully submitted and routed.</p>
+                    <div class="bg-slate-50 rounded-2xl p-3 mb-5 border border-slate-100 shadow-sm">
+                        <div class="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider mb-1">Reference ID</div>
+                        <div class="font-mono text-xl font-black text-slate-800 tracking-wide">#<span id="successTicketNo"></span></div>
+                    </div>
+                    <button onclick="window.location.href='@Url.Action("Tickets", "ServiceDesk")'"
+                            class="w-full h-11 text-white font-extrabold rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                            style="background:linear-gradient(105deg,#00BCEB,#0092b8);">
+                        <span>Go to Tickets</span>
+                        <i class="fas fa-arrow-right text-xs opacity-80"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script>
+            $(document).ready(() => {
+                loadInitialData();
+
+                $('#companySelect').on('change', function() {
+                    const companyId = $(this).val();
+                    resetSelect('#groupSelect', 'Select company first...');
+                    resetSelect('#locationSelect', 'Select group first...');
+                    resetSelect('#userSelect', 'Select location first...');
+                    if (companyId) { $('#groupSelect').prop('disabled', false).html('<option value="">Loading groups...</option>'); loadGroups(companyId); }
                 });
+
+                $('#groupSelect').on('change', function() {
+                    const companyId = $('#companySelect').val(), groupId = $(this).val();
+                    resetSelect('#locationSelect', 'Select group first...');
+                    resetSelect('#userSelect', 'Select location first...');
+                    if (groupId) { $('#locationSelect').prop('disabled', false).html('<option value="">Loading locations...</option>'); loadLocations(companyId, groupId); }
+                });
+
+                $('#locationSelect').on('change', function() {
+                    const companyId = $('#companySelect').val(), groupId = $('#groupSelect').val(), locationId = $(this).val();
+                    resetSelect('#userSelect', 'Select location first...');
+                    if (locationId) { $('#userSelect').prop('disabled', false).html('<option value="">Loading users...</option>'); loadUsers(companyId, groupId, locationId); }
+                });
+
+                $('#userSelect').on('change', function() {
+                    const userName = $("#userSelect option:selected").text();
+                    if (userName && !userName.includes("Select") && !userName.includes("Loading") && !userName.includes("No users")) {
+                        $('input[name="requesterName"]').val(userName);
+                    }
+                });
+
+                $('#prioritySelect').on('change', function() {
+                    const priority = $(this).val();
+                    const container = $('#slaDynamicContainer');
+                    if (!priority) {
+                        container.html(`<i class="fas fa-hand-peace text-slate-300 text-xl mb-2 block"></i><p class="text-[11px] text-slate-500 font-medium leading-relaxed">Select a priority to see SLA times.</p>`);
+                        return;
+                    }
+                    const $selected = $(this).find(':selected');
+                    const colorCode = $selected.data('color') || '#6B7280';
+                    const hours = window.slaStore ? (window.slaStore[priority] || 0) : 0;
+                    container.animate({ opacity: 0 }, 120, function() {
+                        $(this).html(`
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center mb-3 border-2 shadow-sm"
+                                     style="background:${colorCode}10; border-color:${colorCode}30; color:${colorCode}">
+                                    <i class="fas fa-bolt text-base"></i>
+                                </div>
+                                <p class="text-xs font-black text-slate-800 mb-2">${priority} Priority</p>
+                                <div class="bg-white border border-slate-100 rounded-xl w-full p-3">
+                                    <div class="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Resolution Target</div>
+                                    <div class="text-2xl font-black flex justify-center items-end gap-1" style="color:${colorCode}">
+                                        ${hours}
+                                        <span class="text-xs font-semibold mb-0.5 opacity-70 ${hours === 0 ? 'hidden' : ''}">hrs</span>
+                                        <span class="text-xs font-semibold text-slate-400 mb-0.5 ${hours !== 0 ? 'hidden' : ''}">No SLA</span>
+                                    </div>
+                                </div>
+                            </div>`).animate({ opacity: 1 }, 120);
+                    });
+                });
+
+                $('#createTicketForm').on('submit', function(e) { e.preventDefault(); submitTicket(); });
             });
 
-            $('#createTicketForm').on('submit', function(e) { e.preventDefault(); submitTicket(); });
-        });
+            function resetSelect(selector, text) { $(selector).prop('disabled', true).html(`<option value="">${text}</option>`); }
 
-        function resetSelect(selector, text) { $(selector).prop('disabled', true).html(`<option value="">${text}</option>`); }
+            function loadInitialData() {
+                $.get('@Url.Action("GetCompanies", "ServiceDesk")', companies => {
+                    const select = $('#companySelect');
+                    select.html('<option value="">Select Company...</option>');
+                    if (companies && companies.length > 0) {
+                        companies.forEach(c => {
+                            const id = c.id || c.Id || c.companyId || c.CompanyId;
+                            const name = c.companyName || c.CompanyName || c.name || c.Name;
+                            select.append(`<option value="${id}">${name}</option>`);
+                        });
+                    }
+                });
+                $.get('@Url.Action("GetCategories", "ServiceDesk")', categories => {
+                    const select = $('#ticketCategory');
+                    select.html('<option value="">Select Category...</option>');
+                    if (categories && categories.length > 0) categories.forEach(c => select.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
+                });
+                $.when($.get('@Url.Action("GetPriorities", "ServiceDesk")'), $.get('@Url.Action("GetSLAConfigs", "ServiceDesk")')).done((prioritiesRes, slaRes) => {
+                    const priorities = prioritiesRes[0], slas = slaRes[0];
+                    window.slaStore = {};
+                    if (slas) slas.forEach(s => window.slaStore[s.priority] = s.hours);
+                    const select = $('#prioritySelect');
+                    select.html('<option value="">Select Priority...</option>');
+                    if (priorities && priorities.length > 0) {
+                        priorities.forEach(p => {
+                            const priName = p.priorityName || p.label || p.value;
+                            const colorCode = p.colorCode || p.color || '#6B7280';
+                            select.append(`<option value="${priName}" data-color="${colorCode}">${priName}</option>`);
+                        });
+                    }
+                });
+            }
 
-        function loadInitialData() {
-            $.get('@Url.Action("GetCompanies", "ServiceDesk")', companies => {
-                const select = $('#companySelect');
-                select.html('<option value="">Select Company...</option>');
-                if (companies && companies.length > 0) {
-                    companies.forEach(c => {
-                        const id = c.id || c.Id || c.companyId || c.CompanyId;
-                        const name = c.companyName || c.CompanyName || c.name || c.Name;
-                        select.append(`<option value="${id}">${name}</option>`);
-                    });
-                }
-            });
-            $.get('@Url.Action("GetCategories", "ServiceDesk")', categories => {
-                const select = $('#ticketCategory');
-                select.html('<option value="">Select Category...</option>');
-                if (categories && categories.length > 0) categories.forEach(c => select.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
-            });
-            $.when($.get('@Url.Action("GetPriorities", "ServiceDesk")'), $.get('@Url.Action("GetSLAConfigs", "ServiceDesk")')).done((prioritiesRes, slaRes) => {
-                const priorities = prioritiesRes[0], slas = slaRes[0];
-                window.slaStore = {};
-                if (slas) slas.forEach(s => window.slaStore[s.priority] = s.hours);
-                const select = $('#prioritySelect');
-                select.html('<option value="">Select Priority...</option>');
-                if (priorities && priorities.length > 0) {
-                    priorities.forEach(p => {
-                        const priName = p.priorityName || p.label || p.value;
-                        const colorCode = p.colorCode || p.color || '#6B7280';
-                        select.append(`<option value="${priName}" data-color="${colorCode}">${priName}</option>`);
-                    });
-                }
-            });
-        }
+            function loadGroups(companyId) {
+                $.get(`@Url.Action("GetGroups", "ServiceDesk")?companyId=${companyId}`, groups => {
+                    const select = $('#groupSelect');
+                    select.html('<option value="">Select Group...</option>');
+                    if (groups && groups.length > 0) {
+                        groups.forEach(g => {
+                            const id = g.id || g.Id || g.groupId || g.GroupId;
+                            const name = g.groupName || g.GroupName || g.name || g.Name;
+                            select.append(`<option value="${id}">${name}</option>`);
+                        });
+                    } else {
+                        select.html('<option value="">No groups found</option>');
+                    }
+                }).fail(() => resetSelect('#groupSelect', 'Error loading groups'));
+            }
 
-        function loadGroups(companyId) {
-            $.get(`@Url.Action("GetGroups", "ServiceDesk")?companyId=${companyId}`, groups => {
-                const select = $('#groupSelect');
-                select.html('<option value="">Select Group...</option>');
-                if (groups && groups.length > 0) {
-                    groups.forEach(g => {
-                        const id = g.id || g.Id || g.groupId || g.GroupId;
-                        const name = g.groupName || g.GroupName || g.name || g.Name;
-                        select.append(`<option value="${id}">${name}</option>`);
-                    });
-                } else {
-                    select.html('<option value="">No groups found</option>');
-                }
-            }).fail(() => resetSelect('#groupSelect', 'Error loading groups'));
-        }
+            function loadLocations(companyId, groupId) {
+                $.get(`@Url.Action("GetLocations", "ServiceDesk")?companyId=${companyId}&groupId=${groupId}`, locations => {
+                    const select = $('#locationSelect');
+                    select.html('<option value="">Select Location...</option>');
+                    if (locations && locations.length > 0) {
+                        locations.forEach(l => {
+                            const id = l.id || l.Id || l.locationId || l.LocationId;
+                            const name = l.locationName || l.LocationName || l.name || l.Name;
+                            select.append(`<option value="${id}">${name}</option>`);
+                        });
+                    } else {
+                        select.html('<option value="">No locations found</option>');
+                    }
+                }).fail(() => resetSelect('#locationSelect', 'Error loading locations'));
+            }
 
-        function loadLocations(companyId, groupId) {
-            $.get(`@Url.Action("GetLocations", "ServiceDesk")?companyId=${companyId}&groupId=${groupId}`, locations => {
-                const select = $('#locationSelect');
-                select.html('<option value="">Select Location...</option>');
-                if (locations && locations.length > 0) {
-                    locations.forEach(l => {
-                        const id = l.id || l.Id || l.locationId || l.LocationId;
-                        const name = l.locationName || l.LocationName || l.name || l.Name;
-                        select.append(`<option value="${id}">${name}</option>`);
-                    });
-                } else {
-                    select.html('<option value="">No locations found</option>');
-                }
-            }).fail(() => resetSelect('#locationSelect', 'Error loading locations'));
-        }
+            function loadUsers(companyId, groupId, locationId) {
+                $.get(`@Url.Action("GetUsersByLocation", "ServiceDesk")?companyId=${companyId}&groupId=${groupId}&locationId=${locationId}`, users => {
+                    const select = $('#userSelect');
+                    select.html('<option value="">Select User...</option>');
+                    if (users && users.length > 0) {
+                        users.forEach(u => {
+                            const id = u.domainName || u.DomainName || u.id || u.Id;
+                            const name = u.userName || u.UserName || u.name || u.Name;
+                            select.append(`<option value="${id}">${name}</option>`);
+                        });
+                    } else {
+                        select.html('<option value="">No users found</option>');
+                    }
+                }).fail(() => resetSelect('#userSelect', 'Error loading users'));
+            }
 
-        function loadUsers(companyId, groupId, locationId) {
-            $.get(`@Url.Action("GetUsersByLocation", "ServiceDesk")?companyId=${companyId}&groupId=${groupId}&locationId=${locationId}`, users => {
-                const select = $('#userSelect');
-                select.html('<option value="">Select User...</option>');
-                if (users && users.length > 0) {
-                    users.forEach(u => {
-                        const id = u.domainName || u.DomainName || u.id || u.Id;
-                        const name = u.userName || u.UserName || u.name || u.Name;
-                        select.append(`<option value="${id}">${name}</option>`);
-                    });
-                } else {
-                    select.html('<option value="">No users found</option>');
-                }
-            }).fail(() => resetSelect('#userSelect', 'Error loading users'));
-        }
+            function submitTicket() {
+                const btn = $('#submitBtn'), icon = $('#btnIcon'), text = $('#btnText');
+                btn.prop('disabled', true); text.text('Creating...'); icon.removeClass('fa-paper-plane').addClass('fa-circle-notch fa-spin');
+                $('input, select, textarea').prop('disabled', true);
+                const payload = {
+                    requesterName: $('input[name="requesterName"]').val(), requesterEmail: $('input[name="requesterEmail"]').val(),
+                    subject: $('input[name="subject"]').val(), category: $('select[name="category"]').val(),
+                    priority: $('select[name="priority"]').val(), companyId: parseInt($('select[name="companyId"]').val()) || null,
+                    groupId: parseInt($('select[name="groupId"]').val()) || null, locationId: parseInt($('select[name="locationId"]').val()) || null,
+                    clientId: $('select[name="userId"]').val(), remark: $('textarea[name="description"]').val()
+                };
+                $.ajax({
+                    url: '@Url.Action("SaveTicket", "ServiceDesk")', type: 'POST', contentType: 'application/json', data: JSON.stringify(payload),
+                    success: (res) => {
+                        if (res && res.success) {
+                            $('#successTicketNo').text(res.ticketNo || "Created");
+                            const modal = $('#successModal'), content = $('#successModalContent');
+                            modal.removeClass('hidden');
+                            setTimeout(() => { modal.removeClass('opacity-0').addClass('opacity-100'); content.removeClass('scale-95').addClass('scale-100'); }, 10);
+                        } else { resetFormState(); sysAlert(res.message || "Failed to create ticket", "error"); }
+                    },
+                    error: (xhr) => {
+                        resetFormState();
+                        let msg = "Connection error. Please try again.";
+                        if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        sysAlert(msg, "error");
+                    }
+                });
+            }
 
-        function submitTicket() {
-            const btn = $('#submitBtn'), icon = $('#btnIcon'), text = $('#btnText');
-            btn.prop('disabled', true); text.text('Creating...'); icon.removeClass('fa-paper-plane').addClass('fa-circle-notch fa-spin');
-            $('input, select, textarea').prop('disabled', true);
-            const payload = {
-                requesterName: $('input[name="requesterName"]').val(), requesterEmail: $('input[name="requesterEmail"]').val(),
-                subject: $('input[name="subject"]').val(), category: $('select[name="category"]').val(),
-                priority: $('select[name="priority"]').val(), companyId: parseInt($('select[name="companyId"]').val()) || null,
-                groupId: parseInt($('select[name="groupId"]').val()) || null, locationId: parseInt($('select[name="locationId"]').val()) || null,
-                clientId: $('select[name="userId"]').val(), remark: $('textarea[name="description"]').val()
-            };
-            $.ajax({
-                url: '@Url.Action("SaveTicket", "ServiceDesk")', type: 'POST', contentType: 'application/json', data: JSON.stringify(payload),
-                success: (res) => {
-                    if (res && res.success) {
-                        $('#successTicketNo').text(res.ticketNo || "Created");
-                        const modal = $('#successModal'), content = $('#successModalContent');
-                        modal.removeClass('hidden');
-                        setTimeout(() => { modal.removeClass('opacity-0').addClass('opacity-100'); content.removeClass('scale-95').addClass('scale-100'); }, 10);
-                    } else { resetFormState(); sysAlert(res.message || "Failed to create ticket", "error"); }
-                },
-                error: (xhr) => {
-                    resetFormState();
-                    let msg = "Connection error. Please try again.";
-                    if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                    sysAlert(msg, "error");
-                }
-            });
-        }
-
-        function resetFormState() {
-            const btn = $('#submitBtn'), icon = $('#btnIcon'), text = $('#btnText');
-            btn.prop('disabled', false); text.text('Submit Ticket'); icon.removeClass('fa-circle-notch fa-spin').addClass('fa-paper-plane');
-            $('input, select, textarea').prop('disabled', false);
-        }
-    </script>
-}
+            function resetFormState() {
+                const btn = $('#submitBtn'), icon = $('#btnIcon'), text = $('#btnText');
+                btn.prop('disabled', false); text.text('Submit Ticket'); icon.removeClass('fa-circle-notch fa-spin').addClass('fa-paper-plane');
+                $('input, select, textarea').prop('disabled', false);
+            }
+        </script>
+    }
+</body>
+</html>
