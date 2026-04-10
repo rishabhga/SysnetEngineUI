@@ -29,9 +29,7 @@ namespace ManageEngineWebApp.Controllers
         public ComputerSummaryController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory;
-            //_baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225";
-
-            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
+            _baseUrl = configuration["ApiSettings:BaseUrl"];
         }
 
         private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
@@ -881,7 +879,6 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                // API 1: Get missing patches filtered by RBAC and Selected Devices
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/MissingPatch?companyid={companyid}&groupid={groupid}&locationid={locationid}&deviceIds={selectedIds}");
                 if (response.IsSuccessStatusCode)
@@ -890,8 +887,6 @@ namespace ManageEngineWebApp.Controllers
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetailsservice>>(content) : null;
                     datalist = (data ?? new List<PatchDetailsservice>()).Where(x => x != null && x.UserCode != null).ToList();
                 }
-
-                // API 2: Get software repo list
                 using var httpClient2 = GetClient();
                 var response2 = await httpClient2.GetAsync($"{_baseUrl}/api/SoftwareRepoDetails");
                 if (response2.IsSuccessStatusCode)
@@ -899,13 +894,11 @@ namespace ManageEngineWebApp.Controllers
                     var content2 = await response2.Content.ReadAsStringAsync();
                     repoList = JsonConvert.DeserializeObject<List<SoftwareRepoDetails>>(content2) ?? new List<SoftwareRepoDetails>();
                 }
-
-                // Match patch available version with software repo version
                 foreach (var item in datalist)
                 {
                     item.IsAvailableInRepo = repoList.Any(s =>
-                    s.Version == item.AvailableVersion &&
-                    s.SoftwareName.Equals(item.PatchName, StringComparison.OrdinalIgnoreCase));
+                        s.Version == item.AvailableVersion &&
+                        s.SoftwareName.Equals(item.PatchName, StringComparison.OrdinalIgnoreCase));
                 }
             }
             catch (Exception ex)
@@ -929,7 +922,6 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                // API 1: Get Windows patches filtered by RBAC and Selected Devices
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/MissingPatch/windowpatch?companyid={companyid}&groupid={groupid}&locationid={locationid}&deviceIds={selectedIds}");
                 if (response.IsSuccessStatusCode)
@@ -955,8 +947,14 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
+                if (string.IsNullOrEmpty(updatePatchselectiondto.deviceIds))
+                    updatePatchselectiondto.deviceIds = updatePatchselectiondto.domainids;
+
+                if (string.IsNullOrEmpty(updatePatchselectiondto.deviceIds))
+                    return Json(new { success = false, error = "No device IDs were received. Please go back and re-select your devices." });
+
                 using var client = GetClient();
-                client.Timeout = TimeSpan.FromSeconds(120); // Patch dispatch uses SignalR, needs longer timeout
+                client.Timeout = TimeSpan.FromSeconds(120); 
                 string jsonData = JsonConvert.SerializeObject(updatePatchselectiondto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -966,10 +964,13 @@ namespace ManageEngineWebApp.Controllers
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
                 {
-                    try {
+                    try
+                    {
                         var jsonResponse = JsonConvert.DeserializeObject<object>(result);
                         return Json(jsonResponse);
-                    } catch {
+                    }
+                    catch
+                    {
                         return Json(new { success = true, message = result });
                     }
                 }
@@ -993,9 +994,10 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                updatewinPatchselectiondto.deviceIds = updatewinPatchselectiondto.domainids;
+                if (string.IsNullOrEmpty(updatewinPatchselectiondto.deviceIds))
+                    return Json(new { success = false, error = "No device IDs were received. Please go back and re-select your devices." });
                 using var client = GetClient();
-                client.Timeout = TimeSpan.FromSeconds(120); // Patch dispatch uses SignalR, needs longer timeout
+                client.Timeout = TimeSpan.FromSeconds(120); 
                 string jsonData = JsonConvert.SerializeObject(updatewinPatchselectiondto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -1005,10 +1007,13 @@ namespace ManageEngineWebApp.Controllers
                 string result = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
                 {
-                    try {
+                    try
+                    {
                         var jsonResponse = JsonConvert.DeserializeObject<object>(result);
                         return Json(jsonResponse);
-                    } catch {
+                    }
+                    catch
+                    {
                         return Json(new { success = true, message = result });
                     }
                 }
@@ -1113,11 +1118,9 @@ namespace ManageEngineWebApp.Controllers
 
         //    using (var httpClient2 = new HttpClient(handler1))
         //    {
-        //        // httpClient2.BaseAddress = new Uri("https://localhost:7225/api/SoftwareRepoDetails");
         //        httpClient2.BaseAddress = new Uri($"{_baseUrl}/api/SoftwareRepoDetails");
 
         //        var response1 = await httpClient2.GetAsync("");
-        //        //var response1 = await httpClient2.GetAsync("https://localhost:7225/api/SoftwareRepoDetails");
         //        if (response1.IsSuccessStatusCode)
         //        {
         //            var content1 = await response1.Content.ReadAsStringAsync();
@@ -1156,7 +1159,6 @@ namespace ManageEngineWebApp.Controllers
         //    using (var httpClient = new HttpClient(handler))
         //    {
 
-        //        //  httpClient.BaseAddress = new Uri("https://localhost:7225/api/MissingPatch/windowpatch");
         //        httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch/windowpatch");
 
         //        var response = await httpClient.GetAsync("");
@@ -1179,10 +1181,8 @@ namespace ManageEngineWebApp.Controllers
 
         //    //using (var httpClient2 = new HttpClient(handler1))
         //    //{
-        //    //    httpClient2.BaseAddress = new Uri("https://localhost:7225/api/SoftwareRepoDetails");
 
         //    //    var response1 = await httpClient2.GetAsync("");
-        //    //    //var response1 = await httpClient2.GetAsync("https://localhost:7225/api/SoftwareRepoDetails");
         //    //    if (response1.IsSuccessStatusCode)
         //    //    {
         //    //        var content1 = await response1.Content.ReadAsStringAsync();
@@ -1220,7 +1220,6 @@ namespace ManageEngineWebApp.Controllers
         //    using (HttpClient client = new HttpClient(handler))
         //    {
 
-        //        // client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
         //        client.BaseAddress = new Uri($"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchsethirdparty");
 
         //        string jsonData = JsonConvert.SerializeObject(updatePatchselectiondto);
@@ -1272,7 +1271,6 @@ namespace ManageEngineWebApp.Controllers
         //    using (HttpClient client = new HttpClient(handler))
         //    {
 
-        //        // client.BaseAddress = new Uri("https://localhost:7225/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
         //        client.BaseAddress = new Uri($"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/UpdatePatchwindowpatch");
 
         //        string jsonData = JsonConvert.SerializeObject(updatewinPatchselectiondto);
@@ -1326,8 +1324,6 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-                //  httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UserDetails");
 
 
@@ -1396,7 +1392,6 @@ namespace ManageEngineWebApp.Controllers
         //        using (var httpClient = new HttpClient(handler))
         //        {
         //            // Try calling the UserDetails API which has all devices
-        //            httpClient.BaseAddress = new Uri("https://localhost:7225/api/UserDetails");
 
         //            var response = await httpClient.GetAsync("");
 
@@ -1460,7 +1455,6 @@ namespace ManageEngineWebApp.Controllers
             using (HttpClient client = new HttpClient(handler))
             {
 
-                // client.BaseAddress = new Uri("https://localhost:7225/api/Command/" + domain + "");
 
                 client.BaseAddress = new Uri($"{_baseUrl}/api/Command/" + domain + "");
 
@@ -1495,10 +1489,8 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/SendScanStatus?domain={domain}");
                 //
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/SendScanStatus/" + domain + "");
 
 
 
@@ -1534,7 +1526,6 @@ namespace ManageEngineWebApp.Controllers
             using (HttpClient client = new HttpClient(handler))
             {
 
-                // client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/" + domain + "");
 
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/" + domain + "");
 
@@ -1565,7 +1556,6 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/SendScanStatus?domain={domain}");
 
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
 
@@ -1625,7 +1615,6 @@ namespace ManageEngineWebApp.Controllers
 
             using (var httpClient = new HttpClient(handler))
             {
-                // string url = $"https://localhost:7225/api/RemoteAccess/monitor?domain={domain}";
                 string url = $"{_baseUrl}/api/RemoteAccess/monitor?domain={domain}";
 
                 var response = await httpClient.GetAsync(url);
@@ -1666,7 +1655,6 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                //  client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseEvent/" + domain + "");
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseEvent/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject(Mousedata);
@@ -1703,7 +1691,6 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                // client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseLeftClick/" + domain + "");
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseLeftClick/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject("");
@@ -1741,7 +1728,6 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                //client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/MouseRightClick/" + domain + "");
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseRightClick/" + domain + "");
 
                 string jsonData = JsonConvert.SerializeObject("");
@@ -1778,7 +1764,6 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                // client.BaseAddress = new Uri("https://localhost:7225/api/RemoteAccess/KeyEvent/" + domain + "");
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/KeyEvent?domain="+domain+"&key="+key+"");
 
                 string jsonData = JsonConvert.SerializeObject("");
@@ -1939,7 +1924,6 @@ namespace ManageEngineWebApp.Controllers
 
             using (HttpClient client = new HttpClient(handler))
             {
-                //string apiUrl = $"https://localhost:7225/api/PatchDetails/DeleteSoftware/{fileName}";
                 string apiUrl = $"{_baseUrl}/api/PatchDetails/DeleteSoftware/{fileName}";
 
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, apiUrl);
@@ -1977,7 +1961,6 @@ namespace ManageEngineWebApp.Controllers
             using (HttpClient client = new HttpClient(handler))
             {
 
-                //client.BaseAddress = new Uri("https://localhost:7225/api/Command/softwareName/" + domain + "");
                 client.BaseAddress = new Uri($"{_baseUrl}/api/Command/softwareName/" + domain + "");
 
                 //var content = new StringContent($"\"{"Update"}\"", Encoding.UTF8, "application/json");
@@ -2021,9 +2004,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                //httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/uninstallstatus?softwareName={softwareName}&domain={domain}");
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/uninstallstatus?softwareName={softwareName}&domain={domain}");
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/uninstallstatus/" + domain + "");
 
 
                 var response = await httpClient.GetAsync("");
@@ -2059,9 +2040,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/installstatus?softwareName={softwareName}&domain={domain}");
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/installstatus?softwareName={softwareName}&domain={domain}");
-                // httpClient.BaseAddress = new Uri("https://localhost:7225/api/Command/installstatus/" + domain + "");
 
 
                 var response = await httpClient.GetAsync("");
@@ -2098,11 +2077,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                // httpClient.BaseAddress = new Uri($"https://localhost:7225/api/Command/installers/");
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/installers/");
-
-                //httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                //httpClient.BaseAddress = new Uri("https://localhost:7225/api/WindowsUserDetails");
 
                 //var requestData = new { DomainName = domain }; // Include domain variable
                 //  var jsonContent = new StringContent(JsonConvert.SerializeObject(), System.Text.Encoding.UTF8, "application/json");

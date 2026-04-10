@@ -17,8 +17,8 @@ builder.Services.AddScoped<ManageEngineWebApp.Filters.DynamicAuthorizationFilter
 builder.Services.AddRazorPages();
 builder.Services.AddHttpClient("ManageEngineApi", client =>
 {
-    //client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7225");
-    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431");
+    var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
+    client.BaseAddress = new Uri(apiBaseUrl);
     // client.DefaultRequestHeaders.Add("X-Api-Key", builder.Configuration["Authentication:ApiKey"]);
     client.Timeout = TimeSpan.FromSeconds(10);
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler

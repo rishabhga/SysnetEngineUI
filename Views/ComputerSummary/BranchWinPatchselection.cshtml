@@ -216,7 +216,7 @@
                     groupid: parseInt(groupid),
                     locationid: parseInt(locationid),
                     selectedIds: selectedIds.join(','),
-                    deviceIds: domainid
+                    deviceIds: domainid   // numeric device IDs
                 }),
                 success: function(response) {
                     btn.disabled = false;
@@ -224,7 +224,7 @@
                     if (response.success) {
                         showToast(response.message || 'Windows updates deployed successfully!', 'success');
                         // Remove successfully deployed patches from the table immediately
-                        document.querySelectorAll('.rowCheck:checked').forEach(function(cb) { 
+                        document.querySelectorAll('.rowCheck:checked').forEach(function(cb) {
                             var row = cb.closest('.patch-row');
                             if (row) row.remove();
                         });

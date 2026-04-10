@@ -229,7 +229,8 @@
                     groupid: parseInt(groupid),
                     locationid: parseInt(locationid),
                     selectedIds: selectedIds.join(','),
-                    deviceIds: domainid
+                    deviceIds: domainid,   // numeric device IDs (e.g. "1,2,3")
+                    domainids: domainid    // same value sent under both field names so the DTO always binds correctly
                 }),
                 success: function(response) {
                     btn.disabled = false;
@@ -237,7 +238,7 @@
                     if (response.success) {
                         showToast(response.message || 'Patches deployed successfully!', 'success');
                         // Remove successfully deployed patches from the table immediately
-                        document.querySelectorAll('.rowCheck:checked').forEach(function(cb) { 
+                        document.querySelectorAll('.rowCheck:checked').forEach(function(cb) {
                             var row = cb.closest('.patch-row');
                             if (row) row.remove();
                         });

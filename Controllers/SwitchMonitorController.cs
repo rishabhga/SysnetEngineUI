@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -17,7 +17,7 @@ namespace ManageEngineWebApp.Controllers
         public SwitchMonitorController(IHttpClientFactory httpClientFactory, IConfiguration config)
         {
             _httpClientFactory = httpClientFactory;
-            _baseUrl = config["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
+            _baseUrl = config["ApiSettings:BaseUrl"];
         }
 
         private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");

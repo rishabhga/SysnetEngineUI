@@ -18,7 +18,7 @@ namespace ManageEngineWebApp.Controllers
         public USBHubDetailsController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory;
-            _baseUrl = configuration["ApiSettings:BaseUrl"] ?? "https://172.16.15.15:4431";
+            _baseUrl = configuration["ApiSettings:BaseUrl"];
         }
 
         private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
