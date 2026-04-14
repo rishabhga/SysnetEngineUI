@@ -295,7 +295,7 @@
             if (currentState !== 'waiting' && currentState !== 'requesting') { stopStatusCheck(); return; }
             if (isDenied) { stopStatusCheck(); return; }
             try {
-                const response = await fetch(`/api/RemoteAccess/CheckAccessStatus?domain=${encodeURIComponent(domain)}&_=${Date.now()}`);
+                const response = await fetch(`/ComputerSummary/CheckAccessStatus?domain=${encodeURIComponent(domain)}&_=${Date.now()}`);
                 if (!response.ok) return;
                 const data = await response.json();
                 console.log("📡 Status poll:", data);

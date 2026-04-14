@@ -1,315 +1,443 @@
-@model List<ManageEngineWebApp.Models.WindowsUserDetails>
-
+﻿@model List<ManageEngineWebApp.Models.WindowsUserDetails>
 @{
-    ViewData["Title"] = "Patch Management - SYSNET";
+    ViewData["Title"] = "Patch Management";
     Layout = "~/Views/Shared/_Layout.cshtml";
-
     var companyid = ViewBag.companyid;
     var groupid = ViewBag.groupid;
     var locationid = ViewBag.locationid;
+    var activeComputers = ViewBag.ActiveComputers as List<string> ?? new List<string>();
 }
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Header -->
-    <div class="mb-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Patch Management</h1>
-                <p class="text-sm text-gray-600 mt-1">Select devices to manage patches and updates</p>
-            </div>
-            <div class="relative inline-block text-left">
-                <button type="button"
-                        id="patchDropdownBtn"
-                        onclick="toggleDropdown()"
-                        class="px-4 py-2 text-white rounded-lg font-medium transition-colors flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"
-                        disabled>
-                    <i class="fas fa-download"></i>
-                    <span>Patch</span>
-                    <i class="fas fa-chevron-down ml-2 text-sm"></i>
+<style>
+    .pm-table tbody tr:hover {
+        background: #f0f9ff;
+    }
+
+    .pm-table tbody tr.selected-row {
+        background: #e0f5fc;
+    }
+
+    .pm-checkbox {
+        accent-color: #00BCEB;
+    }
+
+    .pm-badge-online {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .pm-badge-offline {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    #selectionBar {
+        transition: all .2s ease;
+    }
+
+    .pm-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .pm-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #f8fafc;
+        }
+
+    .pulse-dot {
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            opacity: 1
+        }
+
+        50% {
+            opacity: .4
+        }
+    }
+
+    .page-btn {
+        min-width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        cursor: pointer;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #374151;
+        transition: .15s;
+    }
+
+        .page-btn:hover, .page-btn.active {
+            background: #00BCEB;
+            color: #fff;
+            border-color: #00BCEB;
+        }
+
+        .page-btn:disabled {
+            opacity: .4;
+            cursor: default;
+            background: #fff;
+            color: #9ca3af;
+        }
+</style>
+
+<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3">
+
+    <!-- ── Header ── -->
+    <div class="mb-3 flex items-center justify-between flex-wrap gap-2">
+        <div>
+            <h1 class="text-base font-bold text-gray-900 flex items-center gap-1.5">
+                <i class="fas fa-shield-alt text-cyan-500 text-sm"></i> Patch Management
+            </h1>
+            <p class="text-[10px] text-gray-500 mt-0.5">Select devices · deploy Windows or third-party patches</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Selected pill -->
+            <span id="selectedPill" class="hidden items-center gap-1 px-2.5 py-1 bg-cyan-50 border border-cyan-200 rounded-full text-[11px] font-semibold text-cyan-700">
+                <i class="fas fa-check-circle text-[9px]"></i>
+                <span id="selCountPill">0</span> selected
+            </span>
+
+            <!-- Patch dropdown -->
+            <div class="relative">
+                <button id="patchDropdownBtn" onclick="toggleDropdown()" disabled
+                        class="px-3 py-1.5 text-white rounded-md font-medium text-xs flex items-center gap-1 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                        style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
+                    <i class="fas fa-bolt text-[10px]"></i> Patch
+                    <i class="fas fa-chevron-down text-[9px] ml-0.5"></i>
                 </button>
-
                 <div id="patchDropdown"
-                     class="hidden absolute right-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                    <div class="py-1" role="menu">
-                        <a onclick="goWinPatch()"
-                           class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors">
-                            <i class="fas fa-windows mr-2 text-cyan-600"></i>
-                            Windows Patch
-                        </a>
-                        <a onclick="goPatchSelection()"
-                           class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors">
-                            <i class="fas fa-cube mr-2 text-cyan-600"></i>
-                            Third-Party Patch
-                        </a>
-                    </div>
+                     class="hidden absolute right-0 mt-1 w-44 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                    <a onclick="goWinPatch()"
+                       class="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer">
+                        <i class="fab fa-windows text-cyan-500"></i> Windows Patch
+                    </a>
+                    <a onclick="goPatchSelection()"
+                       class="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer border-t border-gray-100">
+                        <i class="fas fa-cube text-cyan-500"></i> Third-Party Patch
+                    </a>
                 </div>
             </div>
-
-
         </div>
     </div>
 
-    <!-- Search and Filter Bar -->
-    <div class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-        <div class="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
-            <div class="relative flex-1 w-full max-w-md">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i class="fas fa-search text-gray-400"></i>
-                </div>
-                <input type="text"
-                       id="searchInput"
-                       placeholder="Search devices, users, or departments..."
-                       class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                       onkeyup="filterCards()">
-            </div>
-            <select id="statusFilter"
-                    onchange="filterCards()"
-                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
-                <option value="">All Status</option>
-                <option value="Enabled">Enabled</option>
-                <option value="Disabled">Disabled</option>
-            </select>
+    <!-- ── Toolbar ── -->
+    <div class="mb-2 flex flex-wrap items-center gap-2 bg-white rounded-md border border-gray-200 px-3 py-2 shadow-sm">
+        <!-- Search -->
+        <div class="relative flex-1 min-w-[180px] max-w-xs">
+            <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
+            <input id="searchInput" type="text" placeholder="Search name, domain, dept..."
+                   class="w-full pl-7 pr-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                   oninput="applyFilters()">
         </div>
-        <div class="flex items-center space-x-2">
-            <span class="text-sm text-gray-600">Selected:</span>
-            <span id="selectedCount" class="px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full text-sm font-medium">0</span>
-        </div>
-    </div>
-
-    <!-- Select All -->
-    <div class="mb-4 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-        <label class="flex items-center cursor-pointer">
-            <input type="checkbox"
-                   id="selectAll"
-                   onclick="toggleSelectAll(this)"
-                   class="w-4 h-4 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500">
-            <span class="ml-2 text-sm font-medium text-gray-700">Select All Devices</span>
+        <!-- Status filter -->
+        <select id="statusFilter" onchange="applyFilters()"
+                class="px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cyan-400">
+            <option value="">All Status</option>
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+        </select>
+        <!-- Select all visible -->
+        <label class="flex items-center gap-1.5 ml-auto cursor-pointer select-none">
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"
+                   class="pm-checkbox w-3.5 h-3.5 rounded">
+            <span class="text-[11px] text-gray-600 font-medium">Select all visible</span>
         </label>
+        <!-- Count -->
+        <span class="text-[10px] text-gray-500">
+            <span id="visibleCount">@(Model?.Count ?? 0)</span> shown ·
+            <span class="font-semibold text-gray-700" id="totalCount">@(Model?.Count ?? 0)</span> total
+        </span>
     </div>
 
-    <!-- Devices Cards Grid -->
+    <!-- ── Table ── -->
     @if (Model != null && Model.Any())
     {
-        <div id="devicesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            @foreach (var item in Model)
-            {
-                <div class="device-card bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow">
-                    <!-- Card Header -->
-                    <div class="bg-white border-b border-gray-200 p-4">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3 flex-1">
-                                <input type="checkbox"
-                                       class="device-checkbox w-5 h-5 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500"
-                                       value="@item.Id"
-                                       data-domain="@item.DomainName"
-                                       onclick="updateSelection()">
-                                <div class="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-                                     style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                                    <i class="fas fa-desktop text-white text-xl"></i>
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <h3 class="font-semibold text-gray-900 truncate">@item.DomainName</h3>
-                                    <p class="text-xs text-gray-500">@item.AccountType</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Card Body -->
-                    <div class="p-4 space-y-3">
-                        <!-- Employee Info -->
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-user text-gray-400 mt-1"></i>
-                            </div>
-                            <div class="ml-3 flex-1 min-w-0">
-                                <p class="text-xs text-gray-500 uppercase tracking-wide">Employee</p>
-                                <p class="text-sm font-medium text-gray-900 truncate">@item.UserName</p>
-                            </div>
-                        </div>
-
-                        <!-- Full Name -->
-                        @if (!string.IsNullOrEmpty(item.FullName))
+        <div class="bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto" style="max-height:calc(100vh - 280px); overflow-y:auto;">
+                <table class="pm-table w-full text-xs">
+                    <thead>
+                        <tr class="border-b border-gray-200 text-[10px] text-gray-500 uppercase tracking-wide">
+                            <th class="pl-3 pr-2 py-2 w-8 text-left">
+                                <!-- intentionally blank – per-page select all is in toolbar -->
+                            </th>
+                            <th class="px-3 py-2 text-left font-semibold">Status</th>
+                            <th class="px-3 py-2 text-left font-semibold">Domain / Device</th>
+                            <th class="px-3 py-2 text-left font-semibold">Employee</th>
+                            <th class="px-3 py-2 text-left font-semibold">Full Name</th>
+                            <th class="px-3 py-2 text-left font-semibold">Department</th>
+                            <th class="px-3 py-2 text-left font-semibold">Device ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deviceTableBody" class="divide-y divide-gray-100">
+                        @foreach (var item in Model)
                         {
-                            <div class="flex items-start">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-id-card text-gray-400 mt-1"></i>
-                                </div>
-                                <div class="ml-3 flex-1 min-w-0">
-                                    <p class="text-xs text-gray-500 uppercase tracking-wide">Full Name</p>
-                                    <p class="text-sm font-medium text-gray-900 truncate">@item.FullName</p>
-                                </div>
-                            </div>
+                            bool isOnline = activeComputers.Contains(item.DomainName);
+                            <tr class="device-row transition-colors"
+                                data-id="@item.Id"
+                                data-domain="@item.DomainName"
+                                data-username="@item.UserName"
+                                data-fullname="@item.FullName"
+                                data-dept="@item.AccountType"
+                                data-status="@(isOnline ? "online" : "offline")">
+                                <td class="pl-3 pr-2 py-2">
+                                    <input type="checkbox"
+                                           class="device-checkbox pm-checkbox w-3.5 h-3.5 rounded"
+                                           value="@item.Id"
+                                           data-domain="@item.DomainName"
+                                           data-name="@item.UserName"
+                                           onchange="updateSelection()">
+                                </td>
+                                <td class="px-3 py-2">
+                                    @if (isOnline)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold pm-badge-online">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 pulse-dot"></span> Online
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold pm-badge-offline">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Offline
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-3 py-2 font-medium text-gray-900 max-w-[160px] truncate">@item.DomainName</td>
+                                <td class="px-3 py-2 text-gray-700 max-w-[120px] truncate">@item.UserName</td>
+                                <td class="px-3 py-2 text-gray-600 max-w-[140px] truncate">@item.FullName</td>
+                                <td class="px-3 py-2 text-gray-500 max-w-[120px] truncate">@item.AccountType</td>
+                                <td class="px-3 py-2 text-gray-400 font-mono">#@item.Id</td>
+                            </tr>
                         }
-
-                        <!-- ID -->
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-hashtag text-gray-400 mt-1"></i>
-                            </div>
-                            <div class="ml-3 flex-1 min-w-0">
-                                <p class="text-xs text-gray-500 uppercase tracking-wide">Device ID</p>
-                                <p class="text-sm font-medium text-gray-900">@item.Id</p>
-                            </div>
-                        </div>
-
-                        <!-- Status Badge -->
-                        <div class="pt-2">
-                            @if (item.Status == "Enabled")
-                            {
-                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 w-full justify-center">
-                                    <i class="fas fa-check-circle mr-1"></i> Enabled
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 w-full justify-center">
-                                    <i class="fas fa-times-circle mr-1"></i> @item.Status
-                                </span>
-                            }
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-
-        <!-- Footer Info -->
-        <div class="mt-6 flex items-center justify-between bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-            <div class="text-sm text-gray-700">
-                Showing <span class="font-medium">@Model.Count</span> devices
+                    </tbody>
+                </table>
             </div>
-            <div class="text-sm text-gray-500">
-                <i class="fas fa-info-circle mr-1"></i>
-                Select devices to manage their patches and updates
+
+            <!-- Pagination bar -->
+            <div class="flex items-center justify-between px-3 py-2 border-t border-gray-100 bg-gray-50">
+                <span class="text-[10px] text-gray-500">
+                    Page <span id="currentPageLabel">1</span> of <span id="totalPagesLabel">1</span>
+                </span>
+                <div id="paginationBtns" class="flex items-center gap-1"></div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] text-gray-500">Rows</span>
+                    <select id="rowsPerPage" onchange="changePageSize()" class="text-[10px] border border-gray-300 rounded px-1 py-0.5">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="9999">All</option>
+                    </select>
+                </div>
             </div>
         </div>
     }
     else
     {
-        <div class="text-center py-20 bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-desktop text-gray-400 text-2xl"></i>
-            </div>
-            <p class="text-gray-500 text-lg">No devices registered for this location yet</p>
+        <div class="text-center py-16 bg-white rounded-md border border-gray-200 shadow-sm">
+            <i class="fas fa-desktop text-4xl text-gray-200 mb-3"></i>
+            <p class="text-gray-500 text-sm font-medium">No devices registered for this location</p>
         </div>
     }
 </div>
 
 @section Scripts {
     <script>
-        let selectedDevices = [];
-        let selectedDomains = [];
+        // ── Raw data from server ──────────────────────────────────────────────
+        const ALL_ROWS = Array.from(document.querySelectorAll('.device-row'));
+        let filteredRows = [...ALL_ROWS];
+        let currentPage  = 1;
+        let pageSize     = 50;
 
-        function toggleSelectAll(checkbox) {
-            const checkboxes = document.querySelectorAll('.device-checkbox');
-            checkboxes.forEach(cb => {
-                cb.checked = checkbox.checked;
-            });
-            updateSelection();
-        }
-        function toggleDropdown() {
-            const dropdown = document.getElementById('patchDropdown');
-            dropdown.classList.toggle('hidden');
-        }
-                document.addEventListener('click', function(event) {
-            const dropdown = document.getElementById('patchDropdown');
-            const button = document.getElementById('patchDropdownBtn');
+        // ── Selection state ───────────────────────────────────────────────────
+        let selectedIds     = new Set();   // numeric device IDs
+        let selectedDomains = new Map();   // id → domain name
+        let selectedNames   = new Map();   // id → user name
 
-            if (dropdown && button && !button.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
+        // ── Pagination ────────────────────────────────────────────────────────
+        function renderPage() {
+            const start = (currentPage - 1) * pageSize;
+            const end   = start + pageSize;
 
-        function goWinPatch() {
-            if (selectedDevices.length === 0) {
-                sysAlert('Please select at least one device', 'warning');
-                return;
-            }
-
-            const companyid = @companyid;
-            const groupid = @groupid;
-            const locationid = @locationid;
-            const selectedIds = selectedDevices.join(',');
-            const domainids = selectedDomains.join(',');
-
-            window.location.href = `/ComputerSummary/BranchWinPatchselection?companyid=${companyid}&groupid=${groupid}&locationid=${locationid}&selectedIds=${selectedIds}&domainids=${domainids}`;
-        }
-
-        function goPatchSelection() {
-            if (selectedDevices.length === 0) {
-                sysAlert('Please select at least one device', 'warning');
-                return;
-            }
-
-            const companyid = @companyid;
-            const groupid = @groupid;
-            const locationid = @locationid;
-            const selectedIds = selectedDevices.join(',');
-            const domainids = selectedDomains.join(',');
-
-            window.location.href = `/ComputerSummary/BranchPatchselection?companyid=${companyid}&groupid=${groupid}&locationid=${locationid}&selectedIds=${selectedIds}&domainids=${domainids}`;
-        }
-
-
-        function updateSelection() {
-            selectedDevices = [];
-            selectedDomains = [];
-
-            const checkboxes = document.querySelectorAll('.device-checkbox:checked');
-            checkboxes.forEach(cb => {
-                selectedDevices.push(cb.value);
-                selectedDomains.push(cb.dataset.domain);
+            ALL_ROWS.forEach(r => r.style.display = 'none');
+            filteredRows.forEach((r, i) => {
+                r.style.display = (i >= start && i < end) ? '' : 'none';
             });
 
-            document.getElementById('selectedCount').textContent = selectedDevices.length;
-
-            const btn = document.getElementById('patchDropdownBtn');
-            btn.disabled = selectedDevices.length === 0;
-
-            const selectAllCheckbox = document.getElementById('selectAll');
-            const allCheckboxes = document.querySelectorAll('.device-checkbox');
-            selectAllCheckbox.checked = allCheckboxes.length > 0 && selectedDevices.length === allCheckboxes.length;
+            syncRowHighlights();
+            buildPaginationBtns();
+            document.getElementById('visibleCount').textContent = filteredRows.length;
+            document.getElementById('currentPageLabel').textContent = currentPage;
+            document.getElementById('totalPagesLabel').textContent  = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+            updateSelectAllState();
         }
 
+        function buildPaginationBtns() {
+            const total = Math.ceil(filteredRows.length / pageSize);
+            const cont  = document.getElementById('paginationBtns');
+            cont.innerHTML = '';
 
+            const addBtn = (label, page, disabled) => {
+                const b = document.createElement('button');
+                b.className = 'page-btn' + (page === currentPage ? ' active' : '') + (disabled ? '' : '');
+                b.disabled  = disabled;
+                b.innerHTML = label;
+                b.onclick   = () => { currentPage = page; renderPage(); };
+                cont.appendChild(b);
+            };
 
+            addBtn('<i class="fas fa-angle-left"></i>', currentPage - 1, currentPage === 1);
 
-        function filterCards() {
-            const searchInput = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
-            const cards = document.querySelectorAll('.device-card');
+            let pages = [];
+            if (total <= 7) {
+                for (let i=1; i<=total; i++) pages.push(i);
+            } else {
+                pages = [1];
+                if (currentPage > 3) pages.push('…');
+                for (let i = Math.max(2, currentPage-1); i <= Math.min(total-1, currentPage+1); i++) pages.push(i);
+                if (currentPage < total-2) pages.push('…');
+                pages.push(total);
+            }
 
-            cards.forEach(card => {
-                const text = card.textContent.toLowerCase();
-
-                const matchesSearch = searchInput === '' || text.includes(searchInput);
-                const matchesStatus = statusFilter === '' || text.includes(statusFilter);
-
-                if (matchesSearch && matchesStatus) {
-                    card.style.display = '';
+            pages.forEach(p => {
+                if (p === '…') {
+                    const s = document.createElement('span');
+                    s.className = 'text-[10px] text-gray-400 px-1';
+                    s.textContent = '…';
+                    cont.appendChild(s);
                 } else {
-                    card.style.display = 'none';
+                    addBtn(p, p, false);
+                }
+            });
+
+            addBtn('<i class="fas fa-angle-right"></i>', currentPage + 1, currentPage >= total);
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('rowsPerPage').value);
+            currentPage = 1;
+            renderPage();
+        }
+
+        // ── Filtering ─────────────────────────────────────────────────────────
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+
+            filteredRows = ALL_ROWS.filter(r => {
+                const text   = r.textContent.toLowerCase();
+                const rStatus = r.dataset.status;
+                return (!search || text.includes(search)) && (!status || rStatus === status);
+            });
+
+            currentPage = 1;
+            renderPage();
+        }
+
+        // ── Selection ─────────────────────────────────────────────────────────
+        function updateSelection() {
+            document.querySelectorAll('.device-checkbox').forEach(cb => {
+                const id     = cb.value;
+                const domain = cb.dataset.domain;
+                const name   = cb.dataset.name || domain;
+                if (cb.checked) {
+                    selectedIds.add(id);
+                    selectedDomains.set(id, domain);
+                    selectedNames.set(id, name);
+                } else {
+                    selectedIds.delete(id);
+                    selectedDomains.delete(id);
+                    selectedNames.delete(id);
+                }
+            });
+            syncRowHighlights();
+            updateSelectAllState();
+            updateHeader();
+        }
+
+        function syncRowHighlights() {
+            document.querySelectorAll('.device-row').forEach(r => {
+                const id = r.dataset.id;
+                if (selectedIds.has(id)) {
+                    r.classList.add('selected-row');
+                    const cb = r.querySelector('.device-checkbox');
+                    if (cb) cb.checked = true;
+                } else {
+                    r.classList.remove('selected-row');
                 }
             });
         }
+
+        function toggleSelectAll(master) {
+            // Only affect visible rows on current page
+            const visibleCbs = getVisibleCheckboxes();
+            visibleCbs.forEach(cb => {
+                cb.checked = master.checked;
+            });
+            updateSelection();
+        }
+
+        function updateSelectAllState() {
+            const visibleCbs = getVisibleCheckboxes();
+            const sa = document.getElementById('selectAll');
+            if (!sa) return;
+            if (visibleCbs.length === 0) { sa.checked = false; sa.indeterminate = false; return; }
+            const checkedCount = visibleCbs.filter(cb => cb.checked).length;
+            sa.checked       = checkedCount === visibleCbs.length;
+            sa.indeterminate = checkedCount > 0 && checkedCount < visibleCbs.length;
+        }
+
+        function getVisibleCheckboxes() {
+            return Array.from(document.querySelectorAll('.device-checkbox')).filter(cb => {
+                return cb.closest('tr').style.display !== 'none';
+            });
+        }
+
+        function updateHeader() {
+            const count = selectedIds.size;
+            const pill  = document.getElementById('selectedPill');
+            const btn   = document.getElementById('patchDropdownBtn');
+            document.getElementById('selCountPill').textContent = count;
+            pill.classList.toggle('hidden', count === 0);
+            pill.classList.toggle('inline-flex', count > 0);
+            btn.disabled = count === 0;
+        }
+
+        // ── Navigation ────────────────────────────────────────────────────────
+        function goWinPatch() {
+            if (selectedIds.size === 0) { sysAlert('Please select at least one device', 'warning'); return; }
+            navigate('BranchWinPatchselection');
+        }
+        function goPatchSelection() {
+            if (selectedIds.size === 0) { sysAlert('Please select at least one device', 'warning'); return; }
+            navigate('BranchPatchselection');
+        }
+        function navigate(action) {
+            const ids     = [...selectedIds].join(',');
+            const domains = [...selectedDomains.values()].join(',');
+            window.location.href = `/ComputerSummary/${action}?companyid=@companyid&groupid=@groupid&locationid=@locationid&selectedIds=${ids}&domainids=${domains}`;
+        }
+
+        // ── Dropdown ──────────────────────────────────────────────────────────
+        function toggleDropdown() {
+            document.getElementById('patchDropdown').classList.toggle('hidden');
+        }
+        document.addEventListener('click', e => {
+            const dd  = document.getElementById('patchDropdown');
+            const btn = document.getElementById('patchDropdownBtn');
+            if (dd && btn && !btn.contains(e.target) && !dd.contains(e.target)) dd.classList.add('hidden');
+        });
+
+        // ── Init ──────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => renderPage());
     </script>
-
-    <style>
-        .focus\:ring-cyan-500:focus {
-            --tw-ring-color: #06b6d4;
-        }
-
-        .text-cyan-600 {
-            color: #0891b2;
-        }
-
-        .text-cyan-700 {
-            color: #0e7490;
-        }
-
-        .bg-cyan-100 {
-            background-color: #cffafe;
-        }
-    </style>
 }

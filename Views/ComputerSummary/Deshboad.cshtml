@@ -15,126 +15,124 @@
         x.UserName != "N/A");
 }
 
-<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4">
+<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 pt-2 sm:pt-3">
     <!-- Compact Header -->
-    <div class="mb-3 flex items-center justify-between">
-        <div class="flex items-center space-x-2">
+    <div class="mb-2 flex items-center justify-between">
+        <div class="flex items-center space-x-1.5">
             <a href="/Companies/GroupsDetails?id=@ViewBag.companyid&companyName=@ViewBag.CompanyName"
-               class="w-7 h-7 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center justify-center transition shadow-sm">
-                <i class="fas fa-arrow-left text-gray-600 text-xs"></i>
+               class="w-6 h-6 bg-white border border-gray-200 hover:bg-gray-50 rounded-md flex items-center justify-center transition shadow-sm">
+                <i class="fas fa-arrow-left text-gray-600 text-[10px]"></i>
             </a>
-            <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                    <i class="fas fa-map-marker-alt text-white text-xs"></i>
+            <div class="flex items-center space-x-1.5">
+                <div class="w-7 h-7 rounded-md flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    <i class="fas fa-map-marker-alt text-white text-[10px]"></i>
                 </div>
                 <div>
-                    <div class="flex items-center space-x-2">
-                        <h1 class="text-base font-bold text-gray-900">@ViewBag.locationName</h1>
+                    <div class="flex items-center space-x-1.5">
+                        <h1 class="text-sm font-bold text-gray-900">@ViewBag.locationName</h1>
                         @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Edit"))
                         {
                             <button id="locationCriticalToggle" class="group" onclick="toggleCurrentLocationCriticality()" title="Toggle Critical Monitoring for entire Location">
-                                <span id="locationCriticalBadge" class="hidden px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold border border-amber-200 flex items-center hover:bg-amber-200 transition-all">
-                                    <i class="fas fa-crown mr-1 text-[8px]"></i> CRITICAL
+                                <span id="locationCriticalBadge" class="hidden px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[8px] font-bold border border-amber-200 flex items-center hover:bg-amber-200 transition-all">
+                                    <i class="fas fa-crown mr-0.5 text-[7px]"></i> CRITICAL
                                 </span>
-                                <span id="locationNotCriticalBadge" class="px-2 py-0.5 bg-gray-50 text-gray-400 rounded text-[9px] font-bold border border-gray-200 flex items-center hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50 transition-all">
-                                    <i class="fas fa-crown mr-1 text-[8px]"></i> MONITOR SITE
+                                <span id="locationNotCriticalBadge" class="px-1.5 py-0.5 bg-gray-50 text-gray-400 rounded text-[8px] font-bold border border-gray-200 flex items-center hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50 transition-all">
+                                    <i class="fas fa-crown mr-0.5 text-[7px]"></i> MONITOR SITE
                                 </span>
                             </button>
                         }
                         else
                         {
                             <div id="locationCriticalBadgeStatus">
-                                <span id="locationCriticalBadge" class="hidden px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold border border-amber-200 flex items-center">
-                                    <i class="fas fa-crown mr-1 text-[8px]"></i> CRITICAL
+                                <span id="locationCriticalBadge" class="hidden px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[8px] font-bold border border-amber-200 flex items-center">
+                                    <i class="fas fa-crown mr-0.5 text-[7px]"></i> CRITICAL
                                 </span>
                             </div>
                         }
                     </div>
-                    <p class="text-[10px] text-gray-600">@ViewBag.CompanyName › @ViewBag.groupName</p>
+                    <p class="text-[9px] text-gray-600">@ViewBag.CompanyName › @ViewBag.groupName</p>
                 </div>
             </div>
         </div>
 
-        <div class="flex items-center flex-wrap gap-2">
+        <div class="flex items-center gap-1.5">
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.VIP"))
             {
                 <button onclick="window.location.href='/ComputerSummary/VIPClient?comId=@ViewBag.companyid&groupId=@ViewBag.groupid&locationId=@ViewBag.locationid&companyName=@System.Net.WebUtility.UrlEncode(ViewBag.CompanyName)'"
-                        class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap"
+                        class="px-2 py-1 text-white rounded-md text-[10px] font-medium transition-colors flex items-center gap-1 shadow-sm whitespace-nowrap"
                         style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
-                    <i class="fas fa-crown text-[10px]"></i>
-                    <span>Critical Monitoring</span>
+                    <i class="fas fa-crown text-[8px]"></i>
+                    <span>Critical</span>
                 </button>
             }
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.DeployPatch"))
             {
                 <button onclick="window.location.href='./BranchPatchMangnment?companyid=@ViewBag.companyid&groupid=@ViewBag.groupid&locationId=@ViewBag.locationid'"
-                        class="px-3 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 shadow-sm whitespace-nowrap"
+                        class="px-2 py-1 text-white rounded-md text-[10px] font-medium transition-colors flex items-center gap-1 shadow-sm whitespace-nowrap"
                         style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                    <i class="fas fa-shield-alt text-[10px]"></i>
-                    <span>Patch Management</span>
+                    <i class="fas fa-shield-alt text-[8px]"></i>
+                    <span>Patch</span>
                 </button>
             }
         </div>
     </div>
 
-
-
     <!-- Compact Stats Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-        <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-2">
+        <div class="bg-white rounded-md border border-gray-200 p-1.5 shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-[9px] font-medium text-gray-500 uppercase">Total</p>
-                    <p class="text-base font-bold text-gray-900 mt-0.5">@totalDevices</p>
+                    <p class="text-[8px] font-medium text-gray-500 uppercase">Total</p>
+                    <p class="text-sm font-bold text-gray-900 mt-0">@totalDevices</p>
                 </div>
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                    <i class="fas fa-desktop text-white text-[10px]"></i>
+                <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                    <i class="fas fa-desktop text-white text-[9px]"></i>
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm">
+        <div class="bg-white rounded-md border border-gray-200 p-1.5 shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-[9px] font-medium text-gray-500 uppercase">Online</p>
-                    <p class="text-base font-bold text-gray-900 mt-0.5" id="onlineCount">@onlineDevices</p>
+                    <p class="text-[8px] font-medium text-gray-500 uppercase">Online</p>
+                    <p class="text-sm font-bold text-gray-900 mt-0" id="onlineCount">@onlineDevices</p>
                 </div>
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);">
-                    <i class="fas fa-check-circle text-white text-[10px]"></i>
+                <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);">
+                    <i class="fas fa-check-circle text-white text-[9px]"></i>
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm">
+        <div class="bg-white rounded-md border border-gray-200 p-1.5 shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-[9px] font-medium text-gray-500 uppercase">Remote</p>
-                    <p class="text-base font-bold text-gray-900 mt-0.5" id="remoteSessionCount">@(ViewBag.RemoteSessions ?? 0)</p>
+                    <p class="text-[8px] font-medium text-gray-500 uppercase">Remote</p>
+                    <p class="text-sm font-bold text-gray-900 mt-0" id="remoteSessionCount">@(ViewBag.RemoteSessions ?? 0)</p>
                 </div>
-                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);">
-                    <i class="fas fa-broadcast-tower text-white text-[10px]"></i>
+                <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);">
+                    <i class="fas fa-broadcast-tower text-white text-[9px]"></i>
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm">
+        <div class="bg-white rounded-md border border-gray-200 p-1.5 shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-[9px] font-medium text-gray-500 uppercase">Offline</p>
-                    <p class="text-base font-bold text-gray-900 mt-0.5" id="offlineCount">@offlineDevices</p>
+                    <p class="text-[8px] font-medium text-gray-500 uppercase">Offline</p>
+                    <p class="text-sm font-bold text-gray-900 mt-0" id="offlineCount">@offlineDevices</p>
                 </div>
-                <div class="w-7 h-7 bg-gray-700 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-power-off text-white text-[10px]"></i>
+                <div class="w-6 h-6 bg-gray-700 rounded-md flex items-center justify-center">
+                    <i class="fas fa-power-off text-white text-[9px]"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Compact Search & Filter -->
-    <div class="mb-3 flex gap-2">
+    <div class="mb-2 flex gap-1.5">
         <div class="flex-1">
             <input type="text" id="searchDevices"
-                   class="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00BCEB]/30 focus:border-[#00BCEB] text-xs transition-colors"
+                   class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00BCEB]/30 focus:border-[#00BCEB] text-[10px] transition-colors"
                    placeholder="Search devices, employees, or departments...">
         </div>
-        <select id="statusFilter" class="px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00BCEB]/30 focus:border-[#00BCEB] text-xs font-medium transition-colors">
+        <select id="statusFilter" class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00BCEB]/30 focus:border-[#00BCEB] text-[10px] font-medium transition-colors">
             <option value="all">All Status</option>
             <option value="online">Online</option>
             <option value="offline">Offline</option>
@@ -143,103 +141,100 @@
 
     @if (Model != null && Model.Any())
     {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5" id="devicesGrid">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5" id="devicesGrid">
             @foreach (var item in Model)
             {
                 bool isActive = activeComputers.Contains(item.DomainName);
                 var deviceIcon = item.DomainName.ToUpper().Contains("LAPTOP") ? "fa-laptop" :
                 item.DomainName.ToUpper().Contains("DESKTOP") ? "fa-desktop" : "fa-computer";
 
-                <div class="device-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-300"
+                <div class="device-card bg-white rounded-md shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-all duration-200"
                      data-domain="@item.DomainName"
                      data-status="@(isActive ? "online" : "offline")"
                      data-device-id="@item.Id">
 
                     <!-- Compact Card Header -->
-                    <div class="bg-white border-b border-gray-100 p-2">
+                    <div class="bg-white border-b border-gray-100 p-1.5">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-1.5 min-w-0 flex-1">
+                            <div class="flex items-center space-x-1 min-w-0 flex-1">
                                 <div class="relative flex-shrink-0">
-                                    <div class="w-7 h-7 rounded-lg flex items-center justify-center @(isActive ? "" : "bg-gray-200")"
+                                    <div class="w-6 h-6 rounded-md flex items-center justify-center @(isActive ? "" : "bg-gray-200")"
                                          style="@(isActive ? "background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);" : "")">
-                                        <i class="fas @deviceIcon @(isActive ? "text-white" : "text-gray-600") text-[10px]"></i>
+                                        <i class="fas @deviceIcon @(isActive ? "text-white" : "text-gray-600") text-[9px]"></i>
                                     </div>
-                                    <span class="temp-protection-badge hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full border border-white"
-                                          title="Temporary Protection Enabled">
-                                    </span>
-                                    <span class="critical-user-crown hidden absolute -top-1 -left-1 w-3.5 h-3.5 bg-yellow-400 rounded-full border border-white flex items-center justify-center shadow-sm"
-                                          title="Critical Monitoring Active">
-                                        <i class="fas fa-crown text-[7px] text-white"></i>
+                                    <span class="temp-protection-badge hidden absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full border border-white"></span>
+                                    <span class="critical-user-crown hidden absolute -top-1 -left-1 w-3 h-3 bg-yellow-400 rounded-full border border-white flex items-center justify-center shadow-sm">
+                                        <i class="fas fa-crown text-[6px] text-white"></i>
                                     </span>
                                 </div>
                                 <div class="min-w-0 flex-1 deshboard-name-cell" data-id="@item.Id" data-domain-id="@item.DomainName"
                                      data-company-id="@item.CompanyId" data-group-id="@item.GroupId" data-location-id="@item.LocationId">
                                     <div class="display-name-section">
                                         <a href="/ComputerSummary/Index?domain=@item.DomainName"
-                                           class="text-xs font-bold text-gray-900 transition-colors block truncate" style="text-decoration:none;" onmouseover="this.style.color='#0096BE'" onmouseout="this.style.color=''"
+                                           class="text-[10px] font-bold text-gray-900 transition-colors block truncate" style="text-decoration:none;"
                                            title="@item.UserName">
                                             @(string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName)
                                         </a>
                                         <div class="flex items-center">
-                                            <p class="text-[9px] text-gray-500 truncate">@item.AccountType</p>
+                                            <p class="text-[8px] text-gray-500 truncate">@item.AccountType</p>
                                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Edit"))
                                             {
-                                                <button class="edit-name-btn ml-1 text-gray-400 hover:text-blue-500 transition-colors" title="Edit Name">
-                                                    <i class="fas fa-edit text-[9px]"></i>
+                                                <button class="edit-name-btn ml-1 text-gray-400 hover:text-blue-500 transition-colors">
+                                                    <i class="fas fa-edit text-[7px]"></i>
                                                 </button>
                                             }
                                         </div>
                                     </div>
                                     <div class="edit-section hidden mt-1">
-                                        <input type="text" class="edit-name w-full px-1.5 py-1 border border-gray-300 rounded text-[10px] mb-1" value="@item.UserName" />
-                                        <div class="flex gap-1">
-                                            <button class="update-btn flex-1 px-2 py-1 text-white rounded text-[9px] font-medium"
+                                        <input type="text" class="edit-name w-full px-1 py-0.5 border border-gray-300 rounded text-[9px] mb-0.5" value="@item.UserName" />
+                                        <div class="flex gap-0.5">
+                                            <button class="update-btn flex-1 px-1.5 py-0.5 text-white rounded text-[8px] font-medium"
                                                     style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
                                                 Save
                                             </button>
-                                            <button class="cancel-edit-btn flex-1 px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-[9px] font-medium">
+                                            <button class="cancel-edit-btn flex-1 px-1.5 py-0.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-[8px] font-medium">
                                                 Cancel
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex items-center space-x-1 flex-shrink-0">
+                            <div class="flex items-center space-x-0.5 flex-shrink-0">
                                 @if (isActive)
                                 {
-                                    <span class="status-badge px-1.5 py-0.5 text-white text-[9px] font-bold rounded-full flex items-center" style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);">
+                                    <span class="status-badge px-1 py-0.5 text-white text-[8px] font-bold rounded-full flex items-center" style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);">
                                         <span class="w-1 h-1 bg-white rounded-full mr-0.5 animate-pulse"></span>
                                         online
                                     </span>
                                 }
                                 else
                                 {
-                                    <span class="status-badge px-1.5 py-0.5 bg-gray-200 text-gray-700 text-[9px] font-semibold rounded-full">
+                                    <span class="status-badge px-1 py-0.5 bg-gray-200 text-gray-700 text-[8px] font-semibold rounded-full">
                                         offline
                                     </span>
                                 }
                                 @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.OTP"))
                                 {
                                     <div class="relative device-menu">
-                                        <button class="menu-toggle w-5 h-5 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
+                                        <button class="menu-toggle w-4 h-4 rounded-md hover:bg-gray-100 flex items-center justify-center transition-colors"
                                                 onclick="toggleMenu(this)">
-                                            <i class="fas fa-ellipsis-v text-gray-600 text-[9px]"></i>
+                                            <i class="fas fa-ellipsis-v text-gray-600 text-[7px]"></i>
                                         </button>
-                                        <div class="menu-dropdown hidden absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                                        <div class="menu-dropdown hidden absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-50">
                                             <div class="py-0.5">
-                                                <button class="temp-protection-toggle w-full px-2.5 py-1.5 text-left text-[10px] hover:bg-gray-50 flex items-center justify-between transition-colors @(isActive ? "text-gray-700" : "text-gray-400 cursor-not-allowed")"
+                                                <button class="temp-protection-toggle w-full px-2 py-1 text-left text-[9px] hover:bg-gray-50 flex items-center justify-between transition-colors @(isActive ? "text-gray-700" : "text-gray-400 cursor-not-allowed")"
                                                         onclick="toggleTempProtection(this, '@item.DomainName', '@item.Id')"
                                                         @(isActive ? "" : "disabled")>
                                                     <span class="flex items-center">
-                                                        <i class="fas fa-shield-alt text-orange-500 mr-1.5 text-[9px]"></i>
-                                                        <span>Temp Protection</span>
+                                                        <i class="fas fa-shield-alt text-orange-500 mr-1 text-[8px]"></i>
+                                                        <span>Protection</span>
                                                     </span>
-                                                    <span class="protection-status text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600">OFF</span>
+                                                    <span class="protection-status text-[8px] font-semibold px-1 py-0.5 rounded-full bg-gray-200 text-gray-600">OFF</span>
                                                 </button>
-                                                <button class="view-otp-btn w-full px-2.5 py-1.5 text-left text-[10px] text-blue-600 hover:bg-blue-50 flex items-center transition-colors hidden"
+                                                <button class="view-otp-btn w-full px-2 py-1 text-left text-[9px] text-blue-600 hover:bg-blue-50 flex items-center transition-colors hidden"
                                                         onclick="viewOtpCode('@item.DomainName')">
-                                                    <i class="fas fa-eye mr-1.5 text-[9px]"></i>
-                                                    <span>View OTP Code</span>
+                                                    <i class="fas fa-eye mr-1 text-[8px]"></i>
+                                                    <span>View OTP</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -250,116 +245,95 @@
                     </div>
 
                     <!-- Compact Card Body -->
-                    <div class="p-2 bg-white">
-                        <div class="mb-2 pb-2 border-b border-gray-100">
-                            <p class="text-[9px] font-medium text-gray-500 uppercase tracking-wide mb-0.5">Domain</p>
-                            <p class="text-[10px] font-semibold text-gray-900 truncate" title="@item.DomainName">@item.DomainName</p>
+                    <div class="p-1.5 bg-white">
+                        <div class="mb-1 pb-1 border-b border-gray-100">
+                            <p class="text-[8px] font-medium text-gray-500 uppercase tracking-wide mb-0">Domain</p>
+                            <p class="text-[9px] font-semibold text-gray-900 truncate" title="@item.DomainName">@item.DomainName</p>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-1.5 text-[9px] mb-2">
+                        <div class="grid grid-cols-2 gap-1 text-[9px] mb-1.5">
                             <div>
-                                <p class="text-gray-500 mb-0.5">IP Address</p>
+                                <p class="text-gray-500 mb-0">IP Address</p>
                                 <p class="font-semibold text-gray-900 ip-address-value">
-                                    <i class="fas fa-circle-notch fa-spin text-gray-400 text-[9px]"></i>
+                                    <i class="fas fa-circle-notch fa-spin text-gray-400 text-[8px]"></i>
                                 </p>
                             </div>
                         </div>
 
-                        <!-- System Usage - ONLY for Online Devices -->
                         @if (isActive)
                         {
-                            <div class="space-y-1.5 mb-2">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="text-[9px] font-semibold text-gray-700 uppercase tracking-wide">System Usage</span>
-                                    <button class="refresh-usage-btn w-5 h-5 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+                            <div class="space-y-1 mb-1.5">
+                                <div class="flex items-center justify-between mb-0.5">
+                                    <span class="text-[8px] font-semibold text-gray-700 uppercase tracking-wide">System Usage</span>
+                                    <button class="refresh-usage-btn w-4 h-4 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors"
                                             title="Refresh Usage Data">
-                                        <i class="fas fa-sync-alt text-gray-500 text-[9px]"></i>
+                                        <i class="fas fa-sync-alt text-gray-500 text-[7px]"></i>
                                     </button>
                                 </div>
-
-                                <!-- CPU -->
                                 <div>
-                                    <div class="flex justify-between text-[9px] mb-0.5">
-                                        <span class="text-gray-600 font-medium">
-                                            <i class="fas fa-microchip mr-0.5" style="color: #00BCEB;"></i>CPU
-                                        </span>
+                                    <div class="flex justify-between text-[8px] mb-0">
+                                        <span class="text-gray-600 font-medium"><i class="fas fa-microchip mr-0.5" style="color: #00BCEB;"></i>CPU</span>
                                         <span class="font-bold text-gray-900 cpu-value">--</span>
                                     </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-1">
-                                        <div class="cpu-bar h-1 rounded-full transition-all duration-300"
-                                             style="width: 0%; background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"></div>
+                                    <div class="w-full bg-gray-200 rounded-full h-0.5">
+                                        <div class="cpu-bar h-0.5 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"></div>
                                     </div>
                                 </div>
-
-                                <!-- RAM -->
                                 <div>
-                                    <div class="flex justify-between text-[9px] mb-0.5">
-                                        <span class="text-gray-600 font-medium">
-                                            <i class="fas fa-memory mr-0.5 text-orange-500"></i>RAM
-                                        </span>
+                                    <div class="flex justify-between text-[8px] mb-0">
+                                        <span class="text-gray-600 font-medium"><i class="fas fa-memory mr-0.5 text-orange-500"></i>RAM</span>
                                         <span class="font-bold text-gray-900 ram-value">--</span>
                                     </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-1">
-                                        <div class="ram-bar bg-orange-500 h-1 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                                    <div class="w-full bg-gray-200 rounded-full h-0.5">
+                                        <div class="ram-bar bg-orange-500 h-0.5 rounded-full transition-all duration-300" style="width: 0%;"></div>
                                     </div>
                                 </div>
-
-                                <!-- Disk -->
                                 <div>
-                                    <div class="flex justify-between text-[9px] mb-0.5">
-                                        <span class="text-gray-600 font-medium">
-                                            <i class="fas fa-hdd mr-0.5" style="color: #B4D334;"></i>Disk
-                                        </span>
+                                    <div class="flex justify-between text-[8px] mb-0">
+                                        <span class="text-gray-600 font-medium"><i class="fas fa-hdd mr-0.5" style="color: #B4D334;"></i>Disk</span>
                                         <span class="font-bold text-gray-900 disk-value">--</span>
                                     </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-1">
-                                        <div class="disk-bar h-1 rounded-full transition-all duration-300"
-                                             style="width: 0%; background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);"></div>
+                                    <div class="w-full bg-gray-200 rounded-full h-0.5">
+                                        <div class="disk-bar h-0.5 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);"></div>
                                     </div>
                                 </div>
                             </div>
                         }
                         else
                         {
-                            <!-- Offline State - NO System Usage -->
-                            <div class="text-center py-3 bg-gray-50 rounded-lg border border-gray-100 mb-2">
-                                <i class="fas fa-moon text-gray-300 text-base mb-1"></i>
-                                <p class="text-[9px] text-gray-500 font-medium">Device Offline</p>
-                                <p class="last-seen-section text-[9px] text-gray-400 mt-1" data-domain="@item.DomainName">
+                            <div class="text-center py-2 bg-gray-50 rounded-md border border-gray-100 mb-1.5">
+                                <i class="fas fa-moon text-gray-300 text-xs mb-0.5"></i>
+                                <p class="text-[8px] text-gray-500 font-medium">Device Offline</p>
+                                <p class="last-seen-section text-[8px] text-gray-400 mt-0.5" data-domain="@item.DomainName">
                                     <i class="fas fa-clock mr-0.5"></i>
                                     <span class="last-seen-text">Loading...</span>
                                 </p>
                             </div>
                         }
 
-                        <!-- Compact Action Buttons -->
-                        <div class="flex gap-1">
+                        <div class="flex gap-0.5">
                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Chat"))
                             {
-                                <a href="javascript:void(0)" onclick="window.openChatModal('@item.DomainName')" class="open-chat-btn relative flex-none p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors" title="Chat with Client">
-                                    <i class="fas fa-comment-dots"></i>
+                                <a href="javascript:void(0)" onclick="window.openChatModal('@item.DomainName')" class="open-chat-btn relative flex-none p-1 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors" title="Chat with Client">
+                                    <i class="fas fa-comment-dots text-[9px]"></i>
                                     <span class="chat-unread-badge hidden">0</span>
                                 </a>
                             }
                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Scan"))
                             {
-                                <button class="rescan-link flex-1 px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[9px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
+                                <button class="rescan-link flex-1 px-1.5 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-[8px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
                                         data-domain="@item.DomainName"
                                         @(isActive ? "" : "disabled")>
-                                    <span class="rescan-text">
-                                        <i class="fas fa-sync-alt mr-0.5"></i>@(isActive ? "Re-Scan" : "Offline")
-                                    </span>
+                                    <span class="rescan-text"><i class="fas fa-sync-alt mr-0.5 text-[7px]"></i>@(isActive ? "Rescan" : "Offline")</span>
                                 </button>
                             }
                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.RemoteAccess"))
                             {
-                                <button class="remote-link flex-1 px-2 py-1 text-white rounded-lg text-[9px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
+                                <button class="remote-link flex-1 px-1.5 py-1 text-white rounded-md text-[8px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
                                         style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"
                                         data-domain="@item.DomainName"
                                         @(isActive ? "" : "disabled")>
-                                    <span class="remote-text">
-                                        <i class="fas fa-desktop mr-0.5"></i>@(isActive ? "Remote" : "Offline")
-                                    </span>
+                                    <span class="remote-text"><i class="fas fa-desktop mr-0.5 text-[7px]"></i>@(isActive ? "Remote" : "Offline")</span>
                                 </button>
                             }
                         </div>
@@ -370,81 +344,82 @@
     }
     else
     {
-        <div class="text-center py-12 bg-white rounded-lg border border-gray-200 shadow-sm">
-            <i class="fas fa-desktop text-4xl text-gray-300 mb-3"></i>
-            <p class="text-gray-500 text-sm">No devices registered for this location yet</p>
+        <div class="text-center py-8 bg-white rounded-md border border-gray-200 shadow-sm">
+            <i class="fas fa-desktop text-3xl text-gray-300 mb-2"></i>
+            <p class="text-gray-500 text-xs">No devices registered for this location yet</p>
         </div>
     }
 </div>
 
-<!-- Temporary Protection Modal -->
-<div id="tempProtectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-4" style="display:none; align-items:center; justify-content:center;">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-xs overflow-hidden">
-        <div class="px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500">
+<!-- Temporary Protection Modal (unchanged functionality, slightly smaller) -->
+<div id="tempProtectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3" style="display:none; align-items:center; justify-content:center;">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-xs overflow-hidden">
+        <div class="px-3 py-2 bg-gradient-to-r from-orange-500 to-red-500">
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
-                    <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-2">
-                        <i class="fas fa-shield-alt text-white text-sm"></i>
+                    <div class="w-7 h-7 bg-white/20 rounded-md flex items-center justify-center mr-2">
+                        <i class="fas fa-shield-alt text-white text-xs"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-white">Protection Code</h3>
-                        <p id="modalDeviceName" class="text-[10px] text-white/80 truncate max-w-[140px]"></p>
+                        <h3 class="text-xs font-bold text-white">Protection Code</h3>
+                        <p id="modalDeviceName" class="text-[9px] text-white/80 truncate max-w-[130px]"></p>
                     </div>
                 </div>
-                <button onclick="closeProtectionModal()" class="w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
-                    <i class="fas fa-times text-white text-xs"></i>
+                <button onclick="closeProtectionModal()" class="w-5 h-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
+                    <i class="fas fa-times text-white text-[9px]"></i>
                 </button>
             </div>
         </div>
-        <div class="p-4">
-            <div class="bg-gradient-to-br from-gray-50 to-orange-50 rounded-lg p-4 mb-3 border border-orange-100 text-center">
-                <p class="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Verification Code</p>
-                <div id="accessCode" class="text-2xl font-bold text-gray-900 tracking-[0.3em] font-mono min-h-[32px] flex items-center justify-center">
+        <div class="p-3">
+            <div class="bg-gradient-to-br from-gray-50 to-orange-50 rounded-md p-3 mb-2 border border-orange-100 text-center">
+                <p class="text-[8px] text-gray-500 uppercase tracking-widest mb-0.5">Verification Code</p>
+                <div id="accessCode" class="text-xl font-bold text-gray-900 tracking-[0.3em] font-mono min-h-[28px] flex items-center justify-center">
                 </div>
-                <div id="timerSection" class="mt-2 hidden">
-                    <div class="flex items-center justify-center space-x-1">
-                        <i class="fas fa-clock text-orange-500 text-[10px]"></i>
-                        <span id="countdownTimer" class="text-xs font-bold text-orange-600">01:00</span>
+                <div id="timerSection" class="mt-1 hidden">
+                    <div class="flex items-center justify-center space-x-0.5">
+                        <i class="fas fa-clock text-orange-500 text-[8px]"></i>
+                        <span id="countdownTimer" class="text-[10px] font-bold text-orange-600">01:00</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-1 mt-1.5">
-                        <div id="timerBar" class="bg-gradient-to-r from-orange-500 to-red-500 h-1 rounded-full transition-all" style="width: 100%"></div>
+                    <div class="w-full bg-gray-200 rounded-full h-0.5 mt-1">
+                        <div id="timerBar" class="bg-gradient-to-r from-orange-500 to-red-500 h-0.5 rounded-full transition-all" style="width: 100%"></div>
                     </div>
                 </div>
-                <p id="expiryInfo" class="text-[10px] text-gray-500 mt-1.5"></p>
-                <p class="text-[10px] text-orange-600 mt-1 font-medium">
-                    <i class="fas fa-shield-alt mr-1"></i>
-                    Protection: <span id="protectionStatusText">Active</span>
+                <p id="expiryInfo" class="text-[9px] text-gray-500 mt-1"></p>
+                <p class="text-[9px] text-orange-600 mt-0.5 font-medium">
+                    <i class="fas fa-shield-alt mr-0.5"></i> Protection: <span id="protectionStatusText">Active</span>
                 </p>
             </div>
 
             <button id="generateBtn" onclick="generateOrRegenerateOtp()"
-                    class="w-full mb-3 px-3 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed">
-                <i class="fas fa-key mr-2"></i>Generate OTP
+                    class="w-full mb-2 px-2 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-md text-[10px] font-semibold transition-colors flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed">
+                <i class="fas fa-key mr-1"></i>Generate OTP
             </button>
 
-            <div class="grid grid-cols-2 gap-2 mb-2">
+            <div class="grid grid-cols-2 gap-1.5 mb-1.5">
                 <button onclick="copyCode()"
                         id="copyCodeBtn"
-                        class="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        class="px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-[10px] font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                         disabled>
                     <i class="fas fa-copy mr-1"></i>Copy
                 </button>
                 <button onclick="closeProtectionModal()"
-                        class="px-3 py-2 text-white rounded-lg text-xs font-semibold"
+                        class="px-2 py-1 text-white rounded-md text-[10px] font-semibold"
                         style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
                     <i class="fas fa-check mr-1"></i>Done
                 </button>
             </div>
 
-            <div class="mt-3 pt-3 border-t border-gray-200">
-                <p class="text-[10px] text-gray-600 text-center">
-                    <i class="fas fa-info-circle mr-1 text-blue-500"></i>
-                    Temporary Protection remains active until manually turned off
+            <div class="mt-2 pt-2 border-t border-gray-200">
+                <p class="text-[9px] text-gray-600 text-center">
+                    <i class="fas fa-info-circle mr-0.5 text-blue-500"></i>
+                    Protection remains active until manually turned off
                 </p>
             </div>
         </div>
     </div>
 </div>
+
+
 
 @section Scripts {
     <script>

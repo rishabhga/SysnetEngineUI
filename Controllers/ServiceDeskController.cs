@@ -120,6 +120,39 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
+
+                // Dynamically detect Admin/Approver capability and inject AutoApprove flag
+                var role = HttpContext.Session.GetString("role") ?? "";
+                if (IsTopLevelAdmin() || HasPermission("ServiceDesk.Approve") || role.EndsWith("Admin", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var ticketObj = JsonConvert.DeserializeObject<dynamic>(body);
+                        if (ticketObj != null)
+                        {
+                            ticketObj.AutoApprove = true;
+                            body = JsonConvert.SerializeObject(ticketObj);
+                        }
+                    }
+                    catch { /* Fallback to original body if parsing fails */ }
+                }
+
+                var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
+                var ticketData = JsonConvert.DeserializeObject<dynamic>(body);
+                if (ticketData != null && !IsTopLevelAdmin())
+                {
+                    int? cId = ticketData.companyId;
+                    int? gId = ticketData.groupId;
+                    int? lId = ticketData.locationId;
+
+                    if (cId.HasValue && userCompanyIds.Any() && !userCompanyIds.Contains(cId.Value))
+                        return BadRequest(new { success = false, message = "Access Denied: Invalid Company selection." });
+                    if (gId.HasValue && userGroupIds.Any() && !userGroupIds.Contains(gId.Value))
+                        return BadRequest(new { success = false, message = "Access Denied: Invalid Group selection." });
+                    if (lId.HasValue && userLocationIds.Any() && !userLocationIds.Contains(lId.Value))
+                        return BadRequest(new { success = false, message = "Access Denied: Invalid Location selection." });
+                }
+
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
@@ -424,12 +457,29 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var (userCompanyIds, userGroupIds, _) = GetUserScope();
+                
+                // RBAC: If restricted, user must stay within their assigned company
+                if (userCompanyIds.Any() && companyId > 0 && !userCompanyIds.Contains(companyId))
+                    return Json(new List<object>());
+
                 var companyIds = companyId > 0 ? new List<int> { companyId } : userCompanyIds;
-                var groupIds = groupId.HasValue && groupId.Value > 0 ? new List<int> { groupId.Value } : userGroupIds;
+                
+                // RBAC: If restricted, user must stay within their assigned groups
+                var targetGroupIds = new List<int>();
+                if (groupId.HasValue && groupId.Value > 0)
+                {
+                    if (userGroupIds.Any() && !userGroupIds.Contains(groupId.Value))
+                        return Json(new List<object>());
+                    targetGroupIds.Add(groupId.Value);
+                }
+                else
+                {
+                    targetGroupIds.AddRange(userGroupIds);
+                }
 
                 var q = new List<string>();
                 foreach (var id in companyIds) q.Add($"comId={id}");
-                foreach (var id in groupIds) q.Add($"groupid={id}");
+                foreach (var id in targetGroupIds) q.Add($"groupid={id}");
                 var url = $"{_baseUrl}/api/CompaniesDetails/Locationdata" + (q.Any() ? "?" + string.Join("&", q) : "");
                 
                 var response = await GetClient().GetAsync(url);
@@ -445,14 +495,19 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
-                var companyIds = companyId > 0 ? new List<int> { companyId } : userCompanyIds;
-                var groupIds = groupId > 0 ? new List<int> { groupId } : userGroupIds;
-                var locationIds = locationId > 0 ? new List<int> { locationId } : userLocationIds;
+                
+                if (userCompanyIds.Any() && companyId > 0 && !userCompanyIds.Contains(companyId)) return Json(new List<object>());
+                if (userGroupIds.Any() && groupId > 0 && !userGroupIds.Contains(groupId)) return Json(new List<object>());
+                if (userLocationIds.Any() && locationId > 0 && !userLocationIds.Contains(locationId)) return Json(new List<object>());
+
+                var targetCompanyIds = companyId > 0 ? new List<int> { companyId } : userCompanyIds;
+                var targetGroupIds = groupId > 0 ? new List<int> { groupId } : userGroupIds;
+                var targetLocationIds = locationId > 0 ? new List<int> { locationId } : userLocationIds;
 
                 var q = new List<string>();
-                foreach (var id in companyIds) q.Add($"comId={id}");
-                foreach (var id in groupIds) q.Add($"groupid={id}");
-                foreach (var id in locationIds) q.Add($"locationId={id}");
+                foreach (var id in targetCompanyIds) q.Add($"comId={id}");
+                foreach (var id in targetGroupIds) q.Add($"groupid={id}");
+                foreach (var id in targetLocationIds) q.Add($"locationId={id}");
                 var url = $"{_baseUrl}/api/WindowsUserDetails/allUser" + (q.Any() ? "?" + string.Join("&", q) : "");
 
                 var response = await GetClient().GetAsync(url);
@@ -468,10 +523,14 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var (userCompanyIds, _, _) = GetUserScope();
-                var companyIds = companyId > 0 ? new List<int> { companyId } : userCompanyIds;
+                
+                if (userCompanyIds.Any() && companyId > 0 && !userCompanyIds.Contains(companyId))
+                    return Json(new List<object>());
+
+                var targetCompanyIds = companyId > 0 ? new List<int> { companyId } : userCompanyIds;
 
                 var q = new List<string>();
-                foreach (var id in companyIds) q.Add($"id={id}");
+                foreach (var id in targetCompanyIds) q.Add($"id={id}");
                 var url = $"{_baseUrl}/api/CompaniesDetails/Groupdata" + (q.Any() ? "?" + string.Join("&", q) : "");
 
                 var response = await GetClient().GetAsync(url);

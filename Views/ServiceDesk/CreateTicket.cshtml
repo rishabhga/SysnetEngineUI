@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+@using ManageEngineWebApp.Datacontext
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
@@ -552,6 +553,14 @@
                             const name = c.companyName || c.CompanyName || c.name || c.Name;
                             select.append(`<option value="${id}">${name}</option>`);
                         });
+                        if (companies.length === 1) {
+                            const onlyId = companies[0].id || companies[0].Id || companies[0].companyId || companies[0].CompanyId;
+                            select.val(onlyId).trigger('change');
+                            // If user is restricted, don't let them change it
+                            if (!@Json.Serialize(RoleHelper.IsTopLevelAdmin(Context))) {
+                                select.prop('disabled', true);
+                            }
+                        }
                     }
                 });
                 $.get('@Url.Action("GetCategories", "ServiceDesk")', categories => {
@@ -585,6 +594,11 @@
                             const name = g.groupName || g.GroupName || g.name || g.Name;
                             select.append(`<option value="${id}">${name}</option>`);
                         });
+                        if (groups.length === 1) {
+                            const onlyId = groups[0].id || groups[0].Id || groups[0].groupId || groups[0].GroupId;
+                            select.val(onlyId).trigger('change');
+                            if (!@Json.Serialize(RoleHelper.IsTopLevelAdmin(Context))) select.prop('disabled', true);
+                        }
                     } else {
                         select.html('<option value="">No groups found</option>');
                     }
@@ -601,6 +615,11 @@
                             const name = l.locationName || l.LocationName || l.name || l.Name;
                             select.append(`<option value="${id}">${name}</option>`);
                         });
+                        if (locations.length === 1) {
+                            const onlyId = locations[0].id || locations[0].Id || locations[0].locationId || locations[0].LocationId;
+                            select.val(onlyId).trigger('change');
+                            if (!@Json.Serialize(RoleHelper.IsTopLevelAdmin(Context))) select.prop('disabled', true);
+                        }
                     } else {
                         select.html('<option value="">No locations found</option>');
                     }
@@ -617,6 +636,11 @@
                             const name = u.userName || u.UserName || u.name || u.Name;
                             select.append(`<option value="${id}">${name}</option>`);
                         });
+                        if (users.length === 1) {
+                            const onlyId = users[0].domainName || users[0].DomainName || users[0].id || users[0].Id;
+                            select.val(onlyId).trigger('change');
+                            if (!@Json.Serialize(RoleHelper.IsTopLevelAdmin(Context))) select.prop('disabled', true);
+                        }
                     } else {
                         select.html('<option value="">No users found</option>');
                     }

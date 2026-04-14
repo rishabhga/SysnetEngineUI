@@ -18,40 +18,38 @@
             font-family: 'DM Sans', sans-serif;
         }
 
-        /* --- Layout --- */
         .vip-wrap {
-            max-width: 1200px;
+            max-width: 1100px;
             margin: 0 auto;
-            padding: 16px 20px;
+            padding: 12px 16px;
         }
 
-        /* --- Header --- */
         .vip-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
 
         .vip-header-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .vip-back-btn {
-            width: 28px;
-            height: 28px;
+            width: 26px;
+            height: 26px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 7px;
-            color: #64748b;
             cursor: pointer;
             transition: background .15s;
             text-decoration: none;
+            color: #64748b;
         }
 
             .vip-back-btn:hover {
@@ -59,38 +57,37 @@
             }
 
             .vip-back-btn i {
-                font-size: 11px;
+                font-size: 10px;
             }
 
         .vip-crown-btn {
-            position: relative;
-            cursor: pointer;
             background: none;
             border: none;
             padding: 0;
+            cursor: pointer;
         }
 
         .vip-crown-box {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
             background: #e2e8f0;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all .25s;
-            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            transition: all .2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,.05);
         }
 
             .vip-crown-box i {
-                font-size: 11px;
+                font-size: 10px;
                 color: #94a3b8;
-                transition: color .25s;
+                transition: color .2s;
             }
 
             .vip-crown-box.active {
                 background: linear-gradient(135deg, #f59e0b, #d97706);
-                box-shadow: 0 2px 8px rgba(245,158,11,.35);
+                box-shadow: 0 2px 6px rgba(245,158,11,.3);
             }
 
                 .vip-crown-box.active i {
@@ -99,53 +96,48 @@
 
         .vip-site-badge {
             position: absolute;
-            bottom: -3px;
-            right: -3px;
+            bottom: -2px;
+            right: -2px;
             background: #f59e0b;
             color: #fff;
-            font-size: 6px;
+            font-size: 5px;
             font-weight: 700;
-            padding: 1px 3px;
+            padding: 1px 2px;
             border-radius: 3px;
-            letter-spacing: .5px;
+            letter-spacing: .3px;
         }
 
         .vip-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
             color: #0f172a;
-            line-height: 1.2;
             margin: 0;
+            line-height: 1.2;
         }
 
         .vip-subtitle {
-            font-size: 11px;
+            font-size: 10px;
             color: #94a3b8;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
             margin: 0;
         }
-
-            .vip-subtitle i {
-                font-size: 9px;
-            }
 
         .vip-add-btn {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
+            gap: 5px;
+            padding: 5px 10px;
             background: #0f172a;
             color: #fff;
             border: none;
-            border-radius: 8px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             transition: background .15s;
             white-space: nowrap;
-            font-family: 'DM Sans', sans-serif;
         }
 
             .vip-add-btn:hover {
@@ -153,40 +145,37 @@
             }
 
             .vip-add-btn i {
-                font-size: 10px;
-                color: #94a3b8;
+                font-size: 9px;
             }
 
-        /* --- Stats Row --- */
         .vip-stats-row {
             display: grid;
-            grid-template-columns: 140px 1fr;
-            gap: 10px;
-            margin-bottom: 14px;
+            grid-template-columns: 110px 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
         }
 
         .vip-stat-card {
             background: #fff;
             border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 10px 12px;
+            border-radius: 8px;
+            padding: 8px 10px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 1px 3px rgba(0,0,0,.04);
         }
 
         .vip-stat-label {
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 700;
             color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: .8px;
-            margin-bottom: 2px;
+            letter-spacing: .6px;
+            margin-bottom: 1px;
         }
 
         .vip-stat-value {
-            font-size: 22px;
+            font-size: 18px;
             font-weight: 800;
             color: #0f172a;
             font-family: 'DM Mono', monospace;
@@ -194,9 +183,9 @@
         }
 
         .vip-stat-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
             background: #fffbeb;
             display: flex;
             align-items: center;
@@ -204,18 +193,17 @@
         }
 
             .vip-stat-icon i {
-                font-size: 13px;
+                font-size: 11px;
                 color: #d97706;
             }
 
         .vip-search-card {
             background: #fff;
             border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 8px 12px;
+            border-radius: 8px;
+            padding: 6px 10px;
             display: flex;
             align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,.04);
         }
 
         .vip-search-wrap {
@@ -225,58 +213,51 @@
 
             .vip-search-wrap i {
                 position: absolute;
-                left: 10px;
+                left: 8px;
                 top: 50%;
                 transform: translateY(-50%);
                 color: #cbd5e1;
-                font-size: 11px;
+                font-size: 10px;
             }
 
         .vip-search-input {
             width: 100%;
-            padding: 6px 10px 6px 30px;
+            padding: 5px 8px 5px 28px;
             background: #f8fafc;
             border: 1px solid transparent;
-            border-radius: 7px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 500;
             color: #1e293b;
             outline: none;
             transition: all .15s;
-            font-family: 'DM Sans', sans-serif;
-            box-sizing: border-box;
         }
 
             .vip-search-input:focus {
                 border-color: #fbbf24;
                 background: #fff;
-                box-shadow: 0 0 0 3px rgba(251,191,36,.12);
+                box-shadow: 0 0 0 3px rgba(251,191,36,.1);
             }
 
-            .vip-search-input::placeholder {
-                color: #cbd5e1;
-            }
-
-        /* --- States --- */
-        .vip-loading {
+        .vip-loading, .vip-empty {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 40px;
+            padding: 32px;
             background: #fff;
             border: 1px dashed #e2e8f0;
-            border-radius: 12px;
+            border-radius: 10px;
         }
 
         .vip-spinner {
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border: 2px solid #e2e8f0;
             border-top-color: #f59e0b;
             border-radius: 50%;
             animation: spin .7s linear infinite;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         @@keyframes spin {
@@ -286,102 +267,88 @@
         }
 
         .vip-loading-text {
-            font-size: 12px;
+            font-size: 11px;
             color: #94a3b8;
             font-weight: 500;
         }
 
-        .vip-empty {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            background: #fff;
-            border: 1px dashed #e2e8f0;
-            border-radius: 12px;
-        }
-
         .vip-empty-icon {
-            width: 44px;
-            height: 44px;
+            width: 38px;
+            height: 38px;
             background: #fffbeb;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
             .vip-empty-icon i {
-                font-size: 18px;
+                font-size: 16px;
                 color: #fde68a;
             }
 
         .vip-empty h3 {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             color: #0f172a;
-            margin: 0 0 4px;
+            margin: 0 0 2px;
         }
 
         .vip-empty p {
-            font-size: 11px;
+            font-size: 10px;
             color: #94a3b8;
             text-align: center;
-            max-width: 280px;
-            margin: 0 0 14px;
-            line-height: 1.5;
+            max-width: 260px;
+            margin: 0 0 10px;
+            line-height: 1.4;
         }
 
         .vip-empty-btn {
-            padding: 7px 16px;
+            padding: 5px 14px;
             background: #f59e0b;
             color: #fff;
             border: none;
-            border-radius: 8px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 700;
             cursor: pointer;
             transition: background .15s;
-            font-family: 'DM Sans', sans-serif;
         }
 
             .vip-empty-btn:hover {
                 background: #d97706;
             }
 
-        /* --- Cards Grid --- */
         .vip-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 6px;
         }
 
         .critical-card {
             position: relative;
             background: #fff;
             border: 1px solid #f1f5f9;
-            border-radius: 10px;
-            padding: 12px;
-            cursor: default;
+            border-radius: 8px;
+            padding: 10px;
             transition: all .2s;
-            box-shadow: 0 1px 3px rgba(0,0,0,.04);
+            box-shadow: 0 1px 2px rgba(0,0,0,.03);
             background-image: radial-gradient(circle at top right, rgba(245,158,11,.03), transparent);
         }
 
             .critical-card:hover {
                 border-color: #fde68a;
-                box-shadow: 0 4px 16px rgba(245,158,11,.1);
+                box-shadow: 0 4px 12px rgba(245,158,11,.08);
                 transform: translateY(-1px);
             }
 
         .card-crown-dot {
             position: absolute;
-            top: -4px;
-            right: -4px;
-            width: 16px;
-            height: 16px;
+            top: -3px;
+            right: -3px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
             background: #f59e0b;
             display: flex;
@@ -389,7 +356,7 @@
             justify-content: center;
             opacity: 0;
             transition: opacity .2s;
-            box-shadow: 0 2px 6px rgba(245,158,11,.4);
+            box-shadow: 0 1px 4px rgba(245,158,11,.3);
         }
 
         .critical-card:hover .card-crown-dot {
@@ -397,20 +364,20 @@
         }
 
         .card-crown-dot i {
-            font-size: 7px;
+            font-size: 6px;
             color: #fff;
         }
 
         .card-body {
             display: flex;
             align-items: flex-start;
-            gap: 10px;
+            gap: 8px;
         }
 
         .card-icon-wrap {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
             background: #f8fafc;
             display: flex;
             align-items: center;
@@ -424,7 +391,7 @@
         }
 
         .card-icon-wrap i {
-            font-size: 13px;
+            font-size: 11px;
             color: #94a3b8;
             transition: color .2s;
         }
@@ -439,7 +406,7 @@
         }
 
         .card-name {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             color: #0f172a;
             margin: 0 0 2px;
@@ -449,13 +416,13 @@
         }
 
         .card-id {
-            font-size: 10px;
+            font-size: 9px;
             color: #94a3b8;
             font-family: 'DM Mono', monospace;
             display: flex;
             align-items: center;
-            gap: 4px;
-            margin-bottom: 7px;
+            gap: 3px;
+            margin-bottom: 5px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -464,8 +431,8 @@
             .card-id::before {
                 content: '';
                 display: inline-block;
-                width: 5px;
-                height: 5px;
+                width: 4px;
+                height: 4px;
                 border-radius: 50%;
                 background: #e2e8f0;
                 flex-shrink: 0;
@@ -474,11 +441,11 @@
         .card-badge {
             display: inline-flex;
             align-items: center;
-            padding: 2px 7px;
-            border-radius: 5px;
-            font-size: 9px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 8px;
             font-weight: 700;
-            letter-spacing: .5px;
+            letter-spacing: .3px;
             text-transform: uppercase;
         }
 
@@ -496,11 +463,11 @@
 
         .card-del-btn {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
+            top: 6px;
+            right: 6px;
+            width: 22px;
+            height: 22px;
+            border-radius: 5px;
             background: #f8fafc;
             border: none;
             color: #94a3b8;
@@ -522,10 +489,9 @@
         }
 
         .card-del-btn i {
-            font-size: 9px;
+            font-size: 8px;
         }
 
-        /* --- Modal --- */
         .vip-modal-overlay {
             position: fixed;
             inset: 0;
@@ -535,9 +501,9 @@
             align-items: center;
             justify-content: center;
             z-index: 100;
-            padding: 16px;
+            padding: 12px;
             opacity: 0;
-            transition: opacity .25s;
+            transition: opacity .2s;
         }
 
             .vip-modal-overlay.visible {
@@ -550,13 +516,13 @@
 
         .vip-modal {
             background: #fff;
-            border-radius: 14px;
-            box-shadow: 0 20px 60px rgba(0,0,0,.15);
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,.12);
             width: 100%;
-            max-width: 340px;
+            max-width: 300px;
             overflow: hidden;
-            transform: scale(.96) translateY(8px);
-            transition: transform .25s;
+            transform: scale(.96) translateY(4px);
+            transition: transform .2s;
         }
 
         .vip-modal-overlay.shown .vip-modal {
@@ -567,20 +533,20 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 14px 16px;
+            padding: 10px 12px;
             border-bottom: 1px solid #f1f5f9;
         }
 
         .modal-header-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .modal-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
             background: #f59e0b;
             display: flex;
             align-items: center;
@@ -588,28 +554,28 @@
         }
 
             .modal-icon i {
-                font-size: 11px;
+                font-size: 10px;
                 color: #fff;
             }
 
         .modal-title {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             color: #0f172a;
             margin: 0;
         }
 
         .modal-sub {
-            font-size: 10px;
+            font-size: 9px;
             color: #94a3b8;
             font-style: italic;
             margin: 0;
         }
 
         .modal-close {
-            width: 26px;
-            height: 26px;
-            border-radius: 6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 5px;
             border: none;
             background: none;
             color: #94a3b8;
@@ -625,26 +591,25 @@
             }
 
             .modal-close i {
-                font-size: 11px;
+                font-size: 10px;
             }
 
         .vip-modal-body {
-            padding: 16px;
+            padding: 12px;
         }
 
         .form-group {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .form-label {
             display: block;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 700;
             color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: .8px;
-            margin-bottom: 5px;
-            padding-left: 2px;
+            letter-spacing: .6px;
+            margin-bottom: 3px;
         }
 
         .form-field-wrap {
@@ -653,11 +618,11 @@
 
             .form-field-wrap > i {
                 position: absolute;
-                left: 10px;
+                left: 8px;
                 top: 50%;
                 transform: translateY(-50%);
                 color: #cbd5e1;
-                font-size: 11px;
+                font-size: 10px;
                 pointer-events: none;
                 transition: color .15s;
             }
@@ -668,70 +633,67 @@
 
         .form-select, .form-input {
             width: 100%;
-            padding: 8px 10px 8px 30px;
+            padding: 6px 8px 6px 28px;
             background: #f8fafc;
             border: 1px solid transparent;
-            border-radius: 8px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 500;
             color: #1e293b;
             outline: none;
             transition: all .15s;
             appearance: none;
-            box-sizing: border-box;
-            font-family: 'DM Sans', sans-serif;
         }
 
             .form-select:focus, .form-input:focus {
                 border-color: #fbbf24;
                 background: #fff;
-                box-shadow: 0 0 0 3px rgba(251,191,36,.12);
+                box-shadow: 0 0 0 2px rgba(251,191,36,.1);
             }
 
         .form-select {
-            padding-right: 28px;
+            padding-right: 24px;
         }
 
         .form-chevron {
             position: absolute;
-            right: 10px;
+            right: 8px;
             top: 50%;
             transform: translateY(-50%);
             color: #cbd5e1;
-            font-size: 9px;
+            font-size: 8px;
             pointer-events: none;
         }
 
         .form-hint {
-            font-size: 9px;
+            font-size: 8px;
             color: #cbd5e1;
             padding-left: 2px;
-            margin-top: 3px;
+            margin-top: 2px;
             font-style: italic;
         }
 
         .form-actions {
             display: flex;
-            gap: 8px;
-            padding-top: 4px;
+            gap: 6px;
+            padding-top: 2px;
         }
 
         .btn-primary {
             flex: 1;
-            padding: 9px;
+            padding: 7px;
             background: #f59e0b;
             color: #fff;
             border: none;
-            border-radius: 8px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 700;
             cursor: pointer;
             transition: background .15s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            font-family: 'DM Sans', sans-serif;
+            gap: 5px;
         }
 
             .btn-primary:hover {
@@ -739,46 +701,43 @@
             }
 
             .btn-primary i {
-                font-size: 10px;
+                font-size: 9px;
                 opacity: .8;
             }
 
         .btn-secondary {
-            padding: 9px 14px;
+            padding: 7px 12px;
             background: #f1f5f9;
             color: #475569;
             border: none;
-            border-radius: 8px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             transition: background .15s;
-            font-family: 'DM Sans', sans-serif;
         }
 
             .btn-secondary:hover {
                 background: #e2e8f0;
             }
 
-        /* --- Toast --- */
         .vip-toast {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
-            padding: 10px 16px;
-            border-radius: 10px;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 14px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 12px;
+            gap: 6px;
+            font-size: 11px;
             font-weight: 600;
             color: #fff;
-            box-shadow: 0 8px 24px rgba(0,0,0,.15);
+            box-shadow: 0 6px 16px rgba(0,0,0,.12);
             z-index: 200;
-            transition: all .4s;
+            transition: all .3s;
             opacity: 0;
-            transform: translateY(16px);
-            font-family: 'DM Sans', sans-serif;
+            transform: translateY(12px);
         }
 
             .vip-toast.show {
@@ -787,26 +746,21 @@
             }
 
             .vip-toast i {
-                font-size: 13px;
+                font-size: 11px;
             }
 
-        select option {
-            background: #fff;
-            color: #1e293b;
+        .hidden {
+            display: none !important;
         }
     </style>
 }
 
 <div class="vip-root">
     <div class="vip-wrap">
-
-        <!-- Header -->
         <div class="vip-header">
             <div class="vip-header-left">
-                <a href="javascript:history.back()" class="vip-back-btn">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-                <button onclick="toggleLocationCriticality()" class="vip-crown-btn" id="locationCriticalToggleHeader" title="Toggle Location-wide Critical Monitoring">
+                <a href="javascript:history.back()" class="vip-back-btn"><i class="fas fa-arrow-left"></i></a>
+                <button onclick="toggleLocationCriticality()" class="vip-crown-btn" id="locationCriticalToggleHeader">
                     <div id="locationCrownContainer" class="vip-crown-box">
                         <i id="locationCrownIcon" class="fas fa-crown"></i>
                     </div>
@@ -817,13 +771,9 @@
                     <p class="vip-subtitle"><i class="fas fa-building"></i> @companyName</p>
                 </div>
             </div>
-            <button onclick="openAddModal()" class="vip-add-btn">
-                <i class="fas fa-plus"></i>
-                Add Device
-            </button>
+            <button onclick="openAddModal()" class="vip-add-btn"><i class="fas fa-plus"></i> Add Device</button>
         </div>
 
-        <!-- Stats + Search -->
         <div class="vip-stats-row">
             <div class="vip-stat-card">
                 <div>
@@ -835,34 +785,25 @@
             <div class="vip-search-card">
                 <div class="vip-search-wrap">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchCritical" class="vip-search-input"
-                           placeholder="Search by ID or name..."
-                           onkeyup="filterCriticalClients()">
+                    <input type="text" id="searchCritical" class="vip-search-input" placeholder="Search by ID or name..." onkeyup="filterCriticalClients()">
                 </div>
             </div>
         </div>
 
-        <!-- Loading -->
         <div id="loadingState" class="vip-loading">
             <div class="vip-spinner"></div>
             <p class="vip-loading-text">Synchronizing critical fleet data...</p>
         </div>
-
-        <!-- Cards Grid -->
         <div id="criticalClientsList" class="vip-grid hidden"></div>
-
-        <!-- Empty State -->
         <div id="emptyState" class="vip-empty hidden">
             <div class="vip-empty-icon"><i class="fas fa-crown"></i></div>
             <h3>No Devices Under Critical Watch</h3>
-            <p>Devices added here will trigger high-priority alerts across the @companyName infrastructure when resources are stressed.</p>
+            <p>Devices added here will trigger high-priority alerts when resources are stressed.</p>
             <button onclick="openAddModal()" class="vip-empty-btn">Provision First Device</button>
         </div>
-
     </div>
 </div>
 
-<!-- Add Modal -->
 <div id="addCriticalModal" class="vip-modal-overlay">
     <div class="vip-modal">
         <div class="vip-modal-header">
@@ -896,9 +837,7 @@
                     <p class="form-hint">Appears in all system-wide alerts.</p>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary">
-                        <i class="fas fa-bolt"></i> Activate Monitoring
-                    </button>
+                    <button type="submit" class="btn-primary"><i class="fas fa-bolt"></i> Activate</button>
                     <button type="button" onclick="closeAddModal()" class="btn-secondary">Cancel</button>
                 </div>
             </form>
