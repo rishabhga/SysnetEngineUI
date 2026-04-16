@@ -53,7 +53,7 @@ namespace ManageEngineWebApp.Controllers
                 CompileInnoSetup();
                 // Step 3: Return the actual file
                 //var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "installersoftware", "Output", "setup.exe");
-                var filePath = Path.Combine(_env.WebRootPath, "installersoftware", "Output", "Manageengine.exe");
+                var filePath = Path.Combine(_env.WebRootPath, "installersoftware", "Output", "Sysnet_Trinetra_Setup.exe");
                 string folderPath = Path.Combine("C:\\SysnetEngineWeb\\wwwroot\\Installersoftware");
                 // var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "installersoftware", "Output", "setup.exe");
 
