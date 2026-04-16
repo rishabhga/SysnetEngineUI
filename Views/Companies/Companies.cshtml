@@ -283,6 +283,13 @@
                        placeholder="Enter company name" autocomplete="off" />
                 <p id="addCompanyNameError" class="text-red-600 text-[10px] mt-1" style="display:none;"></p>
             </div>
+            <div class="mb-3">
+                <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                    <i class="fas fa-image mr-1" style="color: #00BCEB;"></i> Company Logo
+                </label>
+                <input type="file" id="addCompanyLogo" accept="image/*"
+                       class="w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />
+            </div>
             <div class="flex space-x-2 mt-4">
                 <button type="button" onclick="closeAddCompanyModal()"
                         class="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
@@ -315,6 +322,13 @@
                        placeholder="Enter company name" autocomplete="off" />
                 <p id="editCompanyNameError" class="text-red-600 text-[10px] mt-1" style="display:none;"></p>
             </div>
+            <div class="mb-3">
+                <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                    <i class="fas fa-image mr-1" style="color: #00BCEB;"></i> Update Logo
+                </label>
+                <input type="file" id="editCompanyLogo" accept="image/*"
+                       class="w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />
+            </div>
             <div class="flex space-x-2 mt-4">
                 <button type="button" onclick="closeEditCompanyModal()"
                         class="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
@@ -345,22 +359,37 @@
     function openAddCompanyModal() {
         document.getElementById('addCompanyModal').classList.add('active');
         document.getElementById('addCompanyName').value = '';
+        document.getElementById('addCompanyLogo').value = '';
         document.getElementById('addCompanyNameError').style.display = 'none';
     }
 
     function closeAddCompanyModal() {
         document.getElementById('addCompanyModal').classList.remove('active');
+        document.getElementById('addCompanyName').value = '';
+        document.getElementById('addCompanyLogo').value = '';
+        document.getElementById('addCompanyNameError').style.display = 'none';
+        var btn = document.getElementById('addCompanyBtn');
+        btn.disabled = false;
+        btn.innerHTML = 'Add';
     }
 
     function openEditCompanyModal(id, name) {
         document.getElementById('editCompanyModal').classList.add('active');
         document.getElementById('editCompanyId').value = id;
         document.getElementById('editCompanyName').value = name;
+        document.getElementById('editCompanyLogo').value = '';
         document.getElementById('editCompanyNameError').style.display = 'none';
     }
 
     function closeEditCompanyModal() {
         document.getElementById('editCompanyModal').classList.remove('active');
+        document.getElementById('editCompanyId').value = '';
+        document.getElementById('editCompanyName').value = '';
+        document.getElementById('editCompanyLogo').value = '';
+        document.getElementById('editCompanyNameError').style.display = 'none';
+        var btn = document.getElementById('updateCompanyBtn');
+        btn.disabled = false;
+        btn.innerHTML = 'Update';
     }
 
     window.onclick = function(e) {
@@ -418,13 +447,36 @@
                         }),
                         success: function(response) {
                             console.log('Add Response:', response);
+                            var newCompanyId = response.id || response.Id;
+                            var fileInput = document.getElementById('addCompanyLogo');
 
-                            closeAddCompanyModal();
-                            showSuccessMessage('Company added successfully');
-
-                            setTimeout(function() {
-                                location.reload();
-                            }, 500);
+                            if (fileInput.files.length > 0 && newCompanyId) {
+                                var formData = new FormData();
+                                formData.append('logo', fileInput.files[0]);
+                                formData.append('companyId', newCompanyId);
+                                
+                                $.ajax({
+                                    url: '/Companies/UploadLogo',
+                                    type: 'POST',
+                                    data: formData,
+                                    processData: false,
+                                    contentType: false,
+                                    success: function() {
+                                        closeAddCompanyModal();
+                                        showSuccessMessage('Company and logo added successfully');
+                                        setTimeout(function() { location.reload(); }, 500);
+                                    },
+                                    error: function() {
+                                        closeAddCompanyModal();
+                                        showSuccessMessage('Company added but logo upload failed');
+                                        setTimeout(function() { location.reload(); }, 1000);
+                                    }
+                                });
+                            } else {
+                                closeAddCompanyModal();
+                                showSuccessMessage('Company added successfully');
+                                setTimeout(function() { location.reload(); }, 500);
+                            }
                         },
                         error: function(xhr, status, err) {
                             console.error('Add Error:', xhr.status, xhr.responseText);
@@ -475,13 +527,36 @@
             }),
             success: function(response) {
                 console.log('Update Response:', response);
+                var fileInput = document.getElementById('editCompanyLogo');
+                var currentCompanyId = parseInt(id);
 
-                closeEditCompanyModal();
-                showSuccessMessage('Company updated successfully');
-
-                setTimeout(function() {
-                    location.reload();
-                }, 500);
+                if (fileInput.files.length > 0 && currentCompanyId) {
+                    var formData = new FormData();
+                    formData.append('logo', fileInput.files[0]);
+                    formData.append('companyId', currentCompanyId);
+                    
+                    $.ajax({
+                        url: '/Companies/UploadLogo',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function() {
+                            closeEditCompanyModal();
+                            showSuccessMessage('Company and logo updated successfully');
+                            setTimeout(function() { location.reload(); }, 500);
+                        },
+                        error: function() {
+                            closeEditCompanyModal();
+                            showSuccessMessage('Company updated but logo upload failed');
+                            setTimeout(function() { location.reload(); }, 1000);
+                        }
+                    });
+                } else {
+                    closeEditCompanyModal();
+                    showSuccessMessage('Company updated successfully');
+                    setTimeout(function() { location.reload(); }, 500);
+                }
             },
             error: function(xhr, status, err) {
                 console.error('Update Error:', xhr.status, xhr.responseText);

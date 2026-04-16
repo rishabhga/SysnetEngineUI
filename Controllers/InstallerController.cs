@@ -1,9 +1,12 @@
+using ManageEngineWebApp.Attributes;
+using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
 namespace ManageEngineWebApp.Controllers
 {
+    [AuthFilter]
     public class InstallerController : Controller
     {
 
@@ -15,6 +18,7 @@ namespace ManageEngineWebApp.Controllers
 
 
         [HttpPost]
+        [DynamicPermission("Installer.Download", "Download Installer")]
         public IActionResult DownloadInstaller([FromBody] InstallerRequest requestData)
         {
             // Sanitize the location name
@@ -38,6 +42,7 @@ namespace ManageEngineWebApp.Controllers
 
 
         [HttpPost]
+        [DynamicPermission("Installer.Generate", "Generate Installer")]
         public async Task<IActionResult> GenerateInstaller([FromBody] InstallerRequest requestData)
         {
 

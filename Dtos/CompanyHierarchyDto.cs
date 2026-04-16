@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace ManageEngineWebApp.Dtos
 {
@@ -6,6 +6,7 @@ namespace ManageEngineWebApp.Dtos
     {
         public int CompanyId { get; set; }
         public string CompanyName { get; set; }
+        public string LogoUrl { get; set; }
         public List<GroupHierarchyDto> Groups { get; set; } = new List<GroupHierarchyDto>();
     }
 

@@ -14,23 +14,18 @@ namespace ManageEngineWebApp.Controllers
     [AuthFilter]
     public class SummaryController : Controller
     {
-
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly string _baseUrl;
 
-        public SummaryController(HttpClient httpClient, IConfiguration configuration)
+        public SummaryController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
             _baseUrl = configuration["ApiSettings:BaseUrl"];
         }
 
         private HttpClient GetClient()
         {
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var client = new HttpClient(handler);
+            var client = _httpClientFactory.CreateClient("ManageEngineApi");
             client.Timeout = TimeSpan.FromSeconds(30);
             return client;
         }

@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using ManageEngineWebApp.Datacontext;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ManageEngineWebApp.Controllers
 {
+    [AuthFilter]
     public class DwonloadEXEController : Controller
     {
         public IActionResult Index()

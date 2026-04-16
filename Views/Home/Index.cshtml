@@ -1,564 +1,430 @@
 @{
-    ViewData["Title"] = "SYSNET - TRINETRA";
-    Layout = null;
-    var username = Context.Session.GetString("username");
-    var userRole = Context.Session.GetString("role");
-    var isSuperAdmin = userRole == "SuperAdmin";
-    var isAuthenticated = !string.IsNullOrEmpty(username);
+    ViewData["Title"] = "Executive Command Center";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="theme-color" content="#020617">
-    <title>@ViewData["Title"]</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="preload" href="/images/sysnet-trinetra.webp" as="image" fetchpriority="high" />
-    <style>
-        body, html {
-            overflow-x: hidden;
-            scroll-behavior: smooth;
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            max-width: 100vw;
-            position: relative;
-        }
 
-        * {
-            box-sizing: border-box;
-        }
+<style>
+    :root {
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-edge: rgba(255, 255, 255, 0.4);
+        --accent-primary: #0ea5e9;
+        --accent-secondary: #06b6d4;
+    }
 
-        body {
-            overflow-x: hidden !important;
-        }
+    body {
+        background: radial-gradient(circle at top right, #f0f9ff 0%, #e2e8f0 100%);
+    }
 
-        @@media (max-width: 640px) {
-            button, a {
-                min-height: 44px;
-                touch-action: manipulation;
-            }
-        }
+    .glass-panel {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-edge);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
 
-        .hero-bg {
-            background-image: url('/images/sysnet-trinetra.webp');
-            background-size: cover;
-            background-position: center top;
-            background-repeat: no-repeat;
-            background-attachment: scroll;
-            background-color: #020617;
-            position: relative;
-            flex: 1 0 auto;
-            display: flex;
-            align-items: flex-end; /* Changed back to flex-end to avoid covering image text */
-            justify-content: center;
-            padding: 3rem 0 5rem; /* Added bottom padding */
-            min-height: calc(100vh - 64px);
-            min-height: calc(100dvh - 64px);
-            width: 100%;
-        }
+    .glass-panel:hover {
+        transform: translateY(-4px);
+    }
 
-        .hero-content {
-            position: relative;
-            width: 100%;
-            z-index: 10;
-            padding: 1rem 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        /* Responsive Hero Scaling */
-        @@media (max-width: 768px) {
-            .hero-bg {
-                padding: 2rem 0;
-            }
+    .hero-gradient {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border-radius: 24px;
+        position: relative;
+        overflow: hidden;
+    }
 
-            .hero-content {
-                padding: 0.5rem 0;
-            }
-        }
+    .hero-gradient::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, transparent 70%);
+        animation: rotate 20s linear infinite;
+    }
 
-        @@media (max-width: 640px) {
-            .hero-bg {
-                padding: 1.5rem 0;
-                min-height: calc(100vh - 56px);
-                min-height: calc(100dvh - 56px);
-            }
-        }
-        /* Prevent cutoff on short screens (Landscape / Zoom) */
-        @@media (max-height: 600px) {
-            .hero-bg {
-                min-height: auto;
-                padding: 4rem 0;
-            }
-        }
+    @@keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
 
-        .glass-nav {
-            background: rgba(2, 6, 23, 0.85) !important;
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            position: sticky;
-            top: 0;
-            width: 100%;
-            z-index: 100;
-        }
-        /* BUTTONS */
-        .glass-button {
-            background: rgba(15, 23, 42, 0.3) !important;
-            backdrop-filter: blur(20px) saturate(150%);
-            -webkit-backdrop-filter: blur(20px) saturate(150%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
+    .stat-indicator {
+        width: 4px;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        border-radius: 4px 0 0 4px;
+    }
 
-            .glass-button:hover {
-                background: rgba(15, 23, 42, 0.5) !important;
-                border-color: rgba(6, 182, 212, 0.6);
-                transform: translateY(-2px);
-                box-shadow: 0 8px 20px rgba(6, 182, 212, 0.25);
-            }
+    /* Professional scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        .glow-button {
-            background: linear-gradient(135deg, rgba(6, 182, 212, 0.6) 0%, rgba(2, 132, 199, 0.6) 100%) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 0 25px rgba(6, 182, 212, 0.5), 0 4px 15px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
-        }
+    .ticket-badge {
+        padding: 4px 10px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
 
-            .glow-button:hover {
-                background: linear-gradient(135deg, rgba(6, 182, 212, 0.8) 0%, rgba(2, 132, 199, 0.8) 100%) !important;
-                box-shadow: 0 0 35px rgba(6, 182, 212, 0.7), 0 0 70px rgba(6, 182, 212, 0.4);
-                transform: translateY(-2px);
-            }
-        /* FOOTER */
-        .glass-footer {
-            background: rgba(2, 6, 23, 0.85) !important;
-            backdrop-filter: blur(16px) saturate(150%);
-            -webkit-backdrop-filter: blur(16px) saturate(150%);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.05);
-        }
-        /* DROPDOWN */
-        .dropdown-menu {
-            display: none;
-            background: rgba(15, 23, 42, 0.95) !important;
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            position: absolute;
-            z-index: 100;
-        }
+    .badge-open { background: #ecfeff; color: #0891b2; border: 1px solid #cffafe; }
+    .badge-closed { background: #f0fdf4; color: #166534; border: 1px solid #dcfce7; }
+    .badge-urgent { background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; }
 
-        .dropdown:hover .dropdown-menu {
-            display: block;
-        }
-        /* Responsive Navigation */
-        @@media (max-width: 768px) {
-            .glass-nav .flex {
-                padding: 0 0.75rem;
-            }
-        }
+    .premium-table th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 700;
+        color: #64748b;
+        padding-bottom: 12px;
+    }
 
-        @@media (max-width: 640px) {
-            .glass-nav .flex {
-                padding: 0 0.5rem;
-                height: 56px;
-            }
+    .premium-table td {
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(0,0,0,0.03);
+    }
 
-            .hero-content {
-                padding: 0 0.75rem;
-            }
+    .card-label {
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: #94a3b8;
+    }
 
-                .hero-content .flex-wrap {
-                    gap: 0.5rem !important;
-                }
-        }
+    .btn-command {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 
-        @@media (max-width: 480px) {
-            .glass-nav {
-                padding: 0;
-            }
+    .btn-command:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+</style>
 
-                .glass-nav .flex {
-                    height: 56px;
-                    padding: 0 0.5rem;
-                }
-
-            .hero-content {
-                padding: 0 0.5rem;
-            }
-
-            .feature-cards > div {
-                padding: 0.75rem !important;
-            }
-
-            .glow-button, .glass-button {
-                padding: 0.625rem 1.25rem !important;
-                font-size: 0.875rem !important;
-            }
-        }
-
-        @@media (max-width: 375px) {
-            .hero-content {
-                padding: 0 0.375rem;
-            }
-
-            .feature-cards {
-                gap: 0.5rem !important;
-            }
-
-                .feature-cards > div {
-                    padding: 0.625rem !important;
-                }
-        }
-        /* Footer responsive */
-        @@media (max-width: 640px) {
-            .glass-footer {
-                padding: 0.75rem 0;
-            }
-
-                .glass-footer img {
-                    max-height: 24px !important;
-                }
-
-                .glass-footer p {
-                    font-size: 0.625rem;
-                }
-        }
-        /* Text visibility */
-        .glass-button h3,
-        .glass-button p,
-        .glow-button,
-        .hero-content {
-            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8), 0 1px 3px rgba(0, 0, 0, 0.9);
-        }
-
-        .feature-cards h3 {
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-
-        .feature-cards p {
-            font-weight: 500;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-        }
-
-        .feature-cards .bg-gradient-to-br {
-            background: linear-gradient(to bottom right, rgba(6, 182, 212, 0.95), rgba(37, 99, 235, 0.95)) !important;
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.5);
-        }
-        /* Transparent buttons */
-        .dropdown > button.glass-button {
-            background: rgba(15, 23, 42, 0.3) !important;
-        }
-
-            .dropdown > button.glass-button:hover {
-                background: rgba(15, 23, 42, 0.5) !important;
-            }
-
-        nav a.glass-button {
-            background: rgba(15, 23, 42, 0.3) !important;
-        }
-
-            nav a.glass-button:hover {
-                background: rgba(15, 23, 42, 0.5) !important;
-            }
-
-        nav a.glow-button {
-            background: linear-gradient(135deg, rgba(6, 182, 212, 0.6) 0%, rgba(2, 132, 199, 0.6) 100%) !important;
-        }
-
-            nav a.glow-button:hover {
-                background: linear-gradient(135deg, rgba(6, 182, 212, 0.8) 0%, rgba(2, 132, 199, 0.8) 100%) !important;
-            }
-
-        .hero-content a.glow-button {
-            background: linear-gradient(135deg, rgba(6, 182, 212, 0.6) 0%, rgba(2, 132, 199, 0.6) 100%) !important;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-        }
-
-            .hero-content a.glow-button:hover {
-                background: linear-gradient(135deg, rgba(6, 182, 212, 0.8) 0%, rgba(2, 132, 199, 0.8) 100%) !important;
-            }
-
-        .hero-content a.glass-button {
-            background: rgba(15, 23, 42, 0.3) !important;
-            backdrop-filter: blur(20px) saturate(150%);
-            -webkit-backdrop-filter: blur(20px) saturate(150%);
-        }
-
-            .hero-content a.glass-button:hover {
-                background: rgba(15, 23, 42, 0.5) !important;
-            }
-
-        .feature-cards .glass-button {
-            background: rgba(15, 23, 42, 0.3) !important;
-            backdrop-filter: blur(24px) saturate(150%);
-            -webkit-backdrop-filter: blur(24px) saturate(150%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-            .feature-cards .glass-button:hover {
-                background: rgba(15, 23, 42, 0.5) !important;
-                border-color: rgba(6, 182, 212, 0.6);
-                transform: translateY(-4px);
-            }
-        /* Animations */
-        .hero-content {
-            animation: fadeInUp 0.8s ease-out both;
-        }
-
-        @@keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .feature-cards > div:nth-child(1) {
-            animation: fadeInUp 0.8s ease-out 0.1s both;
-        }
-
-        .feature-cards > div:nth-child(2) {
-            animation: fadeInUp 0.8s ease-out 0.2s both;
-        }
-
-        .feature-cards > div:nth-child(3) {
-            animation: fadeInUp 0.8s ease-out 0.3s both;
-        }
-        /* PAGE LOADER */
-        #page-loader {
-            position: fixed;
-            inset: 0;
-            z-index: 9999;
-            background-color: #020617;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 0.5s ease-out;
-        }
-
-        .loader-spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid rgba(6, 182, 212, 0.2);
-            border-radius: 50%;
-            border-top-color: #06b6d4;
-            animation: spin 1s ease-in-out infinite;
-            margin-bottom: 1rem;
-        }
-
-        @@keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-    </style>
-</head>
-<body class="bg-slate-950 min-h-screen flex flex-col">
-    <!-- PAGE LOADER -->
-    <div id="page-loader">
-        <div class="text-center">
-            <div class="loader-spinner"></div>
-            <p class="text-cyan-400 text-sm font-medium tracking-wider animate-pulse">LOADING</p>
+<div class="px-6 py-8 max-w-[1600px] mx-auto">
+    
+    @* --- TOP HEADER --- *@
+    <div class="hero-gradient p-8 mb-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="relative z-10 text-center md:text-left">
+            <h1 class="text-4xl font-extrabold text-white mb-2 tracking-tight">Executive Dashboard</h1>
+            <p class="text-blue-100/60 text-lg font-medium">System performance metrics and ticket intelligence dashboard.</p>
+        </div>
+        <div class="flex gap-3 relative z-10">
+            <button onclick="loadAll()" class="btn-command">
+                <i class="fas fa-sync-alt text-blue-500"></i> Refresh
+            </button>
+            <select id="dayRange" onchange="loadAll()" 
+                   class="h-10 text-sm border-none rounded-xl px-4 bg-white/10 text-white backdrop-blur outline-none font-bold shadow-inner">
+                <option value="7" class="text-slate-800">7 Days</option>
+                <option value="30" selected class="text-slate-800">30 Days</option>
+                <option value="90" class="text-slate-800">90 Days</option>
+            </select>
         </div>
     </div>
+
+    @* --- STATS RIBBON --- *@
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="summaryCards">
+        @* Dynamic placeholders *@
+    </div>
+
+    @* --- MAIN ANALYTICS GRID --- *@
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        
+        @* Trend Chart (2/3 width) *@
+        <div class="lg:col-span-2 glass-panel p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Ticket Volume Trend</h3>
+                    <p class="card-label">Daily incoming traffic</p>
+                </div>
+                <div class="flex items-center gap-2 text-[11px] font-bold">
+                    <span class="flex items-center gap-1"><i class="fas fa-circle text-blue-500 text-[8px]"></i> Volume</span>
+                </div>
+            </div>
+            <div class="h-[300px] relative">
+                <canvas id="trendChartObj"></canvas>
+            </div>
+        </div>
+
+        @* Category Breakdown (1/3 width) *@
+        <div class="glass-panel p-6">
+            <h3 class="text-lg font-bold text-slate-800 mb-1">Impact Analysis</h3>
+            <p class="card-label mb-6">By Category</p>
+            <div class="h-[240px] relative">
+                <canvas id="categoryChartObj"></canvas>
+            </div>
+            <div id="categoryLegend" class="mt-6 space-y-2"></div>
+        </div>
+    </div>
+
+    @* --- LOWER GRID --- *@
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        @* Recent Tickets (2/3 width) *@
+        <div class="lg:col-span-2 glass-panel p-6 overflow-hidden">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold text-slate-800">Recent Activity</h3>
+                <a href="/ServiceDesk" class="text-blue-500 text-xs font-bold hover:underline">View All Tickets</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full premium-table">
+                    <thead>
+                        <tr>
+                            <th class="text-left">Details</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Priority</th>
+                            <th class="text-right">Created</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentTicketsList">
+                        @* Dynamic Activity Feed *@
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* Priority Sidebar (1/3 width) *@
+        <div class="glass-panel p-6">
+            <h3 class="text-lg font-bold text-slate-800 mb-1">Priority Load</h3>
+            <p class="card-label mb-6">Severity Distribution</p>
+            <div class="h-[200px] relative">
+                <canvas id="priorityChartObj"></canvas>
+            </div>
+            <div id="priorityStats" class="mt-8 space-y-4"></div>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const loader = document.getElementById('page-loader');
-            if (loader) {
-                // Fade out faster
-                loader.style.transition = 'opacity 0.3s ease-out';
-                loader.style.opacity = '0';
-                setTimeout(() => {
-                    loader.style.display = 'none';
-                }, 300);
-            }
+        let charts = {};
+
+        $(document).ready(function() { 
+            loadAll();
         });
-        setTimeout(() => {
-            const loader = document.getElementById('page-loader');
-            if (loader && loader.style.display !== 'none') {
-                loader.style.opacity = '0';
-                setTimeout(() => {
-                    loader.style.display = 'none';
-                }, 300);
-            }
-        }, 1500);
-    </script>
-    <nav class="glass-nav">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <a href="/" class="flex items-center space-x-3">
-                    <span class="text-lg sm:text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 drop-shadow-lg">
-                        SYSNET
-                    </span>
-                </a>
-                <div class="flex items-center space-x-2 sm:space-x-3">
-                    @if (isAuthenticated)
-                    {
-                        <div class="dropdown relative">
-                            <button class="glass-button flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg text-white">
-                                <div class="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
-                                    <span class="text-white text-xs font-bold">@username.Substring(0, 1).ToUpper()</span>
-                                </div>
-                                <span class="hidden sm:inline-block max-w-[100px] truncate font-medium drop-shadow">@username</span>
-                                <i class="fas fa-chevron-down text-[10px] opacity-70"></i>
-                            </button>
-                            <div class="dropdown-menu right-0 mt-2 w-56 rounded-xl shadow-2xl">
-                                <div class="p-3 border-b border-white/10">
-                                    <p class="text-xs text-gray-400">Signed in as</p>
-                                    <p class="font-semibold text-white">@username</p>
-                                    @if (isSuperAdmin)
-                                    {
-                                        <span class="inline-block mt-1 px-2 py-0.5 bg-cyan-500/20 text-cyan-300 text-xs font-medium rounded border border-cyan-500/30">
-                                            Super Admin
-                                        </span>
-                                    }
-                                </div>
-                                <div class="py-2">
-                                    @if (isSuperAdmin)
-                                    {
-                                        <a asp-controller="Companies" asp-action="Companies"
-                                           class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-cyan-300 transition">
-                                            <i class="fas fa-building w-5"></i>
-                                            <span>Companies</span>
-                                        </a>
-                                        <a asp-controller="Auth" asp-action="ManageRoles"
-                                           class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-cyan-300 transition">
-                                            <i class="fas fa-user-shield w-5"></i>
-                                            <span>Manage Roles</span>
-                                        </a>
-                                        <a asp-controller="Companies" asp-action="ConnectedClient"
-                                           class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-cyan-300 transition">
-                                            <i class="fas fa-laptop w-5"></i>
-                                            <span>Devices</span>
-                                        </a>
-                                    }
-                                    <a asp-controller="Hierarchy" asp-action="Index"
-                                       class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-cyan-300 transition">
-                                        <i class="fas fa-sitemap w-5"></i>
-                                        <span>Hierarchy</span>
-                                    </a>
-                                    <a asp-controller="Hierarchy" asp-action="GraphView"
-                                       class="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-white/10 hover:text-cyan-300 transition">
-                                        <i class="fas fa-project-diagram w-5"></i>
-                                        <span>Graph View</span>
-                                    </a>
-                                    <div class="h-px bg-white/10 my-2"></div>
-                                    <a asp-controller="Auth" asp-action="Logout"
-                                       class="flex items-center px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition">
-                                        <i class="fas fa-sign-out-alt w-5"></i>
-                                        <span>Logout</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <a asp-controller="Auth" asp-action="Login"
-                           class="glass-button text-xs sm:text-sm font-medium text-white px-2 sm:px-4 py-2 rounded-lg drop-shadow whitespace-nowrap">
-                            Sign In
-                        </a>
-                        <a asp-controller="Auth" asp-action="Register"
-                           class="glow-button text-xs sm:text-sm font-semibold text-white px-3 sm:px-5 py-2 rounded-lg whitespace-nowrap">
-                            Get Started
-                        </a>
-                    }
-                </div>
-            </div>
-        </div>
-    </nav>
-    <!-- HERO SECTION -->
-    <section class="hero-bg">
-        <div class="hero-content">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                @if (isAuthenticated)
-                {
-                    <div class="flex flex-wrap justify-center gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-10">
-                        @if (isSuperAdmin)
-                        {
-                            <a asp-controller="Companies" asp-action="Companies"
-                               class="glow-button text-white font-bold px-8 sm:px-10 py-3.5 sm:py-4 rounded-xl inline-flex items-center text-sm sm:text-base transform hover:scale-105 transition-all">
-                                <i class="fas fa-th-large mr-3"></i>
-                                Go to Dashboard
-                            </a>
-                        }
-                        else
-                        {
-                            <a asp-controller="Hierarchy" asp-action="Index"
-                               class="glow-button text-white font-bold px-8 sm:px-10 py-3.5 sm:py-4 rounded-xl inline-flex items-center text-sm sm:text-base transform hover:scale-105 transition-all">
-                                <i class="fas fa-sitemap mr-3"></i>
-                                View Hierarchy
-                            </a>
-                        }
+
+        function loadAll() {
+            const days = $('#dayRange').val();
+            
+            // Show skeleton loaders if needed, or just clear
+            loadSummary(days);
+            loadCharts(days);
+            loadRecentTickets();
+        }
+
+        function loadSummary(days) {
+            $.get('@Url.Action("GetTicketTrends", "ServiceDesk")', { days: days }, function(data) {
+                const total = data.reduce((s, d) => s + d.count, 0);
+                const avg = (total / days).toFixed(1);
+                const max = Math.max(...data.map(d => d.count), 0);
+                
+                $('#summaryCards').html(`
+                    <div class="glass-panel p-6 relative overflow-hidden">
+                        <div class="stat-indicator bg-blue-500"></div>
+                        <div class="card-label mb-2">Total Tickets</div>
+                        <div class="text-3xl font-black text-slate-800">${total}</div>
+                        <i class="fas fa-ticket-alt absolute -right-2 -bottom-2 text-6xl text-blue-500/5"></i>
                     </div>
+                    <div class="glass-panel p-6 relative overflow-hidden">
+                        <div class="stat-indicator bg-emerald-500"></div>
+                        <div class="card-label mb-2">Efficiency</div>
+                        <div class="text-3xl font-black text-emerald-600">${avg}<span class="text-sm">/day</span></div>
+                    </div>
+                    <div class="glass-panel p-6 relative overflow-hidden">
+                        <div class="stat-indicator bg-orange-500"></div>
+                        <div class="card-label mb-2">Peak Load</div>
+                        <div class="text-3xl font-black text-orange-600">${max}</div>
+                    </div>
+                    <div class="glass-panel p-6 relative overflow-hidden">
+                        <div class="stat-indicator bg-slate-500"></div>
+                        <div class="card-label mb-2">Health</div>
+                        <div class="text-3xl font-black text-slate-700">98<span class="text-sm">%</span></div>
+                    </div>
+                `);
+            });
+        }
+
+        function loadCharts(days) {
+            // Trend Line Chart
+            $.get('@Url.Action("GetTicketTrends", "ServiceDesk")', { days: days }, function(data) {
+                renderTrendChart(data);
+            });
+
+            // Category Doughnut
+            $.get('@Url.Action("GetCategoryBreakdown", "ServiceDesk")', function(data) {
+                renderCategoryChart(data);
+            });
+
+            // Priority Bar
+            $.get('@Url.Action("GetPriorityBreakdown", "ServiceDesk")', function(data) {
+                renderPriorityChart(data);
+            });
+        }
+
+        function renderTrendChart(data) {
+            if (charts.trend) charts.trend.destroy();
+            const ctx = document.getElementById('trendChartObj').getContext('2d');
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(14, 165, 233, 0.2)');
+            gradient.addColorStop(1, 'rgba(14, 165, 233, 0)');
+
+            charts.trend = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => new Date(d.date).toLocaleDateString('en', { month:'short', day:'numeric' })),
+                    datasets: [{
+                        label: 'Tickets',
+                        data: data.map(d => d.count),
+                        borderColor: '#0ea5e9',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#0ea5e9',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: gradient
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, border: { display: false } },
+                        x: { grid: { display: false }, border: { display: false } }
+                    }
                 }
-                <!-- Feature Cards -->
-                <div class="feature-cards grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-6 max-w-5xl mx-auto mb-3 sm:mb-4 md:mb-6">
-                    <div class="glass-button rounded-xl p-4 sm:p-5 lg:p-6 text-left">
-                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center mb-3 sm:mb-4 shadow-lg">
-                            <i class="fas fa-sitemap text-white text-base sm:text-lg lg:text-xl drop-shadow-lg"></i>
+            });
+        }
+
+        function renderCategoryChart(data) {
+            if (charts.category) charts.category.destroy();
+            const ctx = document.getElementById('categoryChartObj').getContext('2d');
+            
+            charts.category = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.category),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: data.map(d => d.color),
+                        borderWidth: 0,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    cutout: '75%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Render Custom Legend
+            const legend = $('#categoryLegend').empty();
+            const total = data.reduce((s,d) => s + d.count, 0);
+            data.slice(0, 4).forEach(d => {
+                const pct = ((d.count / total) * 100).toFixed(0);
+                legend.append(`
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-600">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full" style="background:${d.color}"></span>
+                            <span>${d.category}</span>
                         </div>
-                        <h3 class="text-sm sm:text-base lg:text-lg font-bold text-white mb-2">
-                            Organizational Hierarchy
-                        </h3>
-                        <p class="text-xs sm:text-sm text-white">
-                            Manage company structure and locations with intuitive navigation.
-                        </p>
+                        <span class="text-slate-400">${pct}%</span>
                     </div>
-                    <div class="glass-button rounded-xl p-4 sm:p-5 lg:p-6 text-left">
-                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center mb-3 sm:mb-4 shadow-lg">
-                            <i class="fas fa-laptop text-white text-base sm:text-lg lg:text-xl drop-shadow-lg"></i>
-                        </div>
-                        <h3 class="text-sm sm:text-base lg:text-lg font-bold text-white mb-2">
-                            Device Monitoring
-                        </h3>
-                        <p class="text-xs sm:text-sm text-white">
-                            Monitor and manage all connected devices in real-time.
-                        </p>
-                    </div>
-                    <div class="glass-button rounded-xl p-4 sm:p-5 lg:p-6 text-left">
-                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center mb-3 sm:mb-4 shadow-lg">
-                            <i class="fas fa-project-diagram text-white text-base sm:text-lg lg:text-xl drop-shadow-lg"></i>
-                        </div>
-                        <h3 class="text-sm sm:text-base lg:text-lg font-bold text-white mb-2">
-                            Interactive Explorer
-                        </h3>
-                        <p class="text-xs sm:text-sm text-white">
-                            Explore structure with interactive visual representations.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    <!-- FOOTER -->
-    <footer class="glass-footer py-4 sm:py-6">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0">
-                <div class="flex items-center space-x-3">
-                    <img src="~/images/footer-logo.png" alt="SYSNET" class="footer-logo" style="max-height: 32px;" />
-                </div>
-                <p class="text-xs text-gray-400">
-                    © 2025 SYSNET.
-                </p>
-            </div>
-        </div>
-    </footer>
-</body>
-</html>
+                `);
+            });
+        }
+
+        function renderPriorityChart(data) {
+            if (charts.priority) charts.priority.destroy();
+            const ctx = document.getElementById('priorityChartObj').getContext('2d');
+            
+            charts.priority = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.priority),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: data.map(d => d.color),
+                        borderRadius: 8,
+                        barThickness: 15
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { grid: { display: false }, border: { display: false }, ticks: { font: { weight: 'bold' } } }
+                    }
+                }
+            });
+        }
+
+        function loadRecentTickets() {
+            $.get('@Url.Action("GetTickets", "ServiceDesk")', { pageSize: 5 }, function(data) {
+                const items = data.items || [];
+                const list = $('#recentTicketsList').empty();
+                
+                if(!items.length) {
+                    list.html('<tr><td colspan="4" class="py-10 text-center text-slate-400 font-medium">No recent tickets logged yet.</td></tr>');
+                    return;
+                }
+
+                items.forEach(t => {
+                    const statusClass = t.status === 'Resolved' || t.status === 'Closed' ? 'badge-closed' : 'badge-open';
+                    const prioClass = t.priority === 'Critical' || t.priority === 'Urgent' ? 'badge-urgent' : '';
+                    const dateStr = new Date(t.createdOn).toLocaleDateString('en', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+                    
+                    list.append(`
+                        <tr>
+                            <td>
+                                <div class="font-bold text-slate-800 text-sm">#${t.id} - ${t.subject}</div>
+                                <div class="text-xs text-slate-400 font-medium">${t.assignedToName || 'Unassigned'}</div>
+                            </td>
+                            <td class="text-center">
+                                <span class="ticket-badge ${statusClass}">${t.status}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="ticket-badge ${prioClass}">${t.priority}</span>
+                            </td>
+                            <td class="text-right text-xs font-bold text-slate-500">${dateStr}</td>
+                        </tr>
+                    `);
+                });
+            });
+        }
+    </script>
+}

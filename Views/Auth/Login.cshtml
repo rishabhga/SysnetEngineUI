@@ -111,11 +111,11 @@
 
         /* CRITICAL: Lock card transparency permanently */
         .glass-card {
-            background: rgba(15, 23, 42, 0.08) !important;
-            backdrop-filter: blur(24px) saturate(150%) !important;
-            -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.08) !important;
-            box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15) !important;
+            background: rgba(15, 23, 42, 0.9) !important; /* Significantly increased opacity */
+            backdrop-filter: blur(40px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            box-shadow: 0 10px 40px -5px rgba(0, 0, 0, 0.45) !important;
         }
 
             /* Force transparency in ALL states - no exceptions */
@@ -123,21 +123,17 @@
             .glass-card:focus,
             .glass-card:focus-within,
             .glass-card:active {
-                background: rgba(15, 23, 42, 0.08) !important;
-                backdrop-filter: blur(24px) saturate(150%) !important;
-                -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+                background: rgba(15, 23, 42, 0.9) !important;
+                backdrop-filter: blur(40px) saturate(180%) !important;
             }
 
         /* Lock input transparency */
         .input-glass {
-            background: rgba(30, 41, 59, 0.4) !important; /* Darker, more visible */
-            backdrop-filter: blur(16px) saturate(180%) !important;
-            -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-            border: 1px solid rgba(100, 116, 139, 0.3) !important; /* More visible border */
+            background: rgba(255, 255, 255, 0.05) !important; 
+            backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
             color: white !important;
             transition: all 0.3s ease !important;
-            font-weight: 400;
-            letter-spacing: 0.02em;
         }
 
             .input-glass:hover {

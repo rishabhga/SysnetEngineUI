@@ -466,6 +466,28 @@
             loadLocationCriticalStatus();
             loadCriticalClientsList();
             loadNotifications();
+            checkOtpStatusOnLoad();
+
+            $('.device-card').each(function() {
+                var card = $(this);
+                var domain = card.data('domain');
+                var isOnline = card.data('status') === 'online';
+
+                $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")',
+                    { domain: domain },
+                    function(r) {
+                        card.find('.ip-address-value').text(r.success ? r.ipAddress : 'N/A');
+                    }
+                ).fail(function() {
+                    card.find('.ip-address-value').text('N/A');
+                });
+
+                if (isOnline) {
+                    loadSystemUsageData(card, domain);
+                } else {
+                    loadLastSeenTime(card, domain);
+                }
+            });
 
             setInterval(loadNotifications, 60000);
         });
@@ -1292,31 +1314,6 @@
             });
         });
 
-        $(document).ready(function() {
-            checkOtpStatusOnLoad();
-
-            $('.device-card').each(function() {
-                var card = $(this);
-                var domain = card.data('domain');
-                var isOnline = card.data('status') === 'online';
-
-                $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")',
-                    { domain: domain },
-                    function(r) {
-                        card.find('.ip-address-value').text(r.success ? r.ipAddress : 'N/A');
-                    }
-                ).fail(function() {
-                    card.find('.ip-address-value').text('N/A');
-                });
-
-                if (isOnline) {
-                    loadSystemUsageData(card, domain);
-                } else {
-                    loadLastSeenTime(card, domain);
-                }
-            });
-        });
-
         $(document).on('click', '.edit-name-btn', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -1402,16 +1399,6 @@
                 window.location.href = '@Url.Action("Live", "ComputerSummary")?domain=' + $(this).data('domain');
             }
         });
-
-        $(document).on('click', '.open-chat-btn', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var domain = $(this).data('domain');
-            if (domain) {
-                openChatModal(domain);
-            }
-        });
-
 
         $(document).on('click', '.open-chat-btn', function(e) {
             e.preventDefault();

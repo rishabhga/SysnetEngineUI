@@ -105,7 +105,7 @@ namespace ManageEngineWebApp.Controllers
 
                     if (contectlist != null)
                     {
-                        activeComputers = contectlist.Where(d => d != null).Select(d => d.UserName ?? "Unknown").ToList();
+                        activeComputers = contectlist.Where(d => d != null).Select(d => d.ClientId ?? "Unknown").ToList();
                     }
                 }
             }
@@ -228,14 +228,12 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
-                // Use relative path with query parameters
                 var response = await client.GetAsync($"api/RamCpuDiskData/list?companyId={companyId}&groupId={groupId}&locationId={locationId}");
 
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var allCriticalClients = JsonConvert.DeserializeObject<List<VIPClient>>(content);
-                    // Note: This calls the internal method, not an API endpoint
                     var devicesResponse = await GetAllDevices(companyId, groupId ?? 0, locationId ?? 0);
                     return Json(new { success = true, data = allCriticalClients });
                 }
@@ -852,7 +850,7 @@ namespace ManageEngineWebApp.Controllers
                     contectlist = !string.IsNullOrEmpty(content2) ? JsonConvert.DeserializeObject<List<ConnectedClientDto>>(content2) : null;
                     if (contectlist != null)
                     {
-                        activeComputers = contectlist.Where(d => d != null).Select(d => d.UserName ?? "Unknown").ToList();
+                        activeComputers = contectlist.Where(d => d != null).Select(d => d.ClientId ?? "Unknown").ToList();
                     }
                 }
             }

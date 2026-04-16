@@ -7,6 +7,7 @@
     var canApprove = ViewBag.CanApprove ?? false;
     var canAssign = ViewBag.CanAssign ?? false;
     var canDelete = ViewBag.CanDelete ?? false;
+    var canManageParts = ViewBag.CanManageParts ?? false;
 }
 
 <style>
@@ -323,12 +324,15 @@
                             </div>
                             <span class="text-sm font-bold text-slate-800">Spare Parts / Hardware</span>
                         </div>
-                        <button onclick="openPartModal()"
-                                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
-                                style="background:#E0F7FD; color:#0096BE;"
-                                onmouseover="this.style.background='#b3edfb'" onmouseout="this.style.background='#E0F7FD'">
-                            <i class="fas fa-plus text-[9px]"></i> Add Part
-                        </button>
+                        @if (canManageParts)
+                        {
+                            <button onclick="openPartModal()"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
+                                    style="background:#E0F7FD; color:#0096BE;"
+                                    onmouseover="this.style.background='#b3edfb'" onmouseout="this.style.background='#E0F7FD'">
+                                <i class="fas fa-plus text-[9px]"></i> Add Part
+                            </button>
+                        }
                     </div>
                     <div class="p-3 sm:p-4">
                         <div class="overflow-x-auto">
@@ -601,9 +605,11 @@
     const canApprove = @(canApprove ? "true" : "false");
     const canAssign  = @(canAssign  ? "true" : "false");
     const canDelete  = @(canDelete  ? "true" : "false");
+    const canBypassWorkflow = @(ViewBag.CanBypassWorkflow == true ? "true" : "false");
     const currentSortOrder = @(Model.StatusSortOrder);
     const statusOrders = @Html.Raw(ViewBag.StatusOrdersJson ?? "{}");
     const systemActions = @Html.Raw(ViewBag.SystemActionsJson ?? "{}");
+    const closedStatuses = @Html.Raw(ViewBag.ClosedStatusesJson ?? "[]");
     const approvedSortOrder = @(ViewBag.ApprovedStatusSortOrder ?? 10);
 
     let connection = null;
@@ -751,32 +757,57 @@
         const inProgressOrder = getActionOrder('STARTWORK') || getOrder('IN_PROGRESS') || getOrder('INPROGRESS') || 4;
         const resolvedOrder = getActionOrder('RESOLVE') || getOrder('RESOLVED') || 5;
 
-        // Approve/Reject - only if strictly before Approval level
-        if (currentSortOrder < approvedSortOrder && canApprove) {
-            container.append('<button onclick="openApproveModal()" class="px-3 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check text-[9px]"></i>Approve</button>');
-            container.append('<button onclick="openModal(\'rejectModal\')" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-white/30 text-white hover:bg-white/10"><i class="fas fa-times text-[9px]"></i>Reject</button>');
+        // Admin/Bypass users see MORE buttons if they need to fix something, 
+        // but we still hide redundant buttons for better UX.
+        const showAll = canBypassWorkflow;
+        const isClosed = closedStatuses.includes(currentStatus.toUpperCase());
+
+        // Progression states
+        const isApproved = currentSortOrder >= approvedSortOrder;
+        const isAssigned = currentSortOrder >= assignedOrder || "@Model.AssignedToName" !== "";
+        const isInProgress = currentSortOrder >= inProgressOrder;
+
+        if (isClosed && !showAll) {
+             // If closed and not admin, show nothing except delete (if permitted)
+             if (canDelete) {
+                container.append('<button onclick="deleteTicket()" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-white/30 text-white hover:bg-red-500/70 transition-colors"><i class="fas fa-trash text-[9px]"></i></button>');
+             }
+             return;
         }
 
-        // Assign - only if at Approval level
-        if (currentSortOrder == approvedSortOrder && canAssign) {
-            container.append('<button onclick="openModal(\'assignModal\')" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-white/30 text-white hover:bg-white/10"><i class="fas fa-user-tag text-[9px]"></i>Assign</button>');
+        // Approve/Reject - only if NOT yet approved
+        if (!isApproved || showAll) {
+             if (currentStatus === 'Open' || (showAll && !isClosed)) {
+                if (canApprove) {
+                    container.append('<button onclick="openApproveModal()" class="px-3 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check text-[9px]"></i>Approve</button>');
+                    container.append('<button onclick="openModal(\'rejectModal\')" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-white/30 text-white hover:bg-white/10"><i class="fas fa-times text-[9px]"></i>Reject</button>');
+                }
+             }
         }
 
-        // Start Work - only if at Assigned level
-        if (currentSortOrder == assignedOrder) {
+        // Assign - only if approved and not yet assigned
+        if ((!isAssigned || showAll) && !isClosed && canAssign) {
+             if (isApproved || showAll) {
+                container.append('<button onclick="openModal(\'assignModal\')" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-white/30 text-white hover:bg-white/10"><i class="fas fa-user-tag text-[9px]"></i>Assign</button>');
+             }
+        }
+
+        // Start Work - only if assigned and not yet in progress
+        if ((!isInProgress || showAll) && isAssigned && !isClosed) {
             container.append('<button onclick="startWork()" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 text-white" style="background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.3);"><i class="fas fa-play text-[9px]"></i>Start Work</button>');
         }
 
-        // Resolve - only if at InProgress level
-        if (currentSortOrder == inProgressOrder) {
+        // Resolve - only if in progress and not yet closed
+        if (!isClosed && (isInProgress || showAll)) {
             container.append('<button onclick="openModal(\'resolveModal\')" class="px-3 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check-circle text-[9px]"></i>Resolve</button>');
         }
 
-        // Status update (Gear/Professional update) - available once approved but not resolved
-        if (currentSortOrder >= approvedSortOrder && currentSortOrder < resolvedOrder) {
+        // Status update (Gear/Professional update) 
+        if (!isClosed || showAll) {
             container.append('<button onclick="openStatusModal()" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 text-white" style="background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);"><i class="fas fa-exchange-alt text-[9px]"></i>Update</button>');
         }
-        if (currentStatus!=='Closed' && canDelete) {
+
+        if (canDelete) {
             container.append('<button onclick="deleteTicket()" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-white/30 text-white hover:bg-red-500/70 transition-colors"><i class="fas fa-trash text-[9px]"></i></button>');
         }
     }
@@ -806,14 +837,14 @@
     function submitApprove() {
         closeModal('approveModal');
         $.ajax({ url:'@Url.Action("ApproveTicket","ServiceDesk")', type:'POST', contentType:'application/json',
-            data: JSON.stringify({ ticketId, remarks:$('#approveRemarks').val()||'Approved', username:currentUser, priority:$('#approvePriority').val(), category:$('#approveCategory').val() }),
+            data: JSON.stringify({ ticketId, remarks:$('#approveRemarks').val()||'Approved', username:currentUser, priority:$('#approvePriority').val(), category:$('#approveCategory').val(), bypass:canBypassWorkflow }),
             success: function(res){ if(res.success) location.reload(); else sysAlert(res.message,'error'); }
         });
     }
 
     function doStatusUpdate(newStatus, remarks, prio='', cat='') {
         $.ajax({ url:'@Url.Action("UpdateStatus","ServiceDesk")', type:'POST', contentType:'application/json',
-            data: JSON.stringify({ ticketId, newStatus, remarks, username:currentUser, priority:prio, category:cat }),
+            data: JSON.stringify({ ticketId, newStatus, remarks, username:currentUser, priority:prio, category:cat, bypass:canBypassWorkflow }),
             success: function(res){ if(res.success) location.reload(); else sysAlert(res.message,'error'); }
         });
     }
@@ -874,7 +905,7 @@
         const engId=$('#selectedEngineerId').val(), engName=$('#selectedEngineerName').val();
         if (!engId) { sysAlert('Please select an engineer','warning'); return; }
         $.ajax({ url:'@Url.Action("AssignTicket","ServiceDesk")', type:'POST', contentType:'application/json',
-            data: JSON.stringify({ ticketId, engineerId:engId, engineerName:engName, assignedBy:currentUser, notes:$('#assignNotes').val() }),
+            data: JSON.stringify({ ticketId, engineerId:engId, engineerName:engName, assignedBy:currentUser, notes:$('#assignNotes').val(), bypass:canBypassWorkflow }),
             success: function(res){ if(res.success) location.reload(); else sysAlert(res.message,'error'); }
         });
     }

@@ -3,6 +3,11 @@ using Newtonsoft.Json;
 using System.Text;
 namespace ManageEngineWebApp.Datacontext
 {
+    public class MenuTreeItemDto : MenuDefinitionDto
+    {
+        public List<MenuTreeItemDto> Children { get; set; } = new();
+    }
+
     public static class RoleHelper
     {
         private static string _apiBaseUrl = string.Empty;
@@ -498,7 +503,44 @@ namespace ManageEngineWebApp.Datacontext
                 }
             }
 
+            // Hardcode filtering of the separate Reports page as requested (it's now on Home/Index)
+            allMenus = allMenus.Where(m => !(m.RouteController == "ServiceDesk" && m.RouteAction == "Reports")).ToList();
+
             return allMenus;
+        }
+
+        public static async Task<List<MenuTreeItemDto>> GetMenuTree(Microsoft.AspNetCore.Http.HttpContext? context = null)
+        {
+            var menus = await GetDynamicMenusAsync(context);
+            var byId = menus.ToDictionary(
+                m => m.Id,
+                m => new MenuTreeItemDto
+                {
+                    Id = m.Id,
+                    MenuName = m.MenuName,
+                    RouteController = m.RouteController,
+                    RouteAction = m.RouteAction,
+                    MenuIcon = m.MenuIcon,
+                    SortOrder = m.SortOrder,
+                    ParentId = m.ParentId,
+                    RequiredPermissionCode = m.RequiredPermissionCode,
+                    ModuleId = m.ModuleId
+                });
+
+            var roots = new List<MenuTreeItemDto>();
+            foreach (var node in byId.Values.OrderBy(m => m.SortOrder))
+            {
+                if (node.ParentId.HasValue && byId.ContainsKey(node.ParentId.Value))
+                {
+                    byId[node.ParentId.Value].Children.Add(node);
+                }
+                else
+                {
+                    roots.Add(node);
+                }
+            }
+
+            return roots;
         }
 
         public static void ClearMenuCache(Microsoft.AspNetCore.Http.HttpContext context)

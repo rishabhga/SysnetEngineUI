@@ -46,7 +46,8 @@ namespace ManageEngineWebApp.Datacontext
                     var allowedRolesList = AllowedRoles.Split(',').Select(r => r.Trim()).ToList();
                     if (!allowedRolesList.Contains(role))
                     {
-                      
+                        context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
+                        return;
                     }
                 }
 
