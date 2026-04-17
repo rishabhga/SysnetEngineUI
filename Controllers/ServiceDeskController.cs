@@ -246,20 +246,24 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var statusJson = await statusResponse.Content.ReadAsStringAsync();
                     var statuses = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(statusJson);
-                    
-                    var statusOrders = statuses.ToDictionary(
-                        s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
-                        s => (int)s.sortOrder
-                    );
+                    var statusOrders = statuses
+                        .Where(s => s != null && (!string.IsNullOrEmpty((string)s.statusCode) || !string.IsNullOrEmpty((string)s.statusName)))
+                        .ToDictionary(
+                            s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
+                            s => (int)(s.sortOrder ?? 0)
+                        );
 
-                    var closedStatuses = statuses.Where(s => (bool)s.isClosedState)
-                        .Select(s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant())
+                    var closedStatuses = statuses
+                        .Where(s => s != null && s.isClosedState != null && (bool)s.isClosedState == true)
+                        .Select(s => ((string)s.statusCode ?? (string)s.statusName ?? "").ToUpperInvariant())
+                        .Where(s => !string.IsNullOrEmpty(s))
                         .ToList();
 
-                    var actionMappings = statuses.Where(s => !string.IsNullOrEmpty((string)s.systemAction))
+                    var actionMappings = statuses
+                        .Where(s => s != null && !string.IsNullOrEmpty((string)s.systemAction))
                         .ToDictionary(
                             s => ((string)s.systemAction).ToUpperInvariant(),
-                            s => (int)s.sortOrder
+                            s => (int)(s.sortOrder ?? 0)
                         );
                     
                     ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
@@ -270,7 +274,14 @@ namespace ManageEngineWebApp.Controllers
                     ViewBag.ApprovedStatusSortOrder = approvedStatus != null ? (int)approvedStatus.sortOrder : 2;
                 }
             }
-            catch { }
+            catch
+            {
+                // Ensure ViewBag always has valid JSON defaults so the page JS doesn't crash
+                ViewBag.StatusOrdersJson = ViewBag.StatusOrdersJson ?? "{}";
+                ViewBag.SystemActionsJson = ViewBag.SystemActionsJson ?? "{}";
+                ViewBag.ClosedStatusesJson = ViewBag.ClosedStatusesJson ?? "[]";
+                ViewBag.ApprovedStatusSortOrder = ViewBag.ApprovedStatusSortOrder ?? 2;
+            }
 
             SetViewPermissions();
             return View();
@@ -426,20 +437,24 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var statusJson = await statusResponse.Content.ReadAsStringAsync();
                     var statuses = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(statusJson);
-                    
-                    var statusOrders = statuses.ToDictionary(
-                        s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
-                        s => (int)s.sortOrder
-                    );
+                    var statusOrders = statuses
+                        .Where(s => s != null && (!string.IsNullOrEmpty((string)s.statusCode) || !string.IsNullOrEmpty((string)s.statusName)))
+                        .ToDictionary(
+                            s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
+                            s => (int)(s.sortOrder ?? 0)
+                        );
 
-                    var closedStatuses = statuses.Where(s => (bool)s.isClosedState)
-                        .Select(s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant())
+                    var closedStatuses = statuses
+                        .Where(s => s != null && s.isClosedState != null && (bool)s.isClosedState == true)
+                        .Select(s => ((string)s.statusCode ?? (string)s.statusName ?? "").ToUpperInvariant())
+                        .Where(s => !string.IsNullOrEmpty(s))
                         .ToList();
 
-                    var actionMappings = statuses.Where(s => !string.IsNullOrEmpty((string)s.systemAction))
+                    var actionMappings = statuses
+                        .Where(s => s != null && !string.IsNullOrEmpty((string)s.systemAction))
                         .ToDictionary(
                             s => ((string)s.systemAction).ToUpperInvariant(),
-                            s => (int)s.sortOrder
+                            s => (int)(s.sortOrder ?? 0)
                         );
 
                     ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
@@ -753,6 +768,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageParts", "Add Inventory Part")]
         public async Task<IActionResult> AddInventoryPart()
         {
             try
@@ -975,14 +991,20 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "View All Categories")]
         public async Task<IActionResult> GetAllCategories()
         {
-            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Categories/All");
-            return Content(response, "application/json");
+            try
+            {
+                var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Categories/All");
+                return Content(response, "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
         }
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Create Category")]
         public async Task<IActionResult> CreateCategory()
         {
             try {
@@ -995,6 +1017,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Update Category")]
         public async Task<IActionResult> UpdateCategory()
         {
             try {
@@ -1007,6 +1030,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Delete Category")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             try {
@@ -1018,14 +1042,20 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "View All Priorities")]
         public async Task<IActionResult> GetAllPriorities()
         {
-            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Priorities/All");
-            return Content(response, "application/json");
+            try
+            {
+                var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Priorities/All");
+                return Content(response, "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
         }
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Create Priority")]
         public async Task<IActionResult> CreatePriority()
         {
             try {
@@ -1038,6 +1068,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Update Priority")]
         public async Task<IActionResult> UpdatePriority()
         {
             try {
@@ -1050,6 +1081,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Delete Priority")]
         public async Task<IActionResult> DeletePriority(int id)
         {
             try {
@@ -1061,14 +1093,20 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "View All Statuses")]
         public async Task<IActionResult> GetAllStatuses()
         {
-            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Statuses/All");
-            return Content(response, "application/json");
+            try
+            {
+                var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Statuses/All");
+                return Content(response, "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
         }
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Create Status")]
         public async Task<IActionResult> CreateTicketStatus()
         {
             try {
@@ -1081,6 +1119,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Update Status")]
         public async Task<IActionResult> UpdateTicketStatus()
         {
             try {
@@ -1093,6 +1132,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Delete Status")]
         public async Task<IActionResult> DeleteTicketStatus(int id)
         {
             try {

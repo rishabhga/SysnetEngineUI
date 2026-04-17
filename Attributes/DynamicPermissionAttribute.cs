@@ -9,7 +9,7 @@ namespace ManageEngineWebApp.Attributes
         public string? Name { get; }
         public string? Description { get; }
         public string? Module { get; }
-        public string? ActionType { get; set; } // View, Create, Edit, Delete, Action, etc.
+        public string? ActionType { get; set; } 
 
         public DynamicPermissionAttribute(string? code = null, string? name = null, string? description = null, string? module = null)
         {

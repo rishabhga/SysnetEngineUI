@@ -133,7 +133,6 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetLocationsByCompany(int companyId)
         {
-            // Scope check
             if (!RoleHelper.ValidateScope(HttpContext, companyId))
                 return Json(new { success = false, message = "Access Denied" });
 
@@ -416,9 +415,6 @@ namespace ManageEngineWebApp.Controllers
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Optionally update session if they upload the logo of the current active company context
-                    // if (HttpContext.Session.GetString("CompanyId") == companyId.ToString()) ...
-                    
                     var jsonResponse = JsonConvert.DeserializeObject<object>(result);
                     return Json(jsonResponse);
                 }
@@ -467,7 +463,6 @@ namespace ManageEngineWebApp.Controllers
             
             if (!string.IsNullOrEmpty(company?.LogoUrl))
             {
-                // Construct absolute URL so the frontend can load images hosted on backend API
                 HttpContext.Session.SetString("CompanyLogo", $"{_baseUrl}{company.LogoUrl}");
             }
             else

@@ -82,9 +82,9 @@ namespace ManageEngineWebApp.Filters
             {
 
 
-                if (context.HttpContext.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                if (IsAjaxRequest(context.HttpContext.Request))
                 {
-                    context.Result = new JsonResult(new { success = false, message = "Access Denied" });
+                    context.Result = new JsonResult(new { success = false, message = "Access Denied" }) { StatusCode = 403 };
                 }
                 else
                 {
@@ -98,7 +98,18 @@ namespace ManageEngineWebApp.Filters
 
         private bool IsAjaxRequest(Microsoft.AspNetCore.Http.HttpRequest request)
         {
-            return request.Headers["X-Requested-With"] == "XMLHttpRequest";
+            // jQuery $.ajax sets X-Requested-With, but fetch() API does not
+            if (request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return true;
+            // Check if caller expects JSON (covers fetch() with Accept header)
+            var accept = request.Headers["Accept"].ToString();
+            if (accept.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+                return true;
+            // Check if the request body is JSON
+            var contentType = request.ContentType;
+            if (!string.IsNullOrEmpty(contentType) && contentType.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+                return true;
+            return false;
         }
     }
 }

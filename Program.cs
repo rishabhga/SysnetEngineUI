@@ -20,7 +20,7 @@ builder.Services.AddHttpClient("ManageEngineApi", client =>
     var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
     client.BaseAddress = new Uri(apiBaseUrl);
     // client.DefaultRequestHeaders.Add("X-Api-Key", builder.Configuration["Authentication:ApiKey"]);
-    client.Timeout = TimeSpan.FromSeconds(10);
+    client.Timeout = TimeSpan.FromSeconds(120);
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
     ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true

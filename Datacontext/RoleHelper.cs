@@ -210,7 +210,6 @@ namespace ManageEngineWebApp.Datacontext
             if (!string.IsNullOrEmpty(roleData.StartPage))
                 context.Session.SetString("startPage", roleData.StartPage);
 
-            // Always clear old scope values first to prevent stale data
             context.Session.Remove("companyId");
             context.Session.Remove("groupId");
             context.Session.Remove("locationId");
@@ -358,13 +357,11 @@ namespace ManageEngineWebApp.Datacontext
                     var json = await response.Content.ReadAsStringAsync();
                     return JsonConvert.DeserializeObject<List<SystemRoleDto>>(json) ?? new List<SystemRoleDto>();
                 }
-                // Fallback to basic roles list from identity
                 response = await client.GetAsync($"{ApiBaseUrl}/roles/list");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
                     var roleNames = JsonConvert.DeserializeObject<List<string>>(json) ?? new List<string>();
-                    // No hardcoded role names — IsSystem defaults to false for all via fallback
                     return roleNames.Select(r => new SystemRoleDto { Name = r, IsSystem = false }).ToList();
                 }
                 return new List<SystemRoleDto>();
@@ -502,8 +499,6 @@ namespace ManageEngineWebApp.Datacontext
                     }
                 }
             }
-
-            // Hardcode filtering of the separate Reports page as requested (it's now on Home/Index)
             allMenus = allMenus.Where(m => !(m.RouteController == "ServiceDesk" && m.RouteAction == "Reports")).ToList();
 
             return allMenus;

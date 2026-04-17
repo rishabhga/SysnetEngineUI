@@ -9,6 +9,7 @@ using System.Text;
 using static ManageEngineWebApp.Datacontext.RoleHelper;
 using ManageEngineWebApp.Requests;
 using ManageEngineWebApp.Filters;
+using ManageEngineWebApp.Models;
 
 namespace ManageEngineWebApp.Controllers
 {
@@ -29,6 +30,30 @@ namespace ManageEngineWebApp.Controllers
             _httpClientFactory = httpClientFactory;
             _baseUrl = _configuration["ApiSettings:BaseUrl"];
             apiBaseUrl = $"{_baseUrl}/api/auth";
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetCompaniesForRegister()
+        {
+            var data = new List<Companies>();
+            try
+            {
+                using var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    data = !string.IsNullOrEmpty(content)
+                        ? JsonConvert.DeserializeObject<List<Companies>>(content) ?? new List<Companies>()
+                        : new List<Companies>();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetCompaniesForRegister Error: {ex.Message}");
+            }
+            return Json(data);
         }
 
         private HttpClient GetClient()
@@ -165,7 +190,6 @@ namespace ManageEngineWebApp.Controllers
                     Response.Cookies.Delete("RememberMe_User");
                 }
 
-                // Always redirect to Home/Index after successful login as requested
                 return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
@@ -1001,8 +1025,4 @@ namespace ManageEngineWebApp.Controllers
         }
     }
 
-    public class PolicyPermissionUpdateRequest
-    {
-        public List<int>? PermissionIds { get; set; }
-    }
 }

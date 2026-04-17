@@ -1,5 +1,4 @@
 (function () {
-    // Guard against double-init
     if (window.__SYSNET_LAYOUT_CORE_INIT) return;
     window.__SYSNET_LAYOUT_CORE_INIT = true;
 

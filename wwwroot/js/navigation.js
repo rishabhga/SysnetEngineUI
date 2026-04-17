@@ -1,27 +1,13 @@
-/**
- * SYSNET Navigation System — Single Source of Truth
- * Handles: Sidebar toggle, sub-menus, breadcrumbs, back button, overlay, state persistence
- * IMPORTANT: This is the ONLY file that should control sidebar/navigation behavior.
- */
 (function () {
     "use strict";
-
-    // ── Guard against double-init ──
     if (window.__SYSNET_NAV_INIT) return;
     window.__SYSNET_NAV_INIT = true;
-
     var STORAGE_KEY = "sysnet.sidebar.collapsed";
     var SCROLL_KEY  = "sysnet.scroll.";
     var FILTER_KEY  = "sysnet.filters.";
-
     function getSidebar()  { return document.getElementById("app-sidebar"); }
     function getOverlay()  { return document.getElementById("sidebarOverlay"); }
     function isMobile()    { return window.innerWidth <= 768; }
-
-    // ═════════════════════════════════════════
-    //  SIDEBAR STATE MANAGEMENT
-    // ═════════════════════════════════════════
-
     function setCollapsed(isCollapsed) {
         var sidebar = getSidebar();
         var overlay = getOverlay();
@@ -34,18 +20,15 @@
         } else {
             sidebar.classList.remove("collapsed");
             document.documentElement.classList.remove("sidebar-collapsed");
-            // Show overlay on mobile when sidebar opens
             if (isMobile() && overlay) {
                 overlay.classList.add("active");
             }
         }
 
-        // Only persist desktop state
         if (!isMobile()) {
             localStorage.setItem(STORAGE_KEY, isCollapsed ? "1" : "0");
         }
 
-        // Trigger resize for any charts/tables that need reflow
         try { window.dispatchEvent(new Event("resize")); } catch (e) {}
     }
 
@@ -54,18 +37,12 @@
         if (!sidebar) return;
 
         if (isMobile()) {
-            // Mobile: sidebar starts collapsed (hidden)
             setCollapsed(true);
         } else {
-            // Desktop: restore saved state
             var saved = localStorage.getItem(STORAGE_KEY);
             setCollapsed(saved === "1");
         }
     }
-
-    // ═════════════════════════════════════════
-    //  BREADCRUMBS WITH BACK BUTTON
-    // ═════════════════════════════════════════
 
     function initBreadcrumbs() {
         var breadcrumbs = document.getElementById("breadcrumbs");
@@ -73,19 +50,16 @@
 
         var html = "";
 
-        // ── Back Button ──
         if (window.history.length > 1) {
             html += '<button class="breadcrumb-back-btn" onclick="window.history.back()" title="Go back">';
             html += '<i class="fas fa-arrow-left"></i>';
             html += '</button>';
         }
 
-        // ── Home Link ──
         html += '<a href="/" class="breadcrumb-link">Home</a>';
 
         var path = window.location.pathname.toLowerCase();
         
-        // ── Dashboard Logic ──
         if (path.indexOf("computersummary/deshboad") !== -1) {
             var ctx = window.SYSNET_CONTEXT || {};
             if (ctx.company) {
@@ -100,7 +74,6 @@
             return;
         }
 
-        // ── Standard Logic ──
         var segments = window.location.pathname.split("/").filter(Boolean);
         if (segments.length > 0) {
             var lastSegment = segments[segments.length - 1];
@@ -118,12 +91,8 @@
         breadcrumbs.innerHTML = html;
     }
 
-    // ═════════════════════════════════════════
-    //  MENU HANDLING (Event Delegation)
-    // ═════════════════════════════════════════
 
     function initMenus() {
-        // Single delegated handler for group triggers
         document.addEventListener("click", function (e) {
             var trigger = e.target.closest(".group-trigger");
             if (!trigger) return;
@@ -143,17 +112,12 @@
             group.classList.toggle("open");
         });
 
-        // Auto-expand active group on page load
         var activeSubLink = document.querySelector(".sidebar-sub-link.active");
         if (activeSubLink) {
             var parentGroup = activeSubLink.closest(".nav-group");
             if (parentGroup) parentGroup.classList.add("open");
         }
     }
-
-    // ═════════════════════════════════════════
-    //  SIDEBAR TOGGLE (Event Delegation)
-    // ═════════════════════════════════════════
 
     function initDelegation() {
         document.addEventListener("click", function (e) {
@@ -170,15 +134,12 @@
             }
         });
 
-        // Overlay click → close sidebar
         var overlay = getOverlay();
         if (overlay) {
             overlay.addEventListener("click", function () {
                 setCollapsed(true);
             });
         }
-
-        // Handle window resize (mobile ↔ desktop transitions)
         var resizeTimer;
         window.addEventListener("resize", function () {
             clearTimeout(resizeTimer);
@@ -188,21 +149,15 @@
                 if (!sidebar) return;
 
                 if (isMobile()) {
-                    // If transitioning to mobile and sidebar is open, keep overlay in sync
                     if (!sidebar.classList.contains("collapsed") && overlayEl) {
                         overlayEl.classList.add("active");
                     }
                 } else {
-                    // Desktop: remove overlay
                     if (overlayEl) overlayEl.classList.remove("active");
                 }
             }, 150);
         });
     }
-
-    // ═════════════════════════════════════════
-    //  STATE PERSISTENCE
-    // ═════════════════════════════════════════
 
     function getRouteKey() {
         return window.location.pathname + window.location.search;
@@ -226,7 +181,6 @@
             if (saved) {
                 var pos = parseInt(saved, 10);
                 if (!isNaN(pos)) {
-                    // Small delay to let content render first
                     setTimeout(function () { mainContent.scrollTop = pos; }, 100);
                 }
             }
@@ -234,10 +188,7 @@
     }
 
     function initStatePersistence() {
-        // Save scroll position before navigating away
         window.addEventListener("beforeunload", saveScrollPosition);
-
-        // Save on any internal link click
         document.addEventListener("click", function (e) {
             var link = e.target.closest("a[href]");
             if (link && link.hostname === window.location.hostname) {
@@ -245,10 +196,7 @@
             }
         });
 
-        // Restore scroll position on load
         restoreScrollPosition();
-
-        // Expose filter save/restore utilities globally
         window.SYSNET_STATE = {
             saveFilter: function (key, value) {
                 try { sessionStorage.setItem(FILTER_KEY + getRouteKey() + "." + key, JSON.stringify(value)); } catch (e) {}
@@ -269,10 +217,6 @@
             }
         };
     }
-
-    // ═════════════════════════════════════════
-    //  LIFECYCLE
-    // ═════════════════════════════════════════
 
     function init() {
         initSidebarState();

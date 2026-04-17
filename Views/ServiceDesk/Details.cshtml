@@ -165,12 +165,8 @@
 </style>
 
 <div class="dtl-bg px-3 pb-12 pt-0 sm:px-4 lg:px-6">
-
-    <!-- ════ HERO BANNER (Cyan Brand) ════ -->
     <div class="ticket-hero px-4 py-5 sm:px-6 mb-5">
         <div class="max-w-7xl mx-auto relative z-10">
-
-            <!-- Back + Actions -->
             <div class="flex items-center justify-between mb-4">
                 <a href="@Url.Action("Tickets","ServiceDesk")"
                    class="flex items-center gap-1.5 text-white/70 hover:text-white text-xs font-semibold transition-colors">
@@ -179,7 +175,6 @@
                 <div class="flex items-center gap-2 flex-wrap justify-end" id="actionButtons"></div>
             </div>
 
-            <!-- Ticket ID + Subject -->
             <div class="flex flex-wrap items-start gap-3 mb-4">
                 <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
                      style="background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.3);">
@@ -220,15 +215,12 @@
     <div class="max-w-7xl mx-auto">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-            <!-- ══════ LEFT 2/3 ══════ -->
             <div class="lg:col-span-2 space-y-4">
 
-                <!-- Ticket Info Card -->
                 <div class="dtl-card overflow-hidden">
                     <div id="priorityStripe"></div>
                     <div class="p-4 sm:p-5">
 
-                        <!-- Requester -->
                         <div class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
                             <div class="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-base flex-shrink-0"
                                  style="background:linear-gradient(135deg,#00BCEB,#0096BE); box-shadow:0 2px 10px rgba(0,188,235,.35);">
@@ -247,7 +239,6 @@
                             </div>
                         </div>
 
-                        <!-- Stat pills -->
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                             <div class="stat-pill cursor-pointer group" onclick="openTriageModal()" title="Click to edit">
                                 <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Priority</div>
@@ -360,7 +351,6 @@
                 </div>
             </div>
 
-            <!-- ══════ RIGHT SIDEBAR ══════ -->
             <div class="space-y-4">
 
                 <!-- SLA Progress -->
@@ -432,7 +422,6 @@
     </div>
 </div>
 
-<!-- ══════════ MODALS ══════════ -->
 
 <!-- Approve -->
 <div id="approveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
@@ -742,73 +731,53 @@
 
     function renderActionButtons() {
         const container = $('#actionButtons').empty();
-        
-        const getOrder = (code) => {
-            const u = code.toUpperCase();
-            return statusOrders[u] || statusOrders[u.replace(/_/g, '')] || statusOrders[u.replace(/ /g, '_')] || 0;
-        };
+        const status = currentStatus.toUpperCase().replace(/_/g, '').replace(/ /g, '');
+        const isClosed = closedStatuses.some(s => s.replace(/_/g, '').replace(/ /g, '') === status);
 
-        const getActionOrder = (action) => {
-            const u = action.toUpperCase();
-            return systemActions[u] || 0;
-        };
-
-        const assignedOrder = getActionOrder('ASSIGN') || getOrder('ASSIGNED') || 3;
-        const inProgressOrder = getActionOrder('STARTWORK') || getOrder('IN_PROGRESS') || getOrder('INPROGRESS') || 4;
-        const resolvedOrder = getActionOrder('RESOLVE') || getOrder('RESOLVED') || 5;
-
-        // Admin/Bypass users see MORE buttons if they need to fix something, 
-        // but we still hide redundant buttons for better UX.
-        const showAll = canBypassWorkflow;
-        const isClosed = closedStatuses.includes(currentStatus.toUpperCase());
-
-        // Progression states
-        const isApproved = currentSortOrder >= approvedSortOrder;
-        const isAssigned = currentSortOrder >= assignedOrder || "@Model.AssignedToName" !== "";
-        const isInProgress = currentSortOrder >= inProgressOrder;
-
-        if (isClosed && !showAll) {
-             // If closed and not admin, show nothing except delete (if permitted)
-             if (canDelete) {
-                container.append('<button onclick="deleteTicket()" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-white/30 text-white hover:bg-red-500/70 transition-colors"><i class="fas fa-trash text-[9px]"></i></button>');
-             }
-             return;
+        if (isClosed) {
+            if (canBypassWorkflow) {
+                container.append(`<button onclick="openStatusModal()" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 text-white" style="background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25);"><i class="fas fa-undo text-[9px]"></i> Reopen</button>`);
+            }
+            if (canDelete) {
+                container.append(`<button onclick="deleteTicket()" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-white/30 text-white hover:bg-red-500/70 transition-colors"><i class="fas fa-trash text-[9px]"></i></button>`);
+            }
+            return;
         }
 
-        // Approve/Reject - only if NOT yet approved
-        if (!isApproved || showAll) {
-             if (currentStatus === 'Open' || (showAll && !isClosed)) {
-                if (canApprove) {
-                    container.append('<button onclick="openApproveModal()" class="px-3 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check text-[9px]"></i>Approve</button>');
-                    container.append('<button onclick="openModal(\'rejectModal\')" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-white/30 text-white hover:bg-white/10"><i class="fas fa-times text-[9px]"></i>Reject</button>');
-                }
-             }
+        const isOpen = status === 'OPEN' || status === 'NEW' || status === 'PENDING';
+        const isApproved = status === 'APPROVED';
+        const isAssigned = status === 'ASSIGNED';
+        const isInProgress = status === 'INPROGRESS' || status === 'IN_PROGRESS' || status === 'WORKING';
+        const isRejected = status === 'REJECTED';
+        const isResolved = status === 'RESOLVED';
+
+        if (isOpen) {
+            if (canApprove) {
+                container.append(`<button onclick="openApproveModal()" class="px-3.5 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check text-[9px]"></i> Approve</button>`);
+                container.append(`<button onclick="openModal('rejectModal')" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-white/30 text-white hover:bg-red-500/30 transition-colors"><i class="fas fa-times text-[9px]"></i> Reject</button>`);
+            }
+        } else if (isApproved) {
+            if (canAssign) {
+                container.append(`<button onclick="openModal('assignModal')" class="px-3.5 py-1.5 btn-cyan text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-user-tag text-[9px]"></i> Assign Engineer</button>`);
+            }
+        } else if (isAssigned) {
+            container.append(`<button onclick="startWork()" class="px-3.5 py-1.5 btn-cyan text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-play text-[9px]"></i> Start Work</button>`);
+        } else if (isInProgress) {
+            container.append(`<button onclick="openModal('resolveModal')" class="px-3.5 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check-circle text-[9px]"></i> Resolve</button>`);
+        } else if (isRejected) {
+            if (canApprove || canBypassWorkflow) {
+                container.append(`<button onclick="openApproveModal()" class="px-3.5 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-undo text-[9px]"></i> Re-Approve</button>`);
+            }
+        } else if (isResolved) {
+
         }
 
-        // Assign - only if approved and not yet assigned
-        if ((!isAssigned || showAll) && !isClosed && canAssign) {
-             if (isApproved || showAll) {
-                container.append('<button onclick="openModal(\'assignModal\')" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-white/30 text-white hover:bg-white/10"><i class="fas fa-user-tag text-[9px]"></i>Assign</button>');
-             }
-        }
-
-        // Start Work - only if assigned and not yet in progress
-        if ((!isInProgress || showAll) && isAssigned && !isClosed) {
-            container.append('<button onclick="startWork()" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 text-white" style="background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.3);"><i class="fas fa-play text-[9px]"></i>Start Work</button>');
-        }
-
-        // Resolve - only if in progress and not yet closed
-        if (!isClosed && (isInProgress || showAll)) {
-            container.append('<button onclick="openModal(\'resolveModal\')" class="px-3 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check-circle text-[9px]"></i>Resolve</button>');
-        }
-
-        // Status update (Gear/Professional update) 
-        if (!isClosed || showAll) {
-            container.append('<button onclick="openStatusModal()" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 text-white" style="background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);"><i class="fas fa-exchange-alt text-[9px]"></i>Update</button>');
+        if (canBypassWorkflow) {
+            container.append(`<button onclick="openStatusModal()" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 text-white" style="background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);"><i class="fas fa-exchange-alt text-[9px]"></i> Update</button>`);
         }
 
         if (canDelete) {
-            container.append('<button onclick="deleteTicket()" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-white/30 text-white hover:bg-red-500/70 transition-colors"><i class="fas fa-trash text-[9px]"></i></button>');
+            container.append(`<button onclick="deleteTicket()" class="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-white/30 text-white hover:bg-red-500/70 transition-colors"><i class="fas fa-trash text-[9px]"></i></button>`);
         }
     }
 

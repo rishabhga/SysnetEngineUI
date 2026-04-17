@@ -1,4 +1,4 @@
-﻿@model ManageEngineWebApp.Dtos.RegisterDto
+@model ManageEngineWebApp.Dtos.RegisterDto
 
 @{
     ViewData["Title"] = "Register - SYSNET";
@@ -208,7 +208,7 @@
     <script>
         $(document).ready(function () {
             $.ajax({
-                url: '/Companies/GetCompaniesForDropdown',
+                url: '/Auth/GetCompaniesForRegister',
                 type: 'GET',
                 success: function (companies) {
                     var options = '<option value="">Select Company</option>';

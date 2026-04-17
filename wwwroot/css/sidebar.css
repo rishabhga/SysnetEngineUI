@@ -1,7 +1,3 @@
-/* ═══════════════════════════════════════════════
-   SIDEBAR — Enterprise Navigation System
-   ═══════════════════════════════════════════════ */
-
 :root {
     --nav-blue: #00BCEB;
     --side-bg: #00BCEB;
@@ -381,10 +377,6 @@ html.sidebar-collapsed .app-main {
     border: 1px solid #e2e8f0;
     background: #fff;
 }
-
-/* ═══════════════════════════════════════════════
-   RESPONSIVE BREAKPOINTS
-   ═══════════════════════════════════════════════ */
 
 /* Mobile: sidebar becomes overlay */
 @media (max-width: 768px) {

@@ -46,7 +46,6 @@ namespace ManageEngineWebApp.Controllers
             foreach (var id in userLocationIds) q.Add($"locationId={id}");
             foreach (var id in userGroupIds) q.Add($"groupId={id}");
             
-            // If restricted user has no assigned scope, force empty result with invalid ID
             if (!RoleHelper.IsTopLevelAdmin(HttpContext) && !q.Any())
             {
                 q.Add("comId=-1");
