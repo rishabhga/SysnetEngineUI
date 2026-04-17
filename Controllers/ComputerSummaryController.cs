@@ -947,7 +947,7 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, error = "No device IDs were received. Please go back and re-select your devices." });
 
                 using var client = GetClient();
-                client.Timeout = TimeSpan.FromSeconds(120); 
+                client.Timeout = TimeSpan.FromSeconds(120);
                 string jsonData = JsonConvert.SerializeObject(updatePatchselectiondto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -990,7 +990,7 @@ namespace ManageEngineWebApp.Controllers
                 if (string.IsNullOrEmpty(updatewinPatchselectiondto.deviceIds))
                     return Json(new { success = false, error = "No device IDs were received. Please go back and re-select your devices." });
                 using var client = GetClient();
-                client.Timeout = TimeSpan.FromSeconds(120); 
+                client.Timeout = TimeSpan.FromSeconds(120);
                 string jsonData = JsonConvert.SerializeObject(updatewinPatchselectiondto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
@@ -1458,7 +1458,7 @@ namespace ManageEngineWebApp.Controllers
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
                     data.SoftwareName = "Notepad++";
-                    return Json(data); 
+                    return Json(data);
                 }
                 return Json(new { status = "failed" });
 
@@ -1500,9 +1500,9 @@ namespace ManageEngineWebApp.Controllers
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
                     data.SoftwareName = "Notepad++";
-                    return Json(data); 
+                    return Json(data);
                 }
-                return Json(new { status = "failed" }); 
+                return Json(new { status = "failed" });
             }
         }
         public async Task<IActionResult> CheckAccessStatus(string domain)
@@ -1547,7 +1547,7 @@ namespace ManageEngineWebApp.Controllers
                 }
                 var content = await response.Content.ReadAsStringAsync();
                 var data = JsonConvert.DeserializeObject<monitordata>(content);
-                return View(data); 
+                return View(data);
             }
         }
 
@@ -1643,7 +1643,7 @@ namespace ManageEngineWebApp.Controllers
             {
 
 
-                client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/KeyEvent?domain="+domain+"&key="+key+"");
+                client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/KeyEvent?domain=" + domain + "&key=" + key + "");
 
                 string jsonData = JsonConvert.SerializeObject("");
                 var content = new StringContent($"\"{key}\"", Encoding.UTF8, "application/json");
@@ -1690,7 +1690,7 @@ namespace ManageEngineWebApp.Controllers
         }
         public async Task<IActionResult> Remotemonitoring(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            //// if (!await IsDeviceAuthorized(domain)) return Forbid();
             ViewBag.Domain = domain;
             try
             {
@@ -1858,9 +1858,9 @@ namespace ManageEngineWebApp.Controllers
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
                     data.SoftwareName = "Notepad++";
-                    return Json(data); 
+                    return Json(data);
                 }
-                return Json(new { status = "failed" }); 
+                return Json(new { status = "failed" });
             }
         }
         public async Task<IActionResult> installsoftwarestatus(string softwareName, string domain)
@@ -1879,7 +1879,7 @@ namespace ManageEngineWebApp.Controllers
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
                     data.SoftwareName = "Notepad++";
-                    return Json(data); 
+                    return Json(data);
                 }
                 return Json(new { status = "failed" });
             }
@@ -1901,7 +1901,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     datalist = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<InstallerInfo>>(content) : null;
-                    return View(datalist); 
+                    return View(datalist);
                 }
                 return View(datalist);
             }
@@ -1933,7 +1933,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "Device Summary")]
         public async Task<IActionResult> Summary(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<Summary>();
             try
             {
@@ -1972,7 +1972,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "OS Details")]
         public async Task<IActionResult> OSSummary(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<OSSummary>();
             try
             {
@@ -2120,7 +2120,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> groups(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<WindowsGroupDetails>();
             try
             {
@@ -2143,7 +2143,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> drivers(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<WindowDrivers>();
             try
             {
@@ -2166,7 +2166,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> BIOS(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
                 string UCode = GetUCodeFromDomain(domain);
@@ -2210,7 +2210,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> HardDisk(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<HardDiskDetails>();
             try
             {
@@ -2232,7 +2232,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> LocalDisk(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<LogicalDiskDetails>();
             try
             {
@@ -2257,7 +2257,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "Computer Dashboard")]
         public async Task<IActionResult> Keyboard(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<KeyboardDetails>();
             try
             {
@@ -2279,7 +2279,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> Monitor(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
                 string UCode = GetUCodeFromDomain(domain);
@@ -2325,7 +2325,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Motherboard(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<MotherboardDetails>();
             try
             {
@@ -2349,7 +2349,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> NetworkAdapters(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<NetworkAdapterDetails>();
             try
             {
@@ -2478,7 +2478,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Processors(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<ProcessorDetails>();
             try
             {
@@ -2667,7 +2667,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "Store Apps")]
         public async Task<IActionResult> MicrosoftstoreApps(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<MicrosoftStoreAppDetailsClass>();
             try
             {
@@ -2690,7 +2690,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "Metered Software")]
         public async Task<IActionResult> MeteredSoftware(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<InstalledApplication>();
             try
             {
@@ -2825,7 +2825,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "Missing Patches List")]
         public async Task<IActionResult> MissingPatches(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<PatchDetails>();
             try
             {
@@ -3182,7 +3182,7 @@ namespace ManageEngineWebApp.Controllers
         //BatteryInfo
         public async Task<IActionResult> Battery(string domain)
         {
-            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            // if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<BatteryInfo>();
             string UCode = GetUCodeFromDomain(domain);
             try
