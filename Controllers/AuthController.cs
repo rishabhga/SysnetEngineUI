@@ -9,6 +9,7 @@ using System.Text;
 using static ManageEngineWebApp.Datacontext.RoleHelper;
 using ManageEngineWebApp.Requests;
 using ManageEngineWebApp.Filters;
+using ManageEngineWebApp.Models;
 
 namespace ManageEngineWebApp.Controllers
 {
@@ -31,6 +32,30 @@ namespace ManageEngineWebApp.Controllers
             apiBaseUrl = $"{_baseUrl}/api/auth";
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetCompaniesForRegister()
+        {
+            var data = new List<Companies>();
+            try
+            {
+                using var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    data = !string.IsNullOrEmpty(content)
+                        ? JsonConvert.DeserializeObject<List<Companies>>(content) ?? new List<Companies>()
+                        : new List<Companies>();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetCompaniesForRegister Error: {ex.Message}");
+            }
+            return Json(data);
+        }
+
         private HttpClient GetClient()
         {
             return _httpClientFactory.CreateClient("ManageEngineApi");
@@ -46,13 +71,19 @@ namespace ManageEngineWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> Register(RegisterDto model)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
             using var client = GetClient();
             var registerPayload = new
             {
                 model.Username,
                 model.Email,
                 model.Password,
-                model.ConfirmPassword
+                model.ConfirmPassword,
+                model.CompanyId
             };
             var json = JsonConvert.SerializeObject(registerPayload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -64,27 +95,7 @@ namespace ManageEngineWebApp.Controllers
                 return View(model);
             }
 
-            if (RoleHelper.IsTopLevelAdmin(HttpContext) && !string.IsNullOrEmpty(model.Role))
-            {
-                var roleAssigned = await RoleHelper.AssignRoleAsync(model.Username, model.Role, model.CompanyId);
-                if (roleAssigned)
-                {
-                    TempData["msg"] = $"User registered successfully as {model.Role}.";
-                }
-                else
-                {
-                    TempData["msg"] = "User registered but role assignment failed.";
-                }
-            }
-            else
-            {
-                TempData["msg"] = "Registration successful. Please wait for role assignment.";
-            }
-
-            if (RoleHelper.IsTopLevelAdmin(HttpContext))
-            {
-                return RedirectToAction("ManageRoles");
-            }
+            TempData["msg"] = "Registration successful. Please wait for admin role assignment.";
             return RedirectToAction("Login");
         }
         [HttpGet]
@@ -179,65 +190,7 @@ namespace ManageEngineWebApp.Controllers
                     Response.Cookies.Delete("RememberMe_User");
                 }
 
-                if (!string.IsNullOrEmpty(roleData.StartPage))
-                {
-                    var parts = roleData.StartPage.Split('/');
-                    if (parts.Length == 2)
-                    {
-                        return RedirectToAction(parts[1], parts[0]);
-                    }
-                    if (roleData.StartPage.StartsWith("/"))
-                        return Redirect(roleData.StartPage);
-                }
-
-                if (roleData.HierarchyLevel == 0)
-                {
-                    return RedirectToAction("Companies", "Companies");
-                }
-                else if (roleData.RequiresCompany)
-                {
-                    var companyIds = RoleHelper.GetCompanyIds(HttpContext);
-                    if (companyIds.Count > 1)
-                    {
-                        return RedirectToAction("Companies", "Companies");
-                    }
-                    else if (companyIds.Count == 1)
-                    {
-                        var companyId = companyIds.First();
-                        var companyMapping = roleData.Mappings?.FirstOrDefault(m =>
-                            m.CompanyId.HasValue && m.CompanyId.Value == companyId);
-                        string companyName = companyMapping?.ScopeName ?? $"Company {companyId}";
-                        HttpContext.Session.SetString("companyName", companyName);
-
-                        return RedirectToAction("GroupsDetails", "Companies", new
-                        {
-                            id = companyId,
-                            companyName = companyName
-                        });
-                    }
-                }
-                else if (roleData.RequiresDevice)
-                {
-                    var deviceMapping = roleData.Mappings?.FirstOrDefault(m => !string.IsNullOrEmpty(m.ScopeName));
-                    var assignedDomain = deviceMapping?.ScopeName;
-
-                    if (!string.IsNullOrEmpty(assignedDomain))
-                    {
-                        HttpContext.Session.SetString("assignedDomain", assignedDomain);
-                        return RedirectToAction("Index", "ComputerSummary", new { domain = assignedDomain });
-                    }
-                }
-                var dynamicMenus = await RoleHelper.GetDynamicMenusAsync(HttpContext);
-                var firstAuthorizedMenu = dynamicMenus
-                    .OrderBy(m => m.SortOrder)
-                    .FirstOrDefault();
-
-                if (firstAuthorizedMenu != null && !string.IsNullOrEmpty(firstAuthorizedMenu.RouteController) && !string.IsNullOrEmpty(firstAuthorizedMenu.RouteAction))
-                {
-                    return RedirectToAction(firstAuthorizedMenu.RouteAction, firstAuthorizedMenu.RouteController);
-                }
-
-                return RedirectToAction("Companies", "Companies");
+                return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
             {
@@ -630,6 +583,124 @@ namespace ManageEngineWebApp.Controllers
             } catch (Exception ex) { return StatusCode(500, "Failed to fetch permissions: " + ex.Message); }
         }
 
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetPolicyTemplates()
+        {
+            try
+            {
+                if (!HasPerm("Auth.ManagePermissions"))
+                    return Json(new List<object>());
+
+                using var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}/api/Policy/Templates");
+                var payload = await response.Content.ReadAsStringAsync();
+                return Content(payload, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Failed to fetch policy templates: {ex.Message}" });
+            }
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetPolicyTemplateDetails(int id)
+        {
+            try
+            {
+                if (!HasPerm("Auth.ManagePermissions"))
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManagePermissions permission" });
+
+                using var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}/api/Policy/Templates/{id}");
+                var payload = await response.Content.ReadAsStringAsync();
+                return Content(payload, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Failed to fetch policy template details: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> SavePolicyTemplate()
+        {
+            try
+            {
+                if (!HasPerm("Auth.ManagePermissions"))
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManagePermissions permission" });
+
+                var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                if (string.IsNullOrWhiteSpace(body))
+                    return Json(new { success = false, message = "Request body is empty." });
+
+                dynamic parsed = JsonConvert.DeserializeObject<dynamic>(body)!;
+                int id = parsed?.Id != null ? (int)parsed.Id : 0;
+
+                using var client = GetClient();
+                using var content = new StringContent(body, Encoding.UTF8, "application/json");
+                HttpResponseMessage response = id > 0
+                    ? await client.PutAsync($"{_baseUrl}/api/Policy/Templates/{id}", content)
+                    : await client.PostAsync($"{_baseUrl}/api/Policy/Templates", content);
+
+                var payload = await response.Content.ReadAsStringAsync();
+                return Content(payload, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Failed to save policy template: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> DeletePolicyTemplate(int id)
+        {
+            try
+            {
+                if (!HasPerm("Auth.ManagePermissions"))
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManagePermissions permission" });
+
+                using var client = GetClient();
+                var response = await client.DeleteAsync($"{_baseUrl}/api/Policy/Templates/{id}");
+                var payload = await response.Content.ReadAsStringAsync();
+                return Content(payload, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Failed to delete policy template: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> SetPolicyTemplatePermissions(int id, [FromBody] PolicyPermissionUpdateRequest request)
+        {
+            try
+            {
+                if (!HasPerm("Auth.ManagePermissions"))
+                    return Json(new { success = false, message = "Unauthorized: Missing Auth.ManagePermissions permission" });
+
+                var payloadObj = new
+                {
+                    PermissionIds = request.PermissionIds ?? new List<int>(),
+                    AssignedBy = HttpContext.Session.GetString("username") ?? "System"
+                };
+
+                using var client = GetClient();
+                using var content = new StringContent(JsonConvert.SerializeObject(payloadObj), Encoding.UTF8, "application/json");
+                var response = await client.PutAsync($"{_baseUrl}/api/Policy/Templates/{id}/Permissions", content);
+                var payload = await response.Content.ReadAsStringAsync();
+                return Content(payload, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Failed to assign template permissions: {ex.Message}" });
+            }
+        }
+
         [HttpPost]
         [AuthFilter]
         public async Task<IActionResult> SavePermission() {
@@ -953,4 +1024,5 @@ namespace ManageEngineWebApp.Controllers
             }
         }
     }
+
 }

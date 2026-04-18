@@ -3,6 +3,11 @@ using Newtonsoft.Json;
 using System.Text;
 namespace ManageEngineWebApp.Datacontext
 {
+    public class MenuTreeItemDto : MenuDefinitionDto
+    {
+        public List<MenuTreeItemDto> Children { get; set; } = new();
+    }
+
     public static class RoleHelper
     {
         private static string _apiBaseUrl = string.Empty;
@@ -205,7 +210,6 @@ namespace ManageEngineWebApp.Datacontext
             if (!string.IsNullOrEmpty(roleData.StartPage))
                 context.Session.SetString("startPage", roleData.StartPage);
 
-            // Always clear old scope values first to prevent stale data
             context.Session.Remove("companyId");
             context.Session.Remove("groupId");
             context.Session.Remove("locationId");
@@ -353,13 +357,11 @@ namespace ManageEngineWebApp.Datacontext
                     var json = await response.Content.ReadAsStringAsync();
                     return JsonConvert.DeserializeObject<List<SystemRoleDto>>(json) ?? new List<SystemRoleDto>();
                 }
-                // Fallback to basic roles list from identity
                 response = await client.GetAsync($"{ApiBaseUrl}/roles/list");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
                     var roleNames = JsonConvert.DeserializeObject<List<string>>(json) ?? new List<string>();
-                    // No hardcoded role names — IsSystem defaults to false for all via fallback
                     return roleNames.Select(r => new SystemRoleDto { Name = r, IsSystem = false }).ToList();
                 }
                 return new List<SystemRoleDto>();
@@ -497,8 +499,43 @@ namespace ManageEngineWebApp.Datacontext
                     }
                 }
             }
+            allMenus = allMenus.Where(m => !(m.RouteController == "ServiceDesk" && m.RouteAction == "Reports")).ToList();
 
             return allMenus;
+        }
+
+        public static async Task<List<MenuTreeItemDto>> GetMenuTree(Microsoft.AspNetCore.Http.HttpContext? context = null)
+        {
+            var menus = await GetDynamicMenusAsync(context);
+            var byId = menus.ToDictionary(
+                m => m.Id,
+                m => new MenuTreeItemDto
+                {
+                    Id = m.Id,
+                    MenuName = m.MenuName,
+                    RouteController = m.RouteController,
+                    RouteAction = m.RouteAction,
+                    MenuIcon = m.MenuIcon,
+                    SortOrder = m.SortOrder,
+                    ParentId = m.ParentId,
+                    RequiredPermissionCode = m.RequiredPermissionCode,
+                    ModuleId = m.ModuleId
+                });
+
+            var roots = new List<MenuTreeItemDto>();
+            foreach (var node in byId.Values.OrderBy(m => m.SortOrder))
+            {
+                if (node.ParentId.HasValue && byId.ContainsKey(node.ParentId.Value))
+                {
+                    byId[node.ParentId.Value].Children.Add(node);
+                }
+                else
+                {
+                    roots.Add(node);
+                }
+            }
+
+            return roots;
         }
 
         public static void ClearMenuCache(Microsoft.AspNetCore.Http.HttpContext context)

@@ -1,10 +1,8 @@
-﻿@model ManageEngineWebApp.Dtos.RegisterDto
+@model ManageEngineWebApp.Dtos.RegisterDto
 
 @{
     ViewData["Title"] = "Register - SYSNET";
     Layout = null;
-    var currentRole = Context.Session.GetString("role");
-    var isSuperAdmin = currentRole == "SuperAdmin";
 }
 
 <!DOCTYPE html>
@@ -84,24 +82,10 @@
                 <img src="~/images/footer-logo.png" alt="SYSNET Logo" class="h-12 w-auto mb-2" />
             </a>
             <h1 class="text-xl font-bold text-white">
-                @if (isSuperAdmin)
-                {
-                    <text>Register a new user and assign role</text>
-                }
-                else
-                {
-                    <text>Join SYSNET today</text>
-                }
+                Join SYSNET today
             </h1>
             <p class="text-slate-400 text-sm mt-1">
-                @if (isSuperAdmin)
-                {
-                    <text>As Super Admin, you can assign roles during registration.</text>
-                }
-                else
-                {
-                    <text>Create your account to get started</text>
-                }
+                Create your account to get started
             </p>
         </div>
 
@@ -170,45 +154,21 @@
                     <span asp-validation-for="ConfirmPassword" class="text-red-600 text-xs mt-0.5 block"></span>
                 </div>
 
-                <!-- Role Assignment (SuperAdmin only) -->
-                @if (isSuperAdmin)
-                {
-                    <div class="mb-4">
-                        <label asp-for="Role" class="block text-xs font-semibold text-slate-700 mb-1">
-                            <i class="fas fa-user-shield text-primary-600 mr-1"></i> Assign Role
-                        </label>
-                        <select asp-for="Role" id="roleSelect"
-                                class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm">
-                            <option value="">Loading roles...</option>
-                        </select>
-                        <span asp-validation-for="Role" class="text-red-600 text-xs mt-0.5 block"></span>
-                    </div>
+                <div class="mb-3">
+                    <label asp-for="CompanyId" class="block text-xs font-semibold text-slate-700 mb-1">
+                        <i class="fas fa-building text-primary-600 mr-1"></i> Company
+                    </label>
+                    <select asp-for="CompanyId" id="companySelect"
+                            class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm"
+                            required>
+                        <option value="">Loading companies...</option>
+                    </select>
+                    <span asp-validation-for="CompanyId" class="text-red-600 text-xs mt-0.5 block"></span>
+                </div>
 
-                    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-                    <script>
-                        $(document).ready(function() {
-                            $.ajax({
-                                url: '@Url.Action("GetAllSystemRoles", "Auth")',
-                                type: 'GET',
-                                success: function(roles) {
-                                    var options = '<option value="">Select Role</option>';
-                                    if (roles && roles.length > 0) {
-                                        roles.forEach(function(role) {
-                                            var name = typeof role === 'string' ? role : role.name;
-                                            options += '<option value="' + name + '">' + name + '</option>';
-                                        });
-                                    } else {
-                                        options = '<option value="">No roles found</option>';
-                                    }
-                                    $('#roleSelect').html(options);
-                                },
-                                error: function() {
-                                    $('#roleSelect').html('<option value="">Error loading roles</option>');
-                                }
-                            });
-                        });
-                    </script>
-                }
+                <div class="mb-4 p-2.5 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-800">
+                    Your account will be activated after an admin assigns your role.
+                </div>
 
                 <!-- Create Button -->
                 <button type="submit"
@@ -244,10 +204,28 @@
         </div>
     </div>
 
-    @section Scripts {
-        @{
-            await Html.RenderPartialAsync("_ValidationScriptsPartial");
-        }
-    }
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $.ajax({
+                url: '/Auth/GetCompaniesForRegister',
+                type: 'GET',
+                success: function (companies) {
+                    var options = '<option value="">Select Company</option>';
+                    if (companies && companies.length > 0) {
+                        companies.forEach(function (company) {
+                            options += '<option value="' + company.id + '">' + company.companyName + '</option>';
+                        });
+                    } else {
+                        options = '<option value="">No companies found</option>';
+                    }
+                    $('#companySelect').html(options);
+                },
+                error: function () {
+                    $('#companySelect').html('<option value="">Error loading companies</option>');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

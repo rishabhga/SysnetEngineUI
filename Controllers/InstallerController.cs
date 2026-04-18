@@ -1,9 +1,12 @@
+using ManageEngineWebApp.Attributes;
+using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
 namespace ManageEngineWebApp.Controllers
 {
+    [AuthFilter]
     public class InstallerController : Controller
     {
 
@@ -15,12 +18,10 @@ namespace ManageEngineWebApp.Controllers
 
 
         [HttpPost]
+        [DynamicPermission("Installer.Download", "Download Installer")]
         public IActionResult DownloadInstaller([FromBody] InstallerRequest requestData)
         {
-            // Sanitize the location name
             string safeLocation = requestData.LocationName.Replace(" ", "_").Replace("/", "").Replace("\\", "").Replace("..", "");
-
-            // Construct file name as per your format
             string fileName = $"{safeLocation}_C{requestData.CompanyId}_G{requestData.GroupId}_Installer.exe";
 
             string filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "ClientSoftware", fileName);
@@ -38,6 +39,7 @@ namespace ManageEngineWebApp.Controllers
 
 
         [HttpPost]
+        [DynamicPermission("Installer.Generate", "Generate Installer")]
         public async Task<IActionResult> GenerateInstaller([FromBody] InstallerRequest requestData)
         {
 
@@ -46,16 +48,12 @@ namespace ManageEngineWebApp.Controllers
 
                 var testLogPath1 = Path.Combine(_env.WebRootPath, "installersoftware", "test_log1.txt");
                 System.IO.File.AppendAllText(testLogPath1, $"[{DateTime.Now}] GenerateInstaller called\n");
-                // Step 1: Update config.txt
                 UpdateConfigFile(requestData.CompanyId, requestData.GroupId, requestData.LocationId);
-
-                // Step 2: Compile Installer
                 CompileInnoSetup();
                 // Step 3: Return the actual file
                 //var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "installersoftware", "Output", "setup.exe");
                 var filePath = Path.Combine(_env.WebRootPath, "installersoftware", "Output", "Sysnet_Trinetra_Setup.exe");
                 string folderPath = Path.Combine("C:\\SysnetEngineWeb\\wwwroot\\Installersoftware");
-                // var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "installersoftware", "Output", "setup.exe");
 
 
                 if (!System.IO.File.Exists(filePath))
@@ -86,11 +84,6 @@ namespace ManageEngineWebApp.Controllers
         {
 
             string rootPath = Path.Combine(_env.WebRootPath, "installersoftware");
-            //string rootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "installersoftware");
-            //string rootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot", "installersoftware");
-
-
-            // Ensure folder exists
             if (!Directory.Exists(rootPath))
             {
                 Directory.CreateDirectory(rootPath);
@@ -145,11 +138,9 @@ namespace ManageEngineWebApp.Controllers
         //}
 
 
-        //testing method
         private void CompileInnoSetup()
         {
-            // ✅ Change 1: Inno Setup ko project ke andar deploy karo
-            string innoPath = Path.Combine(_env.WebRootPath, "installersoftware", "tools", "ISCC.exe"); // NEW
+            string innoPath = Path.Combine(_env.WebRootPath, "installersoftware", "tools", "ISCC.exe"); 
             string scriptPath = Path.Combine(_env.WebRootPath, "installersoftware", "installer.iss");
             string logPath = Path.Combine(_env.WebRootPath, "installersoftware", "compile_log.txt");
 
@@ -175,7 +166,6 @@ namespace ManageEngineWebApp.Controllers
                 string error = process.StandardError.ReadToEnd();
                 process.WaitForExit();
 
-                // ✅ Change 2: Save log
                 string logText = $"[{DateTime.Now}] ExitCode: {process.ExitCode}\nOutput:\n{output}\nError:\n{error}\n";
                 System.IO.File.AppendAllText(logPath, logText);
 

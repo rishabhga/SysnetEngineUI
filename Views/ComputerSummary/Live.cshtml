@@ -149,7 +149,7 @@
     const domainLower = domain.toLowerCase();
     const REQUEST_TIMEOUT = 30;
 
-    let currentState = 'idle';        // idle, requesting, waiting, connected
+    let currentState = 'idle';        
     let pollingInterval = null;
     let countdownInterval = null;
     let statusCheckInterval = null;
@@ -167,8 +167,6 @@
 
     const MIN_FRESH_IMAGES_NEEDED = 2;
     const MAX_NO_IMAGE_COUNT = 10;
-
-    // ==================== SIGNALR ====================
     async function setupLiveSignalR() {
         if (liveConnection && liveConnection.state === signalR.HubConnectionState.Connected) {
             await ensureGroupMembership();
@@ -231,7 +229,6 @@
         }
     }
 
-    // ==================== DENIAL HANDLING ====================
     function handleDenial() {
         if (isDenied) return;
         console.log("🚫 HANDLING DENIAL");
@@ -251,7 +248,6 @@
     function closeExpiredModal() { document.getElementById('expiredModal').classList.add('hidden'); }
     function closeExpiredModalAndRetry() { closeExpiredModal(); requestAccess(); }
 
-    // ==================== COUNTDOWN ====================
     function startCountdown() {
         if (countdownInterval) clearInterval(countdownInterval);
         document.getElementById('countdownContainer').classList.remove('hidden');
@@ -287,8 +283,6 @@
         document.getElementById('timeoutModal').classList.remove('hidden');
         resetToIdleState();
     }
-
-    // ==================== STATUS POLLING (Backup for denial) ====================
     function startStatusCheck() {
         if (statusCheckInterval) clearInterval(statusCheckInterval);
         statusCheckInterval = setInterval(async () => {
@@ -301,7 +295,6 @@
                 console.log("📡 Status poll:", data);
                 if (data.denied === true && !isDenied) handleDenial();
                 else if (data.accepted === true && !isDenied && currentState !== 'connected') {
-                    console.log("✅ Access ACCEPTED via poll");
                     currentState = 'connected';
                     stopCountdown();
                     stopStatusCheck();
@@ -309,7 +302,7 @@
                     switchToStopButton();
                     startPolling();
                 }
-            } catch (err) { /* ignore */ }
+            } catch (err) { }
         }, 2000);
     }
 
@@ -318,7 +311,6 @@
         statusCheckInterval = null;
     }
 
-    // ==================== SCREEN POLLING ====================
     function startPolling() {
         if (pollingInterval) return;
         document.getElementById('fpsCounter').style.display = 'block';
@@ -379,8 +371,6 @@
         document.getElementById('expiredModal').classList.remove('hidden');
         resetToIdleState();
     }
-
-    // ==================== UI ACTIONS ====================
     function handleMainAction() {
         if (currentState === 'idle') requestAccess();
         else if (currentState === 'connected') openStopModal();
@@ -409,7 +399,7 @@
         updateStatus('yellow', 'Requesting...');
 
         await setupLiveSignalR();
-        await new Promise(r => setTimeout(r, 500)); // ensure group join
+        await new Promise(r => setTimeout(r, 500)); 
 
         fetch(`/ComputerSummary/RemoteAccess?domain=${domain}`)
             .then(res => {
@@ -509,7 +499,6 @@
     function openStopModal() { document.getElementById("stopModal").classList.remove("hidden"); }
     function closeStopModal() { document.getElementById("stopModal").classList.add("hidden"); }
 
-    // Mouse & Keyboard events
     const img = document.getElementById("remoteImage");
     img.addEventListener("mousemove", function(e) {
         if (currentState !== 'connected') return;

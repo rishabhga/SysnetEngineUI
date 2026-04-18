@@ -24,6 +24,9 @@ namespace ManageEngineWebApp.Controllers
             _baseUrl = configuration["ApiSettings:BaseUrl"];
         }
         private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
+
+        public IActionResult Index() => RedirectToAction("Companies");
+
         public async Task<IActionResult> Companies()
         {
             var username = HttpContext.Session.GetString("username");
@@ -60,6 +63,7 @@ namespace ManageEngineWebApp.Controllers
             }
             ViewBag.ActiveComputers = activeComputers;
 
+            HttpContext.Session.Remove("CompanyLogo");
             var hierarchyData = await LoadHierarchyData();
             return View(hierarchyData ?? new List<CompanyHierarchyDto>());
         }
@@ -129,7 +133,6 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetLocationsByCompany(int companyId)
         {
-            // Scope check
             if (!RoleHelper.ValidateScope(HttpContext, companyId))
                 return Json(new { success = false, message = "Access Denied" });
 
@@ -385,6 +388,45 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
+        [HttpPost]
+        [DynamicPermission("Companies.Edit", "Upload Logo")]
+        public async Task<IActionResult> UploadLogo(IFormFile logo, int companyId)
+        {
+            if (!RoleHelper.ValidateScope(HttpContext, companyId))
+                return Json(new { status = "error", message = "Access Denied: You cannot modify this company." });
+
+            if (logo == null || logo.Length == 0)
+                return Json(new { status = "error", message = "No file uploaded." });
+
+            try
+            {
+                using var client = GetClient();
+                using var content = new MultipartFormDataContent();
+                
+                using var stream = logo.OpenReadStream();
+                var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(logo.ContentType);
+                
+                content.Add(fileContent, "logo", logo.FileName);
+                content.Add(new StringContent(companyId.ToString()), "companyId");
+
+                var response = await client.PostAsync($"{_baseUrl}/api/CompaniesDetails/LogoUpload", content);
+                string result = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonResponse = JsonConvert.DeserializeObject<object>(result);
+                    return Json(jsonResponse);
+                }
+                return Json(new { status = "error", message = "Failed to upload logo" });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"UploadLogo Error: {ex.Message}");
+                return Json(new { status = "error", message = ex.Message });
+            }
+        }
+
         [DynamicPermission("Companies.View", "View Groups")]
         public async Task<IActionResult> GroupsDetails(int id, string companyName)
         {
@@ -418,6 +460,16 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.RemoteSessions = remoteSessions;
 
             var company = await LoadSingleCompanyHierarchy(id, companyName);
+            
+            if (!string.IsNullOrEmpty(company?.LogoUrl))
+            {
+                HttpContext.Session.SetString("CompanyLogo", $"{_baseUrl}{company.LogoUrl}");
+            }
+            else
+            {
+                HttpContext.Session.Remove("CompanyLogo");
+            }
+            
             return View(company);
         }
 
@@ -434,6 +486,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 CompanyId = company?.Id ?? companyId,
                 CompanyName = company?.CompanyName ?? companyName ?? "Unknown",
+                LogoUrl = company?.LogoUrl,
                 Groups = new List<GroupHierarchyDto>()
             };
 

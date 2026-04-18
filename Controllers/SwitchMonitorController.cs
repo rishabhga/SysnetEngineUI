@@ -5,10 +5,13 @@ using System.Net.Http;
 using System.Net.Http.Json;         
 using System.Text.Json;
 using System.Threading.Tasks;
+using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Models;
+using ManageEngineWebApp.Attributes;
 
 namespace ManageEngineWebApp.Controllers
 {
+    [AuthFilter]
     public class SwitchMonitorController : Controller
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -22,6 +25,7 @@ namespace ManageEngineWebApp.Controllers
 
         private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
 
+        [DynamicPermission("SwitchMonitor.View", "View Switch Monitor")]
         public async Task<IActionResult> Index()
         {
             var switches = new List<SwitchMaster>();
@@ -64,6 +68,7 @@ namespace ManageEngineWebApp.Controllers
             return View(switches);
         }
 
+        [DynamicPermission("SwitchMonitor.View", "View Switch Details")]
         public async Task<IActionResult> Details(int id)
         {
             using var client = GetClient();
@@ -123,6 +128,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
        
+        [DynamicPermission("SwitchMonitor.Create", "Create Switch")]
         public IActionResult Create()
         {
             return PartialView("_SwitchForm", new SwitchMaster
@@ -136,6 +142,7 @@ namespace ManageEngineWebApp.Controllers
        
         [HttpPost]
         [IgnoreAntiforgeryToken] 
+        [DynamicPermission("SwitchMonitor.Create", "Create Switch")]
         public async Task<IActionResult> Create([FromBody] SwitchMaster model)
         {
             if (model == null)
@@ -156,6 +163,7 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, message = $"Connection error: {ex.Message}" });
             }
         }
+        [DynamicPermission("SwitchMonitor.Edit", "Edit Switch")]
         public async Task<IActionResult> Edit(int id)
         {
             using var client = GetClient();
@@ -170,6 +178,7 @@ namespace ManageEngineWebApp.Controllers
  
         [HttpPost]
         [IgnoreAntiforgeryToken]
+        [DynamicPermission("SwitchMonitor.Edit", "Edit Switch")]
         public async Task<IActionResult> Edit(int id, [FromBody] SwitchMaster model)
         {
             if (model == null)
@@ -193,6 +202,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [IgnoreAntiforgeryToken]
+        [DynamicPermission("SwitchMonitor.Delete", "Delete Switch")]
         public async Task<IActionResult> Delete(int id)
         {
             using var client = GetClient();
@@ -212,6 +222,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]   
+        [DynamicPermission("SwitchMonitor.Action", "Trigger Poll")]
         public async Task<IActionResult> TriggerPoll()
         {
             using var client = GetClient();

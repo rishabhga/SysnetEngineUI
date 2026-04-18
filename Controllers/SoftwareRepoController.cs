@@ -1,9 +1,12 @@
+using ManageEngineWebApp.Attributes;
+using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
 namespace ManageEngineWebApp.Controllers
 {
+    [AuthFilter]
     public class SoftwareRepoController : Controller
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -18,6 +21,7 @@ namespace ManageEngineWebApp.Controllers
         private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
 
         [HttpGet]
+        [DynamicPermission("SoftwareRepo.View", "View Software Repository")]
         public async Task<IActionResult> Index()
         {
             var items = new List<SoftwareRepoDetails>();
@@ -46,10 +50,12 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
+        [DynamicPermission("SoftwareRepo.Upload", "Upload Software")]
         public IActionResult Upload() => View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [DynamicPermission("SoftwareRepo.Upload", "Upload Software")]
         [DisableRequestSizeLimit]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         public async Task<IActionResult> Upload(IFormFile? file, string? softwareName, string? version)

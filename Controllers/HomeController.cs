@@ -1,4 +1,4 @@
-﻿using ManageEngineWebApp.Models;
+using ManageEngineWebApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -17,6 +17,10 @@ namespace ManageEngineWebApp.Controllers
         [AllowAnonymous]
         public IActionResult Index()
         {
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("username")))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
             return View();
         }
 

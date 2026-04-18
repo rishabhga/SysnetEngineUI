@@ -32,7 +32,6 @@ namespace ManageEngineWebApp.Services
             {
                 var controllerName = controller.Name.Replace("Controller", "");
                 
-                // Check if controller has ignore attribute or specific module name
                 var classAttr = controller.GetCustomAttribute<DynamicPermissionAttribute>();
                 var moduleName = classAttr?.Module ?? controllerName;
 
@@ -41,11 +40,9 @@ namespace ManageEngineWebApp.Services
 
                 foreach (var method in methods)
                 {
-                    // Check for attribute override
                     var attr = method.GetCustomAttribute<DynamicPermissionAttribute>();
                     var actionName = method.Name;
 
-                    // Skip if [AllowAnonymous] is present
                     if (method.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute>() != null)
                         continue;
 

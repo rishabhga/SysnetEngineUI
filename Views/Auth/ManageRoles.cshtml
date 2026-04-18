@@ -10,263 +10,585 @@
         System.Text.RegularExpressions.Regex.Replace(name, "([A-Z])", " $1").Trim();
 }
 
-<style>
-    .pop-wrap {
-        position: relative;
-        display: inline-block;
-    }
-
-        .pop-wrap .pop-box {
-            display: none;
-            position: absolute;
-            left: 0;
-            top: calc(100% + 4px);
-            min-width: 180px;
-            max-width: 240px;
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            box-shadow: 0 8px 24px -4px rgba(0,0,0,.14);
-            padding: 6px;
-            z-index: 200;
+@section Styles {
+    <style>
+        :root {
+            --brand: #0ea5e9;
+            --brand-dk: #0284c7;
+            --brand-lt: #e0f2fe;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warn: #f59e0b;
         }
 
-        .pop-wrap:hover .pop-box {
-            display: block;
+        .scope-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: default;
+            white-space: nowrap;
+            transition: all .15s;
         }
 
-    .pop-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 4px 6px;
-        border-radius: 5px;
-        font-size: 10px;
-        color: #374151;
-        gap: 4px;
-    }
-
-        .pop-item:hover {
-            background: #f0f9ff;
+        .pop-wrap {
+            position: relative;
+            display: inline-block;
         }
 
-    .pop-del {
-        color: #d1d5db;
-        cursor: pointer;
-        border: none;
-        background: none;
-        padding: 0;
-        line-height: 1;
-    }
+            .pop-wrap .pop-box {
+                display: none;
+                position: absolute;
+                left: 0;
+                top: calc(100% + 4px);
+                min-width: 200px;
+                max-width: 260px;
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px -8px rgba(0,0,0,.15);
+                padding: 6px;
+                z-index: 300;
+            }
 
-        .pop-del:hover {
-            color: #ef4444;
-        }
+            .pop-wrap:hover .pop-box {
+                display: block;
+            }
 
-    .scope-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        padding: 2px 7px;
-        border-radius: 999px;
-        font-size: 10px;
-        font-weight: 600;
-        cursor: default;
-        white-space: nowrap;
-    }
-
-    .rm-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,.55);
-        backdrop-filter: blur(6px);
-        z-index: 50;
-        align-items: center;
-        justify-content: center;
-    }
-
-        .rm-overlay.open {
+        .pop-item {
             display: flex;
-            animation: rmFadeIn .18s ease;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #374151;
+            gap: 6px;
+            transition: background .1s;
         }
 
-    @@keyframes rmFadeIn {
-        from {
-            opacity: 0
-        }
+            .pop-item:hover {
+                background: #f0f9ff;
+            }
 
-        to {
-            opacity: 1
-        }
-    }
-
-    .mc-list {
-        max-height: 160px;
-        overflow-y: auto;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        background: #f8fafc;
-    }
-
-        .mc-list::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .mc-list::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+        .pop-del {
+            color: #cbd5e1;
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 2px;
+            line-height: 1;
             border-radius: 4px;
-        }
-
-    .mc-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
-        font-size: 11px;
-        color: #374151;
-        cursor: pointer;
-        border-bottom: 1px solid #f1f5f9;
-        transition: background .1s;
-    }
-
-        .mc-item:last-child {
-            border-bottom: none;
-        }
-
-        .mc-item:hover:not(.mc-disabled) {
-            background: #e0f5fc;
-        }
-
-        .mc-item.mc-disabled {
-            opacity: .55;
-            cursor: not-allowed;
-        }
-
-        .mc-item input[type=checkbox] {
-            accent-color: #00BCEB;
+            transition: color .15s;
             flex-shrink: 0;
         }
 
-        .mc-item .already-tag {
-            margin-left: auto;
-            font-size: 9px;
+            .pop-del:hover {
+                color: #ef4444;
+            }
+
+        .role-tbl {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+            .role-tbl thead th {
+                position: sticky;
+                top: 0;
+                z-index: 2;
+                background: #f8fafc;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: .06em;
+                color: #94a3b8;
+                padding: 10px 14px;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .role-tbl tbody td {
+                padding: 10px 14px;
+                vertical-align: middle;
+                font-size: 12px;
+            }
+
+            .role-tbl tbody tr {
+                border-bottom: 1px solid #f1f5f9;
+                transition: background .12s;
+            }
+
+                .role-tbl tbody tr:hover {
+                    background: #f8fafc;
+                }
+
+                .role-tbl tbody tr:last-child {
+                    border-bottom: none;
+                }
+
+        .rm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,.55);
+            backdrop-filter: blur(4px);
+            z-index: 1050;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+            .rm-overlay.open {
+                display: flex;
+            }
+
+        .rm-modal {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -10px rgba(0,0,0,.25);
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 500px;
+            max-height: calc(100vh - 40px);
+            margin: auto;
+            overflow: hidden;
+            animation: modalIn .2s cubic-bezier(.4,0,.2,1);
+        }
+
+        @@keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(.96) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .rm-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            flex-shrink: 0;
+        }
+
+            .rm-modal-header h3 {
+                font-size: 14px;
+                font-weight: 700;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin: 0;
+            }
+
+        .rm-modal-close {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(255,255,255,.2);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            transition: background .15s;
+            flex-shrink: 0;
+        }
+
+            .rm-modal-close:hover {
+                background: rgba(255,255,255,.3);
+            }
+
+        .rm-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 18px;
+        }
+
+            .rm-modal-body::-webkit-scrollbar {
+                width: 4px;
+            }
+
+            .rm-modal-body::-webkit-scrollbar-thumb {
+                background: #e2e8f0;
+                border-radius: 4px;
+            }
+
+        .rm-modal-footer {
+            padding: 12px 18px;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-shrink: 0;
+            background: #fafafa;
+        }
+
+        .rm-label {
+            display: block;
+            font-size: 10px;
             font-weight: 700;
-            background: #d1fae5;
-            color: #065f46;
-            padding: 1px 5px;
-            border-radius: 4px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 5px;
         }
 
-    .role-tbl tbody tr {
-        transition: background .15s;
-    }
-
-        .role-tbl tbody tr:hover {
-            background: #f0f9ff;
+        .rm-input {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fafafa;
+            color: #1e293b;
+            outline: none;
+            transition: border-color .15s, box-shadow .15s;
         }
 
-    .role-tbl thead th {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background: #f8fafc;
-    }
-</style>
+            .rm-input:focus {
+                border-color: var(--brand);
+                background: #fff;
+                box-shadow: 0 0 0 3px rgba(14,165,233,.12);
+            }
 
-<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4">
+        .mc-list {
+            max-height: 120px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
 
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-2">
+            .mc-list::-webkit-scrollbar {
+                width: 3px;
+            }
+
+            .mc-list::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 3px;
+            }
+
+        .mc-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            font-size: 11px;
+            color: #374151;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background .1s;
+        }
+
+            .mc-item:last-child {
+                border-bottom: none;
+            }
+
+            .mc-item:hover:not(.mc-disabled) {
+                background: #e0f7fd;
+            }
+
+            .mc-item.mc-disabled {
+                opacity: .6;
+                cursor: not-allowed;
+            }
+
+            .mc-item input[type=checkbox] {
+                accent-color: var(--brand);
+                flex-shrink: 0;
+            }
+
+            .mc-item .already-tag {
+                margin-left: auto;
+                font-size: 9px;
+                font-weight: 700;
+                background: #d1fae5;
+                color: #065f46;
+                padding: 1px 6px;
+                border-radius: 4px;
+            }
+
+        .btn-primary {
+            padding: 8px 18px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--brand), var(--brand-dk));
+            box-shadow: 0 2px 8px rgba(14,165,233,.25);
+            transition: all .18s;
+        }
+
+            .btn-primary:hover:not(:disabled) {
+                opacity: .9;
+                transform: translateY(-1px);
+            }
+
+            .btn-primary:disabled {
+                opacity: .6;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+        .btn-secondary {
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+            .btn-secondary:hover {
+                background: #f8fafc;
+                border-color: #cbd5e1;
+            }
+
+        .btn-danger {
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg,#ef4444,#dc2626);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+            .btn-danger:hover {
+                opacity: .88;
+            }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            transition: all .15s;
+        }
+
+        .role-tab-btn {
+            padding: 8px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #94a3b8;
+            transition: all .15s;
+        }
+
+            .role-tab-btn.active {
+                color: var(--brand);
+                border-bottom-color: var(--brand);
+            }
+
+            .role-tab-btn:hover:not(.active) {
+                color: #64748b;
+            }
+
+        .perm-tree {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            max-height: 180px;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+
+            .perm-tree::-webkit-scrollbar {
+                width: 3px;
+            }
+
+            .perm-tree::-webkit-scrollbar-thumb {
+                background: #e2e8f0;
+                border-radius: 3px;
+            }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+            padding: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.05);
+            transition: box-shadow .15s;
+        }
+
+            .stat-card:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,.08);
+            }
+
+        .role-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            border: 1px solid;
+        }
+
+        .rm-msg {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+            .rm-msg.success {
+                background: #ecfdf5;
+                color: #065f46;
+                border: 1px solid #a7f3d0;
+            }
+
+            .rm-msg.error {
+                background: #fef2f2;
+                color: #b91c1c;
+                border: 1px solid #fecaca;
+            }
+
+        @@media (max-width: 640px) {
+            .rm-modal-body {
+                padding: 14px;
+            }
+
+            .role-tbl {
+                font-size: 11px;
+            }
+
+                .role-tbl thead th, .role-tbl tbody td {
+                    padding: 8px 10px;
+                }
+
+            .stat-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+    </style>
+}
+
+<div class="max-w-7xl mx-auto">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
             <a href="@Url.Action("Companies", "Companies")"
-               class="w-7 h-7 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center justify-center shadow-sm">
-                <i class="fas fa-arrow-left text-gray-600 text-xs"></i>
+               class="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center shadow-sm hover:bg-gray-50 transition-colors">
+                <i class="fas fa-arrow-left text-gray-500 text-xs"></i>
             </a>
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center shadow-sm bg-gradient-to-br from-cyan-500 to-blue-600">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
+                 style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
                 <i class="fas fa-user-shield text-white text-sm"></i>
             </div>
             <div>
-                <h1 class="text-base font-bold text-gray-900">Role Management</h1>
-                <p class="text-[10px] text-gray-500">Users, permissions &amp; scope assignments</p>
+                <h1 class="text-base font-bold text-gray-900 leading-tight">Role Management</h1>
+                <p class="text-[11px] text-gray-400">Users, roles &amp; permission assignments</p>
             </div>
         </div>
-        <div class="flex flex-wrap items-center gap-1.5">
+
+        <div class="flex flex-wrap items-center gap-2">
             <button onclick="openCreateRoleModal()"
-                    class="px-2.5 py-1.5 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                    style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
+                    class="btn-primary flex items-center gap-1.5 text-xs">
                 <i class="fas fa-plus-circle text-[10px]"></i> New Role
             </button>
             <a href="@Url.Action("Register", "Auth")"
-               class="px-2.5 py-1.5 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-               style="background:linear-gradient(135deg,#84cc16,#65a30d)">
-                <i class="fas fa-user-plus text-[10px]"></i> Register
+               class="btn-sm text-white flex items-center gap-1.5"
+               style="background:linear-gradient(135deg,#84cc16,#65a30d);">
+                <i class="fas fa-user-plus text-[9px]"></i> Register
             </a>
             <button onclick="openAssignRoleModal()"
-                    class="px-2.5 py-1.5 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                    style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
-                <i class="fas fa-user-tag text-[10px]"></i> Assign
+                    class="btn-primary flex items-center gap-1.5 text-xs">
+                <i class="fas fa-user-tag text-[10px]"></i> Assign Role
             </button>
             <button onclick="openManageRolesListModal()"
-                    class="px-2.5 py-1.5 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                    style="background:linear-gradient(135deg,#64748b,#475569)">
-                <i class="fas fa-tasks text-[10px]"></i> Manage Roles
+                    class="btn-sm text-white flex items-center gap-1.5"
+                    style="background:linear-gradient(135deg,#64748b,#475569);">
+                <i class="fas fa-tasks text-[9px]"></i> Manage Roles
             </button>
         </div>
     </div>
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-4" id="roleStatsContainer">
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-5 stat-grid" id="roleStatsContainer">
         @for (int s = 0; s < 6; s++)
         {
-            <div class="bg-white rounded-lg border border-gray-100 p-2.5 shadow-sm animate-pulse">
+            <div class="stat-card animate-pulse">
                 <div class="h-2 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div class="h-5 bg-gray-200 rounded w-1/2"></div>
+                <div class="h-5 bg-gray-200 rounded w-1/3"></div>
             </div>
         }
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="overflow-x-auto" style="max-height:calc(100vh - 280px);overflow-y:auto">
-            <table class="w-full text-xs role-tbl">
+        <div class="px-4 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
+            <div class="relative flex-1 min-w-[180px]">
+                <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="userSearchInput" placeholder="Search users..."
+                       class="rm-input pl-8 py-1.5 text-xs"
+                       oninput="filterUserTable(this.value)">
+            </div>
+            <span class="text-xs text-gray-400"><span id="visibleCount">@Model.Count</span> users</span>
+        </div>
+
+        <div class="overflow-x-auto" style="max-height:calc(100vh - 340px); overflow-y:auto;">
+            <table class="role-tbl">
                 <thead>
-                    <tr class="border-b border-gray-200 text-[10px] text-gray-500 uppercase tracking-wide">
-                        <th class="px-3 py-2.5 text-left font-semibold">User</th>
-                        <th class="px-3 py-2.5 text-left font-semibold">Role</th>
-                        <th class="px-3 py-2.5 text-left font-semibold">Companies</th>
-                        <th class="px-3 py-2.5 text-left font-semibold">Groups</th>
-                        <th class="px-3 py-2.5 text-left font-semibold">Locations</th>
-                        <th class="px-3 py-2.5 text-left font-semibold">Devices</th>
-                        <th class="px-3 py-2.5 text-right font-semibold">Actions</th>
+                    <tr>
+                        <th class="text-left">User</th>
+                        <th class="text-left">Role</th>
+                        <th class="text-left hidden sm:table-cell">Companies</th>
+                        <th class="text-left hidden md:table-cell">Groups</th>
+                        <th class="text-left hidden lg:table-cell">Locations</th>
+                        <th class="text-left hidden xl:table-cell">Devices</th>
+                        <th class="text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody id="roleTableBody" class="divide-y divide-gray-50">
                     @foreach (var user in Model)
                     {
                         var mappings = user.Mappings ?? new List<ManageEngineWebApp.Dtos.RoleMappingDto>();
-                        
-                        // Group by ID to get unique entities for counts and unique lists
                         var companies = mappings.Where(m => m.CompanyId.HasValue).GroupBy(m => m.CompanyId).Select(g => g.First()).ToList();
                         var groups = mappings.Where(m => m.GroupId.HasValue).GroupBy(m => m.GroupId).Select(g => g.First()).ToList();
                         var locations = mappings.Where(m => m.LocationId.HasValue).GroupBy(m => m.LocationId).Select(g => g.First()).ToList();
                         var devices = mappings.Where(m => m.ScopeType == "Device").ToList();
 
-                        <tr>
-                            <td class="px-3 py-2">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center text-gray-500 text-[9px] font-bold flex-shrink-0">
+                        <tr data-username="@user.Username?.ToLower()">
+                            <td>
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                                         @user.Username?.Substring(0, 1).ToUpper()
                                     </div>
-                                    <span class="font-semibold text-gray-800">@user.Username</span>
+                                    <span class="font-semibold text-gray-800 text-xs">@user.Username</span>
                                 </div>
                             </td>
-
-                            <td class="px-3 py-2">
+                            <td>
                                 @if (user.Roles != null && user.Roles.Any())
                                 {
                                     <div class="flex flex-wrap gap-1">
                                         @foreach (var r in user.Roles)
                                         {
                                             var h = Math.Abs(r.GetHashCode() % 360);
-                                            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold border"
-                                                  style="background:hsl(@h,70%,95%);color:hsl(@h,70%,35%);border-color:hsl(@h,70%,82%)">
+                                            <span class="role-chip"
+                                                  style="background:hsl(@h,60%,94%);color:hsl(@h,65%,35%);border-color:hsl(@h,60%,80%)">
                                                 @FormatRole(r)
                                             </span>
                                         }
@@ -274,32 +596,25 @@
                                 }
                                 else
                                 {
-                                    <span class="text-gray-300 text-[9px] italic">No role</span>
+                                    <span class="text-gray-300 text-[10px] italic">No role</span>
                                 }
                             </td>
-
-                            <td class="px-3 py-2">
+                            <td class="hidden sm:table-cell">
                                 @if (companies.Any())
                                 {
                                     <div class="pop-wrap">
-                                        <span class="scope-badge bg-blue-50 text-blue-700 border border-blue-200">
-                                            <i class="fas fa-building text-[8px]"></i>
-                                            @companies.Count
+                                        <span class="scope-badge bg-blue-50 text-blue-600 border border-blue-200 cursor-pointer">
+                                            <i class="fas fa-building text-[8px]"></i> @companies.Count
                                         </span>
                                         <div class="pop-box">
                                             @{
-                                                var uniqueCompanies = mappings.Where(m => m.CompanyId.HasValue)
-                                                                            .GroupBy(m => new { m.CompanyId, m.CompanyName })
-                                                                            .Select(g => g.First());
+                                                var uniqueCompanies = mappings.Where(m => m.CompanyId.HasValue).GroupBy(m => new { m.CompanyId, m.CompanyName }).Select(g => g.First());
                                             }
                                             @foreach (var m in uniqueCompanies)
                                             {
                                                 <div class="pop-item">
-                                                    <span class="truncate">@(m.CompanyName ?? "N/A")</span>
-                                                    @* Note: Deleting a unique company here deletes one of the mappings; 
-                                                       Backend should handle cascaded removal if intended, 
-                                                       or we keep it simple by removing that specific entry. *@
-                                                    <button class="pop-del" title="Remove"
+                                                    <span class="truncate flex-1">@(m.CompanyName ?? "N/A")</span>
+                                                    <button class="pop-del" title="Remove mapping"
                                                             onclick="deleteMapping(@m.Id,'@user.Username','@m.RoleName','@(m.CompanyName ?? "")')">
                                                         <i class="fas fa-times text-[9px]"></i>
                                                     </button>
@@ -314,26 +629,22 @@
                                     <span class="text-gray-200 text-[9px]">—</span>
                                 }
                             </td>
-
-                            <td class="px-3 py-2">
+                            <td class="hidden md:table-cell">
                                 @if (groups.Any())
                                 {
                                     <div class="pop-wrap">
-                                        <span class="scope-badge bg-orange-50 text-orange-700 border border-orange-200">
-                                            <i class="fas fa-layer-group text-[8px]"></i>
-                                            @groups.Count
+                                        <span class="scope-badge bg-orange-50 text-orange-600 border border-orange-200 cursor-pointer">
+                                            <i class="fas fa-layer-group text-[8px]"></i> @groups.Count
                                         </span>
                                         <div class="pop-box">
                                             @{
-                                                var uniqueGroups = mappings.Where(m => m.GroupId.HasValue)
-                                                                         .GroupBy(m => new { m.GroupId, m.GroupName })
-                                                                         .Select(g => g.First());
+                                                var uniqueGroups = mappings.Where(m => m.GroupId.HasValue).GroupBy(m => new { m.GroupId, m.GroupName }).Select(g => g.First());
                                             }
                                             @foreach (var m in uniqueGroups)
                                             {
                                                 <div class="pop-item">
-                                                    <span class="truncate">@(m.GroupName ?? "N/A")</span>
-                                                    <button class="pop-del" title="Remove"
+                                                    <span class="truncate flex-1">@(m.GroupName ?? "N/A")</span>
+                                                    <button class="pop-del" title="Remove mapping"
                                                             onclick="deleteMapping(@m.Id,'@user.Username','@m.RoleName','@(m.GroupName ?? "")')">
                                                         <i class="fas fa-times text-[9px]"></i>
                                                     </button>
@@ -348,26 +659,22 @@
                                     <span class="text-gray-200 text-[9px]">—</span>
                                 }
                             </td>
-
-                            <td class="px-3 py-2">
+                            <td class="hidden lg:table-cell">
                                 @if (locations.Any())
                                 {
                                     <div class="pop-wrap">
-                                        <span class="scope-badge bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            <i class="fas fa-map-marker-alt text-[8px]"></i>
-                                            @locations.Count
+                                        <span class="scope-badge bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-pointer">
+                                            <i class="fas fa-map-marker-alt text-[8px]"></i> @locations.Count
                                         </span>
                                         <div class="pop-box">
                                             @{
-                                                var uniqueLocs = mappings.Where(m => m.LocationId.HasValue)
-                                                                       .GroupBy(m => new { m.LocationId, m.LocationName })
-                                                                       .Select(g => g.First());
+                                                var uniqueLocs = mappings.Where(m => m.LocationId.HasValue).GroupBy(m => new { m.LocationId, m.LocationName }).Select(g => g.First());
                                             }
                                             @foreach (var m in uniqueLocs)
                                             {
                                                 <div class="pop-item">
-                                                    <span class="truncate">@(m.LocationName ?? "N/A")</span>
-                                                    <button class="pop-del" title="Remove"
+                                                    <span class="truncate flex-1">@(m.LocationName ?? "N/A")</span>
+                                                    <button class="pop-del" title="Remove mapping"
                                                             onclick="deleteMapping(@m.Id,'@user.Username','@m.RoleName','@(m.LocationName ?? "")')">
                                                         <i class="fas fa-times text-[9px]"></i>
                                                     </button>
@@ -382,21 +689,19 @@
                                     <span class="text-gray-200 text-[9px]">—</span>
                                 }
                             </td>
-
-                            <td class="px-3 py-2">
+                            <td class="hidden xl:table-cell">
                                 @if (devices.Any())
                                 {
                                     <div class="pop-wrap">
-                                        <span class="scope-badge bg-purple-50 text-purple-700 border border-purple-200">
-                                            <i class="fas fa-desktop text-[8px]"></i>
-                                            @devices.Count
+                                        <span class="scope-badge bg-purple-50 text-purple-600 border border-purple-200 cursor-pointer">
+                                            <i class="fas fa-desktop text-[8px]"></i> @devices.Count
                                         </span>
                                         <div class="pop-box">
                                             @foreach (var m in devices)
                                             {
                                                 <div class="pop-item">
-                                                    <span class="truncate">@(m.ScopeName ?? "N/A")</span>
-                                                    <button class="pop-del" title="Remove"
+                                                    <span class="truncate flex-1">@(m.ScopeName ?? "N/A")</span>
+                                                    <button class="pop-del" title="Remove mapping"
                                                             onclick="deleteMapping(@m.Id,'@user.Username','@m.RoleName','@(m.ScopeName ?? "")')">
                                                         <i class="fas fa-times text-[9px]"></i>
                                                     </button>
@@ -411,24 +716,24 @@
                                     <span class="text-gray-200 text-[9px]">—</span>
                                 }
                             </td>
-
-                            <td class="px-3 py-2 text-right whitespace-nowrap">
+                            <td class="text-right whitespace-nowrap">
                                 @if (user.Roles == null || !user.Roles.Contains("SuperAdmin"))
                                 {
                                     <button onclick="editRole('@user.Username','@(user.Roles?.FirstOrDefault() ?? "")',@(user.CompanyId?.ToString() ?? "null"),'@(user.Mappings?.FirstOrDefault(m => !string.IsNullOrEmpty(m.ScopeName))?.ScopeName ?? "")')"
-                                            class="px-2 py-1 text-white rounded text-[9px] font-bold mr-1 transition-all"
-                                            style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
-                                        <i class="fas fa-edit text-[8px] mr-0.5"></i>Edit
+                                            class="btn-sm text-white mr-1"
+                                            style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
+                                        <i class="fas fa-edit text-[9px] mr-0.5"></i>Edit
                                     </button>
                                     <button onclick="removeUserRole('@user.Username','@(user.Roles?.FirstOrDefault() ?? "")')"
-                                            class="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-[9px] font-bold transition-all">
-                                        <i class="fas fa-trash text-[8px] mr-0.5"></i>Del
+                                            class="btn-sm text-white"
+                                            style="background:linear-gradient(135deg,#ef4444,#dc2626);">
+                                        <i class="fas fa-trash text-[9px] mr-0.5"></i>Remove
                                     </button>
                                 }
                                 else
                                 {
-                                    <span class="text-gray-400 text-[9px] italic flex items-center justify-end gap-1">
-                                        <i class="fas fa-lock text-[8px]"></i>Protected
+                                    <span class="text-gray-300 text-[10px] italic flex items-center justify-end gap-1">
+                                        <i class="fas fa-lock text-[9px]"></i> Protected
                                     </span>
                                 }
                             </td>
@@ -441,317 +746,281 @@
 </div>
 
 
-<div id="assignRoleModal" class="rm-overlay">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-3 flex flex-col max-h-[90vh]">
-        <div class="px-4 py-3 rounded-t-2xl flex items-center justify-between bg-gradient-to-r from-cyan-500 to-blue-600 flex-shrink-0">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                <i class="fas fa-user-tag"></i> Assign Role to User
-            </h3>
-            <button onclick="closeAssignRoleModal()" class="text-white/80 hover:text-white">
-                <i class="fas fa-times text-sm"></i>
+<div id="assignRoleModal" class="rm-overlay" role="dialog" aria-modal="true" aria-labelledby="assignRoleTitle">
+    <div class="rm-modal" style="max-width:460px;">
+        <div class="rm-modal-header" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
+            <h3 id="assignRoleTitle"><i class="fas fa-user-tag"></i> Assign Role to User</h3>
+            <button class="rm-modal-close" onclick="closeAssignRoleModal()" aria-label="Close">
+                <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="p-4 overflow-y-auto flex-1">
-            <div class="mb-3">
-                <label class="block text-[10px] font-bold text-gray-600 mb-1 uppercase tracking-wide">Username *</label>
-                <input type="text" id="assignUsername"
-                       class="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                       placeholder="Enter username" required>
+        <div class="rm-modal-body">
+            <div class="mb-4">
+                <label class="rm-label">Username *</label>
+                <input type="text" id="assignUsername" class="rm-input" placeholder="Enter username" autocomplete="off">
             </div>
-
-            <div class="mb-3">
-                <label class="block text-[10px] font-bold text-gray-600 mb-1 uppercase tracking-wide">Role *</label>
-                <select id="assignRole"
-                        class="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400">
-                    <option value="">Loading roles...</option>
+            <div class="mb-4">
+                <label class="rm-label">Role *</label>
+                <select id="assignRole" class="rm-input">
+                    <option value="">Loading roles…</option>
                 </select>
             </div>
 
-            <div id="companySelectDiv" class="mb-3 hidden">
-                <label class="block text-[10px] font-bold text-gray-600 mb-1 uppercase tracking-wide">
-                    Companies
-                    <span class="ml-1 text-cyan-600 font-normal normal-case">(select multiple)</span>
-                </label>
-                <div class="relative mb-1">
-                    <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[9px]"></i>
-                    <input type="text" id="companySearch" placeholder="Filter companies..."
-                           class="w-full pl-7 pr-2 py-1.5 text-[10px] border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                           oninput="filterList('companyList', this.value)">
-                </div>
-                <div id="companyList" class="mc-list">
-                    <div class="mc-item text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Loading...</div>
-                </div>
-                <p class="text-[9px] text-gray-400 mt-1">
-                    <i class="fas fa-info-circle mr-0.5"></i>
-                    Greyed items are already assigned. Checked = will be added.
-                </p>
-            </div>
+            <!-- Company Selection REMOVED (Fixed at registration) -->
+            <input type="hidden" id="companyIdHidden" value="">
 
-            <div id="groupSelectDiv" class="mb-3 hidden">
-                <label class="block text-[10px] font-bold text-gray-600 mb-1 uppercase tracking-wide">
-                    Groups <span class="ml-1 text-cyan-600 font-normal normal-case">(select multiple)</span>
-                </label>
-                <div class="relative mb-1">
-                    <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[9px]"></i>
-                    <input type="text" placeholder="Filter groups..."
-                           class="w-full pl-7 pr-2 py-1.5 text-[10px] border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                           oninput="filterList('groupList', this.value)">
+
+            <div id="groupSelectDiv" class="mb-4 hidden">
+                <label class="rm-label">Groups <span class="text-sky-500 font-normal normal-case ml-1">(select multiple)</span></label>
+                <div class="relative mb-1.5">
+                    <input type="text" placeholder="Filter groups…"
+                           class="rm-input py-1.5 text-xs"
+                           oninput="filterList('groupList',this.value)">
                 </div>
                 <div id="groupList" class="mc-list">
                     <div class="mc-item text-gray-400">Select a company first</div>
                 </div>
             </div>
 
-            <div id="locationSelectDiv" class="mb-3 hidden">
-                <label class="block text-[10px] font-bold text-gray-600 mb-1 uppercase tracking-wide">
-                    Locations <span class="ml-1 text-cyan-600 font-normal normal-case">(select multiple)</span>
-                </label>
-                <div class="relative mb-1">
-                    <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[9px]"></i>
-                    <input type="text" placeholder="Filter locations..."
-                           class="w-full pl-7 pr-2 py-1.5 text-[10px] border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                           oninput="filterList('locationList', this.value)">
+            <div id="locationSelectDiv" class="mb-4 hidden">
+                <label class="rm-label">Locations <span class="text-sky-500 font-normal normal-case ml-1">(select multiple)</span></label>
+                <div class="relative mb-1.5">
+                    <input type="text" placeholder="Filter locations…"
+                           class="rm-input py-1.5 text-xs"
+                           oninput="filterList('locationList',this.value)">
                 </div>
                 <div id="locationList" class="mc-list">
                     <div class="mc-item text-gray-400">Select a group first</div>
                 </div>
             </div>
 
-            <div id="domainSelectDiv" class="mb-3 hidden">
-                <label class="block text-[10px] font-bold text-gray-600 mb-1 uppercase tracking-wide">Device *</label>
-                <select id="assignDomain"
-                        class="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400">
+            <div id="domainSelectDiv" class="mb-4 hidden">
+                <label class="rm-label">Device *</label>
+                <select id="assignDomain" class="rm-input">
                     <option value="">Select location first</option>
                 </select>
             </div>
 
-            <div id="assignMessage" class="hidden p-2 rounded-lg text-xs font-medium mt-2"></div>
+            <div id="assignMessage" class="rm-msg hidden mt-2"></div>
         </div>
-
-        <div class="px-4 py-3 border-t flex justify-end gap-2 flex-shrink-0">
-            <button onclick="closeAssignRoleModal()"
-                    class="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold">
-                Cancel
-            </button>
-            <button onclick="submitAssignRole()" id="assignRoleBtn"
-                    class="px-4 py-1.5 text-xs text-white rounded-lg font-semibold shadow-sm"
-                    style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
-                <i class="fas fa-check mr-1"></i>Assign Role
+        <div class="rm-modal-footer">
+            <button onclick="closeAssignRoleModal()" class="btn-secondary">Cancel</button>
+            <button onclick="submitAssignRole()" id="assignRoleBtn" class="btn-primary">
+                <i class="fas fa-check mr-1.5 text-[10px]"></i>Assign Role
             </button>
         </div>
     </div>
 </div>
 
 
-<div id="createRoleModal" class="rm-overlay">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-3 flex flex-col max-h-[90vh]">
-        <div class="px-4 py-3 rounded-t-2xl flex items-center justify-between bg-gradient-to-r from-cyan-500 to-blue-600 flex-shrink-0">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                <i class="fas fa-plus-circle"></i> Create / Edit Role
-            </h3>
-            <button onclick="closeCreateRoleModal()" class="text-white/80 hover:text-white">
+<div id="createRoleModal" class="rm-overlay" role="dialog" aria-modal="true" aria-labelledby="createRoleTitle">
+    <div class="rm-modal" style="max-width:620px;">
+        <div class="rm-modal-header" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">
+            <h3 id="createRoleTitle"><i class="fas fa-plus-circle"></i> Create / Edit Role</h3>
+            <button class="rm-modal-close" onclick="closeCreateRoleModal()" aria-label="Close">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="p-4 overflow-y-auto flex-1">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Left -->
+        <div class="rm-modal-body">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                    <div class="mb-3">
-                        <label class="block text-[10px] font-bold text-gray-600 mb-1 uppercase tracking-wide">Role Name *</label>
-                        <input type="text" id="newRoleName"
-                               class="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                               placeholder="e.g. LocationEngineer"
+                    <div class="mb-4">
+                        <label class="rm-label">Role Name *</label>
+                        <input type="text" id="newRoleName" class="rm-input" placeholder="e.g. LocationEngineer"
                                oninput="this.value=this.value.replace(/[\s]/g,'');validateRoleName(this);"
                                autocomplete="off" spellcheck="false">
-                        <p id="roleNameHint" class="text-[9px] text-gray-400 mt-0.5">No spaces. Use CamelCase (e.g. SiteEngineer).</p>
+                        <p id="roleNameHint" class="text-[10px] text-gray-400 mt-1">No spaces. Use CamelCase (e.g. SiteEngineer).</p>
                     </div>
-                    <div class="mb-3">
-                        <label class="block text-[10px] font-bold text-gray-600 mb-1 uppercase tracking-wide">Description</label>
-                        <textarea id="newRoleDescription" rows="2"
-                                  class="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                                  placeholder="Brief description..."></textarea>
+                    <div class="mb-4">
+                        <label class="rm-label">Description</label>
+                        <textarea id="newRoleDescription" rows="2" class="rm-input resize-none" placeholder="Brief description…"></textarea>
                     </div>
                     <div class="bg-gray-50 rounded-lg border border-gray-200 p-3">
-                        <p class="text-[10px] font-bold text-gray-600 mb-2 uppercase tracking-wide">Hierarchy Requirements</p>
-                        <div class="space-y-1.5">
-                            <label class="flex items-center text-xs text-gray-700 cursor-pointer gap-2">
-                                <input type="checkbox" id="roleRequiresCompany" class="rounded accent-cyan-500">
-                                Requires Company
+                        <p class="text-[10px] font-bold text-gray-500 mb-2.5 uppercase tracking-wide flex items-center gap-1.5">
+                            <i class="fas fa-sitemap text-gray-400"></i> PBAC Scope Requirements
+                        </p>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                                <input type="checkbox" id="roleRequiresCompany" class="accent-sky-500"> Requires Company
                             </label>
-                            <label class="flex items-center text-xs text-gray-700 cursor-pointer gap-2">
-                                <input type="checkbox" id="roleRequiresGroup" class="rounded accent-cyan-500">
-                                Requires Group
+                            <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                                <input type="checkbox" id="roleRequiresGroup" class="accent-sky-500"> Requires Group
                             </label>
-                            <label class="flex items-center text-xs text-gray-700 cursor-pointer gap-2">
-                                <input type="checkbox" id="roleRequiresLocation" class="rounded accent-cyan-500">
-                                Requires Location
+                            <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                                <input type="checkbox" id="roleRequiresLocation" class="accent-sky-500"> Requires Location
                             </label>
-                            <label class="flex items-center text-xs text-gray-700 cursor-pointer gap-2">
-                                <input type="checkbox" id="roleRequiresDevice" class="rounded accent-cyan-500">
-                                Requires Device
+                            <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                                <input type="checkbox" id="roleRequiresDevice" class="accent-sky-500"> Requires Device
                             </label>
                         </div>
                     </div>
                 </div>
-                <!-- Right -->
                 <div>
-                    <div class="flex border-b mb-3">
+                    <div class="flex border-b border-gray-200 mb-3">
                         <button onclick="switchRoleTab('perms')" id="tabBtn_perms"
-                                class="role-tab-btn px-3 py-1.5 text-xs font-bold border-b-2 border-cyan-500 text-cyan-600">
+                                class="role-tab-btn active">
                             Permissions
                         </button>
                         <button onclick="switchRoleTab('menus')" id="tabBtn_menus"
-                                class="role-tab-btn px-3 py-1.5 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-cyan-600">
+                                class="role-tab-btn">
                             Menus
                         </button>
                     </div>
+
                     <div id="tabContent_perms">
-                        <div class="flex justify-between items-center mb-1.5">
-                            <span class="text-[10px] font-bold text-gray-600 uppercase">Permissions *</span>
-                            <div class="flex gap-2">
-                                <button onclick="selectAllPermissions()" class="text-[9px] text-cyan-600 hover:underline">All</button>
-                                <button onclick="clearAllPermissions()" class="text-[9px] text-gray-400 hover:underline">Clear</button>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold text-gray-500 uppercase">Permissions *</span>
+                            <div class="flex gap-3">
+                                <button onclick="selectAllPermissions()" class="text-[10px] text-sky-500 hover:text-sky-700 font-semibold">Select All</button>
+                                <button onclick="clearAllPermissions()" class="text-[10px] text-gray-400 hover:text-gray-600 font-semibold">Clear</button>
                             </div>
                         </div>
-                        <div id="permissionTree" class="border rounded-lg p-2 max-h-44 overflow-y-auto bg-gray-50 text-xs">
-                            <p class="text-gray-400 text-center py-4">Loading...</p>
+                        <div id="permissionTree" class="perm-tree">
+                            <p class="text-gray-400 text-center py-4 text-xs">Loading…</p>
                         </div>
                     </div>
+
                     <div id="tabContent_menus" class="hidden">
-                        <div class="flex justify-between items-center mb-1.5">
-                            <span class="text-[10px] font-bold text-gray-600 uppercase">Menus *</span>
-                            <div class="flex gap-2">
-                                <button onclick="selectAllMenus()" class="text-[9px] text-cyan-600 hover:underline">All</button>
-                                <button onclick="clearAllMenus()" class="text-[9px] text-gray-400 hover:underline">Clear</button>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold text-gray-500 uppercase">Menus</span>
+                            <div class="flex gap-3">
+                                <button onclick="selectAllMenus()" class="text-[10px] text-sky-500 hover:text-sky-700 font-semibold">Select All</button>
+                                <button onclick="clearAllMenus()" class="text-[10px] text-gray-400 hover:text-gray-600 font-semibold">Clear</button>
                             </div>
                         </div>
-                        <div id="menuTree" class="border rounded-lg p-2 max-h-44 overflow-y-auto bg-gray-50 text-xs">
-                            <p class="text-gray-400 text-center py-4">Loading...</p>
+                        <div id="menuTree" class="perm-tree">
+                            <p class="text-gray-400 text-center py-4 text-xs">Loading…</p>
                         </div>
                     </div>
                 </div>
             </div>
-            <div id="createRoleMessage" class="mt-3 p-2 rounded-lg text-xs font-medium hidden"></div>
+            <div id="createRoleMessage" class="rm-msg hidden mt-4"></div>
         </div>
-        <div class="px-4 py-3 border-t flex justify-end gap-2 flex-shrink-0">
-            <button onclick="closeCreateRoleModal()"
-                    class="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold">
-                Cancel
-            </button>
-            <button onclick="submitCreateRole()" id="createRoleBtn"
-                    class="px-4 py-1.5 text-xs text-white rounded-lg font-semibold shadow-sm"
-                    style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
-                <i class="fas fa-save mr-1"></i><span id="createRoleBtnText">Create Role</span>
+        <div class="rm-modal-footer">
+            <button onclick="closeCreateRoleModal()" class="btn-secondary">Cancel</button>
+            <button onclick="submitCreateRole()" id="createRoleBtn" class="btn-primary">
+                <i class="fas fa-save mr-1.5 text-[10px]"></i><span id="createRoleBtnText">Create Role</span>
             </button>
         </div>
     </div>
 </div>
 
 
-<div id="manageRolesListModal" class="rm-overlay">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-3 flex flex-col max-h-[80vh]">
-        <div class="px-4 py-3 rounded-t-2xl flex items-center justify-between bg-gradient-to-r from-amber-500 to-orange-600 flex-shrink-0">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                <i class="fas fa-list"></i> System Roles
-            </h3>
-            <button onclick="closeManageRolesListModal()" class="text-white/80 hover:text-white">
+<!-- ══════════════════════════════════════════
+     MODAL: MANAGE SYSTEM ROLES LIST
+     ══════════════════════════════════════════ -->
+<div id="manageRolesListModal" class="rm-overlay" role="dialog" aria-modal="true" aria-labelledby="manageRolesTitle">
+    <div class="rm-modal" style="max-width:440px;">
+        <div class="rm-modal-header" style="background:linear-gradient(135deg,#f59e0b,#d97706);">
+            <h3 id="manageRolesTitle"><i class="fas fa-list"></i> System Roles</h3>
+            <button class="rm-modal-close" onclick="closeManageRolesListModal()" aria-label="Close">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="p-3 overflow-y-auto flex-1">
-            <div id="rolesListContainer" class="space-y-1.5">
-                <p class="text-gray-400 text-xs text-center py-4">Loading roles...</p>
+        <div class="rm-modal-body">
+            <div id="rolesListContainer" class="space-y-2">
+                <p class="text-gray-400 text-xs text-center py-4">Loading roles…</p>
             </div>
         </div>
-        <div class="px-4 py-3 border-t flex justify-end flex-shrink-0">
-            <button onclick="closeManageRolesListModal()"
-                    class="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold">
-                Close
-            </button>
+        <div class="rm-modal-footer">
+            <button onclick="closeManageRolesListModal()" class="btn-secondary">Close</button>
         </div>
     </div>
 </div>
+
 
 @section Scripts {
     <script>
         var systemRoles = [];
         var roleConfigs = {};
         var allUsers = @Html.Raw(Json.Serialize(Model));
-
         var existingAssignments = {};
+
+        /* Build existing assignment index */
         (allUsers || []).forEach(function(u) {
             var maps = u.Mappings || u.mappings || [];
             existingAssignments[u.Username || u.username] = {
-                companyIds:  maps.filter(function(m){ return m.CompanyId  != null || m.companyId  != null; }).map(function(m){ return parseInt(m.CompanyId  || m.companyId); }),
-                groupIds:    maps.filter(function(m){ return m.GroupId    != null || m.groupId    != null; }).map(function(m){ return parseInt(m.GroupId    || m.groupId);   }),
-                locationIds: maps.filter(function(m){ return m.LocationId != null || m.locationId != null; }).map(function(m){ return parseInt(m.LocationId || m.locationId);}),
-                devices:     maps.filter(function(m){ return (m.ScopeType||m.scopeType) === 'Device'; }).map(function(m){ return m.ScopeName || m.scopeName || ''; })
+                companyIds:  maps.filter(m => m.CompanyId  != null || m.companyId  != null).map(m => parseInt(m.CompanyId  || m.companyId)),
+                groupIds:    maps.filter(m => m.GroupId    != null || m.groupId    != null).map(m => parseInt(m.GroupId    || m.groupId)),
+                locationIds: maps.filter(m => m.LocationId != null || m.locationId != null).map(m => parseInt(m.LocationId || m.locationId)),
+                devices:     maps.filter(m => (m.ScopeType||m.scopeType) === 'Device').map(m => m.ScopeName || m.scopeName || '')
             };
         });
 
-        function openModal(id)  { document.getElementById(id).classList.add('open'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        /* ── Modal helpers ── */
+        function openModal(id)  { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
 
-        function formatRoleName(n) {
-            return (n || '').replace(/([A-Z])/g, ' $1').trim();
-        }
+        /* Close on overlay click */
+        document.querySelectorAll('.rm-overlay').forEach(function(overlay) {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) closeModal(overlay.id);
+            });
+        });
+
+        /* Close on Escape */
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.rm-overlay.open').forEach(function(m) { closeModal(m.id); });
+            }
+        });
+
+        /* ── Utility ── */
+        function formatRoleName(n) { return (n||'').replace(/([A-Z])/g,' $1').trim(); }
 
         function filterList(listId, term) {
             const t = term.toLowerCase();
-            document.querySelectorAll('#' + listId + ' .mc-item').forEach(el => {
+            document.querySelectorAll('#'+listId+' .mc-item').forEach(el => {
                 el.style.display = (!t || el.textContent.toLowerCase().includes(t)) ? '' : 'none';
             });
         }
 
+        function filterUserTable(term) {
+            const t = term.toLowerCase();
+            let visible = 0;
+            document.querySelectorAll('#roleTableBody tr').forEach(function(row) {
+                const uname = row.getAttribute('data-username') || '';
+                const match = !t || uname.includes(t);
+                row.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            const el = document.getElementById('visibleCount');
+            if (el) el.textContent = visible;
+        }
+
+        function valueOf(obj, pascal, camel) { return obj ? (obj[pascal] ?? obj[camel]) : null; }
+        function normalizeUser(user) {
+            return { username: valueOf(user,'Username','username')||'', roles: valueOf(user,'Roles','roles')||[], mappings: valueOf(user,'Mappings','mappings')||[], companyId: valueOf(user,'CompanyId','companyId') };
+        }
+
+        /* ── Render stats ── */
         function renderStats() {
             const c = $('#roleStatsContainer').empty();
-            addStat(c, 'Total Users', allUsers.length, '#10b981', 'fa-users');
-            
-            const sa = allUsers.filter(u => {
-                const rs = u.roles || u.Roles || [];
-                return rs.some(r => r.toLowerCase() === 'superadmin');
-            }).length;
-            addStat(c, 'Super Admin', sa, '#ef4444', 'fa-crown');
-            
+            addStat(c,'Total Users', allUsers.length,'#0ea5e9','fa-users');
+            const sa = allUsers.filter(u => (u.roles||u.Roles||[]).some(r => r.toLowerCase()==='superadmin')).length;
+            addStat(c,'Super Admin', sa,'#ef4444','fa-crown');
             systemRoles.forEach(r => {
-                const n = typeof r === 'string' ? r : (r.name || r.RoleName);
-                if (!n || n.toLowerCase() === 'superadmin') return;
-                
-                const count = allUsers.filter(u => {
-                    const rs = u.roles || u.Roles || [];
-                    return rs.some(role => role.toLowerCase() === n.toLowerCase());
-                }).length;
-                
-                addStat(c, n, count, '#00BCEB', 'fa-tag');
+                const n = typeof r==='string'?r:(r.name||r.RoleName);
+                if (!n || n.toLowerCase()==='superadmin') return;
+                const count = allUsers.filter(u => (u.roles||u.Roles||[]).some(role => role.toLowerCase()===n.toLowerCase())).length;
+                addStat(c, n, count, '#0ea5e9','fa-tag');
             });
-            
-            const noRoleCount = allUsers.filter(u => !(u.roles || u.Roles || []).length).length;
-            addStat(c, 'No Role', noRoleCount, '#9ca3af', 'fa-user-slash');
+            const noRole = allUsers.filter(u => !(u.roles||u.Roles||[]).length).length;
+            addStat(c,'No Role', noRole,'#9ca3af','fa-user-slash');
         }
 
         function addStat(c, title, val, color, icon) {
-            c.append(`<div class="bg-white rounded-lg border border-gray-100 p-2.5 shadow-sm">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">${formatRoleName(title)}</p>
-                        <p class="text-xl font-black text-gray-800 mt-0.5">${val}</p>
-                    </div>
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0"
-                         style="background:linear-gradient(135deg,${color},${color}cc)">
-                        <i class="fas ${icon} text-white text-[11px]"></i>
-                    </div>
-                </div>
-            </div>`);
+            c.append(`<div class="stat-card"><div class="flex items-center justify-between"><div><p class="text-[9px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">${formatRoleName(title)}</p><p class="text-xl font-black text-gray-900">${val}</p></div><div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,${color},${color}cc);"><i class="fas ${icon} text-white text-[11px]"></i></div></div></div>`);
         }
 
+        /* ── Load system roles ── */
         function loadSystemRoles() {
             $.get('@Url.Action("GetAllSystemRoles", "Auth")', function(roles) {
                 systemRoles = roles || [];
                 roleConfigs = { 'SuperAdmin': { requiresCompany:false,requiresGroup:false,requiresDevice:false,requiresLocation:false,isSystem:true } };
                 systemRoles.forEach(r => {
-                    const n = typeof r === 'string' ? r : (r.name||r.RoleName);
-                    roleConfigs[n] = { requiresCompany:r.requiresCompany||false, requiresGroup:r.requiresGroup||false, requiresDevice:r.requiresDevice||false, requiresLocation:r.requiresLocation||false, isSystem:r.isSystem||false };
+                    const n = typeof r==='string'?r:(r.name||r.RoleName);
+                    roleConfigs[n] = { requiresCompany:r.requiresCompany||false,requiresGroup:r.requiresGroup||false,requiresDevice:r.requiresDevice||false,requiresLocation:r.requiresLocation||false,isSystem:r.isSystem||false };
                 });
                 updateRoleDropdown();
                 renderStats();
@@ -763,54 +1032,54 @@
                 .concat(systemRoles.filter(r => { const n=typeof r==='string'?r:(r.name||r.RoleName); return n!=='SuperAdmin'; })
                     .map(r => { const n=typeof r==='string'?r:(r.name||r.RoleName); return `<option value="${n}">${formatRoleName(n)}</option>`; }))
                 .join('');
-            $('#assignRole').html(opts || '<option value="">No roles yet</option>');
+            $('#assignRole').html(opts || '<option value="">No roles available</option>');
         }
 
+        /* ── Assign Role Modal ── */
         function openAssignRoleModal() {
+            $('#assignUsername').val('');
+            $('#assignRole').val('');
+            $('#assignMessage').addClass('hidden');
+            $('#companySelectDiv,#groupSelectDiv,#locationSelectDiv,#domainSelectDiv').addClass('hidden');
             openModal('assignRoleModal');
             loadSystemRoles();
             loadCompaniesForModal();
-            $('#assignMessage').addClass('hidden');
-            $('#companySelectDiv,#groupSelectDiv,#locationSelectDiv,#domainSelectDiv').addClass('hidden');
         }
+
         function closeAssignRoleModal() {
             closeModal('assignRoleModal');
             $('#assignUsername').val('');
             $('#assignRole').val('');
+            $('#assignMessage').addClass('hidden');
         }
 
         $('#assignRole').on('change', function() {
             const cfg = roleConfigs[$(this).val()] || {};
-            if (cfg.requiresCompany || cfg.requiresGroup || cfg.requiresDevice || cfg.requiresLocation)
-                $('#companySelectDiv').removeClass('hidden');
-            else
-                $('#companySelectDiv').addClass('hidden');
+            const needsScope = cfg.requiresCompany || cfg.requiresGroup || cfg.requiresDevice || cfg.requiresLocation;
+            // Company selection div is removed, we now logic based on the user's registered company
             $('#groupSelectDiv,#locationSelectDiv,#domainSelectDiv').addClass('hidden');
+            if (needsScope) {
+                // Trigger username search to find company
+                $('#assignUsername').trigger('input');
+            }
         });
 
         function buildCheckboxList(containerId, items, valueKey, labelKey, alreadyIds) {
-            const already = new Set((alreadyIds || []).map(x => String(parseInt(x))));
-            if (!items || !items.length) {
-                $('#' + containerId).html('<div class="mc-item text-gray-400">None found</div>');
-                return;
-            }
+            const already = new Set((alreadyIds||[]).map(x => String(parseInt(x))));
+            if (!items || !items.length) { $('#'+containerId).html('<div class="mc-item text-gray-400">None found</div>'); return; }
             const html = items.map(item => {
                 const val   = item[valueKey] || item[valueKey.toLowerCase()];
                 const label = item[labelKey] || item[labelKey.toLowerCase()];
                 const isDup = already.has(String(parseInt(val)));
-                return `<label class="mc-item ${isDup ? 'mc-disabled' : ''}">
-                    <input type="checkbox" value="${val}" ${isDup ? 'disabled checked' : ''}>
-                    <span class="flex-1 truncate">${label}</span>
-                    ${isDup ? '<span class="already-tag">assigned</span>' : ''}
-                </label>`;
+                return `<label class="mc-item ${isDup?'mc-disabled':''}"><input type="checkbox" value="${val}" ${isDup?'disabled checked':''}><span class="flex-1 truncate">${label}</span>${isDup?'<span class="already-tag">assigned</span>':''}</label>`;
             }).join('');
-            $('#' + containerId).html(html);
+            $('#'+containerId).html(html);
         }
 
         function loadCompaniesForModal() {
             const username = $('#assignUsername').val().trim();
-            const existing = (existingAssignments[username] || {}).companyIds || [];
-            $('#companyList').html('<div class="mc-item text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Loading...</div>');
+            const existing = (existingAssignments[username]||{}).companyIds||[];
+            $('#companyList').html('<div class="mc-item text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Loading…</div>');
             $.get('/Companies/GetCompaniesForDropdown', function(data) {
                 buildCheckboxList('companyList', data, 'id', 'companyName', existing);
             });
@@ -820,74 +1089,67 @@
         $('#assignUsername').on('input', function() {
             clearTimeout(usernameDebounce);
             usernameDebounce = setTimeout(function() {
+                const uname = $('#assignUsername').val().trim().toLowerCase();
                 const role = $('#assignRole').val();
                 const cfg  = roleConfigs[role] || {};
-                if (role && (cfg.requiresCompany || cfg.requiresGroup || cfg.requiresDevice || cfg.requiresLocation)) {
-                    loadCompaniesForModal();
-                    $('#groupSelectDiv,#locationSelectDiv,#domainSelectDiv').addClass('hidden');
-                    $('#groupList').html('<div class="mc-item text-gray-400">Select a company first</div>');
-                    $('#locationList').html('<div class="mc-item text-gray-400">Select a group first</div>');
+                
+                // Find user's company
+                const user = allUsers.find(u => (u.Username||u.username||"").toLowerCase() === uname);
+                if (user && (user.CompanyId || user.companyId)) {
+                    $('#companyIdHidden').val(user.CompanyId || user.companyId);
+                    
+                    if (role && (cfg.requiresGroup || cfg.requiresDevice || cfg.requiresLocation)) {
+                        loadGroupsForImplicitCompany(user.CompanyId || user.companyId);
+                    }
+                } else {
+                    $('#companyIdHidden').val('');
                 }
             }, 400);
         });
-        $('#assignUsername').on('change blur', function() {
-            if ($('#assignRole').val() && (roleConfigs[$('#assignRole').val()]?.requiresCompany))
-                loadCompaniesForModal();
-        });
+
+        function loadGroupsForImplicitCompany(cid) {
+            const username = $('#assignUsername').val().trim();
+            const existingGroups = (existingAssignments[username]||{}).groupIds||[];
+            $('#groupSelectDiv').removeClass('hidden');
+            $('#groupList').html('<div class="mc-item text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Loading…</div>');
+            $.get('/Companies/GetGroupsByCompany?companyId='+cid, function(groups) {
+                buildCheckboxList('groupList', groups, 'id', 'groupName', existingGroups);
+            });
+        }
 
         $('#companyList').on('change', 'input[type=checkbox]', function() {
             const checkedIds = $('#companyList input:checked:not(:disabled)').map((i,el) => $(el).val()).get();
             if (!checkedIds.length) { $('#groupSelectDiv').addClass('hidden'); return; }
-            const role = $('#assignRole').val();
-            const cfg  = roleConfigs[role] || {};
+            const cfg = roleConfigs[$('#assignRole').val()] || {};
             if (!cfg.requiresGroup && !cfg.requiresDevice && !cfg.requiresLocation) return;
             $('#groupSelectDiv').removeClass('hidden');
             const username = $('#assignUsername').val().trim();
-            const existingGroups = (existingAssignments[username] || {}).groupIds || [];
-            $('#groupList').html('<div class="mc-item text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Loading...</div>');
-            
-            const promises = checkedIds.map(cid => $.get('/Companies/GetGroupsByCompany?companyId=' + cid));
-            Promise.all(promises.map(p => new Promise(res => { p.then(res).fail(() => res([])); })))
-                .then(results => {
-                    const seen = new Set();
-                    const allGroups = [];
-                    results.forEach(arr => (arr||[]).forEach(g => {
-                        const id = g.id || g.Id;
-                        if (!seen.has(id)) { seen.add(id); allGroups.push(g); }
-                    }));
-                    buildCheckboxList('groupList', allGroups, 'id', 'groupName', existingGroups);
-                });
+            const existingGroups = (existingAssignments[username]||{}).groupIds||[];
+            $('#groupList').html('<div class="mc-item text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Loading…</div>');
+            const promises = checkedIds.map(cid => $.get('/Companies/GetGroupsByCompany?companyId='+cid));
+            Promise.all(promises.map(p => new Promise(res => { p.then(res).fail(()=>res([])); }))).then(results => {
+                const seen=new Set(); const allGroups=[];
+                results.forEach(arr => (arr||[]).forEach(g => { const id=g.id||g.Id; if(!seen.has(id)){seen.add(id);allGroups.push(g);} }));
+                buildCheckboxList('groupList', allGroups, 'id', 'groupName', existingGroups);
+            });
         });
 
         $('#groupList').on('change', 'input[type=checkbox]', function() {
             const checkedGroupIds = $('#groupList input:checked:not(:disabled)').map((i,el)=>$(el).val()).get();
             if (!checkedGroupIds.length) { $('#locationSelectDiv').addClass('hidden'); return; }
-            const role = $('#assignRole').val();
-            const cfg  = roleConfigs[role] || {};
+            const cfg = roleConfigs[$('#assignRole').val()] || {};
             if (!cfg.requiresLocation && !cfg.requiresDevice) return;
             $('#locationSelectDiv').removeClass('hidden');
-            const cids = $('#companyList input:checked:not(:disabled)').map((i,el)=>$(el).val()).get();
+            const cid = $('#companyIdHidden').val();
             const username = $('#assignUsername').val().trim();
-            const existingLocs = (existingAssignments[username] || {}).locationIds || [];
-            $('#locationList').html('<div class="mc-item text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Loading...</div>');
-            
-            const promises = [];
-            cids.forEach(cid => {
-                checkedGroupIds.forEach(gid => {
-                    promises.push($.get('/Companies/GetLocationsByGroup?companyId=' + cid + '&groupId=' + gid));
-                });
+            const existingLocs = (existingAssignments[username]||{}).locationIds||[];
+            $('#locationList').html('<div class="mc-item text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>Loading…</div>');
+            const promises = checkedGroupIds.map(gid => $.get('/Companies/GetLocationsByGroup?companyId='+cid+'&groupId='+gid));
+            Promise.all(promises.map(p => new Promise(res => { p.then(res).fail(()=>res([])); }))).then(results => {
+                const seen=new Set(); const allLocs=[];
+                results.forEach(arr => (arr||[]).forEach(loc => { const id=loc.id||loc.Id; if(!seen.has(id)){seen.add(id);allLocs.push(loc);} }));
+                buildCheckboxList('locationList', allLocs, 'id', 'locationName', existingLocs);
             });
-
-            Promise.all(promises.map(p => new Promise((res) => { p.then(res).fail(() => res([])); })))
-                .then(results => {
-                    const seen = new Set();
-                    const allLocs = [];
-                    results.forEach(arr => (arr||[]).forEach(loc => {
-                        const id = loc.id || loc.Id;
-                        if (!seen.has(id)) { seen.add(id); allLocs.push(loc); }
-                    }));
-                    buildCheckboxList('locationList', allLocs, 'id', 'locationName', existingLocs);
-                });
         });
 
         $('#locationList').on('change', 'input[type=checkbox]', function() {
@@ -896,14 +1158,12 @@
             const cfg = roleConfigs[$('#assignRole').val()] || {};
             if (!cfg.requiresDevice) return;
             $('#domainSelectDiv').removeClass('hidden');
-            const cid = $('#companyList input:checked:not(:disabled)').first().val();
+            const cid = $('#companyIdHidden').val();
             const gid = $('#groupList input:checked:not(:disabled)').first().val();
             const lid = checkedLocIds[0];
-            $('#assignDomain').html('<option value="">Loading devices...</option>');
+            $('#assignDomain').html('<option value="">Loading devices…</option>');
             $.get('/ComputerSummary/GetDevicesByLocation?companyId='+cid+'&groupId='+gid+'&locationId='+lid, function(data) {
-                const opts = '<option value="">-- Select Device --</option>' +
-                    (data||[]).map(d => `<option value="${d.domainName}">${d.domainName} (${d.userName||'N/A'})</option>`).join('');
-                $('#assignDomain').html(opts);
+                $('#assignDomain').html('<option value="">-- Select Device --</option>' + (data||[]).map(d => `<option value="${d.domainName}">${d.domainName} (${d.userName||'N/A'})</option>`).join(''));
             });
         });
 
@@ -913,144 +1173,138 @@
             const msgEl    = $('#assignMessage');
             const btn      = $('#assignRoleBtn');
 
+            msgEl.addClass('hidden');
+
             if (!username) { showMsg(msgEl,'Please enter a username','error'); return; }
             if (!role)     { showMsg(msgEl,'Please select a role','error'); return; }
 
             const cfg = roleConfigs[role] || {};
-            const companyIds  = $('#companyList  input:checked:not(:disabled)').map((i,el)=>parseInt($(el).val())).get();
+            const implicitCid = parseInt($('#companyIdHidden').val());
             const groupIds    = $('#groupList    input:checked:not(:disabled)').map((i,el)=>parseInt($(el).val())).get();
             const locationIds = $('#locationList input:checked:not(:disabled)').map((i,el)=>parseInt($(el).val())).get();
             const domainName  = $('#assignDomain').val();
 
-            if (cfg.requiresCompany && !companyIds.length)  { showMsg(msgEl,'Select at least one company','error'); return; }
-            if (cfg.requiresDevice  && !domainName)          { showMsg(msgEl,'Select a device','error'); return; }
+            if (cfg.requiresCompany && !implicitCid) { showMsg(msgEl,'User has no company assigned or not found.','error'); return; }
+            if (cfg.requiresDevice  && !domainName)   { showMsg(msgEl,'Select a device','error'); return; }
 
-            // Front-end duplicate guard: check if user already has THIS role for THESE specific selections
-            const userMappings = (allUsers.find(u => u.username === username) || {}).mappings || [];
-            const roleLower = role.toLowerCase();
-            
+            /* Build payloads */
             const payloads = [];
-            if (companyIds.length) {
-                companyIds.forEach(cid => {
-                    if (groupIds.length) {
-                        groupIds.forEach(gid => {
-                            if (locationIds.length) {
-                                locationIds.forEach(lid => {
-                                    payloads.push({ Username:username, Role:role, CompanyId:cid, GroupId:gid, LocationId:lid, DomainName:domainName||null });
-                                });
-                            } else {
-                                payloads.push({ Username:username, Role:role, CompanyId:cid, GroupId:gid, LocationId:null, DomainName:domainName||null });
-                            }
+            const cid = implicitCid || null;
+
+            if (groupIds.length) {
+                groupIds.forEach(gid => {
+                    if (locationIds.length) {
+                        locationIds.forEach(lid => { 
+                            payloads.push({Username:username,Role:role,CompanyId:cid,GroupId:gid,LocationId:lid,DomainName:domainName||null}); 
                         });
-                    } else {
-                        payloads.push({ Username:username, Role:role, CompanyId:cid, GroupId:null, LocationId:null, DomainName:domainName||null });
+                    } else { 
+                        payloads.push({Username:username,Role:role,CompanyId:cid,GroupId:gid,LocationId:null,DomainName:domainName||null}); 
                     }
                 });
-            } else {
-                payloads.push({ Username:username, Role:role, CompanyId:null, GroupId:null, LocationId:null, DomainName:domainName||null });
+            } else { 
+                payloads.push({Username:username,Role:role,CompanyId:cid,GroupId:null,LocationId:null,DomainName:domainName||null}); 
             }
 
-            // Precisely filter out payloads that already exist in userMappings
-            const finalPayloads = payloads.filter(p => !userMappings.some(m => 
-                m.roleName.toLowerCase() === roleLower &&
-                (m.companyId || m.CompanyId) === p.CompanyId &&
-                (m.groupId || m.GroupId) === p.GroupId &&
-                (m.locationId || m.LocationId) === p.LocationId
+            /* Dedup check */
+            const userMappings = (allUsers.find(u => (u.username||u.Username)===username)||{}).mappings || [];
+            const roleLower = role.toLowerCase();
+            const finalPayloads = payloads.filter(p => !userMappings.some(m =>
+                (m.roleName||m.RoleName||'').toLowerCase()===roleLower &&
+                (m.companyId||m.CompanyId) === p.CompanyId &&
+                (m.groupId||m.GroupId) === p.GroupId &&
+                (m.locationId||m.LocationId) === p.LocationId
             ));
 
             if (payloads.length > 0 && finalPayloads.length === 0) {
-                showMsg(msgEl, 'Selected mapping(s) are already assigned to this user.', 'error');
-                btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i>Assign Role');
+                showMsg(msgEl,'Selected mapping(s) are already assigned.','error');
                 return;
             }
 
-            btn.prop('disabled',true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Assigning...');
+            btn.prop('disabled',true).html('<i class="fas fa-spinner fa-spin mr-1.5"></i>Assigning…');
 
             let successCount = 0, failMessages = [];
             for (const payload of finalPayloads) {
                 try {
                     const res = await $.ajax({ url:'@Url.Action("AssignRole", "Auth")', type:'POST', contentType:'application/json', data:JSON.stringify(payload) });
                     if (res.success) successCount++;
-                    else failMessages.push(res.message);
+                    else failMessages.push(res.message || 'Failed');
                 } catch(e) { failMessages.push('Network error'); }
             }
 
-            btn.prop('disabled',false).html('<i class="fas fa-check mr-1"></i>Assign Role');
+            btn.prop('disabled',false).html('<i class="fas fa-check mr-1.5 text-[10px]"></i>Assign Role');
 
             if (successCount > 0) {
-                showMsg(msgEl, `${successCount} assignment(s) added successfully!`, 'success');
-                setTimeout(() => location.reload(), 1000);
+                // ✅ Close modal and show success toast
+                setTimeout(() => {
+                    closeAssignRoleModal();
+                    sysAlert(`${successCount} assignment(s) added successfully!`, 'success');
+                    refreshRoleData();
+                }, 200);
             } else {
                 showMsg(msgEl, failMessages.join('; ') || 'Assignment failed', 'error');
             }
         }
 
+        /* ── Remove mapping ── */
         function deleteMapping(id, username, roleName, scopeName) {
-            sysConfirm(`Remove "${roleName}" in "${scopeName}" for user "${username}"?`, function() {
+            sysConfirm(`Remove "${roleName}" in "${scopeName}" for "${username}"?`, function() {
                 $.post('@Url.Action("RemoveMapping", "Auth")/' + id, function(res) {
-                    if (res.success) { sysAlert('Assignment removed','success'); setTimeout(()=>location.reload(),600); }
-                    else sysAlert(res.message,'error');
+                    if (res.success) { sysAlert('Assignment removed','success'); refreshRoleData(); }
+                    else sysAlert(res.message || 'Failed','error');
                 }).fail(() => sysAlert('Error removing assignment','error'));
             }, { type:'danger' });
         }
 
+        /* ── Remove user role entirely ── */
         function removeUserRole(username, roleName) {
-            sysConfirm(`Remove role "${roleName}" from "${username}"?`, function() {
+            sysConfirm(`Remove all roles from "${username}"? This will revoke their access.`, function() {
                 $.ajax({ url:'@Url.Action("RemoveRole", "Auth")', type:'POST', contentType:'application/json',
-                    data: JSON.stringify({ Username:username }),
-                    success: res => { if(res.success){sysAlert('Role removed','success');setTimeout(()=>location.reload(),600);}else sysAlert(res.message,'error'); },
+                    data: JSON.stringify({ Username: username }),
+                    success: res => {
+                        if (res.success) { sysAlert('Role removed','success'); refreshRoleData(); }
+                        else sysAlert(res.message || 'Failed','error');
+                    },
                     error: () => sysAlert('Error removing role','error')
                 });
             }, { type:'danger' });
         }
 
+        /* ── Edit role (opens Assign modal pre-filled) ── */
         function editRole(username, currentRole, companyId, domainName) {
             openAssignRoleModal();
             setTimeout(() => {
                 $('#assignUsername').val(username);
-                $('#assignRole').val(currentRole).trigger('change');
+                if (currentRole) { $('#assignRole').val(currentRole).trigger('change'); }
             }, 300);
         }
 
-        function validateRoleName(input) {
-            const val = input.value;
-            const hint = document.getElementById('roleNameHint');
-            if (!val) { hint.className = 'text-[9px] text-gray-400 mt-0.5'; hint.textContent = 'No spaces. Use CamelCase (e.g. SiteEngineer).'; return; }
-            if (/[^a-zA-Z0-9_]/.test(val)) {
-                hint.className = 'text-[9px] text-red-500 mt-0.5';
-                hint.textContent = '⚠ Only letters, numbers and underscores allowed.';
-                input.classList.add('border-red-400');
-            } else if (val.length < 3) {
-                hint.className = 'text-[9px] text-amber-500 mt-0.5';
-                hint.textContent = 'Role name must be at least 3 characters.';
-                input.classList.remove('border-red-400');
-            } else {
-                // Check for duplicate role name against existing roles
-                const exists = systemRoles.some(r => {
-                    const n = typeof r === 'string' ? r : (r.name || r.RoleName || '');
-                    return n.toLowerCase() === val.toLowerCase();
+        /* ── Refresh table data ── */
+        function refreshRoleData() {
+            return $.get('@Url.Action("ManageRoles", "Auth")').done(function(html) {
+                const scriptMatch = html.match(/var allUsers = ([\s\S]*?);\s*var existingAssignments/);
+                if (scriptMatch && scriptMatch[1]) { try { allUsers = JSON.parse(scriptMatch[1]); } catch(_){} }
+
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const tableBody = doc.getElementById('roleTableBody');
+                if (tableBody) document.getElementById('roleTableBody').innerHTML = tableBody.innerHTML;
+                else renderRoleRows();
+
+                existingAssignments = {};
+                (allUsers||[]).forEach(function(u) {
+                    var maps = u.Mappings||u.mappings||[];
+                    existingAssignments[u.Username||u.username] = {
+                        companyIds:  maps.filter(m => m.CompanyId  != null||m.companyId  != null).map(m => parseInt(m.CompanyId||m.companyId)),
+                        groupIds:    maps.filter(m => m.GroupId    != null||m.groupId    != null).map(m => parseInt(m.GroupId||m.groupId)),
+                        locationIds: maps.filter(m => m.LocationId != null||m.locationId != null).map(m => parseInt(m.LocationId||m.locationId)),
+                        devices:     maps.filter(m => (m.ScopeType||m.scopeType)==='Device').map(m => m.ScopeName||m.scopeName||'')
+                    };
                 });
-                if (exists && !isEditMode) {
-                    hint.className = 'text-[9px] text-red-500 mt-0.5';
-                    hint.textContent = '⚠ A role with this name already exists.';
-                    input.classList.add('border-red-400');
-                } else {
-                    hint.className = 'text-[9px] text-green-600 mt-0.5';
-                    hint.textContent = '✓ Valid role name.';
-                    input.classList.remove('border-red-400');
-                }
-            }
+                renderStats();
+            });
         }
 
-
+        /* ── Create Role Modal ── */
         var isEditMode = false, currentEditingRole = '', permissionsData = [], menusData = [], currentRoleData = null;
-
-        function switchRoleTab(tab) {
-            $('.role-tab-btn').removeClass('border-cyan-500 text-cyan-600').addClass('border-transparent text-gray-400');
-            $('#tabBtn_'+tab).addClass('border-cyan-500 text-cyan-600').removeClass('border-transparent text-gray-400');
-            $('#tabContent_perms,#tabContent_menus').addClass('hidden');
-            $('#tabContent_'+tab).removeClass('hidden');
-        }
 
         function openCreateRoleModal() {
             isEditMode = false; currentEditingRole = '';
@@ -1058,45 +1312,42 @@
             $('#newRoleName').val('').prop('readonly',false);
             $('#newRoleDescription').val('');
             $('#roleRequiresCompany,#roleRequiresGroup,#roleRequiresDevice,#roleRequiresLocation').prop('checked',false);
-            openModal('createRoleModal');
             $('#createRoleMessage').addClass('hidden');
+            openModal('createRoleModal');
             switchRoleTab('perms');
             loadCreatePermissions(); loadCreateMenus();
         }
+
         function closeCreateRoleModal() { closeModal('createRoleModal'); }
 
+        function switchRoleTab(tab) {
+            $('.role-tab-btn').removeClass('active');
+            $('#tabBtn_'+tab).addClass('active');
+            $('#tabContent_perms,#tabContent_menus').addClass('hidden');
+            $('#tabContent_'+tab).removeClass('hidden');
+        }
+
         function loadCreatePermissions() {
-            $('#permissionTree').html('<p class="text-gray-400 text-center py-4 text-xs">Loading...</p>');
+            $('#permissionTree').html('<p class="text-gray-400 text-center py-4 text-xs">Loading…</p>');
             $.get('@Url.Action("GetGroupedPermissions", "Auth")', function(data) {
                 permissionsData = data; renderPermissionTree(data);
                 if (isEditMode) syncRolePermissions();
-            }).fail(() => $('#permissionTree').html('<p class="text-red-500 text-center py-4 text-xs">Failed to load</p>'));
+            }).fail(() => $('#permissionTree').html('<p class="text-red-400 text-center py-4 text-xs">Failed to load</p>'));
         }
+
         function loadCreateMenus() {
-            $('#menuTree').html('<p class="text-gray-400 text-center py-4 text-xs">Loading...</p>');
+            $('#menuTree').html('<p class="text-gray-400 text-center py-4 text-xs">Loading…</p>');
             $.get('@Url.Action("GetMenusGroupedByModule", "Auth")', function(data) {
                 menusData = data; renderMenuTree(data);
                 if (isEditMode) syncRoleMenus();
-            }).fail(() => $('#menuTree').html('<p class="text-red-500 text-center py-4 text-xs">Failed to load</p>'));
+            }).fail(() => $('#menuTree').html('<p class="text-red-400 text-center py-4 text-xs">Failed to load</p>'));
         }
 
         function renderPermissionTree(modules) {
             if (!modules?.length) { $('#permissionTree').html('<p class="text-gray-400 text-center py-4 text-xs">No permissions</p>'); return; }
             $('#permissionTree').html(modules.map(m => {
                 const mid = m.moduleName.replace(/\s+/g,'');
-                return `<div class="mb-2">
-                    <label class="flex items-center gap-1.5 mb-1 cursor-pointer">
-                        <input type="checkbox" id="mod_${mid}" class="rounded accent-cyan-500" onchange="toggleModulePerms('${mid}')">
-                        <span class="text-[10px] font-semibold text-gray-700"><i class="${m.moduleIcon||'fas fa-folder'} mr-1 text-gray-400"></i>${m.moduleName}</span>
-                    </label>
-                    <div class="ml-5 space-y-0.5" id="perms_${mid}">
-                        ${(m.permissions||[]).map(p => `<label class="flex items-center gap-1.5 text-[10px] text-gray-600 hover:bg-gray-100 px-1 py-0.5 rounded cursor-pointer">
-                            <input type="checkbox" class="perm-checkbox rounded accent-cyan-500" name="permissions" value="${p.permissionCode}" data-module="${mid}">
-                            <span class="flex-1">${p.permissionName}</span>
-                            <span class="text-[9px] ${p.actionType==='View'?'text-green-600':'text-amber-600'}">${p.actionType}</span>
-                        </label>`).join('')}
-                    </div>
-                </div>`;
+                return `<div class="mb-3"><label class="flex items-center gap-1.5 mb-1.5 cursor-pointer"><input type="checkbox" id="mod_${mid}" class="rounded accent-sky-500" onchange="toggleModulePerms('${mid}')"><span class="text-[10px] font-semibold text-gray-700"><i class="${m.moduleIcon||'fas fa-folder'} mr-1 text-gray-400"></i>${m.moduleName}</span></label><div class="ml-5 space-y-0.5" id="perms_${mid}">${(m.permissions||[]).map(p => `<label class="flex items-center gap-1.5 text-[10px] text-gray-600 hover:bg-sky-50 px-1.5 py-0.5 rounded cursor-pointer"><input type="checkbox" class="perm-checkbox rounded accent-sky-500" name="permissions" value="${p.permissionCode}" data-module="${mid}"><span class="flex-1">${p.permissionName}</span><span class="text-[9px] ${p.actionType==='View'?'text-emerald-600':'text-amber-500'}">${p.actionType}</span></label>`).join('')}</div></div>`;
             }).join(''));
         }
 
@@ -1108,20 +1359,10 @@
             if (!modules?.length) { $('#menuTree').html('<p class="text-gray-400 text-center py-4 text-xs">No menus</p>'); return; }
             $('#menuTree').html(modules.map(m => {
                 const mid = (m.moduleName||'').replace(/\s+/g,'')+'_m';
-                return `<div class="mb-2">
-                    <label class="flex items-center gap-1.5 mb-1 cursor-pointer">
-                        <input type="checkbox" id="mod_menu_${mid}" class="rounded accent-cyan-500" onchange="toggleModuleMenus('${mid}')">
-                        <span class="text-[10px] font-semibold text-gray-700">${m.moduleName||'Unknown'}</span>
-                    </label>
-                    <div class="ml-5 space-y-0.5" id="menu_container_${mid}">
-                        ${(m.menus||m.Menus||[]).map(mn => `<label class="flex items-center gap-1.5 text-[10px] text-gray-600 hover:bg-gray-100 px-1 py-0.5 rounded cursor-pointer">
-                            <input type="checkbox" class="menu-checkbox rounded accent-cyan-500" name="menuIds" value="${mn.id||mn.Id}" data-module="${mid}">
-                            <span>${mn.menuName||mn.MenuName}</span>
-                        </label>`).join('')}
-                    </div>
-                </div>`;
+                return `<div class="mb-3"><label class="flex items-center gap-1.5 mb-1.5 cursor-pointer"><input type="checkbox" id="mod_menu_${mid}" class="rounded accent-sky-500" onchange="toggleModuleMenus('${mid}')"><span class="text-[10px] font-semibold text-gray-700">${m.moduleName||'Unknown'}</span></label><div class="ml-5 space-y-0.5" id="menu_container_${mid}">${(m.menus||m.Menus||[]).map(mn => `<label class="flex items-center gap-1.5 text-[10px] text-gray-600 hover:bg-sky-50 px-1.5 py-0.5 rounded cursor-pointer"><input type="checkbox" class="menu-checkbox rounded accent-sky-500" name="menuIds" value="${mn.id||mn.Id}"><span>${mn.menuName||mn.MenuName}</span></label>`).join('')}</div></div>`;
             }).join(''));
         }
+
         function toggleModuleMenus(mid) { const v=$('#mod_menu_'+mid).is(':checked'); $('#menu_container_'+mid+' input').prop('checked',v); }
         function selectAllMenus() { $('#menuTree input').prop('checked',true); }
         function clearAllMenus()  { $('#menuTree input').prop('checked',false); }
@@ -1137,22 +1378,21 @@
             currentRoleData.menus.forEach(id => $(`input[name="menuIds"][value="${id}"]`).prop('checked',true));
         }
 
-        function editSystemRole(roleName) {
-            closeManageRolesListModal();
-            isEditMode = true; currentEditingRole = roleName;
-            $('#createRoleBtnText').text('Save Changes');
-            $('#newRoleName').val(roleName).prop('readonly',true);
-            openModal('createRoleModal');
-            $('#createRoleMessage').addClass('hidden');
-            $.get('@Url.Action("GetRoleDetails", "Auth")?roleName=' + roleName, function(data) {
-                currentRoleData = data;
-                $('#newRoleDescription').val(data.description);
-                $('#roleRequiresCompany').prop('checked',data.requiresCompany);
-                $('#roleRequiresGroup').prop('checked',data.requiresGroup);
-                $('#roleRequiresDevice').prop('checked',data.requiresDevice);
-                $('#roleRequiresLocation').prop('checked',data.requiresLocation);
-                loadCreatePermissions(); loadCreateMenus();
-            });
+        function validateRoleName(input) {
+            const val = input.value;
+            const hint = document.getElementById('roleNameHint');
+            if (!val) { hint.className='text-[10px] text-gray-400 mt-1'; hint.textContent='No spaces. Use CamelCase (e.g. SiteEngineer).'; return; }
+            if (/[^a-zA-Z0-9_]/.test(val)) {
+                hint.className='text-[10px] text-red-500 mt-1'; hint.textContent=' Only letters, numbers and underscores.';
+                input.classList.add('border-red-400');
+            } else if (val.length < 3) {
+                hint.className='text-[10px] text-amber-500 mt-1'; hint.textContent='At least 3 characters.';
+                input.classList.remove('border-red-400');
+            } else {
+                const exists = !isEditMode && systemRoles.some(r => { const n=typeof r==='string'?r:(r.name||r.RoleName||''); return n.toLowerCase()===val.toLowerCase(); });
+                if (exists) { hint.className='text-[10px] text-red-500 mt-1'; hint.textContent=' Role name already exists.'; input.classList.add('border-red-400'); }
+                else { hint.className='text-[10px] text-emerald-600 mt-1'; hint.textContent='✓ Valid role name.'; input.classList.remove('border-red-400'); }
+            }
         }
 
         function submitCreateRole() {
@@ -1160,26 +1400,23 @@
             const perms = $('input[name="permissions"]:checked').map((i,el) => $(el).val()).get();
             const menus = $('input[name="menuIds"]:checked').map((i,el) => parseInt($(el).val())).get();
             const msgEl = $('#createRoleMessage');
+
             if (!roleName) { showMsg(msgEl,'Enter a role name','error'); return; }
-            if (/[\s]/.test(roleName)) { showMsg(msgEl,'No spaces — use CamelCase (e.g. SiteEngineer)','error'); return; }
-            if (/[^a-zA-Z0-9_]/.test(roleName)) { showMsg(msgEl,'Only letters, numbers and underscores allowed','error'); return; }
-            if (roleName.length < 3) { showMsg(msgEl,'Role name must be at least 3 characters','error'); return; }
-            // Duplicate check (only for create, not edit)
+            if (/[\s]/.test(roleName)) { showMsg(msgEl,'No spaces — use CamelCase','error'); return; }
+            if (/[^a-zA-Z0-9_]/.test(roleName)) { showMsg(msgEl,'Only letters, numbers and underscores','error'); return; }
+            if (roleName.length < 3) { showMsg(msgEl,'At least 3 characters','error'); return; }
             if (!isEditMode) {
-                const dupExists = systemRoles.some(r => {
-                    const n = typeof r === 'string' ? r : (r.name || r.RoleName || '');
-                    return n.toLowerCase() === roleName.toLowerCase();
-                });
-                if (dupExists) { showMsg(msgEl,'A role with this name already exists — choose a different name','error'); return; }
+                const dup = systemRoles.some(r => { const n=typeof r==='string'?r:(r.name||r.RoleName||''); return n.toLowerCase()===roleName.toLowerCase(); });
+                if (dup) { showMsg(msgEl,'A role with this name already exists','error'); return; }
             }
             if (!perms.length) { showMsg(msgEl,'Select at least one permission','error'); return; }
 
-            const btn = $('#createRoleBtn').prop('disabled',true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Saving...');
+            const btn = $('#createRoleBtn').prop('disabled',true).html('<i class="fas fa-spinner fa-spin mr-1.5"></i>Saving…');
             const url = isEditMode ? '@Url.Action("UpdateRoleWithPermissions", "Auth")' : '@Url.Action("CreateRoleWithPermissions", "Auth")';
+
             $.ajax({ url, type:'POST', contentType:'application/json',
                 data: JSON.stringify({
-                    RoleName: roleName,
-                    Description: $('#newRoleDescription').val(),
+                    RoleName: roleName, Description: $('#newRoleDescription').val(),
                     RequiresCompany:  $('#roleRequiresCompany').is(':checked'),
                     RequiresGroup:    $('#roleRequiresGroup').is(':checked'),
                     RequiresDevice:   $('#roleRequiresDevice').is(':checked'),
@@ -1188,12 +1425,34 @@
                 }),
                 success: res => {
                     if (res.success) {
-                        showMsg(msgEl, isEditMode ? 'Role updated!' : 'Role created!','success');
-                        setTimeout(() => { closeCreateRoleModal(); loadSystemRoles(); },900);
-                    } else { showMsg(msgEl, res.message||'Error','error'); }
-                    btn.prop('disabled',false).html('<i class="fas fa-save mr-1"></i><span id="createRoleBtnText">'+(isEditMode?'Save Changes':'Create Role')+'</span>');
+                        setTimeout(() => {
+                            closeCreateRoleModal();
+                            sysAlert(isEditMode ? 'Role updated successfully!' : 'Role created successfully!', 'success');
+                            loadSystemRoles();
+                        }, 200);
+                    } else { showMsg(msgEl, res.message||'Error saving role','error'); }
+                    btn.prop('disabled',false).html('<i class="fas fa-save mr-1.5 text-[10px]"></i><span id="createRoleBtnText">'+(isEditMode?'Save Changes':'Create Role')+'</span>');
                 },
                 error: () => { showMsg(msgEl,'Network error','error'); btn.prop('disabled',false); }
+            });
+        }
+
+        function editSystemRole(roleName) {
+            closeManageRolesListModal();
+            isEditMode = true; currentEditingRole = roleName;
+            $('#createRoleBtnText').text('Save Changes');
+            $('#newRoleName').val(roleName).prop('readonly',true);
+            openModal('createRoleModal');
+            $('#createRoleMessage').addClass('hidden');
+
+            $.get('@Url.Action("GetRoleDetails", "Auth")?roleName=' + roleName, function(data) {
+                currentRoleData = data;
+                $('#newRoleDescription').val(data.description);
+                $('#roleRequiresCompany').prop('checked', data.requiresCompany);
+                $('#roleRequiresGroup').prop('checked', data.requiresGroup);
+                $('#roleRequiresDevice').prop('checked', data.requiresDevice);
+                $('#roleRequiresLocation').prop('checked', data.requiresLocation);
+                loadCreatePermissions(); loadCreateMenus();
             });
         }
 
@@ -1201,56 +1460,90 @@
         function closeManageRolesListModal() { closeModal('manageRolesListModal'); }
 
         function loadRolesList() {
-            $('#rolesListContainer').html('<p class="text-gray-400 text-xs text-center py-4">Loading...</p>');
+            $('#rolesListContainer').html('<p class="text-gray-400 text-xs text-center py-4">Loading…</p>');
             $.get('@Url.Action("GetAllSystemRoles", "Auth")', function(roles) {
-                const saCount = allUsers.filter(u => {
-                    const rs = u.roles || u.Roles || [];
-                    return rs.some(r => r.toLowerCase() === 'superadmin');
-                }).length;
-
-                let html = createRoleItem({ name: 'SuperAdmin', isSystem: true, userCount: saCount }, '#ef4444');
-                (roles || []).forEach(r => { html += createRoleItem(r, '#00BCEB'); });
+                const saCount = allUsers.filter(u => (u.roles||u.Roles||[]).some(r => r.toLowerCase()==='superadmin')).length;
+                let html = createRoleItem({name:'SuperAdmin',isSystem:true,userCount:saCount}, '#ef4444');
+                (roles||[]).forEach(r => { html += createRoleItem(r,'#0ea5e9'); });
                 $('#rolesListContainer').html(html);
-            }).fail(() => $('#rolesListContainer').html('<p class="text-red-500 text-xs text-center py-4">Error loading roles</p>'));
+            }).fail(() => $('#rolesListContainer').html('<p class="text-red-400 text-xs text-center py-4">Error loading roles</p>'));
         }
 
         function createRoleItem(role, color) {
             const n = typeof role==='string' ? role : (role.name||role.RoleName);
             const btns = role.isSystem
-                ? '<span class="text-[9px] text-gray-400 italic flex items-center gap-1"><i class="fas fa-lock text-[8px]"></i>Protected</span>'
-                : `<div class="flex gap-1.5">
-                     <button onclick="editSystemRole('${n}')" class="text-cyan-600 hover:text-cyan-800 text-xs" title="Edit"><i class="fas fa-edit"></i></button>
-                     <button onclick="deleteRole('${role.id||0}','${n}')" class="text-red-500 hover:text-red-700 text-xs" title="Delete"><i class="fas fa-trash"></i></button>
-                   </div>`;
-            return `<div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border hover:bg-white hover:shadow-sm transition-all">
-                <div class="flex items-center gap-2">
-                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold text-white shadow-sm"
-                          style="background:linear-gradient(135deg,${color},${color}cc)">${formatRoleName(n)}</span>
-                    ${role.isSystem ? '<span class="text-[8px] bg-gray-200 text-gray-500 px-1 py-0.5 rounded font-bold">SYSTEM</span>' : ''}
+                ? '<span class="text-[10px] text-gray-400 italic flex items-center gap-1"><i class="fas fa-lock text-[9px]"></i>Protected</span>'
+                : `<div class="flex gap-2"><button onclick="editSystemRole('${n}')" class="text-sky-500 hover:text-sky-700 text-xs transition-colors" title="Edit"><i class="fas fa-edit"></i></button><button onclick="deleteRole('${role.id||0}','${n}')" class="text-red-400 hover:text-red-600 text-xs transition-colors" title="Delete"><i class="fas fa-trash"></i></button></div>`;
+            return `<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-white hover:shadow-sm transition-all">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,${color},${color}cc);">${formatRoleName(n)}</span>
+                    ${role.isSystem ? '<span class="text-[9px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded font-bold flex-shrink-0">SYSTEM</span>' : ''}
                 </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-[10px] text-gray-500">${role.userCount||0} users</span>
+                <div class="flex items-center gap-3 flex-shrink-0 ml-2">
+                    <span class="text-[10px] text-gray-400 whitespace-nowrap">${role.userCount||0} users</span>
                     ${btns}
                 </div>
             </div>`;
         }
 
         function deleteRole(id, name) {
-            sysConfirm(`Delete role "${name}"? Users will lose access.`, function() {
+            sysConfirm(`Delete role "${name}"? Users with this role will lose access.`, function() {
                 $.ajax({ url:'/Auth/DeleteRole', type:'POST', contentType:'application/json',
-                    data:JSON.stringify({RoleName:name}),
-                    success: res => { if(res.success){sysAlert(res.message,'success'); loadRolesList();}else sysAlert(res.message,'error'); },
+                    data: JSON.stringify({RoleName:name}),
+                    success: res => {
+                        if (res.success) { sysAlert(res.message,'success'); loadRolesList(); loadSystemRoles(); }
+                        else sysAlert(res.message,'error');
+                    },
                     error: () => sysAlert('Error deleting role','error')
                 });
             }, { type:'danger' });
         }
 
+        function renderRoleRows() {
+            const tbody = $('#roleTableBody');
+            if (!tbody.length || !allUsers.length) return;
+            const rows = allUsers.map(function(raw) {
+                const user = normalizeUser(raw);
+                const mappings = user.mappings || [];
+                const companies = mappings.filter(m => valueOf(m,'CompanyId','companyId') != null);
+                const groups    = mappings.filter(m => valueOf(m,'GroupId','groupId') != null);
+                const locations = mappings.filter(m => valueOf(m,'LocationId','locationId') != null);
+                const devices   = mappings.filter(m => (valueOf(m,'ScopeType','scopeType')||'') === 'Device');
+                const roleChips = (user.roles||[]).map(r => {
+                    const h = Math.abs((r||'').split('').reduce((a,c) => a+c.charCodeAt(0),0) % 360);
+                    return `<span class="role-chip" style="background:hsl(${h},60%,94%);color:hsl(${h},65%,35%);border-color:hsl(${h},60%,80%)">${formatRoleName(r)}</span>`;
+                }).join('');
+                const safeUser = String(user.username||'').replace(/'/g,"\\'");
+                const firstRole = (user.roles||[])[0]||'';
+                const safeRole  = String(firstRole||'').replace(/'/g,"\\'");
+                const isSuperAdmin = (user.roles||[]).some(r => (r||'').toLowerCase()==='superadmin');
+                return `<tr data-username="${(user.username||'').toLowerCase()}">
+                    <td><div class="flex items-center gap-2.5"><div class="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">${(user.username||'U').charAt(0).toUpperCase()}</div><span class="font-semibold text-gray-800 text-xs">${user.username}</span></div></td>
+                    <td>${roleChips||'<span class="text-gray-300 text-[10px] italic">No role</span>'}</td>
+                    <td class="hidden sm:table-cell"><span class="scope-badge bg-blue-50 text-blue-600 border border-blue-200"><i class="fas fa-building text-[8px]"></i>${new Set(companies.map(c => valueOf(c,'CompanyId','companyId'))).size||0}</span></td>
+                    <td class="hidden md:table-cell"><span class="scope-badge bg-orange-50 text-orange-600 border border-orange-200"><i class="fas fa-layer-group text-[8px]"></i>${new Set(groups.map(c => valueOf(c,'GroupId','groupId'))).size||0}</span></td>
+                    <td class="hidden lg:table-cell"><span class="scope-badge bg-emerald-50 text-emerald-600 border border-emerald-200"><i class="fas fa-map-marker-alt text-[8px]"></i>${new Set(locations.map(c => valueOf(c,'LocationId','locationId'))).size||0}</span></td>
+                    <td class="hidden xl:table-cell"><span class="scope-badge bg-purple-50 text-purple-600 border border-purple-200"><i class="fas fa-desktop text-[8px]"></i>${devices.length||0}</span></td>
+                    <td class="text-right whitespace-nowrap">
+                        ${isSuperAdmin ? '<span class="text-gray-300 text-[10px] italic flex items-center justify-end gap-1"><i class="fas fa-lock text-[9px]"></i>Protected</span>' :
+                            `<button onclick="editRole('${safeUser}','${safeRole}',null,'')" class="btn-sm text-white mr-1" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);"><i class="fas fa-edit text-[9px] mr-0.5"></i>Edit</button>
+                             <button onclick="removeUserRole('${safeUser}','${safeRole}')" class="btn-sm text-white" style="background:linear-gradient(135deg,#ef4444,#dc2626);"><i class="fas fa-trash text-[9px] mr-0.5"></i>Remove</button>`
+                        }
+                    </td>
+                </tr>`;
+            }).join('');
+            tbody.html(rows);
+            const countEl = document.getElementById('visibleCount');
+            if (countEl) countEl.textContent = allUsers.length;
+        }
+
+        /* ── Message helper ── */
         function showMsg(el, msg, type) {
-            el.removeClass('hidden bg-red-50 text-red-700 bg-green-50 text-green-700');
-            el.addClass(type==='success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200');
+            el.removeClass('hidden success error').addClass(type === 'success' ? 'success' : 'error');
             el.text(msg);
         }
 
+        /* ── Init ── */
         $(document).ready(function() { loadSystemRoles(); });
     </script>
 }

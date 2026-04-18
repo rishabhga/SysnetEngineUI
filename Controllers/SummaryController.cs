@@ -14,23 +14,18 @@ namespace ManageEngineWebApp.Controllers
     [AuthFilter]
     public class SummaryController : Controller
     {
-
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly string _baseUrl;
 
-        public SummaryController(HttpClient httpClient, IConfiguration configuration)
+        public SummaryController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
             _baseUrl = configuration["ApiSettings:BaseUrl"];
         }
 
         private HttpClient GetClient()
         {
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var client = new HttpClient(handler);
+            var client = _httpClientFactory.CreateClient("ManageEngineApi");
             client.Timeout = TimeSpan.FromSeconds(30);
             return client;
         }
@@ -51,7 +46,6 @@ namespace ManageEngineWebApp.Controllers
             foreach (var id in userLocationIds) q.Add($"locationId={id}");
             foreach (var id in userGroupIds) q.Add($"groupId={id}");
             
-            // If restricted user has no assigned scope, force empty result with invalid ID
             if (!RoleHelper.IsTopLevelAdmin(HttpContext) && !q.Any())
             {
                 q.Add("comId=-1");

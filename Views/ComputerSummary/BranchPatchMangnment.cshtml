@@ -1,4 +1,4 @@
-﻿@model List<ManageEngineWebApp.Models.WindowsUserDetails>
+@model List<ManageEngineWebApp.Models.WindowsUserDetails>
 @{
     ViewData["Title"] = "Patch Management";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -92,7 +92,6 @@
 
 <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3">
 
-    <!-- ── Header ── -->
     <div class="mb-3 flex items-center justify-between flex-wrap gap-2">
         <div>
             <h1 class="text-base font-bold text-gray-900 flex items-center gap-1.5">
@@ -102,13 +101,11 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <!-- Selected pill -->
             <span id="selectedPill" class="hidden items-center gap-1 px-2.5 py-1 bg-cyan-50 border border-cyan-200 rounded-full text-[11px] font-semibold text-cyan-700">
                 <i class="fas fa-check-circle text-[9px]"></i>
                 <span id="selCountPill">0</span> selected
             </span>
 
-            <!-- Patch dropdown -->
             <div class="relative">
                 <button id="patchDropdownBtn" onclick="toggleDropdown()" disabled
                         class="px-3 py-1.5 text-white rounded-md font-medium text-xs flex items-center gap-1 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
@@ -131,36 +128,37 @@
         </div>
     </div>
 
-    <!-- ── Toolbar ── -->
-    <div class="mb-2 flex flex-wrap items-center gap-2 bg-white rounded-md border border-gray-200 px-3 py-2 shadow-sm">
-        <!-- Search -->
-        <div class="relative flex-1 min-w-[180px] max-w-xs">
-            <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
-            <input id="searchInput" type="text" placeholder="Search name, domain, dept..."
-                   class="w-full pl-7 pr-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cyan-400"
+    <div class="mb-2 flex flex-wrap items-center gap-3 bg-white rounded-md border border-gray-200 px-3 py-2.5 shadow-sm">
+        <div class="relative flex-1 min-w-[200px] max-w-sm">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[11px]"></i>
+            <input id="searchInput" type="text" placeholder="Search by name, domain, or ID..."
+                   class="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-cyan-100 focus:border-cyan-400 transition-all"
                    oninput="applyFilters()">
         </div>
-        <!-- Status filter -->
-        <select id="statusFilter" onchange="applyFilters()"
-                class="px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-cyan-400">
-            <option value="">All Status</option>
-            <option value="online">Online</option>
-            <option value="offline">Offline</option>
-        </select>
-        <!-- Select all visible -->
-        <label class="flex items-center gap-1.5 ml-auto cursor-pointer select-none">
-            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"
-                   class="pm-checkbox w-3.5 h-3.5 rounded">
-            <span class="text-[11px] text-gray-600 font-medium">Select all visible</span>
-        </label>
-        <!-- Count -->
-        <span class="text-[10px] text-gray-500">
-            <span id="visibleCount">@(Model?.Count ?? 0)</span> shown ·
-            <span class="font-semibold text-gray-700" id="totalCount">@(Model?.Count ?? 0)</span> total
-        </span>
+
+        <div class="flex items-center gap-1.5 bg-gray-50 p-1 rounded-lg border border-gray-100">
+            <button onclick="setStatusFilter('')" id="filterAll" class="status-tab px-3 py-1 text-[10px] font-bold rounded-md transition-all bg-white shadow-sm ring-1 ring-gray-200 text-gray-700">All</button>
+            <button onclick="setStatusFilter('online')" id="filterOnline" class="status-tab px-3 py-1 text-[10px] font-bold rounded-md transition-all text-gray-500 hover:text-gray-700">Online <span id="onlineCountTop" class="ml-1 opacity-60">0</span></button>
+            <button onclick="setStatusFilter('offline')" id="filterOffline" class="status-tab px-3 py-1 text-[10px] font-bold rounded-md transition-all text-gray-500 hover:text-gray-700">Offline <span id="offlineCountTop" class="ml-1 opacity-60">0</span></button>
+            <input type="hidden" id="statusFilter" value="">
+        </div>
+
+        <div class="h-6 w-px bg-gray-200 mx-1"></div>
+
+        <div class="flex items-center gap-4 ml-auto">
+            <label class="flex items-center gap-2 cursor-pointer select-none group">
+                <div class="relative flex items-center justify-center">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"
+                           class="pm-checkbox w-4 h-4 rounded border-gray-300 text-cyan-500 focus:ring-cyan-500 transition-all cursor-pointer">
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-[11px] text-gray-700 font-bold leading-none">Select All</span>
+                    <span class="text-[9px] text-gray-400 leading-none mt-1">Found <span id="visibleCount">0</span> devices</span>
+                </div>
+            </label>
+        </div>
     </div>
 
-    <!-- ── Table ── -->
     @if (Model != null && Model.Any())
     {
         <div class="bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
@@ -169,7 +167,6 @@
                     <thead>
                         <tr class="border-b border-gray-200 text-[10px] text-gray-500 uppercase tracking-wide">
                             <th class="pl-3 pr-2 py-2 w-8 text-left">
-                                <!-- intentionally blank – per-page select all is in toolbar -->
                             </th>
                             <th class="px-3 py-2 text-left font-semibold">Status</th>
                             <th class="px-3 py-2 text-left font-semibold">Domain / Device</th>
@@ -192,11 +189,12 @@
                                 data-status="@(isOnline ? "online" : "offline")">
                                 <td class="pl-3 pr-2 py-2">
                                     <input type="checkbox"
-                                           class="device-checkbox pm-checkbox w-3.5 h-3.5 rounded"
+                                           class="device-checkbox pm-checkbox w-3.5 h-3.5 rounded disabled:opacity-30 disabled:cursor-not-allowed"
                                            value="@item.Id"
                                            data-domain="@item.DomainName"
                                            data-name="@item.UserName"
-                                           onchange="updateSelection()">
+                                           @(isOnline ? "" : "disabled")
+                                           onchange="updateRowSelection(this)">
                                 </td>
                                 <td class="px-3 py-2">
                                     @if (isOnline)
@@ -223,7 +221,6 @@
                 </table>
             </div>
 
-            <!-- Pagination bar -->
             <div class="flex items-center justify-between px-3 py-2 border-t border-gray-100 bg-gray-50">
                 <span class="text-[10px] text-gray-500">
                     Page <span id="currentPageLabel">1</span> of <span id="totalPagesLabel">1</span>
@@ -252,18 +249,15 @@
 
 @section Scripts {
     <script>
-        // ── Raw data from server ──────────────────────────────────────────────
         const ALL_ROWS = Array.from(document.querySelectorAll('.device-row'));
         let filteredRows = [...ALL_ROWS];
         let currentPage  = 1;
         let pageSize     = 50;
 
-        // ── Selection state ───────────────────────────────────────────────────
-        let selectedIds     = new Set();   // numeric device IDs
-        let selectedDomains = new Map();   // id → domain name
-        let selectedNames   = new Map();   // id → user name
+        let selectedIds     = new Set();   
+        let selectedDomains = new Map();  
+        let selectedNames   = new Map();  
 
-        // ── Pagination ────────────────────────────────────────────────────────
         function renderPage() {
             const start = (currentPage - 1) * pageSize;
             const end   = start + pageSize;
@@ -275,7 +269,8 @@
 
             syncRowHighlights();
             buildPaginationBtns();
-            document.getElementById('visibleCount').textContent = filteredRows.length;
+            const selectableCount = filteredRows.filter(r => r.dataset.status === 'online').length;
+            document.getElementById('visibleCount').textContent = selectableCount;
             document.getElementById('currentPageLabel').textContent = currentPage;
             document.getElementById('totalPagesLabel').textContent  = Math.max(1, Math.ceil(filteredRows.length / pageSize));
             updateSelectAllState();
@@ -328,7 +323,22 @@
             renderPage();
         }
 
-        // ── Filtering ─────────────────────────────────────────────────────────
+        function setStatusFilter(val) {
+            document.getElementById('statusFilter').value = val;
+            
+            document.querySelectorAll('.status-tab').forEach(tab => {
+                tab.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-gray-200', 'text-gray-700');
+                tab.classList.add('text-gray-500');
+            });
+            
+            const activeId = val === '' ? 'filterAll' : (val === 'online' ? 'filterOnline' : 'filterOffline');
+            const activeTab = document.getElementById(activeId);
+            activeTab.classList.remove('text-gray-500');
+            activeTab.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-gray-200', 'text-gray-700');
+            
+            applyFilters();
+        }
+
         function applyFilters() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const status = document.getElementById('statusFilter').value;
@@ -336,54 +346,79 @@
             filteredRows = ALL_ROWS.filter(r => {
                 const text   = r.textContent.toLowerCase();
                 const rStatus = r.dataset.status;
-                return (!search || text.includes(search)) && (!status || rStatus === status);
+                const matchesSearch = !search || text.includes(search);
+                const matchesStatus = !status || rStatus === status;
+                return matchesSearch && matchesStatus;
             });
+
+            const onlineCount = ALL_ROWS.filter(r => r.dataset.status === 'online').length;
+            const offlineCount = ALL_ROWS.filter(r => r.dataset.status === 'offline').length;
+            document.getElementById('onlineCountTop').textContent = onlineCount;
+            document.getElementById('offlineCountTop').textContent = offlineCount;
 
             currentPage = 1;
             renderPage();
         }
 
-        // ── Selection ─────────────────────────────────────────────────────────
         function updateSelection() {
-            document.querySelectorAll('.device-checkbox').forEach(cb => {
-                const id     = cb.value;
-                const domain = cb.dataset.domain;
-                const name   = cb.dataset.name || domain;
-                if (cb.checked) {
-                    selectedIds.add(id);
-                    selectedDomains.set(id, domain);
-                    selectedNames.set(id, name);
+            syncRowHighlights();
+            updateHeader();
+        }
+
+        function updateRowSelection(cb) {
+            const id = cb.value;
+            const domain = cb.dataset.domain;
+            const name = cb.dataset.name || domain;
+            
+            if (cb.checked) {
+                selectedIds.add(id);
+                selectedDomains.set(id, domain);
+                selectedNames.set(id, name);
+            } else {
+                selectedIds.delete(id);
+                selectedDomains.delete(id);
+                selectedNames.delete(id);
+            }
+            updateSelection();
+            updateSelectAllState();
+        }
+
+        function syncRowHighlights() {
+            document.querySelectorAll('.device-row').forEach(r => {
+                const id = r.dataset.id;
+                const cb = r.querySelector('.device-checkbox');
+                if (selectedIds.has(id)) {
+                    r.classList.add('selected-row');
+                    if (cb) cb.checked = true;
+                } else {
+                    r.classList.remove('selected-row');
+                    if (cb) cb.checked = false;
+                }
+            });
+        }
+
+        function toggleSelectAll(master) {
+            filteredRows.forEach(r => {
+                const id     = r.dataset.id;
+                const domain = r.dataset.domain;
+                const name   = r.dataset.username || domain;
+                const status = r.dataset.status;
+
+                if (master.checked) {
+                    // Strictly only select if online
+                    if (status === 'online') {
+                        selectedIds.add(id);
+                        selectedDomains.set(id, domain);
+                        selectedNames.set(id, name);
+                    }
                 } else {
                     selectedIds.delete(id);
                     selectedDomains.delete(id);
                     selectedNames.delete(id);
                 }
             });
-            syncRowHighlights();
-            updateSelectAllState();
-            updateHeader();
-        }
-
-        function syncRowHighlights() {
-            document.querySelectorAll('.device-row').forEach(r => {
-                const id = r.dataset.id;
-                if (selectedIds.has(id)) {
-                    r.classList.add('selected-row');
-                    const cb = r.querySelector('.device-checkbox');
-                    if (cb) cb.checked = true;
-                } else {
-                    r.classList.remove('selected-row');
-                }
-            });
-        }
-
-        function toggleSelectAll(master) {
-            // Only affect visible rows on current page
-            const visibleCbs = getVisibleCheckboxes();
-            visibleCbs.forEach(cb => {
-                cb.checked = master.checked;
-            });
             updateSelection();
+            updateSelectAllState();
         }
 
         function updateSelectAllState() {
@@ -412,7 +447,6 @@
             btn.disabled = count === 0;
         }
 
-        // ── Navigation ────────────────────────────────────────────────────────
         function goWinPatch() {
             if (selectedIds.size === 0) { sysAlert('Please select at least one device', 'warning'); return; }
             navigate('BranchWinPatchselection');
@@ -427,7 +461,6 @@
             window.location.href = `/ComputerSummary/${action}?companyid=@companyid&groupid=@groupid&locationid=@locationid&selectedIds=${ids}&domainids=${domains}`;
         }
 
-        // ── Dropdown ──────────────────────────────────────────────────────────
         function toggleDropdown() {
             document.getElementById('patchDropdown').classList.toggle('hidden');
         }
@@ -437,7 +470,9 @@
             if (dd && btn && !btn.contains(e.target) && !dd.contains(e.target)) dd.classList.add('hidden');
         });
 
-        // ── Init ──────────────────────────────────────────────────────────────
-        document.addEventListener('DOMContentLoaded', () => renderPage());
+        document.addEventListener('DOMContentLoaded', () => {
+            applyFilters();
+            renderPage();
+        });
     </script>
 }

@@ -96,8 +96,6 @@ namespace ManageEngineWebApp.Controllers
                 {
                     return hierarchyList;
                 }
-
-                // Scope filter: restrict to user's assigned companies
                 var allowedCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
                 if (allowedCompanyIds.Any())
                 {
@@ -122,7 +120,6 @@ namespace ManageEngineWebApp.Controllers
 
                         if (groups != null)
                         {
-                            // Scope filter: restrict to user's assigned group
                             var allowedGroupIds = RoleHelper.GetGroupIds(HttpContext);
                             if (allowedGroupIds.Any())
                             {
@@ -147,7 +144,6 @@ namespace ManageEngineWebApp.Controllers
 
                                     if (locations != null)
                                     {
-                                        // Scope filter: restrict to user's assigned location
                                         var allowedLocationIds = RoleHelper.GetLocationIds(HttpContext);
                                         if (allowedLocationIds.Any())
                                         {

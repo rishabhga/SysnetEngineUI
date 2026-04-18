@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using ManageEngineWebApp.Attributes;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using ManageEngineWebApp.Models;
 
 namespace ManageEngineWebApp.Controllers
@@ -44,13 +45,27 @@ namespace ManageEngineWebApp.Controllers
             foreach (var id in locationIds) q.Add($"locationId={id}");
             foreach (var id in groupIds) q.Add($"groupId={id}");
             
-            // If restricted user has no assigned scope, force empty result with invalid ID
             if (!IsTopLevelAdmin() && !q.Any())
             {
                 q.Add("comId=-1");
             }
 
             return q.Any() ? "?" + string.Join("&", q) : "";
+        }
+
+        private bool ValidateInventoryScope(int? companyId, int? groupId, int? locationId)
+        {
+            if (IsTopLevelAdmin())
+            {
+                return true;
+            }
+
+            var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
+            if (companyId.HasValue && userCompanyIds.Any() && !userCompanyIds.Contains(companyId.Value)) return false;
+            if (groupId.HasValue && userGroupIds.Any() && !userGroupIds.Contains(groupId.Value)) return false;
+            if (locationId.HasValue && userLocationIds.Any() && !userLocationIds.Contains(locationId.Value)) return false;
+
+            return true;
         }
 
         [AuthFilter]
@@ -69,6 +84,7 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.CanManageSLA = HasPermission("ServiceDesk.ManageSLA");
             ViewBag.CanManageMasterParts = HasPermission("ServiceDesk.ManageMasterParts");
             ViewBag.CanManageParts = HasPermission("ServiceDesk.ManageParts");
+            ViewBag.CanBypassWorkflow = HasPermission("ServiceDesk.BypassWorkflow");
 
             ViewBag.CanAdminSettings = HasPermission("ServiceDesk.AdminSettings");
             ViewBag.IsSuperAdmin = IsTopLevelAdmin();
@@ -121,7 +137,6 @@ namespace ManageEngineWebApp.Controllers
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
 
-                // Dynamically detect Admin/Approver capability and inject AutoApprove flag
                 var role = HttpContext.Session.GetString("role") ?? "";
                 if (IsTopLevelAdmin() || HasPermission("ServiceDesk.Approve") || role.EndsWith("Admin", StringComparison.OrdinalIgnoreCase))
                 {
@@ -134,7 +149,7 @@ namespace ManageEngineWebApp.Controllers
                             body = JsonConvert.SerializeObject(ticketObj);
                         }
                     }
-                    catch { /* Fallback to original body if parsing fails */ }
+                    catch {  }
                 }
 
                 var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
@@ -231,26 +246,42 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var statusJson = await statusResponse.Content.ReadAsStringAsync();
                     var statuses = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(statusJson);
-                    
-                    var statusOrders = statuses.ToDictionary(
-                        s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
-                        s => (int)s.sortOrder
-                    );
+                    var statusOrders = statuses
+                        .Where(s => s != null && (!string.IsNullOrEmpty((string)s.statusCode) || !string.IsNullOrEmpty((string)s.statusName)))
+                        .ToDictionary(
+                            s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
+                            s => (int)(s.sortOrder ?? 0)
+                        );
 
-                    var actionMappings = statuses.Where(s => !string.IsNullOrEmpty((string)s.systemAction))
+                    var closedStatuses = statuses
+                        .Where(s => s != null && s.isClosedState != null && (bool)s.isClosedState == true)
+                        .Select(s => ((string)s.statusCode ?? (string)s.statusName ?? "").ToUpperInvariant())
+                        .Where(s => !string.IsNullOrEmpty(s))
+                        .ToList();
+
+                    var actionMappings = statuses
+                        .Where(s => s != null && !string.IsNullOrEmpty((string)s.systemAction))
                         .ToDictionary(
                             s => ((string)s.systemAction).ToUpperInvariant(),
-                            s => (int)s.sortOrder
+                            s => (int)(s.sortOrder ?? 0)
                         );
                     
                     ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
                     ViewBag.SystemActionsJson = Newtonsoft.Json.JsonConvert.SerializeObject(actionMappings);
+                    ViewBag.ClosedStatusesJson = Newtonsoft.Json.JsonConvert.SerializeObject(closedStatuses);
                     
                     var approvedStatus = statuses?.FirstOrDefault(s => (string)s.systemAction == "Approve" || (string)s.statusCode == "Approved" || (string)s.statusName == "Approved");
                     ViewBag.ApprovedStatusSortOrder = approvedStatus != null ? (int)approvedStatus.sortOrder : 2;
                 }
             }
-            catch { }
+            catch
+            {
+                // Ensure ViewBag always has valid JSON defaults so the page JS doesn't crash
+                ViewBag.StatusOrdersJson = ViewBag.StatusOrdersJson ?? "{}";
+                ViewBag.SystemActionsJson = ViewBag.SystemActionsJson ?? "{}";
+                ViewBag.ClosedStatusesJson = ViewBag.ClosedStatusesJson ?? "[]";
+                ViewBag.ApprovedStatusSortOrder = ViewBag.ApprovedStatusSortOrder ?? 2;
+            }
 
             SetViewPermissions();
             return View();
@@ -341,11 +372,21 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageParts", "Add Ticket Parts")]
         public async Task<IActionResult> AddPart()
         {
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var payload = JsonConvert.DeserializeObject<JObject>(body);
+                var companyId = payload?["companyId"]?.Value<int?>() ?? payload?["CompanyId"]?.Value<int?>();
+                var groupId = payload?["groupId"]?.Value<int?>() ?? payload?["GroupId"]?.Value<int?>();
+                var locationId = payload?["locationId"]?.Value<int?>() ?? payload?["LocationId"]?.Value<int?>();
+                if (!ValidateInventoryScope(companyId, groupId, locationId))
+                {
+                    return Forbid();
+                }
+
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/AddPart", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
@@ -367,6 +408,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageParts", "Delete Ticket Parts")]
         public async Task<IActionResult> DeletePart(int id)
         {
             try
@@ -395,20 +437,29 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var statusJson = await statusResponse.Content.ReadAsStringAsync();
                     var statuses = Newtonsoft.Json.JsonConvert.DeserializeObject<List<dynamic>>(statusJson);
-                    
-                    var statusOrders = statuses.ToDictionary(
-                        s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
-                        s => (int)s.sortOrder
-                    );
+                    var statusOrders = statuses
+                        .Where(s => s != null && (!string.IsNullOrEmpty((string)s.statusCode) || !string.IsNullOrEmpty((string)s.statusName)))
+                        .ToDictionary(
+                            s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
+                            s => (int)(s.sortOrder ?? 0)
+                        );
 
-                    var actionMappings = statuses.Where(s => !string.IsNullOrEmpty((string)s.systemAction))
+                    var closedStatuses = statuses
+                        .Where(s => s != null && s.isClosedState != null && (bool)s.isClosedState == true)
+                        .Select(s => ((string)s.statusCode ?? (string)s.statusName ?? "").ToUpperInvariant())
+                        .Where(s => !string.IsNullOrEmpty(s))
+                        .ToList();
+
+                    var actionMappings = statuses
+                        .Where(s => s != null && !string.IsNullOrEmpty((string)s.systemAction))
                         .ToDictionary(
                             s => ((string)s.systemAction).ToUpperInvariant(),
-                            s => (int)s.sortOrder
+                            s => (int)(s.sortOrder ?? 0)
                         );
 
                     ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
                     ViewBag.SystemActionsJson = Newtonsoft.Json.JsonConvert.SerializeObject(actionMappings);
+                    ViewBag.ClosedStatusesJson = Newtonsoft.Json.JsonConvert.SerializeObject(closedStatuses);
 
                     var approvedStatus = statuses?.FirstOrDefault(s => (string)s.systemAction == "Approve" || (string)s.statusCode == "Approved" || (string)s.statusName == "Approved");
                     ViewBag.ApprovedStatusSortOrder = approvedStatus != null ? (int)approvedStatus.sortOrder : 2;
@@ -553,6 +604,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Edit", "Add Ticket Comment")]
         public async Task<IActionResult> AddComment()
         {
             try
@@ -579,6 +631,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Edit", "Add Ticket Attachment")]
         public async Task<IActionResult> AddAttachment(int ticketId)
         {
             try
@@ -661,6 +714,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Edit", "Start Work On Ticket")]
         public async Task<IActionResult> StartWork()
         {
             try
@@ -675,6 +729,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.Edit", "Resolve Ticket")]
         public async Task<IActionResult> ResolveTicket()
         {
             try
@@ -713,11 +768,21 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageParts", "Add Inventory Part")]
         public async Task<IActionResult> AddInventoryPart()
         {
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var payload = JsonConvert.DeserializeObject<JObject>(body);
+                var companyId = payload?["companyId"]?.Value<int?>() ?? payload?["CompanyId"]?.Value<int?>();
+                var groupId = payload?["groupId"]?.Value<int?>() ?? payload?["GroupId"]?.Value<int?>();
+                var locationId = payload?["locationId"]?.Value<int?>() ?? payload?["LocationId"]?.Value<int?>();
+                if (!ValidateInventoryScope(companyId, groupId, locationId))
+                {
+                    return Forbid();
+                }
+
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/MasterParts", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
@@ -728,11 +793,21 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageParts", "Update Master Parts Inventory")]
         public async Task<IActionResult> UpdateInventoryPart()
         {
             try
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
+                var payload = JsonConvert.DeserializeObject<JObject>(body);
+                var companyId = payload?["companyId"]?.Value<int?>() ?? payload?["CompanyId"]?.Value<int?>();
+                var groupId = payload?["groupId"]?.Value<int?>() ?? payload?["GroupId"]?.Value<int?>();
+                var locationId = payload?["locationId"]?.Value<int?>() ?? payload?["LocationId"]?.Value<int?>();
+                if (!ValidateInventoryScope(companyId, groupId, locationId))
+                {
+                    return Forbid();
+                }
+
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/UpdateMasterPart", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
@@ -743,10 +818,29 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.ManageParts", "Delete Master Parts Inventory")]
         public async Task<IActionResult> DeleteInventoryPart(int id)
         {
             try
             {
+                var queryResponse = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/MasterParts");
+                if (!queryResponse.IsSuccessStatusCode)
+                {
+                    return StatusCode((int)queryResponse.StatusCode, "Unable to validate inventory scope");
+                }
+
+                var raw = await queryResponse.Content.ReadAsStringAsync();
+                var parts = JsonConvert.DeserializeObject<JArray>(raw);
+                var part = parts?.FirstOrDefault(p =>
+                    p?["id"]?.Value<int?>() == id || p?["Id"]?.Value<int?>() == id);
+                var companyId = part?["companyId"]?.Value<int?>() ?? part?["CompanyId"]?.Value<int?>();
+                var groupId = part?["groupId"]?.Value<int?>() ?? part?["GroupId"]?.Value<int?>();
+                var locationId = part?["locationId"]?.Value<int?>() ?? part?["LocationId"]?.Value<int?>();
+                if (!ValidateInventoryScope(companyId, groupId, locationId))
+                {
+                    return Forbid();
+                }
+
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/DeleteMasterPart?id={id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
@@ -897,14 +991,20 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "View All Categories")]
         public async Task<IActionResult> GetAllCategories()
         {
-            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Categories/All");
-            return Content(response, "application/json");
+            try
+            {
+                var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Categories/All");
+                return Content(response, "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
         }
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Create Category")]
         public async Task<IActionResult> CreateCategory()
         {
             try {
@@ -917,6 +1017,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Update Category")]
         public async Task<IActionResult> UpdateCategory()
         {
             try {
@@ -929,6 +1030,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Delete Category")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             try {
@@ -940,14 +1042,20 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "View All Priorities")]
         public async Task<IActionResult> GetAllPriorities()
         {
-            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Priorities/All");
-            return Content(response, "application/json");
+            try
+            {
+                var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Priorities/All");
+                return Content(response, "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
         }
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Create Priority")]
         public async Task<IActionResult> CreatePriority()
         {
             try {
@@ -960,6 +1068,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Update Priority")]
         public async Task<IActionResult> UpdatePriority()
         {
             try {
@@ -972,6 +1081,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Delete Priority")]
         public async Task<IActionResult> DeletePriority(int id)
         {
             try {
@@ -983,14 +1093,20 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "View All Statuses")]
         public async Task<IActionResult> GetAllStatuses()
         {
-            var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Statuses/All");
-            return Content(response, "application/json");
+            try
+            {
+                var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Statuses/All");
+                return Content(response, "application/json");
+            }
+            catch (Exception ex) { return Json(new { error = ex.Message }); }
         }
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Create Status")]
         public async Task<IActionResult> CreateTicketStatus()
         {
             try {
@@ -1003,6 +1119,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Update Status")]
         public async Task<IActionResult> UpdateTicketStatus()
         {
             try {
@@ -1015,6 +1132,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        [DynamicPermission("ServiceDesk.AdminSettings", "Delete Status")]
         public async Task<IActionResult> DeleteTicketStatus(int id)
         {
             try {
