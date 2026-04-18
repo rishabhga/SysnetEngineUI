@@ -6,9 +6,9 @@
     --side-hover-bg: rgba(255, 255, 255, 0.2);
     --side-active-bg: rgba(255, 255, 255, 0.3);
     --side-active-color: #fff;
-    --side-w-expanded: 260px;
+    --side-w-expanded: 210px;
     --side-w-collapsed: 0px;
-    --nav-h: 60px;
+    --nav-h: 50px;
     --transition-speed: 0.3s;
     --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -59,10 +59,10 @@ html.sidebar-collapsed .app-main {
 
 /* ── User Section ── */
 .sidebar-user-section {
-    padding: 20px;
+    padding: 12px 14px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);
     border-bottom: 1px solid rgba(255,255,255,0.2);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -70,16 +70,16 @@ html.sidebar-collapsed .app-main {
 }
 
 .sb-user-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     background: linear-gradient(135deg, #00d4ff, #0096BE);
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 13px;
     flex-shrink: 0;
     box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
 }
@@ -92,7 +92,7 @@ html.sidebar-collapsed .app-main {
 }
 
 .sb-user-name {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #f8fafc;
     line-height: 1.2;
@@ -102,7 +102,7 @@ html.sidebar-collapsed .app-main {
 }
 
 .sb-user-role {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--side-text);
     font-weight: 500;
     white-space: nowrap;
@@ -128,13 +128,13 @@ html.sidebar-collapsed .app-main {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 44px;
-    padding: 0 16px;
-    border-radius: 10px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
     color: var(--side-text);
     text-decoration: none !important;
     transition: all 0.2s ease;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
@@ -145,7 +145,7 @@ html.sidebar-collapsed .app-main {
     display: flex;
     align-items: center;
     min-width: 0;
-    gap: 12px;
+    gap: 8px;
 }
 
 .sidebar-link-content span {
@@ -155,8 +155,8 @@ html.sidebar-collapsed .app-main {
 }
 
 .sidebar-link .nav-icon {
-    width: 20px;
-    font-size: 14px;
+    width: 16px;
+    font-size: 12px;
     flex-shrink: 0;
     text-align: center;
     transition: color 0.2s;
@@ -197,8 +197,8 @@ html.sidebar-collapsed .app-main {
     overflow: hidden;
     transition: max-height 0.4s var(--transition-timing),
                 padding 0.3s var(--transition-timing);
-    margin-left: 28px;
-    border-left: 2px solid rgba(255,255,255,0.08);
+    margin-left: 24px;
+    border-left: 1px solid rgba(255,255,255,0.08);
     padding: 0;
 }
 
@@ -209,8 +209,8 @@ html.sidebar-collapsed .app-main {
 
 .sidebar-sub-link {
     display: block;
-    padding: 8px 16px;
-    font-size: 12px;
+    padding: 6px 12px;
+    font-size: 11px;
     color: rgba(224, 242, 254, 0.75);
     text-decoration: none !important;
     transition: all 0.2s ease;
@@ -240,12 +240,12 @@ html.sidebar-collapsed .app-main {
 .logout-link {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    border-radius: 10px;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
     color: #fb7185;
     text-decoration: none !important;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     transition: all 0.2s ease;
     background: rgba(251, 113, 133, 0.05);

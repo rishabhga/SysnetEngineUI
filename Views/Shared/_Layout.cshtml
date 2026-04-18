@@ -744,10 +744,6 @@
                         <span id="notificationBadge">0</span>
                     </button>
                 }
-
-                <a asp-controller="Auth" asp-action="Logout" class="nav-logout-btn" title="Sign Out" style="display:flex; align-items:center; gap:6px; color:#fff; background:rgba(255,255,255,0.15); padding:6px 12px; border-radius:8px; text-decoration:none; font-size:13px; font-weight:600; transition:background 0.2s;">
-                    <i class="fas fa-sign-out-alt"></i> <span>Sign Out</span>
-                </a>
             </div>
         </div>
     </nav>
@@ -844,10 +840,6 @@
             <div class="app-content-inner">
                 @RenderBody()
             </div>
-
-            <footer class="app-footer-inner" style="border-top: 1px solid #f1f5f9; background: #fff;">
-                <p>&copy; @DateTime.Now.Year SYSNET GLOBAL. All rights reserved.</p>
-            </footer>
         </main>
     </div>
 

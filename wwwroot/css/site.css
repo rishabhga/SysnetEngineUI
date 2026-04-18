@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -53,5 +53,5 @@ html {
 }
 
 body {
-    margin-bottom: 60px;
+    margin-bottom: 0;
 }
