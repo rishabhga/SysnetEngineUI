@@ -540,11 +540,8 @@
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-            <div class="relative flex-1 min-w-[180px]">
-                <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                <input type="text" id="userSearchInput" placeholder="Search users..."
-                       class="rm-input pl-8 py-1.5 text-xs"
-                       oninput="filterUserTable(this.value)">
+            <div class="flex-1 min-w-[180px]">
+                <!-- Local search removed, using global search -->
             </div>
             <span class="text-xs text-gray-400"><span id="visibleCount">@Model.Count</span> users</span>
         </div>
@@ -1225,6 +1222,8 @@
             const domainNames = $('#domainList input:checked:not(:disabled)').map((i,el)=>$(el).val()).get();
 
             if (cfg.requiresCompany && !companyIds.length) { showMsg(msgEl,'User must have a company assigned.','error'); return; }
+            if (cfg.requiresGroup && !groupIds.length) { showMsg(msgEl,'Select at least one group','error'); return; }
+            if (cfg.requiresLocation && !locationIds.length) { showMsg(msgEl,'Select at least one location','error'); return; }
             if (cfg.requiresDevice  && !domainNames.length) { showMsg(msgEl,'Select at least one device','error'); return; }
 
             /* Build payloads iteratively */
@@ -1391,7 +1390,7 @@
 
         function loadCreatePolicies() {
             $('#policyTree').html('<p class="text-gray-400 text-center py-4 text-xs">Loading…</p>');
-            $.get('/api/Policy/Templates', function(data) {
+            $.get('@Url.Action("Templates", "Policy")', function(data) {
                 policiesData = data; renderPolicyTree(data);
                 if (isEditMode) syncRolePolicies();
             }).fail(() => $('#policyTree').html('<p class="text-red-400 text-center py-4 text-xs">Failed to load policies</p>'));
@@ -1424,8 +1423,28 @@
         function renderPolicyTree(policies) {
             if (!policies?.length) { $('#policyTree').html('<p class="text-gray-400 text-center py-4 text-xs">No policies assigned to system yet.</p>'); return; }
             $('#policyTree').html('<div class="space-y-1 mt-2">' + policies.map(p => {
-                return `<label class="flex items-center gap-2 p-2 bg-gray-50 border border-gray-100 rounded-lg cursor-pointer hover:bg-sky-50 transition-colors"><input type="checkbox" name="policyIds" class="policy-checkbox rounded accent-sky-500 w-4 h-4" value="${p.id}"><div class="flex-1 min-w-0"><p class="text-xs font-bold text-gray-800">${p.displayName||p.policyName}</p><p class="text-[10px] text-gray-500 truncate">${p.description||'Contains '+p.permissionCount+' permissions'}</p></div></label>`;
+                return `<label class="flex items-center gap-2 p-2 bg-gray-50 border border-gray-100 rounded-lg cursor-pointer hover:bg-sky-50 transition-colors"><input type="checkbox" name="policyIds" class="policy-checkbox rounded accent-sky-500 w-4 h-4" value="${p.id}" onchange="handlePolicyChange(${p.id}, this.checked)"><div class="flex-1 min-w-0"><p class="text-xs font-bold text-gray-800">${p.displayName||p.policyName}</p><p class="text-[10px] text-gray-500 truncate">${p.description||'Contains '+p.permissionCount+' permissions'}</p></div></label>`;
             }).join('') + '</div>');
+        }
+
+        function handlePolicyChange(policyId, isChecked) {
+            const policy = policiesData.find(p => p.id === policyId);
+            if (!policy || !policy.permissions) return;
+            policy.permissions.forEach(code => {
+                const $chk = $(`input[name="permissions"][value="${code}"]`);
+                if ($chk.length) {
+                    $chk.prop('checked', isChecked);
+                    const mid = $chk.closest('div[id^="perms_"]').attr('id').replace('perms_', '');
+                    updateModuleCheckbox(mid);
+                }
+            });
+        }
+
+        function updateModuleCheckbox(mid) {
+            const total = $(`#perms_${mid} input`).length;
+            const checked = $(`#perms_${mid} input:checked`).length;
+            $(`#mod_${mid}`).prop('checked', total > 0 && total === checked);
+            $(`#mod_${mid}`).prop('indeterminate', checked > 0 && checked < total);
         }
 
         function selectAllPolicies() { $('#policyTree input').prop('checked',true); }
@@ -1615,5 +1634,10 @@
 
         /* ── Init ── */
         $(document).ready(function() { loadSystemRoles(); });
+        $(document).on('searchEvent', function(e, term) {
+            if (typeof filterUserTable === 'function') {
+                filterUserTable(term);
+            }
+        });
     </script>
 }

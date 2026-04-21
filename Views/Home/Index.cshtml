@@ -1,332 +1,134 @@
 @{
-    ViewData["Title"] = "InfraMonitor Hub";
+    ViewData["Title"] = "Organization Dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-@* Overriding Layout constraints for this page only *@
-<style>
-    #mainContent { padding: 0.5rem !important; background: #f4f7f9 !important; }
-    #breadcrumbs { display: none !important; }
-    .app-content-inner { max-width: 100% !important; padding: 0 !important; }
+@section Styles {
+    <style>
+        #mainContent { padding: 0.5rem !important; background: #f8fafc !important; }
+        #breadcrumbs { display: none !important; }
+        .app-content-inner { max-width: 100% !important; padding: 0 !important; }
 
-    :root {
-        --tool-bg: #ffffff;
-        --tool-edge: #e2e8f0;
-        --accent: #2563eb;
-        --text-base: #334155;
-        --text-dim: #94a3b8;
-    }
+        :root {
+            --glass: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --accent: #2563eb;
+        }
 
-    body {
-        font-size: 13px;
-        color: var(--text-base);
-    }
+        .premium-card {
+            background: var(--glass);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-    .monitor-card {
-        background: var(--tool-bg);
-        border: 1px solid var(--tool-edge);
-        border-radius: 4px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-    }
+        .premium-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+            border-borderColor: rgba(37, 99, 235, 0.2);
+        }
 
-    .top-ribbon {
-        background: #1e293b;
-        color: #fff;
-        padding: 6px 12px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-    }
+        .company-strip-wrap {
+            overflow-x: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE and Edge */
+        }
+        .company-strip-wrap::-webkit-scrollbar { display: none; }
 
-    .metric-box {
-        padding: 8px 10px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+        .lbl-tech {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #64748b;
+        }
 
-    .box-icon {
-        width: 26px;
-        height: 26px;
-        border-radius: 3px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        background: #f1f5f9;
-        color: #64748b;
-    }
+        .table-compact th {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #64748b;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-bottom: 1px solid #edf2f7;
+        }
 
-    .val-main {
-        font-family: 'JetBrains Mono', 'Segoe UI Mono', monospace;
-        font-weight: 700;
-        font-size: 14px;
-        line-height: 1.2;
-    }
+        .table-compact td {
+            font-size: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid #f8fafc;
+        }
 
-    .lbl-tech {
-        font-size: 9px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--text-dim);
-    }
+        .nav-trail {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 16px;
+        }
 
-    .grid-dense {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 8px;
-        margin-bottom: 8px;
-    }
+        .animate-slide-up {
+            animation: slideUp 0.4s ease-out forwards;
+        }
 
-    .table-compact th {
-        font-size: 9px;
-        font-weight: 800;
-        text-transform: uppercase;
-        color: #64748b;
-        padding: 6px 8px;
-        background: #f8fafc;
-        border-bottom: 1px solid #edf2f7;
-    }
+        @@keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+}
 
-    .table-compact td {
-        font-size: 11px;
-        padding: 5px 8px;
-        border-bottom: 1px solid #f8fafc;
-    }
-
-    .btn-sync {
-        background: #334155;
-        color: #fff;
-        padding: 4px 10px;
-        border-radius: 3px;
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        border: none;
-    }
-
-    .btn-sync:hover { background: #475569; }
-
-    .micro-prog {
-        height: 3px;
-        background: #f1f5f9;
-        border-radius: 1px;
-        overflow: hidden;
-        margin-top: 4px;
-    }
-
-    .prog-val { height: 100%; transition: width 0.5s; }
-</style>
-
-<div class="w-full">
-
-    @* --- TOP TOOLBAR --- *@
-    <div class="top-ribbon">
-        <div class="flex items-center gap-4">
-            <span class="flex items-center gap-2 text-[10px] font-bold">
-                <i class="fas fa-microchip text-blue-400"></i>
-                CORE ENGINE
-            </span>
-            <div class="h-3 w-[1px] bg-slate-700"></div>
-            <div class="flex items-center gap-2">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span class="text-[9px] font-bold tracking-widest text-slate-400">SYNC: <span id="syncTime">--:--:--</span></span>
-            </div>
+<div class="px-6 py-4">
+    
+    @* --- TOP NAVIGATION TRAIL --- *@
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <div>
+            <ul id="hierarchyBreadcrumbs" class="nav-trail">
+                <!-- Populated by JS -->
+                <li class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-slate-300 animate-pulse"></span>
+                    <span>INITIALIZING...</span>
+                </li>
+            </ul>
+            <h1 class="text-2xl font-black text-slate-800 tracking-tight">Explorer</h1>
         </div>
-        <button onclick="loadDashboardData()" class="btn-sync">
-            <i class="fas fa-sync-alt mr-2"></i>RELOAD
-        </button>
-    </div>
-
-    @* --- METRICS GRID --- *@
-    <div class="grid-dense">
-        <div class="monitor-card metric-box">
-            <div class="box-icon"><i class="fas fa-link"></i></div>
-            <div class="flex-1">
-                <div class="lbl-tech">Connectivity</div>
-                <div class="flex items-baseline gap-1">
-                    <span id="onlineCount" class="val-main text-slate-800">0</span>
-                    <span class="text-[9px] font-bold text-slate-400">/ <span id="totalDevicesCount">0</span> NODES</span>
-                </div>
-                <div class="micro-prog"><div id="netProg" class="prog-val bg-blue-500" style="width: 0%"></div></div>
-            </div>
-        </div>
-
-        <div class="monitor-card metric-box">
-            <div class="box-icon"><i class="fas fa-shield-alt"></i></div>
-            <div class="flex-1">
-                <div class="lbl-tech">Vulnerabilities</div>
-                <div class="flex items-baseline gap-1">
-                    <span id="missingPatches" class="val-main text-slate-800">0</span>
-                    <span class="text-[9px] font-bold text-slate-400 text-red-400">ALERT</span>
-                </div>
-                <div class="micro-prog"><div id="patchProg" class="prog-val bg-red-400" style="width: 0%"></div></div>
-            </div>
-        </div>
-
-        <div class="monitor-card metric-box">
-            <div class="box-icon"><i class="fas fa-project-diagram"></i></div>
-            <div class="flex-1">
-                <div class="lbl-tech">Switch Fabric</div>
-                <div class="flex items-baseline gap-1">
-                    <span id="upSwitches" class="val-main text-slate-800">0</span>
-                    <span class="text-[9px] font-bold text-slate-400">/ <span id="totalSwitchesCount">0</span> ACTIVE</span>
-                </div>
-                <div class="micro-prog"><div id="swProg" class="prog-val bg-emerald-500" style="width: 0%"></div></div>
-            </div>
-        </div>
-
-        <div class="monitor-card metric-box">
-            <div class="box-icon"><i class="fas fa-heartbeat"></i></div>
-            <div class="flex-1">
-                <div class="lbl-tech">Integrity Score</div>
-                <div class="flex items-baseline gap-1">
-                    <span id="healthScore" class="val-main text-slate-800">0%</span>
-                    <span id="healthLbl" class="text-[9px] font-bold uppercase">INIT</span>
-                </div>
-                <div class="micro-prog"><div id="hlthProg" class="prog-val bg-slate-400" style="width: 0%"></div></div>
-            </div>
-        </div>
-    </div>
-
-    @* --- DATA ROW --- *@
-    <div class="flex flex-wrap lg:flex-nowrap gap-2">
         
-        @* Distribution Column *@
-        <div class="w-full lg:w-1/3 flex flex-col gap-2">
-            <div class="monitor-card p-3">
-                <span class="lbl-tech block mb-3">Threat Topology</span>
-                <div class="h-[140px]"><canvas id="patchChart"></canvas></div>
-                <div id="patchInfo" class="mt-3 space-y-1"></div>
-            </div>
-            <div class="monitor-card p-3">
-                <span class="lbl-tech block mb-3">Switch Reliability</span>
-                <div class="h-[140px]"><canvas id="switchChart"></canvas></div>
-            </div>
-        </div>
-
-        @* Activity Column *@
-        <div class="w-full lg:w-2/3 flex flex-col gap-2">
-            <div class="monitor-card p-3">
-                <span class="lbl-tech block mb-3">Connectivity Heatmap</span>
-                <div class="h-[80px]"><canvas id="connChart"></canvas></div>
-            </div>
-            <div class="monitor-card overflow-hidden">
-                <div class="px-3 py-2 bg-slate-50 border-b border-slate-200">
-                    <span class="lbl-tech">Kernel Event Log</span>
-                </div>
-                <div class="overflow-x-auto min-h-[300px]">
-                    <table class="w-full text-left table-compact">
-                        <thead>
-                            <tr>
-                                <th class="w-12">TAG</th>
-                                <th>Source</th>
-                                <th>Description</th>
-                                <th class="text-right">Time</th>
-                            </tr>
-                        </thead>
-                        <tbody id="alertsBody"></tbody>
-                    </table>
-                    <div id="noEvents" class="hidden text-center py-20">
-                        <i class="fas fa-shield-check text-slate-100 text-3xl mb-2"></i>
-                        <p class="text-[10px] text-slate-300 font-bold">SECURE STATE</p>
-                    </div>
+        <div class="flex items-center gap-2 bg-white/50 p-1.5 rounded-xl border border-slate-200">
+            <div class="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-blue-500 text-white shadow-lg shadow-blue-200">
+                <i class="fas fa-network-wired text-sm"></i>
+                <div class="flex flex-col">
+                    <span class="text-[9px] font-black opacity-75 uppercase">Hub Status</span>
+                    <span class="text-xs font-bold leading-none">ACTIVE</span>
                 </div>
             </div>
+            <button onclick="DashboardHierarchy.init()" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition">
+                <i class="fas fa-sync-alt"></i>
+            </button>
         </div>
+    </div>
 
+    @* --- COMPANY STRIP --- *@
+    <div class="company-strip-wrap mb-8">
+        <div id="companyStrip" class="flex items-center gap-4 py-2">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    @* --- MAIN HIERARCHY CONTENT --- *@
+    <div id="hierarchyContainer" class="animate-slide-up">
+        <!-- Dynamic content grid/table populated by dashboard-hierarchy.js -->
+        <div class="flex flex-col items-center justify-center py-32 opacity-20">
+            <i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i>
+            <p class="font-bold tracking-widest text-sm">CORE LOAD</p>
+        </div>
     </div>
 
 </div>
 
 @section Scripts {
-    <script>
-        let charts = {};
-        const fontCfg = { size: 10, family: "'JetBrains Mono', monospace" };
-
-        $(document).ready(() => { loadDashboardData(); setInterval(loadDashboardData, 300000); });
-
-        async function loadDashboardData() {
-            try {
-                const [network, patches, switches, activity] = await Promise.all([
-                    $.get('/Home/GetNetworkStats'),
-                    $.get('/Home/GetPatchOverview'),
-                    $.get('/Home/GetSwitchStatus'),
-                    $.get('/Home/GetRecentActivity')
-                ]);
-
-                $('#onlineCount').text(network.online);
-                $('#totalDevicesCount').text(network.total);
-                const netPct = network.total > 0 ? (network.online / network.total) * 100 : 0;
-                $('#netProg').css('width', netPct + '%');
-
-                $('#missingPatches').text(patches.total);
-                const patchPct = Math.max(0, 100 - (patches.total * 2));
-                $('#patchProg').css('width', (patches.total > 0 ? 100 : 0) + '%');
-
-                $('#upSwitches').text(switches.up);
-                $('#totalSwitchesCount').text(switches.total);
-                const swPct = switches.total > 0 ? (switches.up / switches.total) * 100 : 0;
-                $('#swProg').css('width', swPct + '%');
-
-                const h = Math.round((patchPct * 0.5) + (netPct * 0.3) + (swPct * 0.2));
-                $('#healthScore').text(h + '%');
-                $('#hlthProg').css('width', h + '%');
-                
-                const l = $('#healthLbl'), p = $('#hlthProg');
-                if (h < 60) { l.text('CRIT').css('color', '#ef4444'); p.css('background', '#ef4444'); }
-                else if (h < 85) { l.text('BASE').css('color', '#f59e0b'); p.css('background', '#f59e0b'); }
-                else { l.text('OPTML').css('color', '#10b981'); p.css('background', '#10b981'); }
-
-                renderCharts(network, patches, switches);
-                renderLogs(activity);
-                $('#syncTime').text(new Date().toLocaleTimeString());
-            } catch (e) { console.error("Sync Error", e); }
-        }
-
-        function renderCharts(net, pat, sw) {
-            // Conn Horizontal Bar
-            if (charts.c) charts.c.destroy();
-            charts.c = new Chart(document.getElementById('connChart'), {
-                type: 'bar',
-                data: { labels: ['C'], datasets: [{ data: [net.online], backgroundColor: '#3b82f6' }, { data: [net.offline], backgroundColor: '#e2e8f0' }] },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: { x: { stacked: true, display: false }, y: { stacked: true, display: false } }
-                }
-            });
-
-            // Patch Doughnut
-            if (charts.p) charts.p.destroy();
-            charts.p = new Chart(document.getElementById('patchChart'), {
-                type: 'doughnut',
-                data: { labels: ['3rd', 'OS'], datasets: [{ data: [pat.thirdPartyCount, pat.windowsCount], backgroundColor: ['#f59e0b', '#3b82f6'], borderWidth: 0 }] },
-                options: { cutout: '85%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-            $('#patchInfo').html(`<div class="flex justify-between text-[9px] font-mono"><span>TP_UPD:</span><span>${pat.thirdPartyCount}</span></div><div class="flex justify-between text-[9px] font-mono"><span>OS_SEC:</span><span>${pat.windowsCount}</span></div>`);
-
-            // Switch Polar
-            if (charts.s) charts.s.destroy();
-            charts.s = new Chart(document.getElementById('switchChart'), {
-                type: 'polarArea',
-                data: { labels: ['UP', 'DWN'], datasets: [{ data: [sw.up, sw.down], backgroundColor: ['rgba(16,185,129,0.2)', 'rgba(239,68,68,0.2)'], borderColor: ['#10b981', '#ef4444'], borderWidth: 1 }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { r: { grid: { color: '#f1f5f9' }, ticks: { display: false } } }, plugins: { legend: { display: false } } }
-            });
-        }
-
-        function renderLogs(data) {
-            const b = $('#alertsBody').empty();
-            if (!data || !data.length) { $('#noEvents').removeClass('hidden'); return; }
-            $('#noEvents').addClass('hidden');
-            data.slice(0, 20).forEach(a => {
-                const s = a.severity || (a.isCritical ? 'CRIT' : 'INFO');
-                const c = s.startsWith('C') ? 'text-red-500' : 'text-amber-500';
-                b.append(`<tr><td class="font-black ${c} tracking-tighter">${s.substring(0,4).toUpperCase()}</td><td class="font-bold text-slate-500">${(a.sourceComponent || 'SYS').substring(0,8).toUpperCase()}</td><td class="text-slate-400">${a.message || 'EVENT'}</td><td class="text-right font-mono text-[9px] text-slate-300">${a.timestamp || 'NOW'}</td></tr>`);
-            });
-        }
-    </script>
-}
+    <script src="~/js/dashboard-hierarchy.js" asp-append-version="true"></script>
+}

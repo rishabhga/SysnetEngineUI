@@ -1,0 +1,186 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Http;
+using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Models;
+using ManageEngineWebApp.Dtos;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
+
+namespace ManageEngineWebApp.Controllers
+{
+    public class BaseController : Controller
+    {
+        protected readonly IHttpClientFactory _httpClientFactory;
+        protected readonly IConfiguration _configuration;
+        protected readonly string _baseUrl;
+
+        public BaseController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        {
+            _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
+            _baseUrl = _configuration["ApiSettings:BaseUrl"];
+        }
+
+        protected HttpClient GetClient()
+        {
+            var client = _httpClientFactory.CreateClient("ManageEngineApi");
+            
+            var token = HttpContext.Session.GetString("JwtToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+            
+            return client;
+        }
+
+        protected bool IsTopLevelAdmin() => RoleHelper.IsTopLevelAdmin(HttpContext);
+
+        protected bool HasPermission(string code) => RoleHelper.HasPermission(HttpContext, code);
+
+        protected (List<int> companyIds, List<int> groupIds, List<int> locationIds) GetUserScope()
+        {
+            if (IsTopLevelAdmin()) return (new List<int>(), new List<int>(), new List<int>());
+            return (RoleHelper.GetCompanyIds(HttpContext), 
+                    RoleHelper.GetGroupIds(HttpContext), 
+                    RoleHelper.GetLocationIds(HttpContext));
+        }
+
+        protected bool IsAuthorized(int? comId, int? groupId = null, int? locationId = null)
+        {
+            return RoleHelper.ValidateScope(HttpContext, comId, groupId, locationId);
+        }
+
+        protected async Task<bool> IsDeviceAuthorized(string domainOrUserCode)
+        {
+            if (IsTopLevelAdmin()) return true;
+            try 
+            {
+                using var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var data = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content);
+                    var machine = data?.FirstOrDefault(x => x.DomainName == domainOrUserCode || x.UserCode == domainOrUserCode);
+                    if (machine != null)
+                    {
+                        return RoleHelper.ValidateScope(HttpContext, machine.CompanyId, machine.GroupId, machine.LocationId);
+                    }
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        protected string BuildScopedQuery(int? companyId = null, int? locationId = null, int? groupId = null)
+        {
+            var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
+            var q = new List<string>();
+
+            // If specific IDs are passed, validate them against user scope
+            if (companyId.HasValue && companyId.Value > 0) 
+            {
+                if (IsAuthorized(companyId)) q.Add($"companyId={companyId}");
+            }
+            else foreach (var id in userCompanyIds) q.Add($"companyId={id}");
+
+            if (locationId.HasValue && locationId.Value > 0)
+            {
+                if (IsAuthorized(null, null, locationId)) q.Add($"locationId={locationId}");
+            }
+            else foreach (var id in userLocationIds) q.Add($"locationId={id}");
+
+            if (groupId.HasValue && groupId.Value > 0)
+            {
+                if (IsAuthorized(null, groupId)) q.Add($"groupId={groupId}");
+            }
+            else foreach (var id in userGroupIds) q.Add($"groupId={id}");
+
+            return q.Any() ? "?" + string.Join("&", q) : "";
+        }
+
+        protected string GetUCodeFromDomain(string domain)
+        {
+            if (string.IsNullOrEmpty(domain)) return "";
+            var parts = domain.Split('-');
+            return parts.Length > 1 ? parts[1] : domain;
+        }
+
+        protected async Task<List<CompanyHierarchyDto>> LoadHierarchyAsync()
+        {
+            var hierarchy = new List<CompanyHierarchyDto>();
+            try
+            {
+                using var client = GetClient();
+                
+                // Fetch all data in parallel
+                var companiesTask = client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
+                var groupsTask = client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Groupdata");
+                var locationsTask = client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Locationdata");
+                var usersTask = client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser");
+
+                await Task.WhenAll(companiesTask, groupsTask, locationsTask, usersTask);
+
+                var companies = JsonConvert.DeserializeObject<List<Companies>>(await companiesTask.Result.Content.ReadAsStringAsync()) ?? new List<Companies>();
+                var groups = JsonConvert.DeserializeObject<List<Groups>>(await groupsTask.Result.Content.ReadAsStringAsync()) ?? new List<Groups>();
+                var locations = JsonConvert.DeserializeObject<List<Locations>>(await locationsTask.Result.Content.ReadAsStringAsync()) ?? new List<Locations>();
+                var users = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(await usersTask.Result.Content.ReadAsStringAsync()) ?? new List<WindowsUserDetails>();
+
+                // Build Hierarchy
+                foreach (var com in companies)
+                {
+                    var comDto = new CompanyHierarchyDto 
+                    { 
+                        CompanyId = com.Id, 
+                        CompanyName = com.CompanyName,
+                        LogoUrl = com.LogoUrl 
+                    };
+                    
+                    var comGroups = groups.Where(g => g.CompanyID == com.Id).ToList();
+                    foreach (var grp in comGroups)
+                    {
+                        var grpDto = new GroupHierarchyDto { GroupId = grp.Id, GroupName = grp.GroupName };
+                        
+                        var grpLocs = locations.Where(l => l.GroupsID == grp.Id).ToList();
+                        foreach (var loc in grpLocs)
+                        {
+                            var locDto = new LocationHierarchyDto { LocationId = loc.Id, LocationName = loc.LocationName };
+                            
+                            var locUsers = users.Where(u => u.LocationId == loc.Id).ToList();
+                            foreach (var usr in locUsers)
+                            {
+                                locDto.Users.Add(new UserHierarchyDto 
+                                { 
+                                    UserName = usr.UserCode, 
+                                    DomainName = usr.DomainName,
+                                    PrimaryOwner = usr.FullName
+                                });
+                            }
+                            grpDto.Locations.Add(locDto);
+                        }
+                        comDto.Groups.Add(grpDto);
+                    }
+                    hierarchy.Add(comDto);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Hierarchy Load Error: {ex.Message}");
+            }
+            return hierarchy;
+        }
+
+        protected async Task<CompanyHierarchyDto?> LoadSingleCompanyHierarchyAsync(int companyId, string companyName)
+        {
+            var hierarchy = await LoadHierarchyAsync();
+            return hierarchy.FirstOrDefault(c => c.CompanyId == companyId);
+        }
+    }
+}

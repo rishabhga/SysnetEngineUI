@@ -51,10 +51,6 @@ namespace ManageEngineWebApp.Controllers
             return Json(data);
         }
 
-        private HttpClient GetClient()
-        {
-            return _httpClientFactory.CreateClient("ManageEngineApi");
-        }
 
         [HttpGet]
         [AllowAnonymous]
@@ -153,12 +149,25 @@ namespace ManageEngineWebApp.Controllers
                     TempData["msg"] = errorMsg;
                 }
                 return View(model);
+            }
+
             var apiResultStr = await response.Content.ReadAsStringAsync();
-            var apiResult = JsonConvert.DeserializeObject<dynamic>(apiResultStr);
-            string token = apiResult?.token;
-            if (!string.IsNullOrEmpty(token))
+            dynamic apiResult;
+            try
             {
-                HttpContext.Session.SetString("JwtToken", token);
+                apiResult = JsonConvert.DeserializeObject<dynamic>(apiResultStr);
+                string token = apiResult?.token;
+                if (!string.IsNullOrEmpty(token))
+                {
+                    HttpContext.Session.SetString("JwtToken", token);
+                }
+            }
+            catch (JsonReaderException)
+            {
+                // If it's not valid JSON, it might be a plain text error message starting with 'L' or similar
+                var preview = apiResultStr.Length > 100 ? apiResultStr.Substring(0, 100) + "..." : apiResultStr;
+                TempData["msg"] = $"API error: Unexpected response format. Content: {preview}";
+                return View(model);
             }
 
             try
@@ -253,7 +262,6 @@ namespace ManageEngineWebApp.Controllers
                     return View();
                 }
                 
-                // For security, don't reveal if user exists
                 ViewBag.Message = "If an account with that email exists, we have sent a password reset link.";
                 return View();
             }

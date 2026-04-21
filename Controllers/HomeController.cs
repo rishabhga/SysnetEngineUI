@@ -160,6 +160,20 @@ namespace ManageEngineWebApp.Controllers
             return View();
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetDashboardHierarchy()
+        {
+            try
+            {
+                var hierarchy = await LoadHierarchyAsync();
+                return Json(hierarchy);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         [Microsoft.AspNetCore.Authorization.AllowAnonymous]
         public IActionResult Error()

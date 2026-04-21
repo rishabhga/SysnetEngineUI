@@ -3784,9 +3784,8 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ManageEngineApi");
-                var response = await httpClient.GetAsync(
-                    $"api/WindowsUserDetails/chat-history?clientId={Uri.EscapeDataString(clientId)}");
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails/chat-history?clientId={Uri.EscapeDataString(clientId)}");
 
                 if (response.IsSuccessStatusCode)
                 {

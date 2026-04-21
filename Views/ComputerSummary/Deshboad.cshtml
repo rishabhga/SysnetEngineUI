@@ -1,15 +1,18 @@
 @using ManageEngineWebApp.Dtos
-@model List<WindowsUserDetails>
+@model List<ManageEngineWebApp.Models.WindowsUserDetails>
 @{
     ViewData["Title"] = $"{ViewBag.locationName} - Devices";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var username = Context.Session.GetString("username");
     var userRole = Context.Session.GetString("role");
     var activeComputers = ViewBag.ActiveComputers as List<string> ?? new List<string>();
-    var totalDevices = Model.Count;
-    var onlineDevices = Model.Count(x => activeComputers.Contains(x.DomainName));
+    
+    // Explicit casting to avoid dynamic dispatch errors
+    var data = Model as List<ManageEngineWebApp.Models.WindowsUserDetails> ?? new List<ManageEngineWebApp.Models.WindowsUserDetails>();
+    var totalDevices = data.Count;
+    var onlineDevices = data.Count(x => activeComputers.Contains(x.DomainName));
     var offlineDevices = totalDevices - onlineDevices;
-    var activeUsers = Model.Count(x =>
+    var activeUsers = data.Count(x =>
         activeComputers.Contains(x.DomainName) &&
         !string.IsNullOrEmpty(x.UserName) &&
         x.UserName != "N/A");
@@ -125,13 +128,8 @@
         </div>
     </div>
 
-    <!-- Compact Search & Filter -->
-    <div class="mb-2 flex gap-1.5">
-        <div class="flex-1">
-            <input type="text" id="searchDevices"
-                   class="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00BCEB]/30 focus:border-[#00BCEB] text-[10px] transition-colors"
-                   placeholder="Search devices, employees, or departments...">
-        </div>
+    <!-- Compact Status Filter -->
+    <div class="mb-2 flex justify-end">
         <select id="statusFilter" class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00BCEB]/30 focus:border-[#00BCEB] text-[10px] font-medium transition-colors">
             <option value="all">All Status</option>
             <option value="online">Online</option>
@@ -1355,23 +1353,29 @@
             }
         }
 
-        $('#searchDevices').on('keyup', function() {
-            var value = $(this).val().toLowerCase();
-            $('#devicesGrid .device-card').each(function() {
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-            });
+        $(document).on('searchEvent', function(e, term) {
+            filterDevices(term);
         });
 
         $('#statusFilter').on('change', function() {
-            var status = $(this).val();
-            $('#devicesGrid .device-card').each(function() {
-                if (status === 'all') {
-                    $(this).show();
-                } else {
-                    $(this).toggle($(this).data('status') === status);
-                }
-            });
+            filterDevices();
         });
+
+        function filterDevices(searchTerm) {
+            var term = (searchTerm !== undefined ? searchTerm : $('#globalSearchInput').val()).toLowerCase();
+            var status = $('#statusFilter').val();
+            
+            $('#devicesGrid .device-card').each(function() {
+                var card = $(this);
+                var content = card.text().toLowerCase();
+                var cardStatus = card.data('status');
+                
+                var matchesSearch = content.indexOf(term) > -1;
+                var matchesStatus = status === 'all' || status === cardStatus;
+
+                card.toggle(matchesSearch && matchesStatus);
+            });
+        }
 
         $(document).on('click', '.edit-name-btn', function(e) {
             e.preventDefault();

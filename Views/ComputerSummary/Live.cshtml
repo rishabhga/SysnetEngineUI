@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = $"Remote Access - {ViewBag.Domain}";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
@@ -174,7 +174,8 @@
         }
 
         try {
-            const hubUrl = `https://sysnetengine.sysnetglobal.in:4431/scanHub?clientId=LiveView&computerName=WebPortal`;
+            const apiBase = window.SYSNET_CONTEXT.apiBaseUrl || '';
+            const hubUrl = `${apiBase}/scanHub?clientId=LiveView&computerName=WebPortal`;
 
             if (!liveConnection) {
                 liveConnection = new signalR.HubConnectionBuilder()
@@ -183,12 +184,10 @@
                     .build();
 
                 liveConnection.on("RemoteStatus", function (status) {
-                    console.log("🔔 SignalR RemoteStatus:", JSON.stringify(status));
                     if (isDenied) return;
                     if (currentState !== 'waiting' && currentState !== 'requesting') return;
 
                     if (status.accepted === true) {
-                        console.log("✅ Access ACCEPTED via SignalR");
                         isDenied = false;
                         currentState = 'connected';
                         stopCountdown();
@@ -197,20 +196,17 @@
                         switchToStopButton();
                         startPolling();
                     } else if (status.accepted === false) {
-                        console.log("❌ Access DENIED via SignalR");
                         handleDenial();
                     }
                 });
 
                 liveConnection.onreconnected(async () => {
-                    console.log("SignalR reconnected");
                     await ensureGroupMembership();
                 });
             }
 
             if (liveConnection.state === signalR.HubConnectionState.Disconnected) {
                 await liveConnection.start();
-                console.log("SignalR connected");
                 await ensureGroupMembership();
             }
         } catch (err) {
@@ -223,7 +219,6 @@
         try {
             await liveConnection.invoke("JoinGroup", domain);
             await liveConnection.invoke("JoinGroup", domainLower);
-            console.log("Joined groups for", domain);
         } catch (err) {
             console.error("JoinGroup failed:", err);
         }
@@ -231,7 +226,6 @@
 
     function handleDenial() {
         if (isDenied) return;
-        console.log("🚫 HANDLING DENIAL");
         isDenied = true;
         stopCountdown();
         stopStatusCheck();
@@ -276,7 +270,6 @@
 
     function handleTimeout() {
         if (currentState !== 'waiting' && currentState !== 'requesting') return;
-        console.log("⏰ Request timeout");
         stopCountdown();
         stopStatusCheck();
         stopPolling();
@@ -292,7 +285,6 @@
                 const response = await fetch(`/ComputerSummary/CheckAccessStatus?domain=${encodeURIComponent(domain)}&_=${Date.now()}`);
                 if (!response.ok) return;
                 const data = await response.json();
-                console.log("📡 Status poll:", data);
                 if (data.denied === true && !isDenied) handleDenial();
                 else if (data.accepted === true && !isDenied && currentState !== 'connected') {
                     currentState = 'connected';
@@ -364,7 +356,6 @@
     }
 
     function handleDisconnect() {
-        console.log("Session disconnected");
         stopPolling();
         stopCountdown();
         stopStatusCheck();
@@ -378,7 +369,6 @@
 
     async function requestAccess() {
         if (currentState === 'requesting' || currentState === 'waiting') return;
-        console.log("📤 Requesting access for", domain);
         isDenied = false;
         currentState = 'requesting';
         noImageCount = 0;
@@ -403,7 +393,6 @@
 
         fetch(`/ComputerSummary/RemoteAccess?domain=${domain}`)
             .then(res => {
-                console.log("Request sent, response", res.status);
                 currentState = 'waiting';
                 updateWaitingState('Request Sent!', 'Waiting for user to accept...', 'fa-clock text-green-400 animate-pulse');
                 updateStatus('orange', 'Waiting for approval');

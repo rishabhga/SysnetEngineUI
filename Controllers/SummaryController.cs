@@ -21,18 +21,29 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var httpClient = GetClient();
-            var query = BuildScopedQuery();
-            var response = await httpClient.GetAsync($"api/WindowsUserDetails/allUser{query}"); 
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var content = await response.Content.ReadAsStringAsync();
-                var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                var localDatalist = data != null ? data.Where(x => x.Status == "Enabled").ToList() : new List<WindowsUserDetails>();
-                return View(localDatalist);
+                var httpClient = GetClient();
+                var query = BuildScopedQuery();
+                var response = await httpClient.GetAsync($"api/WindowsUserDetails/allUser{query}"); 
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
+                    var localDatalist = data != null ? data.Where(x => x.Status == "Enabled").ToList() : new List<WindowsUserDetails>();
+                    return View(localDatalist);
+                }
+                
+                ViewBag.ErrorMessage = $"Unable to fetch data from the API (Status: {response.StatusCode}).";
+                return View(new List<WindowsUserDetails>());
             }
-            throw new Exception("Unable to fetch data from the API.");
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = "Connection Error: Unable to reach the backend service.";
+                System.Diagnostics.Debug.WriteLine($"Summary Index Error: {ex.Message}");
+                return View(new List<WindowsUserDetails>());
+            }
         }
 
 
@@ -45,9 +56,7 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsUserDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -83,9 +92,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsService");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsService");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -108,9 +115,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Summary");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/Summary");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -130,9 +135,7 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsUserDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -155,9 +158,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsGroupDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsGroupDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -179,9 +180,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowDrivers");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowDrivers");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -203,9 +202,7 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsUserDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -228,9 +225,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsUserDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -253,9 +248,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/BIOSDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/BIOSDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -277,9 +270,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/HardDiskDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -353,9 +344,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MotherboardDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -459,9 +448,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/ProcessorDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/ProcessorDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -484,9 +471,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/SoundDeviceDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/SoundDeviceDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -535,9 +520,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/USBHubDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/USBHubDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -560,9 +543,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/InstalledApplication");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/InstalledApplication");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -584,9 +565,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/InstalledApplication");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/InstalledApplication");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -608,9 +587,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/InstalledApplication");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/InstalledApplication");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -633,9 +610,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UsbDeviceInfo");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/UsbDeviceInfo");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -659,9 +634,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/AntivirusDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/AntivirusDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -682,9 +655,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/AntivirusDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/AntivirusDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -706,9 +677,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/CustomComputerDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/CustomComputerDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -730,9 +699,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/DeviceSummary");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/DeviceSummary");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -755,9 +722,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/OSSummary");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/OSSummary");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -781,9 +746,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/SecurityPrivacyDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/SecurityPrivacyDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -807,9 +770,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/ApplicationSettings");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/ApplicationSettings");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -832,9 +793,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/SocialSearchSettings");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/SocialSearchSettings");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -857,9 +816,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/DeviceRestrictionDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/DeviceRestrictionDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -883,9 +840,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MonitorInfo");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MonitorInfo");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -908,9 +863,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/NetworkAdapterDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/NetworkAdapterDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -934,9 +887,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/KeyboardDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/KeyboardDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -958,9 +909,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/PrinterDetails");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/PrinterDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -987,9 +936,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/PointingDeviceInfo");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/PointingDeviceInfo");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -1013,9 +960,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/VideoDeviceInfo");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/VideoDeviceInfo");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -1038,9 +983,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/USBControllerInfo");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/USBControllerInfo");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -1062,9 +1005,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UserAuditHistory");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/UserAuditHistory");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -1088,9 +1029,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UserLogonHistory");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/UserLogonHistory");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();

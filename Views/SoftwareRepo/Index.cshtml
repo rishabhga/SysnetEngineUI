@@ -474,10 +474,8 @@
             @if (Model.Any())
             {
                 <div class="table-toolbar">
-                    <div class="search-wrap">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchInput" class="search-input"
-                               placeholder="Search packages…" oninput="filterTable(this.value)" />
+                    <div class="flex-1">
+                        <!-- Local search removed, using global search -->
                     </div>
                     <span id="rowCount"
                           style="font-size:.775rem;color:var(--muted);margin-left:auto;white-space:nowrap;">
@@ -801,4 +799,11 @@
         });
         rows.forEach(r => tbody.appendChild(r));
     }
+
+    // Global Search Hook
+    $(document).on('searchEvent', function(e, term) {
+        if (typeof filterTable === 'function') {
+            filterTable(term);
+        }
+    });
 </script>
