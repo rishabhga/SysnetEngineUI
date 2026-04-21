@@ -78,6 +78,14 @@
                     setTimeout(function () {
                         window.location.href = "/Auth/Login";
                     }, 1500);
+                } else if (jqXHR.status === 0) {
+                    if (typeof window.sysAlert === "function") {
+                        window.sysAlert("Network error: Please check your connection or VPN.", "error");
+                    }
+                } else if (jqXHR.status >= 500) {
+                    if (typeof window.sysAlert === "function") {
+                        window.sysAlert("Server error: High demand or backend issue detected.", "error");
+                    }
                 }
             }
         });

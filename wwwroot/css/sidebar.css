@@ -1,11 +1,11 @@
 :root {
     --nav-blue: #00BCEB;
-    --side-bg: #00BCEB;
-    --side-bg-alt: #0096BE;
-    --side-text: #ffffff;
-    --side-hover-bg: rgba(255, 255, 255, 0.2);
-    --side-active-bg: rgba(255, 255, 255, 0.3);
-    --side-active-color: #fff;
+    --side-bg: #0f172a;               /* Midnight Slate */
+    --side-bg-alt: #1e293b;           /* Deep Slate */
+    --side-text: rgba(255,255,255,0.7);
+    --side-hover-bg: rgba(255, 255, 255, 0.05);
+    --side-active-bg: rgba(14, 165, 233, 0.1);
+    --side-active-color: #38bdf8;     /* Bright Azure */
     --side-w-expanded: 210px;
     --side-w-collapsed: 0px;
     --nav-h: 50px;
@@ -63,9 +63,8 @@ html.sidebar-collapsed .app-main {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);
-    border-bottom: 1px solid rgba(255,255,255,0.2);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    background: #111827; /* Darker header */
+    border-bottom: 1px solid rgba(255,255,255,0.05);
     flex-shrink: 0;
 }
 
@@ -73,7 +72,7 @@ html.sidebar-collapsed .app-main {
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #00d4ff, #0096BE);
+    background: linear-gradient(135deg, #0ea5e9, #0284c7); /* Nav blue gradient */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -81,7 +80,6 @@ html.sidebar-collapsed .app-main {
     font-weight: 700;
     font-size: 13px;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
 }
 
 .sb-user-info {
@@ -172,7 +170,7 @@ html.sidebar-collapsed .app-main {
     background: var(--side-active-bg);
     color: var(--side-active-color);
     font-weight: 600;
-    box-shadow: inset 3px 0 0 #38bdf8;
+    border-left: 3px solid #38bdf8;
 }
 
 .sidebar-link.active .nav-icon { color: #38bdf8; }
@@ -227,7 +225,7 @@ html.sidebar-collapsed .app-main {
 .sidebar-sub-link.active {
     color: #38bdf8;
     font-weight: 600;
-    background: rgba(56, 189, 248, 0.08);
+    background: rgba(56, 189, 248, 0.05);
 }
 
 /* ── Sidebar Footer (Logout) ── */

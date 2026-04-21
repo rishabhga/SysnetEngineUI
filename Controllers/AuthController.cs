@@ -13,22 +13,17 @@ using ManageEngineWebApp.Models;
 
 namespace ManageEngineWebApp.Controllers
 {
-    public class AuthController : Controller
+    public class AuthController : BaseController
     {
         private bool HasPerm(string code) => RoleHelper.HasPermission(HttpContext, code);
-        private readonly string _baseUrl;
         private readonly string apiBaseUrl;
-        private readonly IConfiguration _configuration;
         private readonly PermissionDiscoveryService _permissionDiscovery;
+        private readonly IEmailService _emailService;
 
-        private readonly IHttpClientFactory _httpClientFactory;
-
-        public AuthController(IConfiguration configuration, PermissionDiscoveryService permissionDiscovery, IHttpClientFactory httpClientFactory)
+        public AuthController(IConfiguration configuration, PermissionDiscoveryService permissionDiscovery, IHttpClientFactory httpClientFactory, IEmailService emailService) : base(httpClientFactory, configuration)
         {
-            _configuration = configuration;
             _permissionDiscovery = permissionDiscovery;
-            _httpClientFactory = httpClientFactory;
-            _baseUrl = _configuration["ApiSettings:BaseUrl"];
+            _emailService = emailService;
             apiBaseUrl = $"{_baseUrl}/api/auth";
         }
 
@@ -73,6 +68,12 @@ namespace ManageEngineWebApp.Controllers
         {
             if (!ModelState.IsValid)
             {
+                return View(model);
+            }
+
+            if (model.CompanyId <= 0)
+            {
+                ModelState.AddModelError("CompanyId", "Please select a valid company.");
                 return View(model);
             }
 
@@ -152,7 +153,14 @@ namespace ManageEngineWebApp.Controllers
                     TempData["msg"] = errorMsg;
                 }
                 return View(model);
+            var apiResultStr = await response.Content.ReadAsStringAsync();
+            var apiResult = JsonConvert.DeserializeObject<dynamic>(apiResultStr);
+            string token = apiResult?.token;
+            if (!string.IsNullOrEmpty(token))
+            {
+                HttpContext.Session.SetString("JwtToken", token);
             }
+
             try
             {
                 var roleResponse = await RoleHelper.GetUserRoleFromApiAsync(model.Username);
@@ -208,6 +216,94 @@ namespace ManageEngineWebApp.Controllers
             }
             return RedirectToAction("Login");
         }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            try
+            {
+                using var client = GetClient();
+                var response = await client.PostAsJsonAsync($"{apiBaseUrl}/forgot-password", new { model.Email });
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var contentStr = await response.Content.ReadAsStringAsync();
+                    var result = JsonConvert.DeserializeObject<dynamic>(contentStr);
+                    string token = result.token;
+                    
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        var resetLink = Url.Action("ResetPassword", "Auth", new { token, email = model.Email }, Request.Scheme);
+                        
+                        await _emailService.SendEmailAsync(model.Email, "Reset Password - SYSNET", 
+                            $"Please reset your password by clicking here: <a href='{resetLink}'>Reset Password</a>");
+                    }
+
+                    ViewBag.Message = "If an account with that email exists, we have sent a password reset link.";
+                    return View();
+                }
+                
+                // For security, don't reveal if user exists
+                ViewBag.Message = "If an account with that email exists, we have sent a password reset link.";
+                return View();
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Error sending reset email: " + ex.Message);
+                return View(model);
+            }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ResetPassword(string token, string email)
+        {
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(email)) return RedirectToAction("Login");
+            return View(new ResetPasswordViewModel { Token = token, Email = email });
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            try
+            {
+                using var client = GetClient();
+                var response = await client.PostAsJsonAsync($"{apiBaseUrl}/reset-password", new 
+                { 
+                    model.Email, 
+                    model.Token, 
+                    model.Password 
+                });
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["msg"] = "Password has been reset successfully. You can now login.";
+                    return RedirectToAction("Login");
+                }
+                
+                var error = await response.Content.ReadAsStringAsync();
+                ModelState.AddModelError("", "Error resetting password: " + error);
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "An error occurred: " + ex.Message);
+                return View(model);
+            }
+        }
         [HttpGet]
         [AllowAnonymous]
         public IActionResult AccessDenied(string? requiredPermission = null)
@@ -222,7 +318,8 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("Auth.ManageRoles", "Manage User Roles")]
         public async Task<IActionResult> ManageRoles()
         {
-            var roles = await RoleHelper.GetAllRolesAsync();
+            var query = BuildScopedQuery();
+            var roles = await RoleHelper.GetAllRolesAsync(query);
             return View(roles);
         }
         [HttpPost]
@@ -917,7 +1014,8 @@ namespace ManageEngineWebApp.Controllers
                     var menuPayload = new
                     {
                         roleName = model.RoleName,
-                        menuIds = model.MenuIds
+                        menuIds = model.MenuIds,
+                        assignedBy = HttpContext.Session.GetString("username") ?? "System"
                     };
                     var menuContent = new StringContent(
                         Newtonsoft.Json.JsonConvert.SerializeObject(menuPayload),
@@ -933,7 +1031,29 @@ namespace ManageEngineWebApp.Controllers
                     }
                 }
 
-                return Json(new { success = true, message = $"Role '{model.RoleName}' created with {model.Permissions.Count} permissions and {model.MenuIds?.Count ?? 0} menus." });
+                if (model.PolicyIds != null && model.PolicyIds.Any())
+                {
+                    var policyPayload = new
+                    {
+                        roleName = model.RoleName,
+                        policyIds = model.PolicyIds,
+                        assignedBy = HttpContext.Session.GetString("username") ?? "System"
+                    };
+                    var policyContent = new StringContent(
+                        Newtonsoft.Json.JsonConvert.SerializeObject(policyPayload),
+                        System.Text.Encoding.UTF8,
+                        "application/json"
+                    );
+
+                    var policyResponse = await client.PostAsync($"{_baseUrl}/api/Permission/AssignPoliciesToRole", policyContent);
+                    if (!policyResponse.IsSuccessStatusCode)
+                    {
+                        var policyError = await policyResponse.Content.ReadAsStringAsync();
+                        return Json(new { success = true, message = $"Role created, but policy assignment failed: {policyError}" });
+                    }
+                }
+
+                return Json(new { success = true, message = $"Role '{model.RoleName}' created with {model.Permissions.Count} permissions, {model.MenuIds?.Count ?? 0} menus, and {model.PolicyIds?.Count ?? 0} policies." });
             }
             catch (Exception ex)
             {
@@ -1010,10 +1130,22 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var menuPayload = new {
                         roleName = model.RoleName,
-                        menuIds = model.MenuIds
+                        menuIds = model.MenuIds,
+                        assignedBy = HttpContext.Session.GetString("username") ?? "System"
                     };
                     var menuContent = new StringContent(JsonConvert.SerializeObject(menuPayload), Encoding.UTF8, "application/json");
                     await client.PostAsync($"{_baseUrl}/api/Permission/AssignMenusToRole", menuContent);
+                }
+
+                if (model.PolicyIds != null)
+                {
+                    var policyPayload = new {
+                        roleName = model.RoleName,
+                        policyIds = model.PolicyIds,
+                        assignedBy = HttpContext.Session.GetString("username") ?? "System"
+                    };
+                    var policyContent = new StringContent(JsonConvert.SerializeObject(policyPayload), Encoding.UTF8, "application/json");
+                    await client.PostAsync($"{_baseUrl}/api/Permission/AssignPoliciesToRole", policyContent);
                 }
 
                 return Json(new { success = true, message = "Role updated successfully!" });
@@ -1023,6 +1155,56 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
-    }
 
+        [HttpGet]
+        [AuthFilter]
+        public IActionResult ChangePassword()
+        {
+            return View(new ChangePasswordViewModel());
+        }
+
+        [HttpPost]
+        [AuthFilter]
+        public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            try
+            {
+                var username = HttpContext.Session.GetString("username");
+                if (string.IsNullOrEmpty(username)) return RedirectToAction("Login");
+
+                using var client = GetClient();
+                var payload = new 
+                {
+                    Username = username,
+                    OldPassword = model.CurrentPassword,
+                    NewPassword = model.NewPassword
+                };
+
+                var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+                var response = await client.PostAsync($"{_baseUrl}/api/Auth/UpdatePassword", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["SuccessMsg"] = "Password updated successfully!";
+                    return RedirectToAction("Index", "Home");
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    ModelState.AddModelError("", "Failed to update password: " + error);
+                    return View(model);
+                }
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "An error occurred: " + ex.Message);
+                return View(model);
+            }
+        }
+    }
 }

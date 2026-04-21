@@ -13,6 +13,7 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add<ManageEngineWebApp.Filters.DynamicAuthorizationFilter>();
 });
 builder.Services.AddScoped<ManageEngineWebApp.Services.PermissionDiscoveryService>();
+builder.Services.AddScoped<ManageEngineWebApp.Services.IEmailService, ManageEngineWebApp.Services.EmailService>();
 builder.Services.AddScoped<ManageEngineWebApp.Filters.DynamicAuthorizationFilter>();
 builder.Services.AddRazorPages();
 builder.Services.AddHttpClient("ManageEngineApi", client =>
@@ -45,7 +46,7 @@ var app = builder.Build();
 var httpClientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
 ManageEngineWebApp.Datacontext.RoleHelper.Configure(app.Configuration, httpClientFactory);
 
-if (!app.Environment.IsProduction())
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();

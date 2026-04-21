@@ -28,7 +28,7 @@
     .upload-bg {
         min-height: 100vh;
         background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,188,235,.08), transparent 60%), #f8fafc;
-        padding: 40px 20px 60px;
+        padding: 1.5rem 1rem 3rem;
     }
 
     .upload-card {
@@ -55,12 +55,12 @@
     }
 
     .card-header {
-        padding: 26px 30px 22px;
+        padding: 18px 24px;
         background: linear-gradient(135deg, rgba(0,188,235,.07), rgba(0,150,190,.04));
         border-bottom: 1px solid var(--border);
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 12px;
     }
 
     .header-icon {
@@ -76,10 +76,10 @@
     }
 
     .card-body {
-        padding: 30px;
+        padding: 20px 24px 24px;
         display: flex;
         flex-direction: column;
-        gap: 22px;
+        gap: 18px;
     }
 
     .field-label {
@@ -611,10 +611,8 @@
                 const res = JSON.parse(xhr.responseText);
                 if (res.success) {
                     document.getElementById('progressLabel').textContent = 'Complete!';
-                    showAlert('success',
-                        `<i class="fas fa-check-circle" style="flex-shrink:0;color:#10b981;margin-top:1px;"></i>
-                         <span>${res.message} Redirecting…</span>`);
-                    setTimeout(() => { window.location.href = res.redirect || '@Url.Action("Index")'; }, 1200);
+                    window.sysAlert(res.message, 'success');
+                    setTimeout(() => { window.location.href = res.redirect || '@Url.Action("Index")'; }, 1000);
                 } else {
                     resetBtn(); prog.classList.remove('visible');
                     const errs = res.errors || ['An unexpected error occurred.'];
@@ -623,23 +621,17 @@
                         else if (err.toLowerCase().includes('version'))  showErr('version', err);
                         else if (err.toLowerCase().includes('file'))     showErr('file', err);
                     });
-                    showAlert('error',
-                        `<i class="fas fa-exclamation-circle" style="flex-shrink:0;margin-top:1px;"></i>
-                         <span>${errs.join(' ')}</span>`);
+                    window.sysAlert(errs.join(' '), 'error');
                 }
             } catch {
                 resetBtn(); prog.classList.remove('visible');
-                showAlert('error',
-                    `<i class="fas fa-exclamation-circle" style="flex-shrink:0;"></i>
-                     <span>Unexpected server response. Please try again.</span>`);
+                window.sysAlert('Unexpected server response. Please try again.', 'error');
             }
         });
 
         xhr.addEventListener('error', function () {
             resetBtn(); prog.classList.remove('visible');
-            showAlert('error',
-                `<i class="fas fa-wifi" style="flex-shrink:0;"></i>
-                 <span>Network error — check that the API service is running.</span>`);
+            window.sysAlert('Network error — check that the API service is running.', 'error');
         });
 
         xhr.open('POST', this.action);

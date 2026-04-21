@@ -11,20 +11,14 @@ using System.Linq;
 
 namespace ManageEngineWebApp.Controllers
 {
-    public class HomeController : Controller
+    public class HomeController : BaseController
     {
         private readonly ILogger<HomeController> _logger;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly string _baseUrl;
 
-        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, IConfiguration config)
+        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, IConfiguration config) : base(httpClientFactory, config)
         {
             _logger = logger;
-            _httpClientFactory = httpClientFactory;
-            _baseUrl = config["ApiSettings:BaseUrl"];
         }
-
-        private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
 
         [AllowAnonymous]
         public IActionResult Index()
@@ -43,7 +37,8 @@ namespace ManageEngineWebApp.Controllers
             {
                 var client = GetClient();
                 
-                var totalTask = client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser");
+                var query = BuildScopedQuery();
+                var totalTask = client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser{query}");
                 var activeTask = client.GetAsync($"{_baseUrl}/api/Command/GetConnectedDevices");
 
                 await Task.WhenAll(totalTask, activeTask);

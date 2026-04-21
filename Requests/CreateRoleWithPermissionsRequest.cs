@@ -1,4 +1,4 @@
-﻿namespace ManageEngineWebApp.Requests
+namespace ManageEngineWebApp.Requests
 {
     public class CreateRoleWithPermissionsRequest
     {
@@ -10,5 +10,6 @@
         public bool RequiresLocation { get; set; }
         public List<string>? Permissions { get; set; }
         public List<int>? MenuIds { get; set; }
+        public List<int>? PolicyIds { get; set; }
     }
 }

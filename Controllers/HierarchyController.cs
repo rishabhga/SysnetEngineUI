@@ -13,18 +13,12 @@ using System.Threading.Tasks;
 namespace ManageEngineWebApp.Controllers
 {
     [AuthFilter]
-    public class HierarchyController : Controller
+    public class HierarchyController : BaseController
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly string _baseUrl;
-
         public HierarchyController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+            : base(httpClientFactory, configuration)
         {
-            _httpClientFactory = httpClientFactory;
-            _baseUrl = configuration["ApiSettings:BaseUrl"];
         }
-
-        private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
 
         [DynamicPermission("Hierarchy.View", "View Hierarchy List")]
         public async Task<IActionResult> Index(string searchTerm = "", string filterCompany = "all", string filterLicenseStatus = "all")
@@ -77,131 +71,7 @@ namespace ManageEngineWebApp.Controllers
 
         private async Task<List<CompanyHierarchyDto>> LoadHierarchyData()
         {
-            using var httpClient = GetClient();
-            var hierarchyList = new List<CompanyHierarchyDto>();
-
-            try
-            {
-                var companiesResponse = await httpClient.GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
-
-                if (!companiesResponse.IsSuccessStatusCode)
-                {
-                    return hierarchyList;
-                }
-
-                var companiesJson = await companiesResponse.Content.ReadAsStringAsync();
-                var companies = JsonConvert.DeserializeObject<List<Companies>>(companiesJson);
-
-                if (companies == null || !companies.Any())
-                {
-                    return hierarchyList;
-                }
-                var allowedCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
-                if (allowedCompanyIds.Any())
-                {
-                    companies = companies.Where(c => allowedCompanyIds.Contains(c.Id)).ToList();
-                }
-
-                foreach (var company in companies)
-                {
-                    var companyDto = new CompanyHierarchyDto
-                    {
-                        CompanyId = company.Id,
-                        CompanyName = company.CompanyName ?? "Unknown",
-                        Groups = new List<GroupHierarchyDto>()
-                    };
-
-                    var groupsResponse = await httpClient.GetAsync($"{_baseUrl}/api/CompaniesDetails/Groupdata?id={company.Id}");
-
-                    if (groupsResponse.IsSuccessStatusCode)
-                    {
-                        var groupsJson = await groupsResponse.Content.ReadAsStringAsync();
-                        var groups = JsonConvert.DeserializeObject<List<Groups>>(groupsJson);
-
-                        if (groups != null)
-                        {
-                            var allowedGroupIds = RoleHelper.GetGroupIds(HttpContext);
-                            if (allowedGroupIds.Any())
-                            {
-                                groups = groups.Where(g => allowedGroupIds.Contains(g.Id)).ToList();
-                            }
-
-                            foreach (var group in groups)
-                            {
-                                var groupDto = new GroupHierarchyDto
-                                {
-                                    GroupId = group.Id,
-                                    GroupName = group.GroupName ?? "Unknown",
-                                    Locations = new List<LocationHierarchyDto>()
-                                };
-
-                                var locationsResponse = await httpClient.GetAsync($"{_baseUrl}/api/CompaniesDetails/Locationdata?comid={company.Id}&groupid={group.Id}");
-
-                                if (locationsResponse.IsSuccessStatusCode)
-                                {
-                                    var locationsJson = await locationsResponse.Content.ReadAsStringAsync();
-                                    var locations = JsonConvert.DeserializeObject<List<Locations>>(locationsJson);
-
-                                    if (locations != null)
-                                    {
-                                        var allowedLocationIds = RoleHelper.GetLocationIds(HttpContext);
-                                        if (allowedLocationIds.Any())
-                                        {
-                                            locations = locations.Where(l => allowedLocationIds.Contains(l.Id)).ToList();
-                                        }
-
-                                        foreach (var location in locations)
-                                        {
-                                            var locationDto = new LocationHierarchyDto
-                                            {
-                                                LocationId = location.Id,
-                                                LocationName = location.LocationName ?? "Unknown",
-                                                Users = new List<UserHierarchyDto>()
-                                            };
-
-                                            var usersResponse = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser?locationId={location.Id}&groupid={group.Id}&comId={company.Id}");
-
-                                            if (usersResponse.IsSuccessStatusCode)
-                                            {
-                                                var usersJson = await usersResponse.Content.ReadAsStringAsync();
-                                                var users = JsonConvert.DeserializeObject<List<UserDetails>>(usersJson);
-
-                                                if (users != null && users.Any())
-                                                {
-                                                    foreach (var user in users)
-                                                    {
-                                                        locationDto.Users.Add(new UserHierarchyDto
-                                                        {
-                                                            UserName = user.UserName ?? "Unknown",
-                                                            IpAddress = user.IpAddress ?? "N/A",
-                                                            OsLicenseStatus = user.OsLicenseStatus ?? "Unknown",
-                                                            DomainName = user.domainName ?? "N/A",
-                                                            PrimaryOwner = user.PrimaryOwner ?? "N/A"
-                                                        });
-                                                    }
-                                                }
-                                            }
-
-                                            groupDto.Locations.Add(locationDto);
-                                        }
-                                    }
-                                }
-
-                                companyDto.Groups.Add(groupDto);
-                            }
-                        }
-                    }
-
-                    hierarchyList.Add(companyDto);
-                }
-
-                return hierarchyList;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"LoadHierarchyData Error: {ex.Message}");
-                return hierarchyList;
-            }
+            return await LoadHierarchyAsync();
         }
 
         private List<CompanyHierarchyDto> ApplyFilters(List<CompanyHierarchyDto> companies, string searchTerm, string filterCompany, string filterLicenseStatus)

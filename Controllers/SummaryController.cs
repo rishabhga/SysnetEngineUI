@@ -12,84 +12,25 @@ using ManageEngineWebApp.Datacontext;
 namespace ManageEngineWebApp.Controllers
 {
     [AuthFilter]
-    public class SummaryController : Controller
+    public class SummaryController : BaseController
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly string _baseUrl;
-
         public SummaryController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+            : base(httpClientFactory, configuration)
         {
-            _httpClientFactory = httpClientFactory;
-            _baseUrl = configuration["ApiSettings:BaseUrl"];
         }
 
-        private HttpClient GetClient()
-        {
-            var client = _httpClientFactory.CreateClient("ManageEngineApi");
-            client.Timeout = TimeSpan.FromSeconds(30);
-            return client;
-        }
-
-        private (List<int> companyIds, List<int> groupIds, List<int> locationIds) GetUserScope()
-        {
-            if (RoleHelper.IsTopLevelAdmin(HttpContext)) return (new List<int>(), new List<int>(), new List<int>());
-            return (RoleHelper.GetCompanyIds(HttpContext), 
-                    RoleHelper.GetGroupIds(HttpContext), 
-                    RoleHelper.GetLocationIds(HttpContext));
-        }
-
-        private string BuildScopedQuery()
-        {
-            var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
-            var q = new List<string>();
-            foreach (var id in userCompanyIds) q.Add($"companyId={id}");
-            foreach (var id in userLocationIds) q.Add($"locationId={id}");
-            foreach (var id in userGroupIds) q.Add($"groupId={id}");
-            
-            if (!RoleHelper.IsTopLevelAdmin(HttpContext) && !q.Any())
-            {
-                q.Add("comId=-1");
-            }
-
-            return q.Any() ? "?" + string.Join("&", q) : "";
-        }
-
-        private async Task<bool> IsDeviceAuthorized(string domainOrUserCode)
-        {
-            if (RoleHelper.IsTopLevelAdmin(HttpContext)) return true;
-
-            using (var httpClient = GetClient())
-            {
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsUserDetails");
-                var response = await httpClient.GetAsync("");
-                if (response.IsSuccessStatusCode)
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var data = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content);
-                    var machine = data?.FirstOrDefault(x => x.DomainName == domainOrUserCode || x.UserCode == domainOrUserCode);
-                    if (machine != null)
-                    {
-                        return RoleHelper.ValidateScope(HttpContext, machine.CompanyId, machine.GroupId, machine.LocationId);
-                    }
-                }
-            }
-            return false;
-        }
         public async Task<IActionResult> Index()
         {
-            using (var httpClient = GetClient())
-            {
-                var query = BuildScopedQuery();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsUserDetails/allUser{query}"); 
+            var httpClient = GetClient();
+            var query = BuildScopedQuery();
+            var response = await httpClient.GetAsync($"api/WindowsUserDetails/allUser{query}"); 
 
-                var response = await httpClient.GetAsync("");
-                if (response.IsSuccessStatusCode)
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                    var localDatalist = data != null ? data.Where(x => x.Status == "Enabled").ToList() : new List<WindowsUserDetails>();
-                    return View(localDatalist);
-                }
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
+                var localDatalist = data != null ? data.Where(x => x.Status == "Enabled").ToList() : new List<WindowsUserDetails>();
+                return View(localDatalist);
             }
             throw new Exception("Unable to fetch data from the API.");
         }

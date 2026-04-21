@@ -50,15 +50,15 @@
     }
 </style>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-full mx-auto px-4 py-3">
 
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <h1 class="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <i class="fas fa-network-wired text-[#00BCEB]"></i> Switch Monitor
             </h1>
-            <p class="text-sm text-gray-500 mt-1">Real-time SNMP switch management</p>
+            <p class="text-[11px] text-gray-400 mt-0.5 uppercase font-bold tracking-wider">SNMP INFRASTRUCTURE</p>
         </div>
         <div class="flex gap-3 flex-wrap">
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Create"))
@@ -99,18 +99,18 @@
     <!-- Summary stats -->
     @if (Model.Any())
     {
-        <div class="grid grid-cols-3 gap-4 mb-6">
-            <div class="bg-white rounded-xl border border-gray-200 p-4 text-center shadow-sm">
-                <p class="text-2xl font-bold text-gray-800">@Model.Count</p>
-                <p class="text-xs text-gray-500 mt-1">Total Switches</p>
+        <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="bg-white rounded-lg border border-gray-200 p-3 text-center shadow-sm">
+                <p class="text-xl font-bold text-gray-800">@Model.Count</p>
+                <p class="text-[10px] text-gray-500 uppercase font-bold">Total</p>
             </div>
-            <div class="bg-green-50 rounded-xl border border-green-200 p-4 text-center shadow-sm">
-                <p class="text-2xl font-bold text-green-700">@totalUp</p>
-                <p class="text-xs text-green-600 mt-1">Online</p>
+            <div class="bg-emerald-50 rounded-lg border border-emerald-200 p-3 text-center shadow-sm">
+                <p class="text-xl font-bold text-emerald-700">@totalUp</p>
+                <p class="text-[10px] text-emerald-600 uppercase font-bold">Online</p>
             </div>
-            <div class="bg-red-50 rounded-xl border border-red-200 p-4 text-center shadow-sm">
-                <p class="text-2xl font-bold text-red-700">@totalDown</p>
-                <p class="text-xs text-red-600 mt-1">Offline / Error</p>
+            <div class="bg-red-50 rounded-lg border border-red-200 p-3 text-center shadow-sm">
+                <p class="text-xl font-bold text-red-700">@totalDown</p>
+                <p class="text-[10px] text-red-600 uppercase font-bold">Offline</p>
             </div>
         </div>
     }
@@ -417,14 +417,14 @@
                 if (data.success) {
                     location.reload();
                 } else {
-                    alert(data.message || 'Delete failed');
+                    window.sysAlert(data.message || 'Delete failed', 'error');
                     closeDeleteModal();
                     btn.disabled = false;
                     btn.textContent = 'Delete';
                 }
             })
             .catch(err => {
-                alert('Network error: ' + err.message);
+                window.sysAlert('Network error: ' + err.message, 'error');
                 closeDeleteModal();
                 btn.disabled = false;
                 btn.textContent = 'Delete';

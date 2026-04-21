@@ -96,7 +96,7 @@
             position: sticky;
             top: 0;
             z-index: 900;
-            box-shadow: 0 1px 0 rgba(255,255,255,.08), 0 4px 20px rgba(2,132,199,.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* Stronger floor shadow */
             flex-shrink: 0;
         }
 
@@ -828,6 +828,10 @@
             </nav>
 
             <div class="sidebar-footer">
+                <a asp-controller="Auth" asp-action="ChangePassword" class="logout-link mb-2" style="background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <i class="fas fa-key" style="color: #60a5fa;"></i>
+                    <span>Change Password</span>
+                </a>
                 <a asp-controller="Auth" asp-action="Logout" class="logout-link">
                     <i class="fas fa-arrow-right-from-bracket"></i>
                     <span>Sign Out</span>

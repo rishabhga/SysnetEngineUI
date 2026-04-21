@@ -1,9 +1,13 @@
-﻿using ManageEngineWebApp.Models;
+using ManageEngineWebApp.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
 
+using ManageEngineWebApp.Datacontext;
+using Microsoft.Extensions.Configuration;
+
 namespace ManageEngineWebApp.Controllers
 {
+    [AuthFilter]
     public class CentalRepoController : Controller
     {
         private readonly IHttpClientFactory _httpClientFactory;

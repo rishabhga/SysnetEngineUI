@@ -8,50 +8,13 @@ using ManageEngineWebApp.Models;
 
 namespace ManageEngineWebApp.Controllers
 {
-    public class ServiceDeskController : Controller
+    public class ServiceDeskController : BaseController
     {
-        private readonly string _baseUrl;
-        private readonly IConfiguration _configuration;
-        private readonly IHttpClientFactory _httpClientFactory;
-
         public ServiceDeskController(IConfiguration configuration, IHttpClientFactory httpClientFactory)
+            : base(httpClientFactory, configuration)
         {
-            _configuration = configuration;
-            _httpClientFactory = httpClientFactory;
-            _baseUrl = _configuration["ApiSettings:BaseUrl"];
         }
 
-        private System.Net.Http.HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
-        private bool HasPermission(string permissionCode) => RoleHelper.HasPermission(HttpContext, permissionCode);
-        private bool IsTopLevelAdmin() => RoleHelper.IsTopLevelAdmin(HttpContext);
-        private (List<int> companyIds, List<int> groupIds, List<int> locationIds) GetUserScope()
-        {
-            if (IsTopLevelAdmin()) return (new List<int>(), new List<int>(), new List<int>());
-            return (RoleHelper.GetCompanyIds(HttpContext), 
-                    RoleHelper.GetGroupIds(HttpContext), 
-                    RoleHelper.GetLocationIds(HttpContext));
-        }
-
-        private string BuildScopedQuery(int? requestedCompanyId, int? requestedLocationId, int? requestedGroupId = null)
-        {
-            var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
-            
-            var companyIds = requestedCompanyId.HasValue ? new List<int> { requestedCompanyId.Value } : userCompanyIds;
-            var locationIds = requestedLocationId.HasValue ? new List<int> { requestedLocationId.Value } : userLocationIds;
-            var groupIds = requestedGroupId.HasValue ? new List<int> { requestedGroupId.Value } : userGroupIds;
-            
-            var q = new List<string>();
-            foreach (var id in companyIds) q.Add($"companyId={id}");
-            foreach (var id in locationIds) q.Add($"locationId={id}");
-            foreach (var id in groupIds) q.Add($"groupId={id}");
-            
-            if (!IsTopLevelAdmin() && !q.Any())
-            {
-                q.Add("comId=-1");
-            }
-
-            return q.Any() ? "?" + string.Join("&", q) : "";
-        }
 
         private bool ValidateInventoryScope(int? companyId, int? groupId, int? locationId)
         {
@@ -109,14 +72,16 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var queryParams = BuildScopedQuery(companyId, locationId, groupId);
-                var sep = string.IsNullOrEmpty(queryParams) ? "?" : "&";
-                var fullQuery = $"{queryParams}";
-                
-                if (!string.IsNullOrEmpty(clientId))
-                    fullQuery += (string.IsNullOrEmpty(fullQuery) ? "?" : "&") + $"clientId={clientId}";
+                var fullQuery = BuildScopedQuery(companyId, locationId, groupId);
+                var prefix = string.IsNullOrEmpty(fullQuery) ? "?" : "&";
 
-                fullQuery += (string.IsNullOrEmpty(fullQuery) ? "?" : "&") + $"status={status}&pageNumber={pageNumber}&pageSize={pageSize}";
+                if (!string.IsNullOrEmpty(clientId))
+                {
+                    fullQuery += $"{prefix}clientId={clientId}";
+                    prefix = "&";
+                }
+
+                fullQuery += $"{prefix}status={status}&pageNumber={pageNumber}&pageSize={pageSize}";
 
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets{fullQuery}");
                 var content = await response.Content.ReadAsStringAsync();
@@ -181,7 +146,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Categories");
+                var query = BuildScopedQuery();
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Categories{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch { return Json(new List<object>()); }
@@ -193,7 +159,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Priorities");
+                var query = BuildScopedQuery();
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Priorities{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch { return Json(new List<object>()); }
@@ -205,7 +172,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Statuses");
+                var query = BuildScopedQuery();
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Statuses{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch { return Json(new List<object>()); }
@@ -217,7 +185,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/SLAConfigs");
+                var query = BuildScopedQuery();
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/SLAConfigs{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch { return Json(new List<object>()); }
@@ -483,19 +452,9 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
+                var query = BuildScopedQuery();
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata{query}");
                 var json = await response.Content.ReadAsStringAsync();
-
-                if (!IsTopLevelAdmin())
-                {
-                    var (userCompanyIds, _, _) = GetUserScope();
-                    var companies = JsonConvert.DeserializeObject<List<Companies>>(json);
-                    if (companies != null)
-                    {
-                        companies = companies.Where(c => userCompanyIds.Contains(c.Id)).ToList();
-                        return Json(companies);
-                    }
-                }
                 return Content(json, "application/json");
             }
             catch { return Json(new List<object>()); }
@@ -507,31 +466,8 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var (userCompanyIds, userGroupIds, _) = GetUserScope();
-                
-                // RBAC: If restricted, user must stay within their assigned company
-                if (userCompanyIds.Any() && companyId > 0 && !userCompanyIds.Contains(companyId))
-                    return Json(new List<object>());
-
-                var companyIds = companyId > 0 ? new List<int> { companyId } : userCompanyIds;
-                
-                // RBAC: If restricted, user must stay within their assigned groups
-                var targetGroupIds = new List<int>();
-                if (groupId.HasValue && groupId.Value > 0)
-                {
-                    if (userGroupIds.Any() && !userGroupIds.Contains(groupId.Value))
-                        return Json(new List<object>());
-                    targetGroupIds.Add(groupId.Value);
-                }
-                else
-                {
-                    targetGroupIds.AddRange(userGroupIds);
-                }
-
-                var q = new List<string>();
-                foreach (var id in companyIds) q.Add($"comId={id}");
-                foreach (var id in targetGroupIds) q.Add($"groupid={id}");
-                var url = $"{_baseUrl}/api/CompaniesDetails/Locationdata" + (q.Any() ? "?" + string.Join("&", q) : "");
+                var query = BuildScopedQuery(companyId > 0 ? companyId : (int?)null, null, groupId > 0 ? groupId : (int?)null);
+                var url = $"{_baseUrl}/api/CompaniesDetails/Locationdata{query}";
                 
                 var response = await GetClient().GetAsync(url);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
@@ -547,20 +483,9 @@ namespace ManageEngineWebApp.Controllers
             {
                 var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
                 
-                if (userCompanyIds.Any() && companyId > 0 && !userCompanyIds.Contains(companyId)) return Json(new List<object>());
-                if (userGroupIds.Any() && groupId > 0 && !userGroupIds.Contains(groupId)) return Json(new List<object>());
-                if (userLocationIds.Any() && locationId > 0 && !userLocationIds.Contains(locationId)) return Json(new List<object>());
-
-                var targetCompanyIds = companyId > 0 ? new List<int> { companyId } : userCompanyIds;
-                var targetGroupIds = groupId > 0 ? new List<int> { groupId } : userGroupIds;
-                var targetLocationIds = locationId > 0 ? new List<int> { locationId } : userLocationIds;
-
-                var q = new List<string>();
-                foreach (var id in targetCompanyIds) q.Add($"comId={id}");
-                foreach (var id in targetGroupIds) q.Add($"groupid={id}");
-                foreach (var id in targetLocationIds) q.Add($"locationId={id}");
-                var url = $"{_baseUrl}/api/WindowsUserDetails/allUser" + (q.Any() ? "?" + string.Join("&", q) : "");
-
+                var query = BuildScopedQuery(companyId > 0 ? companyId : (int?)null, locationId > 0 ? locationId : (int?)null, groupId > 0 ? groupId : (int?)null);
+                var url = $"{_baseUrl}/api/WindowsUserDetails/allUser{query}";
+ 
                 var response = await GetClient().GetAsync(url);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
@@ -573,17 +498,9 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var (userCompanyIds, _, _) = GetUserScope();
-                
-                if (userCompanyIds.Any() && companyId > 0 && !userCompanyIds.Contains(companyId))
-                    return Json(new List<object>());
-
-                var targetCompanyIds = companyId > 0 ? new List<int> { companyId } : userCompanyIds;
-
-                var q = new List<string>();
-                foreach (var id in targetCompanyIds) q.Add($"id={id}");
-                var url = $"{_baseUrl}/api/CompaniesDetails/Groupdata" + (q.Any() ? "?" + string.Join("&", q) : "");
-
+                var query = BuildScopedQuery(companyId > 0 ? companyId : (int?)null);
+                var url = $"{_baseUrl}/api/CompaniesDetails/Groupdata{query}";
+ 
                 var response = await GetClient().GetAsync(url);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }

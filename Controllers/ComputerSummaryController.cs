@@ -21,43 +21,13 @@ namespace ManageEngineWebApp.Controllers
 {
 
     [AuthFilter]
-    public class ComputerSummaryController : Controller
+    public class ComputerSummaryController : BaseController
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly string _baseUrl;
-
-        public ComputerSummaryController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        public ComputerSummaryController(IHttpClientFactory httpClientFactory, IConfiguration configuration) 
+            : base(httpClientFactory, configuration)
         {
-            _httpClientFactory = httpClientFactory;
-            _baseUrl = configuration["ApiSettings:BaseUrl"];
         }
 
-        private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
-
-        private bool IsAuthorized(int companyId, int? groupId = null, int? locationId = null)
-        {
-            return RoleHelper.ValidateScope(HttpContext, companyId, groupId, locationId);
-        }
-
-        private async Task<bool> IsDeviceAuthorized(string machineIdOrDomain)
-        {
-            if (RoleHelper.IsTopLevelAdmin(HttpContext)) return true;
-            if (string.IsNullOrEmpty(machineIdOrDomain)) return false;
-
-            var httpClient = _httpClientFactory.CreateClient("ManageEngineApi");
-            var response = await httpClient.GetAsync("api/WindowsUserDetails/allUser");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var data = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content);
-                var machine = data?.FirstOrDefault(x => x.DomainName == machineIdOrDomain || x.UserCode == machineIdOrDomain);
-                if (machine != null)
-                {
-                    return IsAuthorized(machine.CompanyId, machine.GroupId, machine.LocationId);
-                }
-            }
-            return false;
-        }
         [DynamicPermission("ComputerSummary.View", "View Dashboard")]
         public async Task<IActionResult> Deshboad(int locationId, string locationName, int groupid, string groupName, int comId, string companyName)
         {
@@ -75,13 +45,19 @@ namespace ManageEngineWebApp.Controllers
             var contectlist = new List<ConnectedClientDto>();
             List<string> activeComputers = new List<string>();
 
-            var httpClient = _httpClientFactory.CreateClient("ManageEngineApi");
-
             try
             {
-                string userUrl = $"api/WindowsUserDetails/allUser?locationId={locationId}&groupid={groupid}&comId={comId}";
-                var response = await httpClient.GetAsync(userUrl);
+                var httpClient = GetClient();
+                var query = BuildScopedQuery(comId == 0 ? null : comId, locationId == 0 ? null : locationId, groupid == 0 ? null : groupid);
+                
+                string userUrl = $"api/WindowsUserDetails/allUser{query}";
+                string connectedUrl = $"api/Command/GetConnectedDevices"; 
+                var userTask = httpClient.GetAsync(userUrl);
+                var connectedTask = httpClient.GetAsync(connectedUrl);
 
+                await Task.WhenAll(userTask, connectedTask);
+
+                var response = await userTask;
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -92,8 +68,7 @@ namespace ManageEngineWebApp.Controllers
                     }
                 }
 
-                var response2 = await httpClient.GetAsync("api/Command/GetConnectedDevices");
-
+                var response2 = await connectedTask;
                 if (response2.IsSuccessStatusCode)
                 {
                     var content2 = await response2.Content.ReadAsStringAsync();
@@ -101,7 +76,11 @@ namespace ManageEngineWebApp.Controllers
 
                     if (contectlist != null)
                     {
-                        activeComputers = contectlist.Where(d => d != null).Select(d => d.ClientId ?? "Unknown").ToList();
+                        var authorizedComputerIds = dalalist.Select(d => d.DomainName).ToHashSet();
+                        activeComputers = contectlist
+                            .Where(d => d != null && (IsTopLevelAdmin() || authorizedComputerIds.Contains(d.ClientId)))
+                            .Select(d => d.ClientId ?? "Unknown")
+                            .ToList();
                     }
                 }
             }
@@ -135,8 +114,9 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ManageEngineApi");
-                string url = $"api/WindowsUserDetails/allUser?locationId={locationId}&groupid={groupId}&comId={companyId}";
+                var httpClient = GetClient();
+                var query = BuildScopedQuery(companyId, locationId, groupId);
+                string url = $"api/WindowsUserDetails/allUser{query}";
 
                 var response = await httpClient.GetAsync(url);
                 if (response != null && response.IsSuccessStatusCode)
@@ -173,7 +153,8 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
-                var response = await client.GetAsync($"api/WindowsUserDetails/allUserByCompany?comId={companyId}");
+                var query = BuildScopedQuery(companyId);
+                var response = await client.GetAsync($"api/WindowsUserDetails/allUserByCompany{query}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -198,7 +179,8 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
-                var response = await client.GetAsync($"api/WindowsUserDetails/allUser?locationId={locationId}&groupid={groupId}&comId={companyId}");
+                var query = BuildScopedQuery(companyId, locationId, groupId);
+                var response = await client.GetAsync($"api/WindowsUserDetails/allUser{query}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -222,14 +204,14 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var client = _httpClientFactory.CreateClient("ManageEngineApi");
-                var response = await client.GetAsync($"api/RamCpuDiskData/list?companyId={companyId}&groupId={groupId}&locationId={locationId}");
+                var client = GetClient();
+                var query = BuildScopedQuery(companyId, locationId, groupId);
+                var response = await client.GetAsync($"api/RamCpuDiskData/list{query}");
 
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var allCriticalClients = JsonConvert.DeserializeObject<List<VIPClient>>(content);
-                    var devicesResponse = await GetAllDevices(companyId, groupId ?? 0, locationId ?? 0);
                     return Json(new { success = true, data = allCriticalClients });
                 }
 
@@ -245,12 +227,12 @@ namespace ManageEngineWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> AddCriticalClient([FromBody] VIPClient criticalClient)
         {
-            if (criticalClient == null ||
-                string.IsNullOrEmpty(criticalClient.ClientId) ||
-                string.IsNullOrEmpty(criticalClient.ClientName))
-            {
+            if (criticalClient == null) return Json(new { success = false, message = "Invalid client data" });
+            if (!IsAuthorized(criticalClient.CompanyID, criticalClient.GroupsID, criticalClient.LocationID))
+                return Json(new { success = false, message = "Unauthorized access to this scope." });
+
+            if (string.IsNullOrEmpty(criticalClient.ClientId) || string.IsNullOrEmpty(criticalClient.ClientName))
                 return Json(new { success = false, message = "Invalid client data" });
-            }
 
             try
             {
@@ -287,9 +269,10 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> RemoveCriticalClient([FromBody] string clientId)
         {
             if (string.IsNullOrWhiteSpace(clientId))
-            {
                 return Json(new { success = false, message = "Invalid client ID" });
-            }
+
+            if (!await IsDeviceAuthorized(clientId))
+                return Json(new { success = false, message = "Unauthorized access to this device." });
 
             try
             {
@@ -346,10 +329,13 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetNotificationsByLocation(int companyId, int? groupId, int? locationId)
         {
+            if (!IsAuthorized(companyId, groupId, locationId)) return Json(new { success = false, error = "Unauthorized" });
+
             try
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
-                string url = $"api/RamCpuDiskData/notifications/location?companyId={companyId}&groupId={groupId}&locationId={locationId}";
+                var query = BuildScopedQuery(companyId, locationId, groupId);
+                string url = $"api/RamCpuDiskData/notifications/location{query}";
 
                 var response = await client.GetAsync(url);
                 if (response != null && response.IsSuccessStatusCode)
@@ -368,6 +354,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetLocationCriticalStatus(int locationId)
         {
+            if (!IsAuthorized(null, null, locationId)) return Json(new { success = false, isCritical = false });
+
             try
             {
                 var client = _httpClientFactory.CreateClient("ManageEngineApi");
@@ -670,6 +658,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetTempProtectionStatus(string machineId)
         {
+            if (!await IsDeviceAuthorized(machineId)) return Json(new { success = false, error = "Unauthorized" });
+
             if (string.IsNullOrEmpty(machineId))
             {
                 return Json(new { success = false, error = "MachineId is required" });
@@ -821,42 +811,45 @@ namespace ManageEngineWebApp.Controllers
             var localDatalist = new List<WindowsUserDetails>();
             var contectlist = new List<ConnectedClientDto>();
             List<string> activeComputers = new List<string>();
-
-            try
-            {
-                using var httpClient = GetClient();
-
-                string userUrl = $"{_baseUrl}/api/WindowsUserDetails/allUser?locationId={locationid}&groupid={groupid}&comId={companyid}";
-                var response = await httpClient.GetAsync(userUrl);
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                    if (data != null)
+                    var httpClient = GetClient();
+                    var query = BuildScopedQuery(companyid, locationid, groupid);
+                    string userUrl = $"api/WindowsUserDetails/allUser{query}";
+
+                    var userTask = httpClient.GetAsync(userUrl);
+                    var connectedTask = httpClient.GetAsync("api/Command/GetConnectedDevices");
+
+                    await Task.WhenAll(userTask, connectedTask);
+
+                    var response = await userTask;
+                    if (response.IsSuccessStatusCode)
                     {
-                        localDatalist = data.Where(x => x.Status == "Enabled").ToList();
+                        var content = await response.Content.ReadAsStringAsync();
+                        var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
+                        if (data != null)
+                        {
+                            localDatalist = data.Where(x => x.Status == "Enabled").ToList();
+                        }
+                    }
+
+                    var response2 = await connectedTask;
+                    if (response2.IsSuccessStatusCode)
+                    {
+                        var content2 = await response2.Content.ReadAsStringAsync();
+                        contectlist = !string.IsNullOrEmpty(content2) ? JsonConvert.DeserializeObject<List<ConnectedClientDto>>(content2) : null;
+                        if (contectlist != null)
+                        {
+                            activeComputers = contectlist.Where(d => d != null).Select(d => d.ClientId ?? "Unknown").ToList();
+                        }
                     }
                 }
+                catch (Exception) { }
 
-                var response2 = await httpClient.GetAsync($"{_baseUrl}/api/Command/GetConnectedDevices");
-                if (response2.IsSuccessStatusCode)
-                {
-                    var content2 = await response2.Content.ReadAsStringAsync();
-                    contectlist = !string.IsNullOrEmpty(content2) ? JsonConvert.DeserializeObject<List<ConnectedClientDto>>(content2) : null;
-                    if (contectlist != null)
-                    {
-                        activeComputers = contectlist.Where(d => d != null).Select(d => d.ClientId ?? "Unknown").ToList();
-                    }
-                }
+                ViewBag.ActiveComputers = activeComputers;
+                return View(localDatalist);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"BranchPatchMangnment Error: {ex.Message}");
-            }
-
-            ViewBag.ActiveComputers = activeComputers;
-            return View(localDatalist);
-        }
+        
         public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
         {
             if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
@@ -872,21 +865,29 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                using var httpClient = GetClient();
-                var response = await httpClient.GetAsync($"{_baseUrl}/api/MissingPatch?companyid={companyid}&groupid={groupid}&locationid={locationid}&deviceIds={selectedIds}");
+                var httpClient = GetClient();
+                var query = BuildScopedQuery(companyid, locationid, groupid);
+                // Append deviceIds manually as they are feature-specific
+                var patchTask = httpClient.GetAsync($"api/MissingPatch{query}&deviceIds={selectedIds}");
+                var repoTask = httpClient.GetAsync("api/SoftwareRepoDetails");
+
+                await Task.WhenAll(patchTask, repoTask);
+
+                var response = await patchTask;
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetailsservice>>(content) : null;
                     datalist = (data ?? new List<PatchDetailsservice>()).Where(x => x != null && x.UserCode != null).ToList();
                 }
-                using var httpClient2 = GetClient();
-                var response2 = await httpClient2.GetAsync($"{_baseUrl}/api/SoftwareRepoDetails");
+
+                var response2 = await repoTask;
                 if (response2.IsSuccessStatusCode)
                 {
                     var content2 = await response2.Content.ReadAsStringAsync();
                     repoList = JsonConvert.DeserializeObject<List<SoftwareRepoDetails>>(content2) ?? new List<SoftwareRepoDetails>();
                 }
+
                 foreach (var item in datalist)
                 {
                     item.IsAvailableInRepo = repoList.Any(s =>
@@ -894,9 +895,8 @@ namespace ManageEngineWebApp.Controllers
                         s.SoftwareName.Equals(item.PatchName, StringComparison.OrdinalIgnoreCase));
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"BranchPatchselection Error: {ex.Message}");
             }
 
             return View(datalist);
@@ -916,7 +916,8 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 using var httpClient = GetClient();
-                var response = await httpClient.GetAsync($"{_baseUrl}/api/MissingPatch/windowpatch?companyid={companyid}&groupid={groupid}&locationid={locationid}&deviceIds={selectedIds}");
+                var query = BuildScopedQuery(companyid, locationid, groupid);
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MissingPatch/windowpatch{query}&deviceIds={selectedIds}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -1025,41 +1026,24 @@ namespace ManageEngineWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> deshboardupdate([FromBody] WindowsUserDetailsUpdateName windowsUserDetailsupdateName)
         {
-            HttpClientHandler handler = new HttpClientHandler
+            if (windowsUserDetailsupdateName.FullName == null) windowsUserDetailsupdateName.FullName = "";
+            if (windowsUserDetailsupdateName.UserName == null) windowsUserDetailsupdateName.UserName = "";
+
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            if (windowsUserDetailsupdateName.FullName == null)
-            {
-                windowsUserDetailsupdateName.FullName = "";
-            }
-            if (windowsUserDetailsupdateName.UserName == null)
-            {
-                windowsUserDetailsupdateName.UserName = "";
-            }
-
-
-            using (HttpClient client = new HttpClient(handler))
-            {
-
-                client.BaseAddress = new Uri($"{_baseUrl}/api/WindowsUserDetails/dashboardupdate");
-
+                var client = GetClient();
                 string jsonData = JsonConvert.SerializeObject(windowsUserDetailsupdateName);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-
-
-                HttpResponseMessage response = await client.PostAsync("", content);
-
+                HttpResponseMessage response = await client.PostAsync("api/WindowsUserDetails/dashboardupdate", content);
                 string result = await response.Content.ReadAsStringAsync();
                 var jsonResponse = JsonConvert.DeserializeObject<object>(result);
                 return Json(jsonResponse);
-
             }
-
-
-
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
         }
 
 
@@ -2057,6 +2041,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> UsegeDisk(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             string UCode = GetUCodeFromDomain(domain);
             var localDatalist = new List<DiskUsage>();
 
@@ -2097,6 +2082,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> services(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             string UCode = GetUCodeFromDomain(domain);
             var localDatalist = new List<WindowsService>();
 
@@ -2372,6 +2358,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> PhysicalMemory(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
                 string UCode = GetUCodeFromDomain(domain);
@@ -2411,6 +2398,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> MemorySlotDetails(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<MemorySlotDetails>();
             try
             {
@@ -2434,6 +2422,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> PointingDevices(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<PointingDeviceInfo>();
             try
             {
@@ -2457,6 +2446,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Printers(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<PrinterDetails>();
             try
             {
@@ -2524,6 +2514,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> Sound(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<SoundDeviceDetails>();
             try
             {
@@ -2546,6 +2537,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> VideoControllers(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<VideoDeviceInfo>();
             try
             {
@@ -2567,6 +2559,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> USBControllers(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<USBControllerInfo>();
             try
             {
@@ -2588,6 +2581,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> USBHub(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<USBHubDetails>();
             try
             {
@@ -2612,6 +2606,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> DesktopApps(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<DesktopAppsModel>();
             try
             {
@@ -2633,8 +2628,9 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [DynamicPermission("ComputerSummary.Software", "Uninstall Software")]
-        public IActionResult Uninstall([FromBody] UninstallRequest request, string domain)
+        public async Task<IActionResult> Uninstall([FromBody] UninstallRequest request, string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
                 string softwareName = request.SoftwareName;
@@ -2714,6 +2710,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "Installation Software")]
         public async Task<IActionResult> InstallationSoft(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<SoftwareFileModel>();
             try
             {
@@ -2736,6 +2733,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "Antivirus Details")]
         public async Task<IActionResult> Antivirus(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<AntivirusDetails>();
             try
             {
@@ -2760,6 +2758,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "Missing Patches")]
         public async Task<IActionResult> Missingpatch(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<PatchDetailsservice>();
             try
             {
@@ -2782,6 +2781,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "Windows Missing Patches")]
         public async Task<IActionResult> Missingpatchwindow(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<PatchDetail>();
             try
             {
@@ -2803,6 +2803,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.View", "Firewall Details")]
         public async Task<IActionResult> Firewall(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<AntivirusDetails>();
             try
             {

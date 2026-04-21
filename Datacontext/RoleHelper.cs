@@ -180,18 +180,45 @@ namespace ManageEngineWebApp.Datacontext
             int? requestedLocationId = null)
         {
             if (IsTopLevelAdmin(context)) return true;
-            
+
             var userCompanyIds = GetCompanyIds(context);
-            if (userCompanyIds.Any() && requestedCompanyId.HasValue && !userCompanyIds.Contains(requestedCompanyId.Value))
+            var reqCompany = context.Session.GetString("requiresCompany") == "true";
+            
+            // If Company is required, MUST have at least one or match the requested one
+            if (reqCompany)
+            {
+                if (!userCompanyIds.Any()) return false;
+                if (requestedCompanyId.HasValue && !userCompanyIds.Contains(requestedCompanyId.Value)) return false;
+            }
+            else if (requestedCompanyId.HasValue && userCompanyIds.Any() && !userCompanyIds.Contains(requestedCompanyId.Value))
+            {
+                // Even if not strictly required by role, if they have an assignment, they must honor it
                 return false;
-                
+            }
+
             var userGroupIds = GetGroupIds(context);
-            if (userGroupIds.Any() && requestedGroupId.HasValue && !userGroupIds.Contains(requestedGroupId.Value))
+            var reqGroup = context.Session.GetString("requiresGroup") == "true";
+            if (reqGroup)
+            {
+                if (!userGroupIds.Any()) return false;
+                if (requestedGroupId.HasValue && !userGroupIds.Contains(requestedGroupId.Value)) return false;
+            }
+            else if (requestedGroupId.HasValue && userGroupIds.Any() && !userGroupIds.Contains(requestedGroupId.Value))
+            {
                 return false;
-                
+            }
+
             var userLocationIds = GetLocationIds(context);
-            if (userLocationIds.Any() && requestedLocationId.HasValue && !userLocationIds.Contains(requestedLocationId.Value))
+            var reqLocation = context.Session.GetString("requiresLocation") == "true";
+            if (reqLocation)
+            {
+                if (!userLocationIds.Any()) return false;
+                if (requestedLocationId.HasValue && !userLocationIds.Contains(requestedLocationId.Value)) return false;
+            }
+            else if (requestedLocationId.HasValue && userLocationIds.Any() && !userLocationIds.Contains(requestedLocationId.Value))
+            {
                 return false;
+            }
 
             return true;
         }
@@ -327,12 +354,12 @@ namespace ManageEngineWebApp.Datacontext
             }
         }
 
-        public static async Task<List<UserRoleDto>> GetAllRolesAsync()
+        public static async Task<List<UserRoleDto>> GetAllRolesAsync(string query = "")
         {
             try
             {
                 using var client = CreateClient();
-                var response = await client.GetAsync($"{ApiBaseUrl}/roles");
+                var response = await client.GetAsync($"{ApiBaseUrl}/roles{query}");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();

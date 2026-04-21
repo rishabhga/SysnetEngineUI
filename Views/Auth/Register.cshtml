@@ -8,218 +8,345 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#e6f0ff',
-                            100: '#cce0ff',
-                            200: '#99c2ff',
-                            300: '#66a3ff',
-                            400: '#3385ff',
-                            500: '#0066ff',
-                            600: '#0052cc',
-                            700: '#003d99',
-                            800: '#002966',
-                            900: '#001433'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
         * {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            box-sizing: border-box;
         }
 
-        .gradient-bg {
-            background: linear-gradient(135deg, #001433 0%, #002966 50%, #003d99 100%);
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'DM Sans', ui-sans-serif, system-ui;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+        /* Same background as Login / ForgotPassword */
+        .bg-page {
+            background-color: #020617;
+            background-image: url('/images/sysnet-trinetra.webp');
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+            /* Card sits at the bottom, same as Login */
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0 1rem 1.5rem 1rem;
+        }
+        @@media (max-width: 1024px) {
+            .bg-page
+
+        {
+            background-attachment: scroll;
+        }
+
+        }
+
+        /* Overlay — same gradient as Login */
+        .bg-page::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(2,6,23,0.05) 0%, rgba(2,6,23,0.20) 100%);
+            pointer-events: none;
+        }
+
+        /* Glass card — identical spec to Login */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.90) !important;
+            backdrop-filter: blur(40px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
+            box-shadow: 0 10px 40px -5px rgba(0,0,0,0.45) !important;
+        }
+
+        /* Input glass — identical to Login */
+        .input-glass {
+            background: rgba(255,255,255,0.05) !important;
+            border: 1px solid rgba(255,255,255,0.18) !important;
+            color: white !important;
+            transition: all 0.3s ease !important;
+        }
+
+            .input-glass:hover {
+                background: rgba(30,41,59,0.50) !important;
+                border-color: rgba(148,163,184,0.4) !important;
+            }
+
+            .input-glass:focus {
+                background: rgba(30,41,59,0.60) !important;
+                border-color: rgba(6,182,212,0.7) !important;
+                box-shadow: 0 0 0 3px rgba(6,182,212,0.12) !important;
+                outline: none;
+            }
+
+        /* Autofill override */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px rgba(30,41,59,0.5) inset !important;
+            -webkit-text-fill-color: white !important;
+            caret-color: white !important;
+            transition: background-color 5000s ease 0s !important;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            color: white !important;
+            -webkit-text-fill-color: white !important;
+            font-size: 14px;
+        }
+
+        input::placeholder {
+            color: rgba(203,213,225,0.55) !important;
+        }
+
+        select.input-glass option {
+            background: #0f172a;
+            color: white;
+        }
+
+        /* Glow button — identical to Login */
+        .glow-button {
+            background: linear-gradient(135deg, rgba(6,182,212,0.55) 0%, rgba(2,132,199,0.55) 100%) !important;
+            backdrop-filter: blur(12px) !important;
+            box-shadow: 0 0 22px rgba(6,182,212,0.45), 0 4px 14px rgba(0,0,0,0.2) !important;
+            border: 1px solid rgba(255,255,255,0.20) !important;
             transition: all 0.3s ease;
         }
 
-            .btn-primary:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 10px 20px rgba(0, 102, 255, 0.3);
+            .glow-button:hover {
+                background: linear-gradient(135deg, rgba(6,182,212,0.72) 0%, rgba(2,132,199,0.72) 100%) !important;
+                box-shadow: 0 0 32px rgba(6,182,212,0.65), 0 0 64px rgba(6,182,212,0.3) !important;
+                transform: translateY(-2px);
             }
 
-        .input-field:focus {
-            border-color: #0066ff;
-            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        /* Card container animation */
+        .login-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 340px;
+            animation: fadeInUp 0.55s ease-out forwards;
+        }
+
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(28px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Text legibility over BG */
+        h2, p, label, span, a {
+            text-shadow: 0 2px 8px rgba(0,0,0,0.75);
+        }
+
+        @@media (max-width: 640px) {
+            .bg-page {
+                padding: 0 0.5rem 0.75rem;
+            }
+
+            .login-container {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
-<body class="gradient-bg min-h-screen flex items-center justify-center p-3">
+<body class="bg-page">
 
-    <div class="absolute inset-0 opacity-10">
-        <div class="absolute top-0 left-0 w-96 h-96 bg-primary-500 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-0 w-96 h-96 bg-primary-700 rounded-full blur-3xl"></div>
-    </div>
+    <div class="login-container">
+        <div class="glass-card rounded-xl px-4 py-4">
 
-    <div class="w-full max-w-md relative z-10">
-        <!-- Compact Header -->
-        <div class="text-center mb-4">
-            <a href="/" class="inline-flex flex-col items-center mb-2">
-                <img src="~/images/footer-logo.png" alt="SYSNET Logo" class="h-12 w-auto mb-2" />
-            </a>
-            <h1 class="text-xl font-bold text-white">
-                Join SYSNET today
-            </h1>
-            <p class="text-slate-400 text-sm mt-1">
-                Create your account to get started
-            </p>
-        </div>
+            <!-- Header -->
+            <div class="text-center mb-3">
+                <img src="~/images/footer-logo.png" alt="SYSNET" class="h-8 w-auto mx-auto mb-2 drop-shadow-lg" />
+                <h2 class="text-sm font-bold text-white">Create your account</h2>
+                <p class="text-[10px] text-white/70 mt-0.5">Fill in the details below to get started</p>
+            </div>
 
-        <!-- Compact Form -->
-        <div class="bg-white rounded-xl shadow-2xl p-6">
+            <!-- Error message -->
             @if (TempData["msg"] != null)
             {
-                <div class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-                    <div class="flex items-center">
-                        <i class="fas fa-exclamation-circle text-red-600 mr-2 text-sm"></i>
-                        <p class="text-xs text-red-800">@TempData["msg"]</p>
-                    </div>
+                <div class="mb-3 px-3 py-2 rounded-lg bg-red-500/15 border border-red-400/30 text-[11px] text-red-200 flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    @TempData["msg"]
                 </div>
             }
 
-            <form asp-action="Register" method="post">
+            <form asp-action="Register" method="post" class="space-y-2.5">
+
                 <!-- Username -->
-                <div class="mb-3">
-                    <label asp-for="Username" class="block text-xs font-semibold text-slate-700 mb-1">
-                        <i class="fas fa-user text-primary-600 mr-1"></i> Username
+                <div>
+                    <label asp-for="Username" class="block text-[11px] font-semibold text-white/80 mb-1">
+                        <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Username
                     </label>
-                    <input asp-for="Username"
-                           type="text"
-                           class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm"
-                           placeholder="Choose a username"
-                           required />
-                    <span asp-validation-for="Username" class="text-red-600 text-xs mt-0.5 block"></span>
+                    <input asp-for="Username" type="text" placeholder="Choose a username"
+                           class="input-glass w-full rounded-lg px-3 py-2 text-sm focus:outline-none" />
+                    <span asp-validation-for="Username" class="text-[10px] text-red-300 mt-0.5 block"></span>
                 </div>
 
                 <!-- Email -->
-                <div class="mb-3">
-                    <label asp-for="Email" class="block text-xs font-semibold text-slate-700 mb-1">
-                        <i class="fas fa-envelope text-primary-600 mr-1"></i> Email
+                <div>
+                    <label asp-for="Email" class="block text-[11px] font-semibold text-white/80 mb-1">
+                        <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Email
                     </label>
-                    <input asp-for="Email"
-                           type="email"
-                           class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm"
-                           placeholder="your@email.com"
-                           required />
-                    <span asp-validation-for="Email" class="text-red-600 text-xs mt-0.5 block"></span>
+                    <input asp-for="Email" type="email" placeholder="your@email.com"
+                           class="input-glass w-full rounded-lg px-3 py-2 text-sm focus:outline-none" />
+                    <span asp-validation-for="Email" class="text-[10px] text-red-300 mt-0.5 block"></span>
                 </div>
 
                 <!-- Password -->
-                <div class="mb-3">
-                    <label asp-for="Password" class="block text-xs font-semibold text-slate-700 mb-1">
-                        <i class="fas fa-lock text-primary-600 mr-1"></i> Password
+                <div>
+                    <label asp-for="Password" class="block text-[11px] font-semibold text-white/80 mb-1">
+                        <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Password
                     </label>
-                    <input asp-for="Password"
-                           type="password"
-                           class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm"
-                           placeholder="Create a strong password"
-                           required />
-                    <span asp-validation-for="Password" class="text-red-600 text-xs mt-0.5 block"></span>
+                    <div class="relative">
+                        <input asp-for="Password" type="password" id="regPwd" placeholder="Create a strong password"
+                               class="input-glass w-full rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none" />
+                        <button type="button" onclick="toggleReg('regPwd',this)"
+                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-300 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Password" class="text-[10px] text-red-300 mt-0.5 block"></span>
                 </div>
 
                 <!-- Confirm Password -->
-                <div class="mb-3">
-                    <label asp-for="ConfirmPassword" class="block text-xs font-semibold text-slate-700 mb-1">
-                        <i class="fas fa-lock text-primary-600 mr-1"></i> Confirm Password
+                <div>
+                    <label asp-for="ConfirmPassword" class="block text-[11px] font-semibold text-white/80 mb-1">
+                        <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Confirm Password
                     </label>
-                    <input asp-for="ConfirmPassword"
-                           type="password"
-                           class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm"
-                           placeholder="Confirm your password"
-                           required />
-                    <span asp-validation-for="ConfirmPassword" class="text-red-600 text-xs mt-0.5 block"></span>
+                    <div class="relative">
+                        <input asp-for="ConfirmPassword" type="password" id="regConfirm" placeholder="Confirm your password"
+                               class="input-glass w-full rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none" />
+                        <button type="button" onclick="toggleReg('regConfirm',this)"
+                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-300 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <span asp-validation-for="ConfirmPassword" class="text-[10px] text-red-300 mt-0.5 block"></span>
                 </div>
 
-                <div class="mb-3">
-                    <label asp-for="CompanyId" class="block text-xs font-semibold text-slate-700 mb-1">
-                        <i class="fas fa-building text-primary-600 mr-1"></i> Company
+                <!-- Company -->
+                <div>
+                    <label asp-for="CompanyId" class="block text-[11px] font-semibold text-white/80 mb-1">
+                        <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        Company
                     </label>
                     <select asp-for="CompanyId" id="companySelect"
-                            class="input-field w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none transition text-sm"
-                            required>
+                            class="input-glass w-full rounded-lg px-3 py-2 text-sm focus:outline-none appearance-none cursor-pointer">
                         <option value="">Loading companies...</option>
                     </select>
-                    <span asp-validation-for="CompanyId" class="text-red-600 text-xs mt-0.5 block"></span>
+                    <span asp-validation-for="CompanyId" class="text-[10px] text-red-300 mt-0.5 block"></span>
                 </div>
 
-                <div class="mb-4 p-2.5 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-800">
+                <!-- Info note -->
+                <p class="text-[10px] text-cyan-300/70 bg-cyan-500/8 border border-cyan-500/15 rounded-lg px-3 py-2 leading-relaxed">
                     Your account will be activated after an admin assigns your role.
-                </div>
+                </p>
 
-                <!-- Create Button -->
+                <!-- Submit -->
                 <button type="submit"
-                        class="btn-primary w-full text-white font-semibold py-2.5 rounded-lg inline-flex items-center justify-center text-sm">
-                    <i class="fas fa-user-plus mr-2"></i>
+                        class="glow-button w-full rounded-lg text-white text-sm font-bold py-2.5
+                               flex items-center justify-center gap-2 mt-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
                     Create Account
                 </button>
+
+                <!-- Sign in link -->
+                <p class="text-center text-[11px] text-white/70 pt-1">
+                    Already have an account?
+                    <a asp-controller="Auth" asp-action="Login"
+                       class="text-cyan-300 hover:text-cyan-200 font-semibold transition-colors">
+                        Sign In
+                    </a>
+                </p>
             </form>
-
-            <!-- Divider -->
-            <div class="relative my-4">
-                <div class="absolute inset-0 flex items-center">
-                    <div class="w-full border-t border-slate-200"></div>
-                </div>
-                <div class="relative flex justify-center text-xs">
-                    <span class="px-3 bg-white text-slate-500">Already have an account?</span>
-                </div>
-            </div>
-
-            <!-- Sign In Link -->
-            <a asp-controller="Auth" asp-action="Login"
-               class="block w-full text-center py-2.5 rounded-lg border-2 border-slate-200 text-slate-700 font-semibold hover:border-primary-500 hover:text-primary-600 transition text-sm">
-                <i class="fas fa-sign-in-alt mr-2"></i>
-                Sign In
-            </a>
         </div>
 
-        <!-- Back to Home -->
-        <div class="text-center mt-4">
-            <a href="/" class="text-xs text-slate-300 hover:text-white transition">
-                <i class="fas fa-arrow-left mr-1"></i> Back to Home
+        <!-- Back to home -->
+        <div class="mt-3 text-center text-[10px] text-white/70">
+            <a asp-controller="Home" asp-action="Index"
+               class="inline-flex items-center gap-1 hover:text-white transition-colors">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Home
             </a>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
     <script>
+        // Toggle password visibility
+        function toggleReg(id, btn) {
+            const inp = document.getElementById(id);
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+            btn.style.opacity = inp.type === 'text' ? '0.5' : '1';
+        }
+
+        // Load companies via AJAX
         $(document).ready(function () {
             $.ajax({
                 url: '/Auth/GetCompaniesForRegister',
                 type: 'GET',
                 success: function (companies) {
-                    var options = '<option value="">Select Company</option>';
+                    var opts = '<option value="">Select Company</option>';
                     if (companies && companies.length > 0) {
-                        companies.forEach(function (company) {
-                            options += '<option value="' + company.id + '">' + company.companyName + '</option>';
+                        companies.forEach(function (c) {
+                            opts += '<option value="' + c.id + '">' + c.companyName + '</option>';
                         });
                     } else {
-                        options = '<option value="">No companies found</option>';
+                        opts = '<option value="">No companies found</option>';
                     }
-                    $('#companySelect').html(options);
+                    $('#companySelect').html(opts);
                 },
                 error: function () {
                     $('#companySelect').html('<option value="">Error loading companies</option>');
@@ -227,5 +354,6 @@
             });
         });
     </script>
+    <partial name="_ValidationScriptsPartial" />
 </body>
 </html>
