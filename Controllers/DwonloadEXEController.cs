@@ -8,12 +8,12 @@ namespace ManageEngineWebApp.Controllers
     {
         public IActionResult Index()
         {
-            string filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "exefile", "SysnetManageEngineExe.exe");
+            string filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "exefile", "Sysnet_Trinetra.exe");
 
             if (System.IO.File.Exists(filePath))
             {
                 byte[] fileBytes = System.IO.File.ReadAllBytes(filePath);
-                return File(fileBytes, "application/octet-stream", "SysnetManageEngineExe.exe");
+                return File(fileBytes, "application/octet-stream", "Sysnet_Trinetra.exe");
             }
             else
             {
