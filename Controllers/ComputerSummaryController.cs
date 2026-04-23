@@ -76,10 +76,11 @@ namespace ManageEngineWebApp.Controllers
 
                     if (contectlist != null)
                     {
-                        var authorizedComputerIds = dalalist.Select(d => d.DomainName).ToHashSet();
+                        var authorizedComputerIds = dalalist.Where(d => !string.IsNullOrEmpty(d.DomainName)).Select(d => d.DomainName.ToUpper().Trim()).ToHashSet();
                         activeComputers = contectlist
-                            .Where(d => d != null && (IsTopLevelAdmin() || authorizedComputerIds.Contains(d.ClientId)))
-                            .Select(d => d.ClientId ?? "Unknown")
+                            .Where(d => d != null && !string.IsNullOrEmpty(d.UserName))
+                            .Where(d => IsTopLevelAdmin() || authorizedComputerIds.Contains(d.UserName.ToUpper().Trim()))
+                            .Select(d => d.UserName)
                             .ToList();
                     }
                 }
@@ -840,7 +841,12 @@ namespace ManageEngineWebApp.Controllers
                         contectlist = !string.IsNullOrEmpty(content2) ? JsonConvert.DeserializeObject<List<ConnectedClientDto>>(content2) : null;
                         if (contectlist != null)
                         {
-                            activeComputers = contectlist.Where(d => d != null).Select(d => d.ClientId ?? "Unknown").ToList();
+                            var authorizedComputerIds = localDatalist.Where(d => !string.IsNullOrEmpty(d.DomainName)).Select(d => d.DomainName.ToUpper().Trim()).ToHashSet();
+                            activeComputers = contectlist
+                                .Where(d => d != null && !string.IsNullOrEmpty(d.UserName))
+                                .Where(d => IsTopLevelAdmin() || authorizedComputerIds.Contains(d.UserName.ToUpper().Trim()))
+                                .Select(d => d.UserName)
+                                .ToList();
                         }
                     }
                 }
@@ -3801,6 +3807,54 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new List<object>());
             }
         }
+        [HttpGet]
+        public IActionResult Notifications()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetRecentActivity()
+        {
+            if (!RoleHelper.HasPermission(HttpContext, "ComputerSummary.VIP"))
+            {
+                return Json(new { items = new List<object>(), count = 0 });
+            }
+
+            try
+            {
+                var companyId = RoleHelper.GetCompanyId(HttpContext) ?? 0;
+                var groupId = RoleHelper.GetGroupId(HttpContext);
+                var locationId = RoleHelper.GetLocationId(HttpContext);
+                
+                var client = GetClient();
+                
+                var queryParams = new List<string>();
+                if (companyId > 0) queryParams.Add($"companyId={companyId}");
+                if (groupId != null && groupId > 0) queryParams.Add($"groupId={groupId}");
+                if (locationId != null && locationId > 0) queryParams.Add($"locationId={locationId}");
+
+                string url = "api/RamCpuDiskData/notifications/location";
+                if (queryParams.Any())
+                {
+                    url += "?" + string.Join("&", queryParams);
+                }
+
+                var response = await client.GetAsync($"{_baseUrl}/{url}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var notifications = JsonConvert.DeserializeObject<List<dynamic>>(content) ?? new List<dynamic>();
+                    return Json(new { items = notifications, count = notifications.Count });
+                }
+                return Json(new { items = new List<object>(), count = 0 });
+            }
+            catch
+            {
+                return Json(new { items = new List<object>(), count = 0 });
+            }
+        }
+
         private string GetUCodeFromDomain(string domain)
         {
             if (string.IsNullOrEmpty(domain)) return "";

@@ -337,10 +337,13 @@
             $.ajax({
                 url: '/Auth/GetCompaniesForRegister',
                 type: 'GET',
-                success: function (companies) {
+                success: function (data) {
                     var opts = '<option value="">Select Company</option>';
-                    if (companies && companies.length > 0) {
-                        companies.forEach(function (c) {
+                    // Check if it's an error object or an empty array
+                    if (data && data.error) {
+                        opts = '<option value="">Error: ' + data.message + '</option>';
+                    } else if (Array.isArray(data) && data.length > 0) {
+                        data.forEach(function (c) {
                             opts += '<option value="' + c.id + '">' + c.companyName + '</option>';
                         });
                     } else {

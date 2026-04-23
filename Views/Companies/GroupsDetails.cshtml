@@ -49,9 +49,21 @@
                 </a>
             }
             <div class="flex items-center space-x-2">
-                <div class="w-9 h-9 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                    <span class="text-white font-bold text-sm">@Model.CompanyName?.Substring(0, 1).ToUpper()</span>
-                </div>
+                @{
+                    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? "";
+                }
+                @if (!string.IsNullOrEmpty(Model.LogoUrl))
+                {
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden border border-gray-100 bg-white shadow-md">
+                        <img src="@($"{apiBaseUrl}{Model.LogoUrl}")" alt="@Model.CompanyName" class="max-h-7 object-contain" onerror="this.parentElement.innerHTML='<span class=\'text-white font-bold text-sm\'>@Model.CompanyName?.Substring(0, 1).ToUpper()</span>'; this.parentElement.style.background='linear-gradient(135deg, #00BCEB 0%, #0096BE 100%)';" />
+                    </div>
+                }
+                else
+                {
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                        <span class="text-white font-bold text-sm">@Model.CompanyName?.Substring(0, 1).ToUpper()</span>
+                    </div>
+                }
                 <div>
                     <h1 class="text-lg font-bold text-gray-900">@Model.CompanyName</h1>
                     <p class="text-xs text-gray-600">Manage groups and locations</p>

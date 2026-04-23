@@ -2,70 +2,79 @@
     ViewData["Title"] = "System Management";
 }
 
+<style>
+    .mgmt-header-icon {
+        width: 42px; height: 42px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);
+        box-shadow: 0 4px 12px rgba(0,188,235,0.3);
+    }
+    .mgmt-stat {
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+        padding: 14px 16px; position: relative; overflow: hidden; transition: all 0.3s;
+    }
+    .mgmt-stat::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        border-radius: 14px 14px 0 0;
+    }
+    .mgmt-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
+    .mgmt-stat.s-cyan::before { background: linear-gradient(90deg, #00BCEB, #0096BE); }
+    .mgmt-stat.s-emerald::before { background: linear-gradient(90deg, #10b981, #059669); }
+    .mgmt-stat.s-amber::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .mgmt-stat.s-violet::before { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+</style>
+
 <!-- Toast Container -->
 <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
 <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
     <!-- Header -->
-    <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div class="flex items-center gap-2">
-            <div class="p-1.5 bg-sky-600 rounded-md">
-                <i class="fas fa-cog text-white text-xs"></i>
+    <div class="mb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div class="flex items-center gap-3">
+            <div class="mgmt-header-icon">
+                <i class="fas fa-cog text-white text-lg"></i>
             </div>
             <div>
-                <h1 class="text-lg font-semibold text-gray-900">System Management</h1>
-                <p class="text-xs text-gray-500">Manage modules, permissions & menus</p>
+                <h1 class="text-xl font-black text-gray-900">System Management</h1>
+                <p class="text-xs text-gray-500 mt-0.5">Manage modules, permissions & menus</p>
             </div>
         </div>
-        <button onclick="openMenuModal()" class="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-md text-xs font-medium flex items-center justify-center gap-1.5">
+        <button onclick="openMenuModal()" class="w-full sm:w-auto text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-lg transition hover:shadow-xl" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%); box-shadow: 0 4px 12px rgba(0,188,235,0.3);">
             <i class="fas fa-plus"></i>Add Menu
         </button>
     </div>
 
-    <!-- Stats - Compact Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4" id="statsContainer">
-        <!-- Skeleton Loaders -->
-        <div class="bg-white rounded-lg border border-gray-100 p-3 animate-pulse">
-            <div class="h-3 bg-gray-200 rounded w-16 mb-2"></div>
-            <div class="h-5 bg-gray-300 rounded w-12"></div>
-        </div>
-        <div class="bg-white rounded-lg border border-gray-100 p-3 animate-pulse">
-            <div class="h-3 bg-gray-200 rounded w-16 mb-2"></div>
-            <div class="h-5 bg-gray-300 rounded w-12"></div>
-        </div>
-        <div class="bg-white rounded-lg border border-gray-100 p-3 animate-pulse">
-            <div class="h-3 bg-gray-200 rounded w-16 mb-2"></div>
-            <div class="h-5 bg-gray-300 rounded w-12"></div>
-        </div>
-        <div class="bg-white rounded-lg border border-gray-100 p-3 animate-pulse">
-            <div class="h-3 bg-gray-200 rounded w-16 mb-2"></div>
-            <div class="h-5 bg-gray-300 rounded w-12"></div>
-        </div>
+    <!-- Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" id="statsContainer">
+        <div class="mgmt-stat s-amber animate-pulse"><div class="h-3 bg-gray-200 rounded w-16 mb-2"></div><div class="h-6 bg-gray-300 rounded w-12"></div></div>
+        <div class="mgmt-stat s-emerald animate-pulse"><div class="h-3 bg-gray-200 rounded w-16 mb-2"></div><div class="h-6 bg-gray-300 rounded w-12"></div></div>
+        <div class="mgmt-stat s-cyan animate-pulse"><div class="h-3 bg-gray-200 rounded w-16 mb-2"></div><div class="h-6 bg-gray-300 rounded w-12"></div></div>
+        <div class="mgmt-stat s-violet animate-pulse"><div class="h-3 bg-gray-200 rounded w-16 mb-2"></div><div class="h-6 bg-gray-300 rounded w-12"></div></div>
     </div>
 
     <!-- Main Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
         <!-- Menus List -->
         <div class="lg:col-span-2">
-            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div class="px-3 py-2 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                    <h2 class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                        <i class="fas fa-list-ul text-sky-600 text-xs"></i>
-                        Menus <span class="text-gray-400 text-[10px] font-normal" id="menuCount">0</span>
+            <div class="mgmt-card">
+                <div class="mgmt-card-header">
+                    <h2 class="text-xs font-bold text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-list-ul text-xs" style="color: #00BCEB;"></i>
+                        Menus <span class="text-gray-400 text-[10px] font-normal ml-1" id="menuCount">0</span>
                     </h2>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-xs">
-                        <thead class="bg-gray-50/50">
+                        <thead style="background: #f8fafc;">
                             <tr>
-                                <th class="px-3 py-2 text-left font-medium text-gray-600">Name</th>
-                                <th class="px-3 py-2 text-left font-medium text-gray-600">Route</th>
-                                <th class="px-3 py-2 text-left font-medium text-gray-600">Module</th>
-                                <th class="px-3 py-2 text-right font-medium text-gray-600"></th>
+                                <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Name</th>
+                                <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Route</th>
+                                <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Module</th>
+                                <th class="px-4 py-2.5 text-right font-semibold text-gray-500 uppercase text-[10px] tracking-wider"></th>
                             </tr>
                         </thead>
                         <tbody id="menuTableBody" class="divide-y divide-gray-100">
-                            <tr><td colspan="4" class="px-3 py-4 text-center text-gray-400 text-[10px]">Loading...</td></tr>
+                            <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400 text-[10px]">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -74,17 +83,17 @@
 
         <!-- Modules List -->
         <div class="lg:col-span-1">
-            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div class="px-3 py-2 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                    <h2 class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                        <i class="fas fa-cubes text-amber-600 text-xs"></i>
-                        Modules <span class="text-gray-400 text-[10px] font-normal" id="moduleCount">0</span>
+            <div class="mgmt-card">
+                <div class="mgmt-card-header">
+                    <h2 class="text-xs font-bold text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-cubes text-xs text-amber-500"></i>
+                        Modules <span class="text-gray-400 text-[10px] font-normal ml-1" id="moduleCount">0</span>
                     </h2>
-                    <button onclick="openModuleModal()" class="text-amber-600 hover:text-amber-700 p-0.5">
+                    <button onclick="openModuleModal()" class="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-amber-50 text-amber-500 transition">
                         <i class="fas fa-plus text-[10px]"></i>
                     </button>
                 </div>
-                <div id="moduleList" class="p-2 space-y-1.5 max-h-[280px] overflow-y-auto">
+                <div id="moduleList" class="p-3 space-y-2 max-h-[300px] overflow-y-auto">
                     <!-- Dynamic Content -->
                 </div>
             </div>
@@ -92,69 +101,72 @@
     </div>
 
     <!-- Permissions Section -->
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div class="px-3 py-2 border-b border-gray-100 bg-gray-50">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <h2 class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                    <i class="fas fa-key text-emerald-600 text-xs"></i>
-                    Permissions <span class="text-gray-400 text-[10px] font-normal" id="permissionCount">0</span>
+    <div class="mgmt-card mb-5">
+        <div class="mgmt-card-header">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 w-full">
+                <h2 class="text-xs font-bold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-key text-xs text-emerald-500"></i>
+                    Permissions <span class="text-gray-400 text-[10px] font-normal ml-1" id="permissionCount">0</span>
                 </h2>
                 <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <select id="filterController" class="text-[10px] border-gray-200 rounded px-2 py-1 bg-gray-50 w-full sm:w-32">
+                    <select id="filterController" class="text-[11px] border border-gray-200 rounded-lg px-3 py-1.5 bg-white w-full sm:w-36 focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none">
                         <option value="">All Controllers</option>
                     </select>
-                    <button onclick="openPermissionModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded text-[10px] font-medium flex items-center gap-1 whitespace-nowrap">
-                        <i class="fas fa-plus"></i>Add
+                    <button onclick="openPermissionModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap shadow-sm transition">
+                        <i class="fas fa-plus text-[9px]"></i>Add
                     </button>
                 </div>
             </div>
         </div>
-        <div class="overflow-x-auto max-h-72">
+        <div class="overflow-x-auto max-h-80">
             <table class="min-w-full text-xs">
-                <thead class="bg-gray-50/50 sticky top-0">
+                <thead class="sticky top-0" style="background: #f8fafc;">
                     <tr>
-                        <th class="px-3 py-2 text-left font-medium text-gray-600">Code</th>
-                        <th class="px-3 py-2 text-left font-medium text-gray-600">Name</th>
-                        <th class="px-3 py-2 text-left font-medium text-gray-600">Module</th>
-                        <th class="px-3 py-2 text-left font-medium text-gray-600">Type</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-600"></th>
+                        <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Code</th>
+                        <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Name</th>
+                        <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Module</th>
+                        <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Type</th>
+                        <th class="px-4 py-2.5 text-right font-semibold text-gray-500 uppercase text-[10px] tracking-wider"></th>
                     </tr>
                 </thead>
                 <tbody id="permissionTableBody" class="divide-y divide-gray-100">
-                    <tr><td colspan="5" class="px-3 py-4 text-center text-gray-400 text-[10px]">Loading...</td></tr>
+                    <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400 text-[10px]">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mt-4">
-        <div class="px-3 py-2 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-            <h2 class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                <i class="fas fa-sitemap text-violet-600 text-xs"></i>
-                Policy Templates <span class="text-gray-400 text-[10px] font-normal" id="policyTemplateCount">0</span>
+    <div class="mgmt-card">
+        <div class="mgmt-card-header">
+            <h2 class="text-xs font-bold text-gray-700 flex items-center gap-2">
+                <i class="fas fa-sitemap text-xs text-violet-500"></i>
+                Policy Templates <span class="text-gray-400 text-[10px] font-normal ml-1" id="policyTemplateCount">0</span>
             </h2>
-            <button onclick="openPolicyModal()" class="bg-violet-600 hover:bg-violet-700 text-white px-2 py-1 rounded text-[10px] font-medium flex items-center gap-1">
-                <i class="fas fa-plus"></i>Template
+            <button onclick="openPolicyModal()" class="bg-violet-500 hover:bg-violet-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 shadow-sm transition">
+                <i class="fas fa-plus text-[9px]"></i>Template
             </button>
         </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 p-3">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
             <div>
-                <div id="policyTemplateList" class="space-y-2 max-h-72 overflow-y-auto">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Templates</p>
+                <div id="policyTemplateList" class="space-y-2 max-h-80 overflow-y-auto">
                     <p class="text-gray-400 text-[10px]">Loading templates...</p>
                 </div>
             </div>
             <div>
-                <div class="border border-gray-200 rounded-md p-2 bg-gray-50 mb-2">
-                    <p class="text-[10px] text-gray-600">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Permission Editor</p>
+                <div class="border border-dashed border-gray-200 rounded-xl p-3 bg-gray-50/50 mb-3">
+                    <p class="text-[11px] text-gray-500 flex items-center gap-2">
+                        <i class="fas fa-info-circle text-violet-400"></i>
                         Select a template, then check permissions to assign and save.
                     </p>
                 </div>
-                <div id="policyPermissionEditor" class="max-h-72 overflow-y-auto border border-gray-200 rounded-md p-2">
+                <div id="policyPermissionEditor" class="max-h-72 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-white">
                     <p class="text-gray-400 text-[10px]">Select a policy template to edit permissions.</p>
                 </div>
-                <div class="flex justify-end mt-2">
-                    <button id="savePolicyPermsBtn" onclick="savePolicyPermissions()" class="bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded text-[10px] font-semibold hidden">
-                        Save Template Permissions
+                <div class="flex justify-end mt-3">
+                    <button id="savePolicyPermsBtn" onclick="savePolicyPermissions()" class="bg-violet-500 hover:bg-violet-600 text-white px-4 py-2 rounded-lg text-[11px] font-bold hidden shadow-sm transition">
+                        <i class="fas fa-save mr-1.5"></i>Save Template Permissions
                     </button>
                 </div>
             </div>
@@ -664,21 +676,21 @@
                 }
 
                 const html = `
-                    <div class="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition">
-                        <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Modules</p>
-                        <p class="text-lg font-bold text-gray-800">${stats.modules}</p>
+                    <div class="mgmt-stat s-amber">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Modules</p>
+                        <p class="text-xl font-black text-gray-800">${stats.modules}</p>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition">
-                        <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Permissions</p>
-                        <p class="text-lg font-bold text-gray-800">${stats.perms}</p>
+                    <div class="mgmt-stat s-emerald">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Permissions</p>
+                        <p class="text-xl font-black text-gray-800">${stats.perms}</p>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition">
-                        <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Active Menus</p>
-                        <p class="text-lg font-bold text-gray-800">${stats.menus}</p>
+                    <div class="mgmt-stat s-cyan">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Active Menus</p>
+                        <p class="text-xl font-black text-gray-800">${stats.menus}</p>
                     </div>
-                    <div class="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition">
-                        <p class="text-[10px] font-medium text-gray-500 uppercase mb-1">Roles</p>
-                        <p class="text-lg font-bold text-gray-800">${stats.roles}</p>
+                    <div class="mgmt-stat s-violet">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Roles</p>
+                        <p class="text-xl font-black text-gray-800">${stats.roles}</p>
                     </div>
                 `;
                 $('#statsContainer').html(html);

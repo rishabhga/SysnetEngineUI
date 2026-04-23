@@ -30,13 +30,13 @@ namespace ManageEngineWebApp.Controllers
         protected HttpClient GetClient()
         {
             var client = _httpClientFactory.CreateClient("ManageEngineApi");
-            
+
             var token = HttpContext.Session.GetString("JwtToken");
             if (!string.IsNullOrEmpty(token))
             {
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
-            
+
             return client;
         }
 
@@ -47,8 +47,8 @@ namespace ManageEngineWebApp.Controllers
         protected (List<int> companyIds, List<int> groupIds, List<int> locationIds) GetUserScope()
         {
             if (IsTopLevelAdmin()) return (new List<int>(), new List<int>(), new List<int>());
-            return (RoleHelper.GetCompanyIds(HttpContext), 
-                    RoleHelper.GetGroupIds(HttpContext), 
+            return (RoleHelper.GetCompanyIds(HttpContext),
+                    RoleHelper.GetGroupIds(HttpContext),
                     RoleHelper.GetLocationIds(HttpContext));
         }
 
@@ -60,15 +60,19 @@ namespace ManageEngineWebApp.Controllers
         protected async Task<bool> IsDeviceAuthorized(string domainOrUserCode)
         {
             if (IsTopLevelAdmin()) return true;
-            try 
+            try
             {
-                using var client = GetClient();
+                // FIX: Do NOT wrap in "using" — IHttpClientFactory manages the client
+                // lifetime through pooled handlers. Disposing here causes
+                // ObjectDisposedException on subsequent requests sharing the same handler.
+                var client = GetClient();
                 var response = await client.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content);
-                    var machine = data?.FirstOrDefault(x => x.DomainName == domainOrUserCode || x.UserCode == domainOrUserCode);
+                    var machine = data?.FirstOrDefault(x =>
+                        x.DomainName == domainOrUserCode || x.UserCode == domainOrUserCode);
                     if (machine != null)
                     {
                         return RoleHelper.ValidateScope(HttpContext, machine.CompanyId, machine.GroupId, machine.LocationId);
@@ -79,29 +83,48 @@ namespace ManageEngineWebApp.Controllers
             return false;
         }
 
+        /// <summary>
+        /// Builds a scoped query string for API calls.
+        /// Uses standard keys (companyId, locationId, groupId) compatible with most backend endpoints.
+        /// If multiple IDs are present, it repeats the key (?companyId=1&companyId=2).
+        /// </summary>
         protected string BuildScopedQuery(int? companyId = null, int? locationId = null, int? groupId = null)
         {
             var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
             var q = new List<string>();
 
-            // If specific IDs are passed, validate them against user scope
-            if (companyId.HasValue && companyId.Value > 0) 
+            // ── Company ──────────────────────────────────────────────────────────────
+            if (companyId.HasValue && companyId.Value > 0)
             {
-                if (IsAuthorized(companyId)) q.Add($"companyId={companyId}");
+                if (IsAuthorized(companyId))
+                    q.Add($"companyId={companyId}");
             }
-            else foreach (var id in userCompanyIds) q.Add($"companyId={id}");
+            else if (userCompanyIds.Any())
+            {
+                foreach (var id in userCompanyIds) q.Add($"companyId={id}");
+            }
 
+            // ── Location ─────────────────────────────────────────────────────────────
             if (locationId.HasValue && locationId.Value > 0)
             {
-                if (IsAuthorized(null, null, locationId)) q.Add($"locationId={locationId}");
+                if (IsAuthorized(null, null, locationId))
+                    q.Add($"locationId={locationId}");
             }
-            else foreach (var id in userLocationIds) q.Add($"locationId={id}");
+            else if (userLocationIds.Any())
+            {
+                foreach (var id in userLocationIds) q.Add($"locationId={id}");
+            }
 
+            // ── Group ────────────────────────────────────────────────────────────────
             if (groupId.HasValue && groupId.Value > 0)
             {
-                if (IsAuthorized(null, groupId)) q.Add($"groupId={groupId}");
+                if (IsAuthorized(null, groupId))
+                    q.Add($"groupId={groupId}");
             }
-            else foreach (var id in userGroupIds) q.Add($"groupId={id}");
+            else if (userGroupIds.Any())
+            {
+                foreach (var id in userGroupIds) q.Add($"groupId={id}");
+            }
 
             return q.Any() ? "?" + string.Join("&", q) : "";
         }
@@ -118,9 +141,8 @@ namespace ManageEngineWebApp.Controllers
             var hierarchy = new List<CompanyHierarchyDto>();
             try
             {
-                using var client = GetClient();
-                
-                // Fetch all data in parallel
+                var client = GetClient();
+
                 var companiesTask = client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
                 var groupsTask = client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Groupdata");
                 var locationsTask = client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Locationdata");
@@ -128,37 +150,40 @@ namespace ManageEngineWebApp.Controllers
 
                 await Task.WhenAll(companiesTask, groupsTask, locationsTask, usersTask);
 
-                var companies = JsonConvert.DeserializeObject<List<Companies>>(await companiesTask.Result.Content.ReadAsStringAsync()) ?? new List<Companies>();
-                var groups = JsonConvert.DeserializeObject<List<Groups>>(await groupsTask.Result.Content.ReadAsStringAsync()) ?? new List<Groups>();
-                var locations = JsonConvert.DeserializeObject<List<Locations>>(await locationsTask.Result.Content.ReadAsStringAsync()) ?? new List<Locations>();
-                var users = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(await usersTask.Result.Content.ReadAsStringAsync()) ?? new List<WindowsUserDetails>();
+                var companies = JsonConvert.DeserializeObject<List<Companies>>(
+                    await companiesTask.Result.Content.ReadAsStringAsync()) ?? new List<Companies>();
+                var groups = JsonConvert.DeserializeObject<List<Groups>>(
+                    await groupsTask.Result.Content.ReadAsStringAsync()) ?? new List<Groups>();
+                var locations = JsonConvert.DeserializeObject<List<Locations>>(
+                    await locationsTask.Result.Content.ReadAsStringAsync()) ?? new List<Locations>();
+                var users = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(
+                    await usersTask.Result.Content.ReadAsStringAsync()) ?? new List<WindowsUserDetails>();
 
-                // Build Hierarchy
                 foreach (var com in companies)
                 {
-                    var comDto = new CompanyHierarchyDto 
-                    { 
-                        CompanyId = com.Id, 
+                    var comDto = new CompanyHierarchyDto
+                    {
+                        CompanyId = com.Id,
                         CompanyName = com.CompanyName,
-                        LogoUrl = com.LogoUrl 
+                        LogoUrl = com.LogoUrl
                     };
-                    
+
                     var comGroups = groups.Where(g => g.CompanyID == com.Id).ToList();
                     foreach (var grp in comGroups)
                     {
                         var grpDto = new GroupHierarchyDto { GroupId = grp.Id, GroupName = grp.GroupName };
-                        
+
                         var grpLocs = locations.Where(l => l.GroupsID == grp.Id).ToList();
                         foreach (var loc in grpLocs)
                         {
                             var locDto = new LocationHierarchyDto { LocationId = loc.Id, LocationName = loc.LocationName };
-                            
+
                             var locUsers = users.Where(u => u.LocationId == loc.Id).ToList();
                             foreach (var usr in locUsers)
                             {
-                                locDto.Users.Add(new UserHierarchyDto 
-                                { 
-                                    UserName = usr.UserCode, 
+                                locDto.Users.Add(new UserHierarchyDto
+                                {
+                                    UserName = usr.UserCode,
                                     DomainName = usr.DomainName,
                                     PrimaryOwner = usr.FullName
                                 });

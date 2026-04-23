@@ -1,0 +1,412 @@
+﻿@{
+    ViewData["Title"] = "Notifications";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        .notif-page-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .notif-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f8fafc;
+            transition: background 0.2s;
+            cursor: default;
+        }
+
+            .notif-row:hover {
+                background: #f8fafc;
+            }
+
+            .notif-row:last-child {
+                border-bottom: none;
+            }
+
+        .notif-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+
+            .notif-icon.critical {
+                background: #fef2f2;
+                color: #ef4444;
+            }
+
+            .notif-icon.warning {
+                background: #fffbeb;
+                color: #f59e0b;
+            }
+
+            .notif-icon.info {
+                background: #eff6ff;
+                color: #3b82f6;
+            }
+
+        .notif-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+            .notif-badge.critical {
+                background: #fef2f2;
+                color: #dc2626;
+            }
+
+            .notif-badge.warning {
+                background: #fffbeb;
+                color: #d97706;
+            }
+
+            .notif-badge.info {
+                background: #eff6ff;
+                color: #2563eb;
+            }
+
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .filter-chip:hover {
+                border-color: #00BCEB;
+                color: #0096BE;
+            }
+
+            .filter-chip.active {
+                background: linear-gradient(135deg, #00BCEB, #0096BE);
+                color: #fff;
+                border-color: transparent;
+                box-shadow: 0 4px 12px rgba(0,188,235,0.3);
+            }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #94a3b8;
+        }
+
+            .empty-state i {
+                font-size: 3rem;
+                margin-bottom: 1rem;
+                display: block;
+                color: #cbd5e1;
+            }
+
+        .skeleton-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f8fafc;
+        }
+
+            .skeleton-row .sk-circle {
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+                background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+                background-size: 200% 100%;
+                animation: shimmer 1.5s infinite;
+                flex-shrink: 0;
+            }
+
+            .skeleton-row .sk-line {
+                height: 12px;
+                border-radius: 6px;
+                background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+                background-size: 200% 100%;
+                animation: shimmer 1.5s infinite;
+            }
+
+        @@keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* Debug banner — hidden in production, shown only on empty result */
+        #debugBanner {
+            display: none;
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 11px;
+            color: #92400e;
+            margin-bottom: 12px;
+        }
+    </style>
+}
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 rounded-xl" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                <i class="fas fa-bell text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-black text-slate-800">Notifications</h1>
+                <p class="text-xs text-slate-500 mt-0.5">System alerts and performance notifications</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-slate-400" id="totalCount">Loading…</span>
+            <button onclick="loadNotifications()" class="p-2 rounded-lg hover:bg-slate-100 text-slate-400 transition" title="Refresh">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="debugBanner">
+        <strong><i class="fas fa-info-circle mr-1"></i>Debug info:</strong>
+        <span id="debugText"></span>
+    </div>
+
+    <!-- Filter Chips -->
+    <div class="flex items-center gap-2 mb-5 flex-wrap">
+        <button class="filter-chip active" data-filter="all" onclick="filterNotifications('all', this)">
+            <i class="fas fa-inbox text-xs"></i> All
+        </button>
+        <button class="filter-chip" data-filter="critical" onclick="filterNotifications('critical', this)">
+            <i class="fas fa-exclamation-circle text-xs"></i> Critical
+        </button>
+        <button class="filter-chip" data-filter="warning" onclick="filterNotifications('warning', this)">
+            <i class="fas fa-exclamation-triangle text-xs"></i> Warnings
+        </button>
+        <button class="filter-chip" data-filter="info" onclick="filterNotifications('info', this)">
+            <i class="fas fa-info-circle text-xs"></i> Info
+        </button>
+    </div>
+
+    <!-- Notification List -->
+    <div class="notif-page-card" id="notifContainer">
+        <!-- Initial skeleton -->
+        <div class="skeleton-row"><div class="sk-circle"></div><div class="flex-1"><div class="sk-line" style="width:70%;"></div><div class="sk-line mt-2" style="width:40%;"></div></div></div>
+        <div class="skeleton-row"><div class="sk-circle"></div><div class="flex-1"><div class="sk-line" style="width:55%;"></div><div class="sk-line mt-2" style="width:35%;"></div></div></div>
+        <div class="skeleton-row"><div class="sk-circle"></div><div class="flex-1"><div class="sk-line" style="width:65%;"></div><div class="sk-line mt-2" style="width:45%;"></div></div></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let allNotifications = [];
+        let currentFilter    = 'all';
+
+        $(document).ready(function () {
+            loadNotifications();
+        });
+
+        function showSkeleton() {
+            const skRow = (w1, w2) =>
+                `<div class="skeleton-row">
+                    <div class="sk-circle"></div>
+                    <div class="flex-1">
+                        <div class="sk-line" style="width:${w1};"></div>
+                        <div class="sk-line mt-2" style="width:${w2};"></div>
+                    </div>
+                </div>`;
+            $('#notifContainer').html(skRow('70%','40%') + skRow('55%','35%') + skRow('65%','45%'));
+        }
+
+        function loadNotifications() {
+            showSkeleton();
+            $('#refreshIcon').addClass('fa-spin');
+            $('#debugBanner').hide();
+            $('#totalCount').text('Loading…');
+
+            $.ajax({
+                url:      '@Url.Action("GetNotifications", "Home")',
+                method:   'GET',
+                dataType: 'json',
+                success: function (data) {
+                    $('#refreshIcon').removeClass('fa-spin');
+                    if (Array.isArray(data)) {
+                        allNotifications = data;
+                    } else if (data && Array.isArray(data.items)) {
+                        allNotifications = data.items;
+                    } else {
+                        allNotifications = [];
+                    }
+
+                    $('#totalCount').text(allNotifications.length + ' total');
+
+                    if (allNotifications.length === 0) {
+                        var hint = '';
+                        if (data && data.error) hint = 'Server error: ' + data.error;
+                        else hint = 'API returned 0 notifications. Check: (1) devices marked as VIP or location marked as Critical, (2) CPU/RAM/Disk exceeded 70% threshold to generate alerts.';
+                        $('#debugText').text(hint);
+                        $('#debugBanner').show();
+                    }
+
+                    renderNotifications();
+                },
+                error: function (xhr, status, err) {
+                    $('#refreshIcon').removeClass('fa-spin');
+                    var detail = '';
+                    try { detail = JSON.parse(xhr.responseText)?.error || xhr.responseText; } catch(e) { detail = err; }
+                    $('#notifContainer').html(
+                        '<div class="empty-state">' +
+                        '<i class="fas fa-exclamation-triangle"></i>' +
+                        '<p class="text-sm font-medium">Could not load notifications</p>' +
+                        '<p class="text-xs mt-1 text-red-400">' + (detail || 'HTTP ' + xhr.status) + '</p>' +
+                        '<button onclick="loadNotifications()" class="mt-3 px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium hover:bg-slate-200">Retry</button>' +
+                        '</div>'
+                    );
+                    $('#totalCount').text('Error');
+                }
+            });
+        }
+
+        function filterNotifications(filter, btn) {
+            currentFilter = filter;
+            $('.filter-chip').removeClass('active');
+            $(btn).addClass('active');
+            renderNotifications();
+        }
+
+        function getNotifType(n) {
+            var raw = n.msNotificationType ||
+                      n.MSNotificationType ||
+                      n.mSNotificationType ||
+                      n.notificationType   ||
+                      n.type;
+            var type = (raw != null ? String(raw) : 'info').toLowerCase();
+
+            if (type.indexOf('alert') >= 0 || type.indexOf('crit') >= 0 || type.indexOf('error') >= 0)
+                return 'critical';
+            if (type.indexOf('warn') >= 0)
+                return 'warning';
+            return 'info';
+        }
+
+        function formatTime(time) {
+            if (!time) return '';
+            try {
+                var d = new Date(time.toString().replace(' ', 'T'));
+                if (isNaN(d.getTime())) return time;
+                return d.toLocaleString('en-US', {
+                    month: 'short', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+            } catch (e) { return time; }
+        }
+
+        function renderNotifications() {
+            const container = $('#notifContainer');
+            let filtered    = allNotifications;
+
+            if (currentFilter !== 'all') {
+                filtered = allNotifications.filter(n => getNotifType(n) === currentFilter);
+            }
+
+            if (!filtered.length) {
+                const label = currentFilter === 'all'
+                    ? 'No notifications found'
+                    : 'No ' + currentFilter + ' notifications';
+                container.html(
+                    '<div class="empty-state">' +
+                    '<i class="fas fa-check-circle"></i>' +
+                    '<p class="text-sm font-medium">' + label + '</p>' +
+                    '<p class="text-xs mt-1">Everything looks good!</p>' +
+                    '</div>'
+                );
+                return;
+            }
+
+            try {
+                const html = filtered.map(function (n) {
+                    if (!n) return '';
+
+                    const type = getNotifType(n);
+
+                    var msg         = n.message     || n.Message     || 'System alert';
+                    var machineId   = n.machineId   || n.MachineId   || n.computerName || '';
+                    var companyName = n.companyName || n.CompanyName || '';
+                    var timeRaw     = n.createdAt   || n.CreatedAt   || n.timestamp    || n.Timestamp || '';
+                    var isRead      = n.isRead      ?? n.IsRead      ?? true;
+
+                    var timeLabel   = formatTime(timeRaw);
+
+                    var downloadBtn = '';
+                    var msgStr = (msg || '').toString();
+                    if (msgStr.includes('[DOWNLOAD_LINK:')) {
+                        var parts   = msgStr.split('[DOWNLOAD_LINK:');
+                        var urlPart = parts[1].split(']')[0];
+                        msg         = parts[0].trim();
+                        downloadBtn = `<div style="margin-top:8px;">
+                            <a href="${urlPart}" style="display:inline-block;padding:4px 10px;background:#0ea5e9;color:#fff;border-radius:4px;font-size:10px;font-weight:600;text-decoration:none;">
+                                <i class="fas fa-download" style="margin-right:4px;"></i>Download Generated File
+                            </a>
+                        </div>`;
+                    }
+
+                    const iconClass = type === 'critical' ? 'fa-exclamation-circle' :
+                                      type === 'warning'  ? 'fa-exclamation-triangle' : 'fa-info-circle';
+
+                    const unreadDot = !isRead
+                        ? '<span class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-2"></span>'
+                        : '';
+
+                    return `<div class="notif-row ${!isRead ? 'bg-blue-50/30' : ''}">
+                        <div class="notif-icon ${type}"><i class="fas ${iconClass}"></i></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="notif-badge ${type}">${type}</span>
+                                ${timeLabel ? `<span class="text-[10px] text-slate-400"><i class="far fa-clock mr-1"></i>${timeLabel}</span>` : ''}
+                                ${!isRead ? '<span class="text-[9px] font-bold text-blue-500 uppercase">New</span>' : ''}
+                            </div>
+                            <p class="text-sm font-medium text-slate-700 mb-0.5">${msg}</p>
+                            ${downloadBtn}
+                            <div class="flex items-center gap-3 mt-1">
+                                ${machineId   ? `<span class="text-[11px] text-slate-400"><i class="fas fa-desktop mr-1"></i>${machineId}</span>`   : ''}
+                                ${companyName ? `<span class="text-[11px] text-slate-400"><i class="fas fa-building mr-1"></i>${companyName}</span>` : ''}
+                            </div>
+                        </div>
+                        ${unreadDot}
+                    </div>`;
+                }).join('');
+
+                container.html(html || '<div class="empty-state"><i class="fas fa-check-circle"></i><p class="text-sm font-medium">No notifications</p></div>');
+            } catch (err) {
+                console.error('Error rendering notifications:', err);
+                container.html('<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p class="text-sm font-medium">Error displaying notifications</p><p class="text-xs mt-1 text-red-400">' + err.message + '</p></div>');
+            }
+        }
+    </script>
+}
