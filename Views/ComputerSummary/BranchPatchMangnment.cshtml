@@ -292,14 +292,6 @@
         let selectedIds     = new Set();
         let selectedDomains = new Map();
         let selectedNames   = new Map();
-
-        // ─────────────────────────────────────────────────────────────
-        // LIVE STATUS via SignalR WebSocket
-        // No more polling — hub pushes updates the instant a device
-        // connects or disconnects. On first connect we call
-        // RequestConnectedDevices() to get the current state immediately,
-        // which also eliminates the "offline flash" on page reload.
-        // ─────────────────────────────────────────────────────────────
         const syncDot   = document.getElementById('liveSyncDot');
         const syncLabel = document.getElementById('liveSyncLabel');
 
@@ -312,15 +304,10 @@
             }
         }
 
-        // Core function — receives an array of online computer names and
-        // updates every row's badge, checkbox, and data-status in place.
         let hasReceivedInitialSync = false;
 
         function applyDeviceStatuses(devices) {
             if (!Array.isArray(devices)) return;
-            
-            // If the hub returns an empty list and we haven't synced yet, 
-            // don't overwrite the server-rendered state immediately.
             if (devices.length === 0 && !hasReceivedInitialSync) {
                 return;
             }
@@ -342,8 +329,6 @@
                 } else {
                     let misses = (parseInt(row.dataset.missCount) || 0) + 1;
                     row.dataset.missCount = misses;
-
-                    // Only mark offline after 2 consecutive misses to avoid jitter
                     if (wasOnline && misses >= 2) {
                         updateRowUI(row, false);
                     } else if (!wasOnline && !hasReceivedInitialSync) {
@@ -389,7 +374,6 @@
                 .then(r => r.ok ? r.json() : [])
                 .then(devices => { 
                     if (Array.isArray(devices)) {
-                        // The controller returns ConnectedClientDto objects
                         const ids = devices.map(d => d.clientId || d);
                         applyDeviceStatuses(ids); 
                     }
@@ -397,7 +381,6 @@
                 .catch(() => {});
         }
 
-        // ── SignalR connection ──────────────────────────────────────
         let patchHubConnection = null;
 
         function startPatchHubConnection() {
@@ -412,14 +395,11 @@
                 })
                 .withAutomaticReconnect([0, 2000, 5000, 10000])
                 .build();
-
-            // ① Hub pushes this whenever any device connects or disconnects
             patchHubConnection.on('DeviceStatusChanged', function(connectedDevices) {
                 applyDeviceStatuses(connectedDevices);
                 setSyncState('live');
             });
 
-            // ② Hub responds with current list when we ask (see RequestConnectedDevices in ScanHub)
             patchHubConnection.on('ReceiveConnectedDevices', function(connectedDevices) {
                 applyDeviceStatuses(connectedDevices);
                 setSyncState('live');
@@ -428,7 +408,6 @@
             patchHubConnection.onreconnecting(() => setSyncState('connecting'));
             patchHubConnection.onreconnected(() => {
                 setSyncState('live');
-                // Re-request current state after reconnect
                 patchHubConnection.invoke('RequestConnectedDevices').catch(() => {});
             });
             patchHubConnection.onclose(() => setSyncState('error'));
@@ -449,8 +428,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             startPatchHubConnection();
         });
-        // ─────────────────────────────────────────────────────────────
-
         function renderPage() {
             const start = (currentPage - 1) * pageSize;
             const end   = start + pageSize;

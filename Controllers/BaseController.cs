@@ -62,9 +62,7 @@ namespace ManageEngineWebApp.Controllers
             if (IsTopLevelAdmin()) return true;
             try
             {
-                // FIX: Do NOT wrap in "using" — IHttpClientFactory manages the client
-                // lifetime through pooled handlers. Disposing here causes
-                // ObjectDisposedException on subsequent requests sharing the same handler.
+
                 var client = GetClient();
                 var response = await client.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
                 if (response.IsSuccessStatusCode)
@@ -82,18 +80,10 @@ namespace ManageEngineWebApp.Controllers
             catch { }
             return false;
         }
-
-        /// <summary>
-        /// Builds a scoped query string for API calls.
-        /// Uses standard keys (companyId, locationId, groupId) compatible with most backend endpoints.
-        /// If multiple IDs are present, it repeats the key (?companyId=1&companyId=2).
-        /// </summary>
         protected string BuildScopedQuery(int? companyId = null, int? locationId = null, int? groupId = null)
         {
             var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
             var q = new List<string>();
-
-            // ── Company ──────────────────────────────────────────────────────────────
             if (companyId.HasValue && companyId.Value > 0)
             {
                 if (IsAuthorized(companyId))
@@ -103,8 +93,6 @@ namespace ManageEngineWebApp.Controllers
             {
                 foreach (var id in userCompanyIds) q.Add($"companyId={id}");
             }
-
-            // ── Location ─────────────────────────────────────────────────────────────
             if (locationId.HasValue && locationId.Value > 0)
             {
                 if (IsAuthorized(null, null, locationId))
@@ -115,7 +103,6 @@ namespace ManageEngineWebApp.Controllers
                 foreach (var id in userLocationIds) q.Add($"locationId={id}");
             }
 
-            // ── Group ────────────────────────────────────────────────────────────────
             if (groupId.HasValue && groupId.Value > 0)
             {
                 if (IsAuthorized(null, groupId))

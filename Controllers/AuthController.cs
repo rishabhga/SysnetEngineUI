@@ -162,7 +162,6 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (JsonReaderException)
             {
-                // If it's not valid JSON, it might be a plain text error message starting with 'L' or similar
                 var preview = apiResultStr.Length > 100 ? apiResultStr.Substring(0, 100) + "..." : apiResultStr;
                 TempData["msg"] = $"API error: Unexpected response format. Content: {preview}";
                 return View(model);

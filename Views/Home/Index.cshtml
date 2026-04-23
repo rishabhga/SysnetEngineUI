@@ -397,7 +397,6 @@
         }
 
         function loadAllStats() {
-            // Network Stats
             $.get('@Url.Action("GetNetworkStats", "Home")', function(data) {
                 if (data.error) { $('#statTotal').text('—'); return; }
                 animateNumber('statTotal', data.total);
@@ -405,7 +404,6 @@
                 renderNetworkChart(data.online, data.offline);
             }).fail(() => $('#statTotal').text('—'));
 
-            // Patch Overview
             $.get('@Url.Action("GetPatchOverview", "Home")', function(data) {
                 if (data.error) { $('#statPatches').text('—'); return; }
                 animateNumber('statPatches', data.total);
@@ -413,7 +411,6 @@
                 renderPatchChart(data.thirdPartyCount, data.windowsCount);
             }).fail(() => $('#statPatches').text('—'));
 
-            // Switch Status
             $.get('@Url.Action("GetSwitchStatus", "Home")', function(data) {
                 if (data.error) { $('#statSwitches').text('—'); return; }
                 animateNumber('statSwitches', data.total);
@@ -466,7 +463,6 @@
             });
         }
 
-        // ── Chart Rendering ──
         function renderNetworkChart(online, offline) {
             const ctx = document.getElementById('networkChart');
             if (networkChart) networkChart.destroy();
@@ -546,7 +542,6 @@
             });
         }
 
-        // ── Number Animation ──
         function animateNumber(elementId, target) {
             const el = document.getElementById(elementId);
             if (!el) return;

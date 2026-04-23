@@ -193,6 +193,7 @@
         </div>
     </div>
 
+    <!-- Debug banner — visible only when result is unexpectedly empty -->
     <div id="debugBanner">
         <strong><i class="fas fa-info-circle mr-1"></i>Debug info:</strong>
         <span id="debugText"></span>
@@ -301,16 +302,16 @@
         }
 
         function getNotifType(n) {
-            var raw = n.msNotificationType ||
-                      n.MSNotificationType ||
+            var raw = n.MSNotificationType ||
+                      n.msNotificationType ||
                       n.mSNotificationType ||
                       n.notificationType   ||
                       n.type;
-            var type = (raw != null ? String(raw) : 'info').toLowerCase();
-
-            if (type.indexOf('alert') >= 0 || type.indexOf('crit') >= 0 || type.indexOf('error') >= 0)
+            if (raw == null) return 'info';
+            var s = String(raw).toLowerCase();
+            if (s === 'alert' || s.indexOf('alert') >= 0 || s.indexOf('crit') >= 0 || s.indexOf('error') >= 0)
                 return 'critical';
-            if (type.indexOf('warn') >= 0)
+            if (s === 'warning' || s.indexOf('warn') >= 0)
                 return 'warning';
             return 'info';
         }
@@ -354,12 +355,11 @@
                     if (!n) return '';
 
                     const type = getNotifType(n);
-
-                    var msg         = n.message     || n.Message     || 'System alert';
-                    var machineId   = n.machineId   || n.MachineId   || n.computerName || '';
-                    var companyName = n.companyName || n.CompanyName || '';
-                    var timeRaw     = n.createdAt   || n.CreatedAt   || n.timestamp    || n.Timestamp || '';
-                    var isRead      = n.isRead      ?? n.IsRead      ?? true;
+                    var msg         = n.Message     || n.message     || 'System alert';
+                    var machineId   = n.MachineId   || n.machineId   || n.computerName || '';
+                    var companyName = n.CompanyName || n.companyName || '';
+                    var timeRaw     = n.CreatedAt   || n.createdAt   || n.Timestamp    || n.timestamp || '';
+                    var isRead      = n.IsRead      ?? n.isRead      ?? true;
 
                     var timeLabel   = formatTime(timeRaw);
 

@@ -141,40 +141,66 @@ namespace ManageEngineWebApp.Controllers
 
         private async Task<List<dynamic>> FetchNotificationsForCurrentUser()
         {
-            try
-            {
-                var client = GetClient();
-                var query = BuildScopedQuery();
-                var url = $"api/RamCpuDiskData/notifications/location{query}";
+            var client = GetClient();
+            var allItems = new List<dynamic>();
+            var seenIds = new HashSet<string>();
 
-                var response = await client.GetAsync($"{_baseUrl}/{url}");
+            if (IsTopLevelAdmin())
+            {
+                var response = await client.GetAsync(
+                    $"{_baseUrl}/api/RamCpuDiskData/notifications/location");
+
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<dynamic>>(content) ?? new List<dynamic>();
+                    var items = JsonConvert.DeserializeObject<List<dynamic>>(content)
+                                  ?? new List<dynamic>();
+                    allItems.AddRange(items);
                 }
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error fetching notifications for dashboard");
+                var (companyIds, _, _) = GetUserScope();
+
+                if (!companyIds.Any())
+                    return allItems;
+                foreach (var cid in companyIds)
+                {
+                    var url = $"{_baseUrl}/api/RamCpuDiskData/notifications/location?companyId={cid}";
+                    var response = await client.GetAsync(url);
+
+                    if (!response.IsSuccessStatusCode) continue;
+
+                    var content = await response.Content.ReadAsStringAsync();
+                    var items = JsonConvert.DeserializeObject<List<dynamic>>(content)
+                                  ?? new List<dynamic>();
+
+                    foreach (var item in items)
+                    {
+                        string key = item?.id?.ToString() ?? item?.Id?.ToString() ?? Guid.NewGuid().ToString();
+                        if (seenIds.Add(key))
+                            allItems.Add(item);
+                    }
+                }
             }
-            return new List<dynamic>();
+
+            return allItems;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetRecentActivity()
         {
             if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
-                return Json(new List<object>());
+                return Content("[]", "application/json");
 
             try
             {
                 var notifications = await FetchNotificationsForCurrentUser();
-                return Json(notifications);
+                return Content(JsonConvert.SerializeObject(notifications), "application/json");
             }
             catch
             {
-                return Json(new List<object>());
+                return Content("[]", "application/json");
             }
         }
 
@@ -182,16 +208,17 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> GetNotifications()
         {
             if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
-                return Json(new { items = new List<object>(), count = 0 });
+                return Content(JsonConvert.SerializeObject(new { items = new List<object>(), count = 0 }), "application/json");
 
             try
             {
                 var notifications = await FetchNotificationsForCurrentUser();
-                return Json(new { items = notifications, count = notifications.Count });
+                var json = JsonConvert.SerializeObject(new { items = notifications, count = notifications.Count });
+                return Content(json, "application/json");
             }
             catch
             {
-                return Json(new { items = new List<object>(), count = 0 });
+                return Content(JsonConvert.SerializeObject(new { items = new List<object>(), count = 0 }), "application/json");
             }
         }
 
@@ -199,22 +226,23 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> GetNotificationCount()
         {
             if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
-                return Json(new { count = 0 });
+                return Content("{\"count\":0}", "application/json");
 
             try
             {
                 var notifications = await FetchNotificationsForCurrentUser();
 
                 int unread = notifications.Count(n => {
-                    var isRead = n?.isRead ?? n?.IsRead;
-                    return isRead == null || !(bool)isRead;
+                    var isReadVal = n?.isRead ?? n?.IsRead;
+                    if (isReadVal == null) return true;
+                    return !(bool)isReadVal;
                 });
 
-                return Json(new { count = unread });
+                return Content(JsonConvert.SerializeObject(new { count = unread }), "application/json");
             }
             catch
             {
-                return Json(new { count = 0 });
+                return Content("{\"count\":0}", "application/json");
             }
         }
 

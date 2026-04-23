@@ -33,7 +33,6 @@
                 close(panel, btn);
             } else {
                 open(panel, btn);
-                // Load notifications when panel opens
                 if (panel === notifPanel) {
                     loadNotificationPanel();
                 }
@@ -75,7 +74,6 @@
         });
     }
 
-    // ── Notification Badge & Panel Loading ──
     function loadNotificationCount() {
         if (typeof $ === "undefined") return;
         
@@ -83,7 +81,6 @@
         let url = "/Home/GetNotificationCount";
         let params = {};
 
-        // If on dashboard and we have a specific location, use the scoped API
         if (ctx.isDashboard && ctx.locationId > 0 && ctx.locationId !== "0") {
             url = "/ComputerSummary/GetNotificationsByLocation";
             params = { companyId: ctx.companyId, groupId: ctx.groupId, locationId: ctx.locationId };
@@ -97,10 +94,8 @@
             success: function (data) {
                 var count = 0;
                 if (Array.isArray(data)) {
-                    // If it's the scoped API returning an array, count unread items
                     count = data.filter(n => !n.isRead && !n.IsRead).length;
                 } else {
-                    // If it's the global API returning a count object
                     count = (data && data.count !== undefined) ? data.count : (data && data.Count !== undefined) ? data.Count : 0;
                 }
 
@@ -140,7 +135,6 @@
 
         listEl.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i><br/><span style="font-size:10px;">Loading alerts...</span></div>';
 
-        // Add timestamp to prevent caching issues which caused the "first click" bug
         params._ = new Date().getTime();
 
         $.ajax({
@@ -173,7 +167,6 @@
                 if (type.includes("crit") || type.includes("alert")) { iconClass = "fa-exclamation-circle"; iconColor = "#ef4444"; }
                 else if (type.includes("warn")) { iconClass = "fa-exclamation-triangle"; iconColor = "#f59e0b"; }
                 
-                // Parse hidden download links
                 var downloadBtn = "";
                 if (msg.includes("[DOWNLOAD_LINK:")) {
                     var parts = msg.split("[DOWNLOAD_LINK:");
@@ -195,11 +188,10 @@
 
             listEl.innerHTML = html;
             
-            // Add click handlers for unread notifications to mark them read
             var notifItems = listEl.querySelectorAll('.notification-item');
             notifItems.forEach(function(item) {
                 item.addEventListener('click', function(e) {
-                    if (e.target.closest('a')) return; // Ignore link clicks
+                    if (e.target.closest('a')) return;
                     
                     var id = this.getAttribute('data-id');
                     var isRead = this.style.opacity === '0.6';
@@ -221,7 +213,6 @@
         });
     }
 
-    // Make loadNotificationPanel globally available for manual refresh
     window.loadNotificationPanel = loadNotificationPanel;
     window.loadNotificationCount = loadNotificationCount;
 
@@ -252,11 +243,7 @@
     window.initLayoutCore = function () {
         initHeaderDropdowns();
         setupAjaxUnauthorizedHandling();
-
-        // Load notification count on page load
         loadNotificationCount();
-
-        // Auto-refresh notification count every 60 seconds
         setInterval(loadNotificationCount, 60000);
     };
 })();
