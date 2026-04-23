@@ -55,7 +55,17 @@
                 @if (!string.IsNullOrEmpty(Model.LogoUrl))
                 {
                     <div class="w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden border border-gray-100 bg-white shadow-md">
-                        <img src="@($"{apiBaseUrl}{Model.LogoUrl}")" alt="@Model.CompanyName" class="max-h-7 object-contain" onerror="this.parentElement.innerHTML='<span class=\'text-white font-bold text-sm\'>@Model.CompanyName?.Substring(0, 1).ToUpper()</span>'; this.parentElement.style.background='linear-gradient(135deg, #00BCEB 0%, #0096BE 100%)';" />
+                        <img src="/Companies/Logo?path=@Uri.EscapeDataString(Model.LogoUrl)"
+                             alt="@Model.CompanyName"
+                             class="max-h-7 object-contain"
+                             onerror="
+                             var p=this.parentElement;
+                             if (p) {
+                             p.innerHTML='<span class=\' text-white font-bold text-sm\'>@Model.CompanyName?.Substring(0, 1).ToUpper()</span>';
+                        p.style.background = 'linear-gradient(135deg, #00BCEB 0%, #0096BE 100%)';
+                        }
+                        this.onerror = null;
+                        " />
                     </div>
                 }
                 else
@@ -549,6 +559,9 @@
             });
         }
         function editSelectedLocation(groupId, companyId) {
+            const select = document.getElementById(`locationSelect-${groupId}`);
+            const locationId = select?.value;
+            if (!locationId) return;
             const selectElement = document.getElementById('locationSelect-' + groupId);
             const selectedOption = selectElement.options[selectElement.selectedIndex];
             const locationId = selectedOption.value;
@@ -701,7 +714,7 @@
         }
 
         function toggleLocationCritical(locationId, currentStatus, groupId, companyId) {
-            const newStatus = !currentStatus;
+            const newStatus = !(currentStatus === true || currentStatus === 'true'); 
             const locationName = $(`#locationSelect-${groupId} option[value="${locationId}"]`).data('name') || 
                                $(`a[href*="locationId=${locationId}"] p.font-semibold`).text().trim();
 
@@ -714,7 +727,7 @@
                     IsCritical: newStatus,
                     GroupsID: parseInt(groupId),
                     CompanyID: parseInt(companyId),
-                    LocationName: locationName // Keep existing name
+                    LocationName: locationName 
                 }),
                 success: function() {
                     location.reload();

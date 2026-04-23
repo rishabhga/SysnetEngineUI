@@ -26,9 +26,24 @@
                 <i class="fas fa-arrow-left text-gray-600 text-[10px]"></i>
             </a>
             <div class="flex items-center space-x-1.5">
-                <div class="w-7 h-7 rounded-md flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                    <i class="fas fa-map-marker-alt text-white text-[10px]"></i>
-                </div>
+                @{
+                    var logoUrl = ViewBag.CompanyLogoUrl as string;
+                }
+                @if (!string.IsNullOrEmpty(logoUrl))
+                {
+                    <div class="w-7 h-7 rounded-md flex items-center justify-center overflow-hidden border border-gray-100 bg-white shadow-sm">
+                        <img src="/Companies/Logo?path=@Uri.EscapeDataString(logoUrl)"
+                             alt="@ViewBag.CompanyName"
+                             class="max-h-5 object-contain"
+                             onerror="let p = this.parentElement; if (p) { p.innerHTML = '<i class=\'fas fa-map-marker-alt text-white text-[10px]\'></i>'; p.style.background = 'linear-gradient(135deg, #00BCEB 0%, #0096BE 100%)'; } this.onerror = null;" />
+                    </div>
+                }
+                else
+                {
+                    <div class="w-7 h-7 rounded-md flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                        <i class="fas fa-map-marker-alt text-white text-[10px]"></i>
+                    </div>
+                }
                 <div>
                     <div class="flex items-center space-x-1.5">
                         <h1 class="text-sm font-bold text-gray-900">@ViewBag.locationName</h1>

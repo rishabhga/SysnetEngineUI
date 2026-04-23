@@ -321,6 +321,24 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Logo(string path)
+        {
+            try
+            {
+                using var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}{path}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var bytes = await response.Content.ReadAsByteArrayAsync();
+                    var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/png";
+                    return File(bytes, contentType);
+                }
+            }
+            catch { }
+            return NotFound();
+        }
+
         [HttpPost]
         [DynamicPermission("Companies.Edit", "Upload Logo")]
         public async Task<IActionResult> UploadLogo(IFormFile logo, int companyId)

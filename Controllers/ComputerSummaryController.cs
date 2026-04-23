@@ -49,13 +49,15 @@ namespace ManageEngineWebApp.Controllers
             {
                 var httpClient = GetClient();
                 var query = BuildScopedQuery(comId == 0 ? null : comId, locationId == 0 ? null : locationId, groupid == 0 ? null : groupid);
-                
+
                 string userUrl = $"api/WindowsUserDetails/allUser{query}";
-                string connectedUrl = $"api/Command/GetConnectedDevices"; 
+                string connectedUrl = $"api/Command/GetConnectedDevices";
+                string companyUrl = $"api/CompaniesDetails/CompanyById?id={comId}";
                 var userTask = httpClient.GetAsync(userUrl);
                 var connectedTask = httpClient.GetAsync(connectedUrl);
+                var companyTask = httpClient.GetAsync(companyUrl);
 
-                await Task.WhenAll(userTask, connectedTask);
+                await Task.WhenAll(userTask, connectedTask, companyTask);
 
                 var response = await userTask;
                 if (response.IsSuccessStatusCode)
@@ -82,6 +84,19 @@ namespace ManageEngineWebApp.Controllers
                             .Where(d => IsTopLevelAdmin() || authorizedComputerIds.Contains(d.UserName.ToUpper().Trim()))
                             .Select(d => d.UserName)
                             .ToList();
+                    }
+                }
+                var companyResponse = await companyTask;
+                if (companyResponse.IsSuccessStatusCode)
+                {
+                    var companyContent = await companyResponse.Content.ReadAsStringAsync();
+                    var company = !string.IsNullOrEmpty(companyContent)
+                        ? JsonConvert.DeserializeObject<dynamic>(companyContent)
+                        : null;
+                    if (company != null)
+                    {
+                        string logoUrl = company.logoUrl ?? company.LogoUrl;
+                        ViewBag.CompanyLogoUrl = logoUrl;
                     }
                 }
             }
