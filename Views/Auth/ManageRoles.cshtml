@@ -1083,10 +1083,14 @@
         $('#assignRole').on('change', function() {
             const cfg = roleConfigs[$(this).val()] || {};
             const needsScope = cfg.requiresCompany || cfg.requiresGroup || cfg.requiresDevice || cfg.requiresLocation;
-            // Company selection div is removed, we now logic based on the user's registered company
-            $('#groupSelectDiv,#locationSelectDiv,#domainSelectDiv').addClass('hidden');
+            
+            $('#companySelectDiv,#groupSelectDiv,#locationSelectDiv,#domainSelectDiv').addClass('hidden');
+            
+            if (cfg.requiresCompany) {
+                $('#companySelectDiv').removeClass('hidden');
+            }
+            
             if (needsScope) {
-                // Trigger username search to find company
                 $('#assignUsername').trigger('input');
             }
         });
