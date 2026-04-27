@@ -291,12 +291,13 @@ namespace ManageEngineWebApp.Datacontext
             }
         }
 
-        public static async Task<bool> AssignRoleAsync(string? username, string? role, int? companyId, string? domainName = null, int? groupId = null, int? locationId = null)
+        public static async Task<bool> AssignRoleAsync(string? username, string? role, int? companyId, string? domainName = null, int? groupId = null, int? locationId = null, HttpClient? client = null)
         {
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(role)) return false;
             try
             {
-                using var client = CreateClient();
+                using var defaultClient = client == null ? CreateClient() : null;
+                var activeClient = client ?? defaultClient;
 
                 var payload = new
                 {
@@ -310,7 +311,7 @@ namespace ManageEngineWebApp.Datacontext
 
                 var json = JsonConvert.SerializeObject(payload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync($"{ApiBaseUrl}/role/assign", content);
+                var response = await activeClient.PostAsync($"{ApiBaseUrl}/role/assign", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
                 {
@@ -325,11 +326,12 @@ namespace ManageEngineWebApp.Datacontext
             }
         }
 
-        public static async Task<bool> RemoveRoleAsync(string username)
+        public static async Task<bool> RemoveRoleAsync(string username, HttpClient? client = null)
         {
             try
             {
-                using var client = CreateClient();
+                using var defaultClient = client == null ? CreateClient() : null;
+                var activeClient = client ?? defaultClient;
 
                 var payload = new
                 {
@@ -339,7 +341,7 @@ namespace ManageEngineWebApp.Datacontext
                 };
                 var json = JsonConvert.SerializeObject(payload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync($"{ApiBaseUrl}/role/remove", content);
+                var response = await activeClient.PostAsync($"{ApiBaseUrl}/role/remove", content);
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadAsStringAsync();
@@ -354,12 +356,13 @@ namespace ManageEngineWebApp.Datacontext
             }
         }
 
-        public static async Task<List<UserRoleDto>> GetAllRolesAsync(string query = "")
+        public static async Task<List<UserRoleDto>> GetAllRolesAsync(string query = "", HttpClient? client = null)
         {
             try
             {
-                using var client = CreateClient();
-                var response = await client.GetAsync($"{ApiBaseUrl}/roles{query}");
+                using var defaultClient = client == null ? CreateClient() : null;
+                var activeClient = client ?? defaultClient;
+                var response = await activeClient.GetAsync($"{ApiBaseUrl}/roles{query}");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
@@ -373,18 +376,19 @@ namespace ManageEngineWebApp.Datacontext
             }
         }
 
-        public static async Task<List<SystemRoleDto>> GetAllSystemRolesAsync()
+        public static async Task<List<SystemRoleDto>> GetAllSystemRolesAsync(HttpClient? client = null)
         {
             try
             {
-                using var client = CreateClient();
-                var response = await client.GetAsync($"{ApiBaseUrl}/roles/system");
+                using var defaultClient = client == null ? CreateClient() : null;
+                var activeClient = client ?? defaultClient;
+                var response = await activeClient.GetAsync($"{ApiBaseUrl}/roles/system");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
                     return JsonConvert.DeserializeObject<List<SystemRoleDto>>(json) ?? new List<SystemRoleDto>();
                 }
-                response = await client.GetAsync($"{ApiBaseUrl}/roles/list");
+                response = await activeClient.GetAsync($"{ApiBaseUrl}/roles/list");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
@@ -400,12 +404,13 @@ namespace ManageEngineWebApp.Datacontext
         }
 
         public static async Task<(bool Success, string Message)> CreateRoleAsync(string? roleName, string? description, 
-            bool requiresCompany, bool requiresDevice, bool requiresLocation, bool requiresGroup = false)
+            bool requiresCompany, bool requiresDevice, bool requiresLocation, bool requiresGroup = false, HttpClient? client = null)
         {
             if (string.IsNullOrEmpty(roleName)) return (false, "Role name is required");
             try
             {
-                using var client = CreateClient();
+                using var defaultClient = client == null ? CreateClient() : null;
+                var activeClient = client ?? defaultClient;
 
                 var payload = new
                 {
@@ -421,7 +426,7 @@ namespace ManageEngineWebApp.Datacontext
 
                 var json = JsonConvert.SerializeObject(payload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync($"{ApiBaseUrl}/role/create", content);
+                var response = await activeClient.PostAsync($"{ApiBaseUrl}/role/create", content);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -444,13 +449,14 @@ namespace ManageEngineWebApp.Datacontext
             }
         }
 
-        public static async Task<bool> DeleteRoleAsync(string? roleName)
+        public static async Task<bool> DeleteRoleAsync(string? roleName, HttpClient? client = null)
         {
             if (string.IsNullOrEmpty(roleName)) return false;
             try
             {
-                using var client = CreateClient();
-                var response = await client.PostAsync($"{ApiBaseUrl}/role/delete/{roleName}", null);
+                using var defaultClient = client == null ? CreateClient() : null;
+                var activeClient = client ?? defaultClient;
+                var response = await activeClient.PostAsync($"{ApiBaseUrl}/role/delete/{roleName}", null);
                 return response.IsSuccessStatusCode;
             }
             catch

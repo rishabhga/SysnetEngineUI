@@ -134,8 +134,9 @@ namespace ManageEngineWebApp.Controllers
                 var groupsTask = client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Groupdata");
                 var locationsTask = client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Locationdata");
                 var usersTask = client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser");
+                var activeDevicesTask = client.GetAsync($"{_baseUrl}/api/Command/GetConnectedDevices");
 
-                await Task.WhenAll(companiesTask, groupsTask, locationsTask, usersTask);
+                await Task.WhenAll(companiesTask, groupsTask, locationsTask, usersTask, activeDevicesTask);
 
                 var companies = JsonConvert.DeserializeObject<List<Companies>>(
                     await companiesTask.Result.Content.ReadAsStringAsync()) ?? new List<Companies>();
@@ -145,6 +146,10 @@ namespace ManageEngineWebApp.Controllers
                     await locationsTask.Result.Content.ReadAsStringAsync()) ?? new List<Locations>();
                 var users = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(
                     await usersTask.Result.Content.ReadAsStringAsync()) ?? new List<WindowsUserDetails>();
+                var activeDevices = JsonConvert.DeserializeObject<List<ConnectedClientDto>>(
+                    await activeDevicesTask.Result.Content.ReadAsStringAsync()) ?? new List<ConnectedClientDto>();
+
+                var activeUserNames = activeDevices.Select(d => d.UserName?.ToUpper().Trim()).ToHashSet();
 
                 foreach (var com in companies)
                 {
@@ -163,7 +168,12 @@ namespace ManageEngineWebApp.Controllers
                         var grpLocs = locations.Where(l => l.GroupsID == grp.Id).ToList();
                         foreach (var loc in grpLocs)
                         {
-                            var locDto = new LocationHierarchyDto { LocationId = loc.Id, LocationName = loc.LocationName };
+                            var locDto = new LocationHierarchyDto 
+                            { 
+                                LocationId = loc.Id, 
+                                LocationName = loc.LocationName,
+                                IsCritical = loc.IsCritical
+                            };
 
                             var locUsers = users.Where(u => u.LocationId == loc.Id).ToList();
                             foreach (var usr in locUsers)
@@ -172,7 +182,9 @@ namespace ManageEngineWebApp.Controllers
                                 {
                                     UserName = usr.UserCode,
                                     DomainName = usr.DomainName,
-                                    PrimaryOwner = usr.FullName
+                                    PrimaryOwner = usr.FullName,
+                                    IsOnline = activeUserNames.Contains(usr.DomainName?.ToUpper().Trim() ?? "") || 
+                                               activeUserNames.Contains(usr.UserCode?.ToUpper().Trim() ?? "")
                                 });
                             }
                             grpDto.Locations.Add(locDto);

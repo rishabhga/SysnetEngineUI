@@ -32,5 +32,6 @@ namespace ManageEngineWebApp.Dtos
         public string OsLicenseStatus { get; set; }
         public string DomainName { get; set; }
         public string PrimaryOwner { get; set; }
+        public bool IsOnline { get; set; }
     }
 }

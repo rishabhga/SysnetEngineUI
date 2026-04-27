@@ -658,6 +658,22 @@
             await connection.start();
         } catch(err) {
             console.error("SignalR Error:", err);
+            if (err.toString().includes("Failed to fetch")) {
+                const apiBase = '@ViewBag.ApiBaseUrl';
+                if (!document.getElementById('sslBypassAlert')) {
+                    $('body').append(`<div id="sslBypassAlert" class="fixed bottom-20 left-4 bg-red-600 text-white px-4 py-3 rounded-xl shadow-2xl text-sm z-50 max-w-sm border border-red-500">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-shield-alt text-xl mt-0.5"></i>
+                            <div>
+                                <h4 class="font-bold mb-1">Live Updates Blocked (SSL)</h4>
+                                <p class="text-xs text-red-100 mb-2">The browser blocked connection due to an untrusted certificate.</p>
+                                <a href="${apiBase}/api/SoftwareRepoDetails" target="_blank" onclick="setTimeout(()=>location.reload(), 3000)" class="inline-block bg-white text-red-600 px-3 py-1.5 rounded text-xs font-bold shadow-sm hover:bg-gray-50 transition-colors">Click here to Bypass SSL &rarr;</a>
+                            </div>
+                            <button onclick="this.parentElement.parentElement.remove()" class="text-red-200 hover:text-white"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>`);
+                }
+            }
             setInterval(() => { if($('#tab-comments').is(':visible')) loadComments(true); }, 10000);
         }
     }

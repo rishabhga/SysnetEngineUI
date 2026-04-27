@@ -95,7 +95,13 @@
     function initMenus() {
         document.addEventListener("click", function (e) {
             var trigger = e.target.closest(".group-trigger");
-            if (!trigger) return;
+            if (!trigger) {
+                var link = e.target.closest(".sidebar-link, .sidebar-sub-link");
+                if (link && !link.classList.contains("group-trigger")) {
+                    setCollapsed(true);
+                }
+                return;
+            }
 
             e.preventDefault();
             e.stopPropagation();

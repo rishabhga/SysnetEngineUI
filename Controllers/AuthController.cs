@@ -323,8 +323,9 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("Auth.ManageRoles", "Manage User Roles")]
         public async Task<IActionResult> ManageRoles()
         {
+            using var client = GetClient();
             var query = BuildScopedQuery();
-            var roles = await RoleHelper.GetAllRolesAsync(query);
+            var roles = await RoleHelper.GetAllRolesAsync(query, client);
             return View(roles);
         }
         [HttpPost]
@@ -349,7 +350,8 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Username and Role are required" });
                 }
 
-                var success = await RoleHelper.AssignRoleAsync(model.Username!, model.Role!, model.CompanyId, model.DomainName, model.GroupId, model.LocationId);
+                using var client = GetClient();
+                var success = await RoleHelper.AssignRoleAsync(model.Username!, model.Role!, model.CompanyId, model.DomainName, model.GroupId, model.LocationId, client);
 
                 if (success)
                 {
@@ -374,7 +376,8 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new List<object>());
                 }
 
-                var roles = await RoleHelper.GetAllSystemRolesAsync();
+                using var client = GetClient();
+                var roles = await RoleHelper.GetAllSystemRolesAsync(client);
                 return Json(roles);
             }
             catch (Exception)
@@ -399,8 +402,9 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Role name is required" });
                 }
 
+                using var client = GetClient();
                 var result = await RoleHelper.CreateRoleAsync(model.RoleName, model.Description,
-                    model.RequiresCompany, model.RequiresDevice, model.RequiresLocation);
+                    model.RequiresCompany, model.RequiresDevice, model.RequiresLocation, false, client);
 
                 if (result.Success)
                 {
@@ -423,12 +427,13 @@ namespace ManageEngineWebApp.Controllers
                 if (!HasPerm("Auth.ManageRoles"))
                     return Json(new { success = false, message = "Unauthorized: Missing Auth.ManageRoles permission" });
 
-                var systemRoles = await RoleHelper.GetAllSystemRolesAsync();
+                using var client = GetClient();
+                var systemRoles = await RoleHelper.GetAllSystemRolesAsync(client);
                 var roleToDelete = systemRoles.FirstOrDefault(r => r.Name == model.RoleName);
                 if (roleToDelete?.IsSystem == true)
                     return Json(new { success = false, message = "Cannot delete system roles" });
 
-                var success = await RoleHelper.DeleteRoleAsync(model.RoleName);
+                var success = await RoleHelper.DeleteRoleAsync(model.RoleName, client);
                 return Json(success
                     ? new { success = true, message = "Role deleted successfully" }
                     : new { success = false, message = "Failed to delete role" });
@@ -456,7 +461,8 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Username is required" });
                 }
 
-                var success = await RoleHelper.RemoveRoleAsync(model.Username);
+                using var client = GetClient();
+                var success = await RoleHelper.RemoveRoleAsync(model.Username, client);
                 if (success)
                 {
                     return Json(new { success = true, message = "Role removed successfully" });
@@ -975,10 +981,16 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Role name is required" });
                 }
 
-                if (model.Permissions == null || !model.Permissions.Any())
+                bool hasPolicies = model.PolicyIds != null && model.PolicyIds.Any();
+                bool hasMenus = model.MenuIds != null && model.MenuIds.Any();
+                bool hasPermissions = model.Permissions != null && model.Permissions.Any();
+
+                if (!hasPolicies)
                 {
-                    return Json(new { success = false, message = "At least one permission is required" });
+                    return Json(new { success = false, message = "At least one Policy must be selected to create a role." });
                 }
+
+                using var client = GetClient();
 
                 var roleResult = await RoleHelper.CreateRoleAsync(
                     model.RoleName,
@@ -986,32 +998,34 @@ namespace ManageEngineWebApp.Controllers
                     model.RequiresCompany,
                     model.RequiresDevice,
                     model.RequiresLocation,
-                    model.RequiresGroup);
+                    model.RequiresGroup,
+                    client);
 
                 if (!roleResult.Success)
                 {
                     return Json(new { success = false, message = roleResult.Message });
                 }
 
-                using var client = GetClient();
-
-                var permPayload = new
+                if (hasPermissions)
                 {
-                    roleName = model.RoleName,
-                    permissionCodes = model.Permissions,
-                    assignedBy = HttpContext.Session.GetString("username") ?? "System"
-                };
-                var content = new StringContent(
-                    Newtonsoft.Json.JsonConvert.SerializeObject(permPayload),
-                    System.Text.Encoding.UTF8,
-                    "application/json"
-                );
+                    var permPayload = new
+                    {
+                        roleName = model.RoleName,
+                        permissionCodes = model.Permissions,
+                        assignedBy = HttpContext.Session.GetString("username") ?? "System"
+                    };
+                    var content = new StringContent(
+                        Newtonsoft.Json.JsonConvert.SerializeObject(permPayload),
+                        System.Text.Encoding.UTF8,
+                        "application/json"
+                    );
 
-                var permResponse = await client.PostAsync($"{_baseUrl}/api/Permission/AssignToRole", content);
-                if (!permResponse.IsSuccessStatusCode)
-                {
-                    var permError = await permResponse.Content.ReadAsStringAsync();
-                    return Json(new { success = false, message = $"Role created but permission assignment failed: {permError}" });
+                    var permResponse = await client.PostAsync($"{_baseUrl}/api/Permission/AssignToRole", content);
+                    if (!permResponse.IsSuccessStatusCode)
+                    {
+                        var permError = await permResponse.Content.ReadAsStringAsync();
+                        return Json(new { success = false, message = $"Role created but permission assignment failed: {permError}" });
+                    }
                 }
 
                 if (model.MenuIds != null && model.MenuIds.Any())
@@ -1058,7 +1072,7 @@ namespace ManageEngineWebApp.Controllers
                     }
                 }
 
-                return Json(new { success = true, message = $"Role '{model.RoleName}' created with {model.Permissions.Count} permissions, {model.MenuIds?.Count ?? 0} menus, and {model.PolicyIds?.Count ?? 0} policies." });
+                return Json(new { success = true, message = $"Role '{model.RoleName}' created with {model.Permissions?.Count ?? 0} permissions, {model.MenuIds?.Count ?? 0} menus, and {model.PolicyIds?.Count ?? 0} policies." });
             }
             catch (Exception ex)
             {
@@ -1113,11 +1127,19 @@ namespace ManageEngineWebApp.Controllers
                     RequiresLocation = model.RequiresLocation,
                     HierarchyLevel = (model.RoleName == "SuperAdmin") ? 0 : 10
                 };
-                var roleContent = new StringContent(JsonConvert.SerializeObject(roleUpdatePayload), Encoding.UTF8, "application/json");
-                var roleResponse = await client.PostAsync($"{_baseUrl}/api/Auth/role/create", roleContent);
-                if (!roleResponse.IsSuccessStatusCode)
+                
+                var roleResult = await RoleHelper.CreateRoleAsync(
+                    model.RoleName,
+                    model.Description,
+                    model.RequiresCompany,
+                    model.RequiresDevice,
+                    model.RequiresLocation,
+                    model.RequiresGroup,
+                    client);
+
+                if (!roleResult.Success)
                 {
-                    return Json(new { success = false, message = "Failed to update role definition: " + await roleResponse.Content.ReadAsStringAsync() });
+                    return Json(new { success = false, message = "Failed to update role definition: " + roleResult.Message });
                 }
 
                 if (model.Permissions != null)
@@ -1202,7 +1224,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var error = await response.Content.ReadAsStringAsync();
                     ModelState.AddModelError("", "Failed to update password: " + error);
-                    return View(model);
+                    return View(model); 
                 }
             }
             catch (Exception ex)

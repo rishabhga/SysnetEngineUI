@@ -174,14 +174,7 @@
                                         <img src="/Companies/Logo?path=@Uri.EscapeDataString(company.LogoUrl)"
                                              alt="@company.CompanyName"
                                              class="max-h-6 object-contain"
-                                             onerror="
-                                             var p=this.parentElement;
-                                             if (p) {
-                                             p.innerHTML='<i class=\' fas fa-building text-white text-sm\'></i>';
-                                        p.style.background = 'linear-gradient(135deg, #00BCEB 0%, #0096BE 100%)';
-                                        }
-                                        this.onerror = null;
-                                        " />
+                                             onerror="this.onerror=null; this.style.display='none'; var p=this.parentElement; if(p){ p.style.background='linear-gradient(135deg, #00BCEB 0%, #0096BE 100%)'; p.innerHTML='<i class=\'fas fa-building text-white text-sm\'></i>'; }" />
                                     </div>
                                 }
                                 else

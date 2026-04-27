@@ -58,14 +58,7 @@
                         <img src="/Companies/Logo?path=@Uri.EscapeDataString(Model.LogoUrl)"
                              alt="@Model.CompanyName"
                              class="max-h-7 object-contain"
-                             onerror="
-                             var p=this.parentElement;
-                             if (p) {
-                             p.innerHTML='<span class=\' text-white font-bold text-sm\'>@Model.CompanyName?.Substring(0, 1).ToUpper()</span>';
-                        p.style.background = 'linear-gradient(135deg, #00BCEB 0%, #0096BE 100%)';
-                        }
-                        this.onerror = null;
-                        " />
+                             onerror="this.onerror=null; this.style.display='none'; var p=this.parentElement; if(p){ p.style.background='linear-gradient(135deg, #00BCEB 0%, #0096BE 100%)'; p.innerHTML='<span class=\'text-white font-bold text-sm\'>@(Model.CompanyName?.Length > 0 ? Model.CompanyName.Substring(0, 1).ToUpper() : string.Empty)</span>'; }" />
                     </div>
                 }
                 else

@@ -1,4 +1,4 @@
-﻿using ManageEngineWebApp.Attributes;
+using ManageEngineWebApp.Attributes;
 using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Models;
@@ -327,7 +327,10 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 using var client = GetClient();
-                var response = await client.GetAsync($"{_baseUrl}{path}");
+                var targetUrl = path.StartsWith("http", StringComparison.OrdinalIgnoreCase) 
+                    ? path 
+                    : $"{_baseUrl.TrimEnd('/')}/{path.TrimStart('/')}";
+                var response = await client.GetAsync(targetUrl);
                 if (response.IsSuccessStatusCode)
                 {
                     var bytes = await response.Content.ReadAsByteArrayAsync();

@@ -1,8 +1,3 @@
-/**
- * Dashboard Hierarchy Handler
- * Manages the multi-level organizational view (Company > Group > Location > User)
- */
-
 window.DashboardHierarchy = (function () {
     let hierarchyData = [];
     let state = {
@@ -19,18 +14,14 @@ window.DashboardHierarchy = (function () {
     };
 
     const setupEventListeners = () => {
-        // Listen for global search events (dispatched from layout)
         $(document).on('searchEvent', (e, term) => {
             state.searchTerm = term.toLowerCase();
             render();
         });
 
-
-        // Handle browser back button
         window.onpopstate = (event) => {
             if (event.state) {
                 state = event.state;
-                // Update global nav logo as well
                 if (window.SearchMediator && window.SearchMediator.updateNavLogo) {
                     if (state.company) {
                         const comp = hierarchyData.find(c => c.companyId === state.company.id);
@@ -66,7 +57,6 @@ window.DashboardHierarchy = (function () {
             newState.group = null;
             newState.location = null;
 
-            // Auto-drill down logic
             const comp = hierarchyData.find(c => c.companyId === id);
             if (comp && comp.groups.length === 1) {
                 const g = comp.groups[0];
@@ -91,8 +81,10 @@ window.DashboardHierarchy = (function () {
         }
 
         state = newState;
-        // history.pushState(state, '', ''); // Optional: update URL
         render();
+        if (typeof window.onHierarchyChange === 'function') {
+            window.onHierarchyChange(state);
+        }
     };
 
     const render = () => {
@@ -243,6 +235,7 @@ window.DashboardHierarchy = (function () {
         const $grid = $('<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>');
         grp.locations.forEach(loc => {
             const userCount = loc.users.length;
+            const onlineCount = loc.users.filter(u => u.isOnline).length;
             const isCrit = loc.isCritical || false;
 
             const $card = $(`
@@ -254,8 +247,8 @@ window.DashboardHierarchy = (function () {
                         <h4 class="font-bold text-slate-700 group-hover:text-emerald-600 transition-colors truncate">${loc.locationName}</h4>
                     </div>
                     <div class="flex items-baseline gap-1">
-                        <span class="text-xs font-bold text-slate-800">${userCount}</span>
-                        <span class="text-[9px] font-black text-slate-400 uppercase">Connected Users</span>
+                        <span class="text-xs font-bold text-slate-800">${onlineCount}/${userCount}</span>
+                        <span class="text-[9px] font-black text-slate-400 uppercase">Online Users</span>
                     </div>
                 </div>
             `);
@@ -275,7 +268,7 @@ window.DashboardHierarchy = (function () {
             <div class="monitor-card overflow-hidden">
                 <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                     <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Users in ${loc.locationName}</span>
-                    <span class="bg-blue-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">${loc.users.length} ONLINE</span>
+                    <span class="bg-blue-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">${loc.users.filter(u => u.isOnline).length} ONLINE</span>
                 </div>
                 <table class="w-full text-left table-compact">
                     <thead>
@@ -291,8 +284,9 @@ window.DashboardHierarchy = (function () {
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td>
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs">
+                                        <div class="relative w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs">
                                             ${u.userName ? u.userName[0].toUpperCase() : 'U'}
+                                            ${u.isOnline ? '<div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></div>' : '<div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-slate-300 border-2 border-white rounded-full"></div>'}
                                         </div>
                                         <div>
                                             <div class="font-bold text-slate-700">${u.userName || 'Unknown'}</div>

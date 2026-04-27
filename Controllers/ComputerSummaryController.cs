@@ -99,6 +99,15 @@ namespace ManageEngineWebApp.Controllers
                         ViewBag.CompanyLogoUrl = logoUrl;
                     }
                 }
+                string locationUrl = $"api/CompaniesDetails/Locationdata";
+                var locationResponse = await httpClient.GetAsync(locationUrl);
+                if (locationResponse.IsSuccessStatusCode)
+                {
+                    var locContent = await locationResponse.Content.ReadAsStringAsync();
+                    var locs = JsonConvert.DeserializeObject<List<Locations>>(locContent);
+                    var currentLoc = locs?.FirstOrDefault(l => l.Id == locationId);
+                    ViewBag.IsLocationCritical = currentLoc?.IsCritical ?? false;
+                }
             }
             catch (Exception)
             {
@@ -374,14 +383,16 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var client = _httpClientFactory.CreateClient("ManageEngineApi");
-                string url = $"api/RamCpuDiskData/location/status/{locationId}";
-
+                var client = GetClient();
+                string url = $"api/CompaniesDetails/Locationdata";
+                
                 var response = await client.GetAsync(url);
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    return Content(content, "application/json");
+                    var locations = JsonConvert.DeserializeObject<List<Locations>>(content);
+                    var loc = locations?.FirstOrDefault(l => l.Id == locationId);
+                    return Json(new { success = true, isCritical = loc?.IsCritical ?? false });
                 }
                 return Json(new { success = false, isCritical = false });
             }

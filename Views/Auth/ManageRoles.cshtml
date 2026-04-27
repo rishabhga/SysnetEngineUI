@@ -752,9 +752,10 @@
             </button>
         </div>
         <div class="rm-modal-body">
-            <div class="mb-4">
+            <div class="mb-4 relative">
                 <label class="rm-label">Username *</label>
-                <input type="text" id="assignUsername" class="rm-input" placeholder="Enter username" autocomplete="off">
+                <input type="text" id="assignUsername" class="rm-input" placeholder="Enter username" autocomplete="off" oninput="showUserSuggestions(this.value)">
+                <div id="userSuggestions" class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-40 overflow-y-auto hidden"></div>
             </div>
             <div class="mb-4">
                 <label class="rm-label">Role *</label>
@@ -867,12 +868,8 @@
                 </div>
                 <div>
                     <div class="flex border-b border-gray-200 mb-3 overflow-x-auto">
-                        <button onclick="switchRoleTab('perms')" id="tabBtn_perms"
-                                class="role-tab-btn active shrink-0">
-                            Permissions
-                        </button>
                         <button onclick="switchRoleTab('policies')" id="tabBtn_policies"
-                                class="role-tab-btn shrink-0">
+                                class="role-tab-btn active shrink-0">
                             Policies
                         </button>
                         <button onclick="switchRoleTab('menus')" id="tabBtn_menus"
@@ -881,17 +878,9 @@
                         </button>
                     </div>
 
-                    <div id="tabContent_perms">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-[10px] font-bold text-gray-500 uppercase">Permissions *</span>
-                            <div class="flex gap-3">
-                                <button onclick="selectAllPermissions()" class="text-[10px] text-sky-500 hover:text-sky-700 font-semibold">Select All</button>
-                                <button onclick="clearAllPermissions()" class="text-[10px] text-gray-400 hover:text-gray-600 font-semibold">Clear</button>
-                            </div>
-                        </div>
-                        <div id="permissionTree" class="perm-tree">
-                            <p class="text-gray-400 text-center py-4 text-xs">Loading…</p>
-                        </div>
+                    <!-- Permissions are now bundled inside Policies -->
+                    <div id="tabContent_perms" class="hidden">
+                        <div id="permissionTree" class="perm-tree hidden"></div>
                     </div>
 
                     <div id="tabContent_policies" class="hidden">
@@ -933,9 +922,6 @@
 </div>
 
 
-<!-- ══════════════════════════════════════════
-     MODAL: MANAGE SYSTEM ROLES LIST
-     ══════════════════════════════════════════ -->
 <div id="manageRolesListModal" class="rm-overlay" role="dialog" aria-modal="true" aria-labelledby="manageRolesTitle">
     <div class="rm-modal" style="max-width:440px;">
         <div class="rm-modal-header" style="background:linear-gradient(135deg,#f59e0b,#d97706);">
@@ -963,7 +949,6 @@
         var allUsers = @Html.Raw(Json.Serialize(Model));
         var existingAssignments = {};
 
-        /* Build existing assignment index */
         (allUsers || []).forEach(function(u) {
             var maps = u.Mappings || u.mappings || [];
             existingAssignments[u.Username || u.username] = {
@@ -974,25 +959,21 @@
             };
         });
 
-        /* ── Modal helpers ── */
         function openModal(id)  { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
         function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
 
-        /* Close on overlay click */
         document.querySelectorAll('.rm-overlay').forEach(function(overlay) {
             overlay.addEventListener('click', function(e) {
                 if (e.target === overlay) closeModal(overlay.id);
             });
         });
 
-        /* Close on Escape */
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 document.querySelectorAll('.rm-overlay.open').forEach(function(m) { closeModal(m.id); });
             }
         });
 
-        /* ── Utility ── */
         function formatRoleName(n) { return (n||'').replace(/([A-Z])/g,' $1').trim(); }
 
         function filterList(listId, term) {
@@ -1040,7 +1021,6 @@
             c.append(`<div class="stat-card"><div class="flex items-center justify-between"><div><p class="text-[9px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">${formatRoleName(title)}</p><p class="text-xl font-black text-gray-900">${val}</p></div><div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,${color},${color}cc);"><i class="fas ${icon} text-white text-[11px]"></i></div></div></div>`);
         }
 
-        /* ── Load system roles ── */
         function loadSystemRoles() {
             $.get('@Url.Action("GetAllSystemRoles", "Auth")', function(roles) {
                 systemRoles = roles || [];
@@ -1062,7 +1042,6 @@
             $('#assignRole').html(opts || '<option value="">No roles available</option>');
         }
 
-        /* ── Assign Role Modal ── */
         function openAssignRoleModal() {
             $('#assignUsername').val('');
             $('#assignRole').val('');
@@ -1124,7 +1103,6 @@
                 const role = $('#assignRole').val();
                 const cfg  = roleConfigs[role] || {};
                 
-                // Find user's company
                 const user = allUsers.find(u => (u.Username||u.username||"").toLowerCase() === uname);
                 if (user && (user.CompanyId || user.companyId)) {
                     $('#companyIdHidden').val(user.CompanyId || user.companyId);
@@ -1230,7 +1208,6 @@
             if (cfg.requiresLocation && !locationIds.length) { showMsg(msgEl,'Select at least one location','error'); return; }
             if (cfg.requiresDevice  && !domainNames.length) { showMsg(msgEl,'Select at least one device','error'); return; }
 
-            /* Build payloads iteratively */
             const payloads = [];
             const companiesLoop = companyIds.length ? companyIds : [null];
             const groupsLoop = groupIds.length ? groupIds : [null];
@@ -1283,7 +1260,6 @@
             btn.prop('disabled',false).html('<i class="fas fa-check mr-1.5 text-[10px]"></i>Assign Role');
 
             if (successCount > 0) {
-                // ✅ Close modal and show success toast
                 setTimeout(() => {
                     closeAssignRoleModal();
                     sysAlert(`${successCount} assignment(s) added successfully!`, 'success');
@@ -1294,7 +1270,6 @@
             }
         }
 
-        /* ── Remove mapping ── */
         function deleteMapping(id, username, roleName, scopeName) {
             sysConfirm(`Remove "${roleName}" in "${scopeName}" for "${username}"?`, function() {
                 $.post('@Url.Action("RemoveMapping", "Auth")/' + id, function(res) {
@@ -1304,7 +1279,6 @@
             }, { type:'danger' });
         }
 
-        /* ── Remove user role entirely ── */
         function removeUserRole(username, roleName) {
             sysConfirm(`Remove all roles from "${username}"? This will revoke their access.`, function() {
                 $.ajax({ url:'@Url.Action("RemoveRole", "Auth")', type:'POST', contentType:'application/json',
@@ -1318,7 +1292,6 @@
             }, { type:'danger' });
         }
 
-        /* ── Edit role (opens Assign modal pre-filled) ── */
         function editRole(username, currentRole, companyId, domainName) {
             openAssignRoleModal();
             setTimeout(() => {
@@ -1327,7 +1300,6 @@
             }, 300);
         }
 
-        /* ── Refresh table data ── */
         function refreshRoleData() {
             return $.get('@Url.Action("ManageRoles", "Auth")').done(function(html) {
                 const scriptMatch = html.match(/var allUsers = ([\s\S]*?);\s*var existingAssignments/);
@@ -1352,7 +1324,6 @@
             });
         }
 
-        /* ── Create Role Modal ── */
         var isEditMode = false, currentEditingRole = '', permissionsData = [], menusData = [], policiesData = [], currentRoleData = null;
 
         function openCreateRoleModal() {
@@ -1363,8 +1334,8 @@
             $('#roleRequiresCompany,#roleRequiresGroup,#roleRequiresDevice,#roleRequiresLocation').prop('checked',false);
             $('#createRoleMessage').addClass('hidden');
             openModal('createRoleModal');
-            switchRoleTab('perms');
-            loadCreatePermissions(); loadCreateMenus(); loadCreatePolicies();
+            switchRoleTab('policies');
+            loadCreateMenus(); loadCreatePolicies();
         }
 
         function closeCreateRoleModal() { closeModal('createRoleModal'); }
@@ -1426,8 +1397,34 @@
 
         function renderPolicyTree(policies) {
             if (!policies?.length) { $('#policyTree').html('<p class="text-gray-400 text-center py-4 text-xs">No policies assigned to system yet.</p>'); return; }
-            $('#policyTree').html('<div class="space-y-1 mt-2">' + policies.map(p => {
-                return `<label class="flex items-center gap-2 p-2 bg-gray-50 border border-gray-100 rounded-lg cursor-pointer hover:bg-sky-50 transition-colors"><input type="checkbox" name="policyIds" class="policy-checkbox rounded accent-sky-500 w-4 h-4" value="${p.id}" onchange="handlePolicyChange(${p.id}, this.checked)"><div class="flex-1 min-w-0"><p class="text-xs font-bold text-gray-800">${p.displayName||p.policyName}</p><p class="text-[10px] text-gray-500 truncate">${p.description||'Contains '+p.permissionCount+' permissions'}</p></div></label>`;
+            $('#policyTree').html('<div class="space-y-2 mt-2">' + policies.map(p => {
+                const hasPerms = p.permissionCount > 0;
+                return `
+                    <div class="policy-item-wrapper group">
+                        <label class="flex items-center gap-3 p-2.5 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer hover:bg-sky-50 hover:border-sky-200 transition-all ${!hasPerms?'opacity-60 grayscale cursor-not-allowed':''}">
+                            <input type="checkbox" name="policyIds" class="policy-checkbox rounded-md accent-sky-500 w-4 h-4" 
+                                   value="${p.id}" ${!hasPerms?'disabled':''}
+                                   onchange="handlePolicyChange(${p.id}, this.checked)">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs font-bold text-gray-800">${p.displayName||p.policyName}</p>
+                                    <span class="text-[9px] font-black ${hasPerms?'text-sky-600 bg-sky-100':'text-gray-400 bg-gray-200'} px-1.5 py-0.5 rounded-full uppercase">${p.permissionCount} Perms</span>
+                                </div>
+                                <p class="text-[10px] text-gray-500 truncate mt-0.5">${p.description || 'System bundle'}</p>
+                            </div>
+                            ${hasPerms ? `<div class="policy-preview-trigger text-gray-300 hover:text-sky-500 px-1" title="Hover to see permissions">
+                                <i class="fas fa-info-circle text-xs"></i>
+                            </div>` : ''}
+                        </label>
+                        ${hasPerms ? `
+                            <div class="policy-perms-preview hidden group-hover:block absolute z-20 bg-white border border-gray-200 shadow-xl rounded-lg p-3 w-64 -ml-4 mt-1">
+                                <p class="text-[9px] font-bold text-gray-400 uppercase mb-2 border-b pb-1">Included Permissions</p>
+                                <div class="max-h-40 overflow-y-auto space-y-1">
+                                    ${(p.permissions||[]).map(code => `<div class="flex items-center gap-2 text-[9px] text-gray-600"><i class="fas fa-check text-emerald-500 text-[7px]"></i>${code}</div>`).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>`;
             }).join('') + '</div>');
         }
 
@@ -1502,7 +1499,7 @@
                 const dup = systemRoles.some(r => { const n=typeof r==='string'?r:(r.name||r.RoleName||''); return n.toLowerCase()===roleName.toLowerCase(); });
                 if (dup) { showMsg(msgEl,'A role with this name already exists','error'); return; }
             }
-            if (!perms.length) { showMsg(msgEl,'Select at least one permission','error'); return; }
+            if (!policies.length) { showMsg(msgEl,'At least one Policy must be selected','error'); return; }
 
             const btn = $('#createRoleBtn').prop('disabled',true).html('<i class="fas fa-spinner fa-spin mr-1.5"></i>Saving…');
             const url = isEditMode ? '@Url.Action("UpdateRoleWithPermissions", "Auth")' : '@Url.Action("CreateRoleWithPermissions", "Auth")';
@@ -1545,7 +1542,7 @@
                 $('#roleRequiresGroup').prop('checked', data.requiresGroup);
                 $('#roleRequiresDevice').prop('checked', data.requiresDevice);
                 $('#roleRequiresLocation').prop('checked', data.requiresLocation);
-                loadCreatePermissions(); loadCreateMenus(); loadCreatePolicies();
+                loadCreateMenus(); loadCreatePolicies();
             });
         }
 

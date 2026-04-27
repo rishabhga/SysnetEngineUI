@@ -396,28 +396,40 @@
             });
         }
 
-        function loadAllStats() {
-            $.get('@Url.Action("GetNetworkStats", "Home")', function(data) {
+        function loadAllStats(cid, gid, lid) {
+            let query = "";
+            if (cid) query += (query ? "&" : "?") + "companyId=" + cid;
+            if (gid) query += (query ? "&" : "?") + "groupId=" + gid;
+            if (lid) query += (query ? "&" : "?") + "locationId=" + lid;
+
+            $.get('@Url.Action("GetNetworkStats", "Home")' + query, function(data) {
                 if (data.error) { $('#statTotal').text('—'); return; }
                 animateNumber('statTotal', data.total);
                 $('#statOnline').text(data.online);
                 renderNetworkChart(data.online, data.offline);
             }).fail(() => $('#statTotal').text('—'));
 
-            $.get('@Url.Action("GetPatchOverview", "Home")', function(data) {
+            $.get('@Url.Action("GetPatchOverview", "Home")' + query, function(data) {
                 if (data.error) { $('#statPatches').text('—'); return; }
                 animateNumber('statPatches', data.total);
                 $('#statPatchDetail').html(`<span class="text-amber-500">${data.thirdPartyCount}</span> 3rd · <span class="text-blue-500">${data.windowsCount}</span> Win`);
                 renderPatchChart(data.thirdPartyCount, data.windowsCount);
             }).fail(() => $('#statPatches').text('—'));
 
-            $.get('@Url.Action("GetSwitchStatus", "Home")', function(data) {
+            $.get('@Url.Action("GetSwitchStatus", "Home")' + query, function(data) {
                 if (data.error) { $('#statSwitches').text('—'); return; }
                 animateNumber('statSwitches', data.total);
                 $('#statSwitchUp').html(`<i class="fas fa-arrow-up text-[8px]"></i> ${data.up} UP`);
                 renderSwitchChart(data.up, data.down);
             }).fail(() => $('#statSwitches').text('—'));
         }
+
+        window.onHierarchyChange = function(state) {
+            const cid = state.company ? state.company.id : null;
+            const gid = state.group ? state.group.id : null;
+            const lid = state.location ? state.location.id : null;
+            loadAllStats(cid, gid, lid);
+        };
 
         function loadActivity() {
             $.get('@Url.Action("GetRecentActivity", "Home")', function(data) {

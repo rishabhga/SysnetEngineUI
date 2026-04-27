@@ -6,6 +6,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestHeadersTotalSize = 64 * 1024; 
+    options.Limits.MaxRequestBodySize = long.MaxValue;
+});
+
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = long.MaxValue;
+    options.MultipartHeadersLengthLimit = int.MaxValue;
 });
 
 builder.Services.AddControllersWithViews(options =>
@@ -46,7 +54,11 @@ var app = builder.Build();
 var httpClientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
 ManageEngineWebApp.Datacontext.RoleHelper.Configure(app.Configuration, httpClientFactory);
 
-if (!app.Environment.IsProduction())
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();

@@ -56,11 +56,24 @@ namespace ManageEngineWebApp.Controllers
                 var activeContent = await activeTask.Result.Content.ReadAsStringAsync();
                 var activeDevices = JsonConvert.DeserializeObject<List<dynamic>>(activeContent) ?? new List<dynamic>();
 
+                var authorizedUserCodes = allDevices
+                    .Select(d => (string)(d.userCode ?? d.UserCode ?? d.domainName ?? d.DomainName))
+                    .Where(code => !string.IsNullOrEmpty(code))
+                    .Select(code => code.ToUpper().Trim())
+                    .ToHashSet();
+
+                var filteredActiveCount = activeDevices
+                    .Select(d => (string)(d.userName ?? d.UserName))
+                    .Where(name => !string.IsNullOrEmpty(name))
+                    .Select(name => name.ToUpper().Trim())
+                    .Distinct() // Ensure unique computer counts
+                    .Count(name => IsTopLevelAdmin() || authorizedUserCodes.Contains(name));
+
                 return Json(new
                 {
                     total = allDevices.Count,
-                    online = activeDevices.Count,
-                    offline = Math.Max(0, allDevices.Count - activeDevices.Count)
+                    online = filteredActiveCount,
+                    offline = Math.Max(0, allDevices.Count - filteredActiveCount)
                 });
             }
             catch (Exception ex)
