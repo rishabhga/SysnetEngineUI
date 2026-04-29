@@ -5,8 +5,23 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-900 mb-2">Connected Clients</h1>
-        <p class="text-gray-600">Monitor all connected devices in real-time</p>
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Connected Clients</h1>
+                <p class="text-gray-600">
+                    Monitor all connected devices in real-time
+                    <span id="liveIndicator"
+                          class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-green-50 border border-green-200 rounded-full text-[10px] font-semibold text-green-700">
+                        <span id="liveDot" class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        <span id="liveLabel">Live</span>
+                    </span>
+                </p>
+            </div>
+            <!-- Total count badge -->
+            <span class="text-sm font-semibold text-gray-700">
+                Total: <span id="totalCount" class="text-blue-600">@Model.Count</span>
+            </span>
+        </div>
     </div>
     <!-- Search -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
@@ -26,11 +41,11 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Connection ID</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody id="clientsTableBody" class="divide-y divide-gray-200">
                 @if (Model.Count == 0)
                 {
-                    <tr>
-                        <td colspan="4" class="px-6 py-12 text-center">
+                    <tr id="emptyRow">
+                        <td colspan="3" class="px-6 py-12 text-center">
                             <i class="fas fa-desktop text-gray-300 text-4xl mb-2"></i>
                             <p class="text-gray-500">No connected clients found</p>
                         </td>
@@ -54,22 +69,110 @@
                         <td class="px-6 py-4">
                             <code class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">@item.ConnectionId</code>
                         </td>
-                       
                     </tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
+
 @section Scripts {
     <script>
-        $(document).ready(function() {
-            $('#searchInput').on('keyup', function() {
-                var value = $(this).val().toLowerCase();
-                $('#clientsTable tbody tr').filter(function() {
-                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-                });
-            });
+
+        const liveDot   = document.getElementById('liveDot');
+        const liveLabel = document.getElementById('liveLabel');
+        let lastKnownCount = @Model.Count;
+        let searchTerm = '';
+
+        document.getElementById('searchInput').addEventListener('keyup', function () {
+            searchTerm = this.value.toLowerCase();
+            filterTable();
         });
+
+        function filterTable() {
+            document.querySelectorAll('#clientsTableBody tr[data-live-row]').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        function setLiveState(state) {
+            liveDot.className = 'w-1.5 h-1.5 rounded-full';
+            switch (state) {
+                case 'syncing':
+                    liveDot.classList.add('bg-blue-400', 'animate-pulse');
+                    liveLabel.textContent = 'Syncing…';
+                    break;
+                case 'live':
+                    liveDot.classList.add('bg-green-500', 'animate-pulse');
+                    liveLabel.textContent = 'Live';
+                    break;
+                case 'error':
+                    liveDot.classList.add('bg-red-400');
+                    liveLabel.textContent = 'Reconnecting…';
+                    break;
+            }
+        }
+
+        function renderRows(devices) {
+            const tbody = document.getElementById('clientsTableBody');
+
+            if (!Array.isArray(devices) || devices.length === 0) {
+                tbody.innerHTML = `
+                    <tr id="emptyRow">
+                        <td colspan="3" class="px-6 py-12 text-center">
+                            <i class="fas fa-desktop text-gray-300 text-4xl mb-2"></i>
+                            <p class="text-gray-500">No connected clients found</p>
+                        </td>
+                    </tr>`;
+                document.getElementById('totalCount').textContent = 0;
+                return;
+            }
+
+            tbody.innerHTML = devices.map((d, i) => {
+                const name  = d.computerName || d.ComputerName || d || '—';
+                const connId = d.connectionId || d.ConnectionId || '—';
+                const id     = d.id || d.Id || (i + 1);
+                return `<tr class="hover:bg-gray-50" data-live-row="1">
+                    <td class="px-6 py-4 text-sm text-gray-900">${i + 1}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-desktop text-blue-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">${name}</p>
+                                <p class="text-xs text-gray-500">Connected Device</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <code class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">${connId}</code>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('totalCount').textContent = devices.length;
+
+            if (searchTerm) filterTable();
+        }
+
+        function refreshClientList() {
+            setLiveState('syncing');
+            fetch('@Url.Action("GetConnectedDevices", "ComputerSummary")')
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(devices => {
+                    if (!Array.isArray(devices)) { setLiveState('error'); return; }
+                    if (devices.length !== lastKnownCount) {
+                        lastKnownCount = devices.length;
+                        renderRows(devices);
+                    }
+                    setLiveState('live');
+                })
+                .catch(() => setLiveState('error'));
+        }
+
+        refreshClientList();
+        setInterval(refreshClientList, 5000);
     </script>
 }

@@ -31,7 +31,6 @@ namespace ManageEngineWebApp.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetCompaniesForRegister()
         {
-            var data = new List<Companies>();
             try
             {
                 using var client = GetClient();
@@ -39,16 +38,15 @@ namespace ManageEngineWebApp.Controllers
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    data = !string.IsNullOrEmpty(content)
-                        ? JsonConvert.DeserializeObject<List<Companies>>(content) ?? new List<Companies>()
-                        : new List<Companies>();
+                    var data = JsonConvert.DeserializeObject<List<Companies>>(content) ?? new List<Companies>();
+                    return Json(data);
                 }
+                return Json(new { error = true, message = $"API Error: {response.StatusCode}" });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"GetCompaniesForRegister Error: {ex.Message}");
+                return Json(new { error = true, message = $"WebApp Error: {ex.Message}" });
             }
-            return Json(data);
         }
 
 
@@ -164,7 +162,6 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (JsonReaderException)
             {
-                // If it's not valid JSON, it might be a plain text error message starting with 'L' or similar
                 var preview = apiResultStr.Length > 100 ? apiResultStr.Substring(0, 100) + "..." : apiResultStr;
                 TempData["msg"] = $"API error: Unexpected response format. Content: {preview}";
                 return View(model);

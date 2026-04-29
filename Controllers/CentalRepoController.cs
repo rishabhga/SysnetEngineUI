@@ -61,7 +61,6 @@ namespace ManageEngineWebApp.Controllers
 
                 using var form = new MultipartFormDataContent();
 
-                // File content
                 using var stream = file.OpenReadStream();
                 var fileContent = new StreamContent(stream);
                 fileContent.Headers.ContentType =
@@ -71,7 +70,6 @@ namespace ManageEngineWebApp.Controllers
                 form.Add(new StringContent(softwareName), "softwareName");
                 form.Add(new StringContent(version), "version");
 
-                // API call
                 var response = await client.PostAsync(
                     $"{_baseUrl}/api/SoftwareRepoDetails/upload",
                     form);

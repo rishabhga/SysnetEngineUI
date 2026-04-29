@@ -31,12 +31,19 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
+        public IActionResult GetDashboardContext()
+        {
+            var isSuperAdmin = IsTopLevelAdmin();
+            var companyName = HttpContext.Session.GetString("companyName") ?? "";
+            return Json(new { isSuperAdmin, companyName });
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetNetworkStats()
         {
             try
             {
                 var client = GetClient();
-                
                 var query = BuildScopedQuery();
                 var totalTask = client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser{query}");
                 var activeTask = client.GetAsync($"{_baseUrl}/api/Command/GetConnectedDevices");
@@ -45,11 +52,12 @@ namespace ManageEngineWebApp.Controllers
 
                 var totalContent = await totalTask.Result.Content.ReadAsStringAsync();
                 var allDevices = JsonConvert.DeserializeObject<List<dynamic>>(totalContent) ?? new List<dynamic>();
-                
+
                 var activeContent = await activeTask.Result.Content.ReadAsStringAsync();
                 var activeDevices = JsonConvert.DeserializeObject<List<dynamic>>(activeContent) ?? new List<dynamic>();
 
-                return Json(new {
+                return Json(new
+                {
                     total = allDevices.Count,
                     online = activeDevices.Count,
                     offline = Math.Max(0, allDevices.Count - activeDevices.Count)
@@ -67,9 +75,10 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var client = GetClient();
-                
-                var tpTask = client.GetAsync($"{_baseUrl}/api/MissingPatch");
-                var winTask = client.GetAsync($"{_baseUrl}/api/MissingPatch/windowpatch");
+                var query = BuildScopedQuery();
+
+                var tpTask = client.GetAsync($"{_baseUrl}/api/MissingPatch{query}");
+                var winTask = client.GetAsync($"{_baseUrl}/api/MissingPatch/windowpatch{query}");
 
                 await Task.WhenAll(tpTask, winTask);
 
@@ -79,7 +88,8 @@ namespace ManageEngineWebApp.Controllers
                 var winContent = await winTask.Result.Content.ReadAsStringAsync();
                 var winPatches = JsonConvert.DeserializeObject<List<dynamic>>(winContent) ?? new List<dynamic>();
 
-                return Json(new {
+                return Json(new
+                {
                     thirdPartyCount = tpPatches.Count,
                     windowsCount = winPatches.Count,
                     total = tpPatches.Count + winPatches.Count
@@ -97,9 +107,10 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var client = GetClient();
-                
-                var swTask = client.GetAsync($"{_baseUrl}/api/Zabbix");
-                var statusTask = client.GetAsync($"{_baseUrl}/api/Zabbix/AllDeviceStatuses");
+                var query = BuildScopedQuery();
+
+                var swTask = client.GetAsync($"{_baseUrl}/api/Zabbix{query}");
+                var statusTask = client.GetAsync($"{_baseUrl}/api/Zabbix/AllDeviceStatuses{query}");
 
                 await Task.WhenAll(swTask, statusTask);
 
@@ -114,7 +125,8 @@ namespace ManageEngineWebApp.Controllers
                     return st == "UP" || st == "Ok";
                 });
 
-                return Json(new {
+                return Json(new
+                {
                     total = switches.Count,
                     up = upCount,
                     down = Math.Max(0, switches.Count - upCount)
@@ -126,32 +138,123 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetRecentActivity()
+
+        private async Task<List<dynamic>> FetchNotificationsForCurrentUser()
         {
-            try
+            var client = GetClient();
+            var allItems = new List<dynamic>();
+            var seenIds = new HashSet<string>();
+
+            if (IsTopLevelAdmin())
             {
-                var companyId = RoleHelper.GetCompanyId(HttpContext) ?? 0;
-                var groupId = RoleHelper.GetGroupId(HttpContext);
-                var locationId = RoleHelper.GetLocationId(HttpContext);
+                var response = await client.GetAsync(
+                    $"{_baseUrl}/api/RamCpuDiskData/notifications/location");
 
-                var client = GetClient();
-                string url = $"api/RamCpuDiskData/notifications/location?companyId={companyId}";
-                if (groupId.HasValue) url += $"&groupId={groupId}";
-                if (locationId.HasValue) url += $"&locationId={locationId}";
-
-                var response = await client.GetAsync($"{_baseUrl}/{url}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    return Content(content, "application/json");
+                    var items = JsonConvert.DeserializeObject<List<dynamic>>(content)
+                                  ?? new List<dynamic>();
+                    allItems.AddRange(items);
                 }
-                return Json(new List<object>());
+            }
+            else
+            {
+                var (companyIds, _, _) = GetUserScope();
+
+                if (!companyIds.Any())
+                    return allItems;
+                foreach (var cid in companyIds)
+                {
+                    var url = $"{_baseUrl}/api/RamCpuDiskData/notifications/location?companyId={cid}";
+                    var response = await client.GetAsync(url);
+
+                    if (!response.IsSuccessStatusCode) continue;
+
+                    var content = await response.Content.ReadAsStringAsync();
+                    var items = JsonConvert.DeserializeObject<List<dynamic>>(content)
+                                  ?? new List<dynamic>();
+
+                    foreach (var item in items)
+                    {
+                        string key = item?.id?.ToString() ?? item?.Id?.ToString() ?? Guid.NewGuid().ToString();
+                        if (seenIds.Add(key))
+                            allItems.Add(item);
+                    }
+                }
+            }
+
+            return allItems;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetRecentActivity()
+        {
+            if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
+                return Content("[]", "application/json");
+
+            try
+            {
+                var notifications = await FetchNotificationsForCurrentUser();
+                return Content(JsonConvert.SerializeObject(notifications), "application/json");
             }
             catch
             {
-                return Json(new List<object>());
+                return Content("[]", "application/json");
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetNotifications()
+        {
+            if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
+                return Content(JsonConvert.SerializeObject(new { items = new List<object>(), count = 0 }), "application/json");
+
+            try
+            {
+                var notifications = await FetchNotificationsForCurrentUser();
+                var json = JsonConvert.SerializeObject(new { items = notifications, count = notifications.Count });
+                return Content(json, "application/json");
+            }
+            catch
+            {
+                return Content(JsonConvert.SerializeObject(new { items = new List<object>(), count = 0 }), "application/json");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetNotificationCount()
+        {
+            if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
+                return Content("{\"count\":0}", "application/json");
+
+            try
+            {
+                var notifications = await FetchNotificationsForCurrentUser();
+
+                int unread = notifications.Count(n => {
+                    var isReadVal = n?.isRead ?? n?.IsRead;
+                    if (isReadVal == null) return true;
+                    return !(bool)isReadVal;
+                });
+
+                return Content(JsonConvert.SerializeObject(new { count = unread }), "application/json");
+            }
+            catch
+            {
+                return Content("{\"count\":0}", "application/json");
+            }
+        }
+
+        public IActionResult Notifications()
+        {
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("username")))
+                return RedirectToAction("Login", "Auth");
+
+            if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
+                return RedirectToAction("Index");
+
+            return View();
         }
 
         [AllowAnonymous]

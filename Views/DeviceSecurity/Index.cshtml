@@ -1,0 +1,315 @@
+@{
+    ViewData["Title"] = "Device Security";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        .device-card {
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .device-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+            border-color: #00BCEB;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-blocked { background-color: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+        .status-unblocked { background-color: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.5); }
+
+        .btn-toggle {
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-toggle:active {
+            transform: scale(0.95);
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            backdrop-filter: blur(2px);
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #00BCEB;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-wrapper i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        .search-input {
+            padding-left: 38px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #00BCEB;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 188, 235, 0.1);
+        }
+    </style>
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <i class="fas fa-shield-alt text-[#00BCEB]"></i> Device Security Management
+            </h1>
+            <p class="text-sm text-slate-500 mt-1">Monitor and control USB access for network devices in real-time.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="search-wrapper w-full md:w-64">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" class="search-input w-full py-2.5 text-sm" placeholder="Search devices...">
+            </div>
+            <button onclick="loadDevices()" class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors shadow-sm font-semibold text-sm flex items-center gap-2">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-white rounded-xl border border-slate-100 p-5 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 text-xl">
+                <i class="fas fa-desktop"></i>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Devices</p>
+                <p class="text-2xl font-black text-slate-800" id="statTotal">-</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-100 p-5 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 text-xl">
+                <i class="fas fa-lock"></i>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">USB Blocked</p>
+                <p class="text-2xl font-black text-slate-800" id="statBlocked">-</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-100 p-5 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-500 text-xl">
+                <i class="fas fa-unlock"></i>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">USB Allowed</p>
+                <p class="text-2xl font-black text-slate-800" id="statAllowed">-</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="deviceGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Devices will be populated here -->
+    </div>
+
+    <div id="emptyState" class="hidden text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm">
+        <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-laptop-slash text-3xl text-slate-300"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-700 mb-1">No devices found</h3>
+        <p class="text-sm text-slate-500">Ensure the ScanHub agent is running on target machines.</p>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let allDevices = [];
+
+        $(document).ready(() => {
+            loadDevices();
+
+            $('#searchInput').on('keyup', function() {
+                const term = $(this).val().toLowerCase();
+                if(!term) { renderDevices(allDevices); return; }
+                
+                const filtered = allDevices.filter(d => 
+                    (d.computerName && d.computerName.toLowerCase().includes(term)) ||
+                    (d.clientId && d.clientId.toLowerCase().includes(term))
+                );
+                renderDevices(filtered);
+            });
+        });
+
+        function loadDevices() {
+            $('#refreshIcon').addClass('fa-spin');
+            $('#deviceGrid').empty();
+            $('#emptyState').addClass('hidden');
+
+            // Skeleton loading
+            for(let i=0; i<8; i++) {
+                $('#deviceGrid').append(`
+                    <div class="device-card animate-pulse">
+                        <div class="h-4 bg-slate-200 rounded w-1/3 mb-4"></div>
+                        <div class="h-6 bg-slate-200 rounded w-2/3 mb-2"></div>
+                        <div class="h-3 bg-slate-200 rounded w-1/2 mb-6"></div>
+                        <div class="h-10 bg-slate-200 rounded w-full"></div>
+                    </div>
+                `);
+            }
+
+            $.get('@Url.Action("GetSecurityStatus", "DeviceSecurity")', function(res) {
+                $('#refreshIcon').removeClass('fa-spin');
+                if(res.success && res.data) {
+                    // Handle .NET Core JSON ReferenceHandler.Preserve format
+                    allDevices = Array.isArray(res.data) ? res.data : (res.data.$values || res.data.items || []);
+                    updateStats();
+                    renderDevices(allDevices);
+                } else {
+                    if (typeof sysAlert === 'function') sysAlert(res.message || 'Error loading devices', 'error');
+                    $('#deviceGrid').empty();
+                    $('#emptyState').removeClass('hidden');
+                }
+            }).fail(function() {
+                $('#refreshIcon').removeClass('fa-spin');
+                if (typeof sysAlert === 'function') sysAlert('Network error occurred while fetching device status.', 'error');
+                $('#deviceGrid').empty();
+                $('#emptyState').removeClass('hidden');
+            });
+        }
+
+        function updateStats() {
+            $('#statTotal').text(allDevices.length);
+            const blocked = allDevices.filter(d => d.isUsbBlocked).length;
+            $('#statBlocked').text(blocked);
+            $('#statAllowed').text(allDevices.length - blocked);
+        }
+
+        function renderDevices(devices) {
+            const container = $('#deviceGrid').empty();
+            
+            if(!devices || devices.length === 0) {
+                $('#emptyState').removeClass('hidden');
+                return;
+            }
+            
+            $('#emptyState').addClass('hidden');
+
+            devices.forEach(d => {
+                const isBlocked = d.isUsbBlocked;
+                const statusColor = isBlocked ? 'text-red-600 bg-red-50 border-red-100' : 'text-green-600 bg-green-50 border-green-100';
+                const statusIcon = isBlocked ? 'fa-lock' : 'fa-unlock';
+                const statusText = isBlocked ? 'USB Blocked' : 'USB Allowed';
+                const actionBtnColor = isBlocked 
+                    ? 'bg-slate-800 hover:bg-slate-700 text-white shadow-md' 
+                    : 'bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-500/20';
+                const actionBtnIcon = isBlocked ? 'fa-unlock' : 'fa-lock';
+                const actionBtnText = isBlocked ? 'Unblock USB' : 'Block USB';
+                
+                let updatedTime = '';
+                try {
+                    if(d.updatedOn) {
+                        const date = new Date(d.updatedOn);
+                        updatedTime = date.toLocaleString();
+                    }
+                } catch(e) {}
+
+                const card = $(`
+                    <div class="device-card group" id="card-${d.clientId}">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="px-2.5 py-1 rounded-md border ${statusColor} text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5">
+                                <i class="fas ${statusIcon}"></i> ${statusText}
+                            </div>
+                            <div class="text-slate-300 group-hover:text-[#00BCEB] transition-colors">
+                                <i class="fas fa-laptop text-xl"></i>
+                            </div>
+                        </div>
+                        
+                        <h3 class="font-black text-slate-800 text-lg mb-1 truncate" title="${d.computerName || d.clientId}">${d.computerName || d.clientId}</h3>
+                        <p class="text-xs text-slate-400 mb-5 flex items-center gap-1">
+                            <i class="far fa-clock"></i> Last sync: ${updatedTime || 'Unknown'}
+                        </p>
+                        
+                        <button onclick="toggleUsb('${d.clientId}', ${!isBlocked})" class="btn-toggle w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 ${actionBtnColor}">
+                            <i class="fas ${actionBtnIcon}"></i> ${actionBtnText}
+                        </button>
+                    </div>
+                `);
+                container.append(card);
+            });
+        }
+
+        function toggleUsb(clientId, blockTarget) {
+            const card = $(\`#card-\${clientId}\`);
+            card.append('<div class="loading-overlay" id="loading-' + clientId + '"><div class="spinner"></div></div>');
+
+            $.ajax({
+                url: '@Url.Action("ToggleUsbStatus", "DeviceSecurity")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ clientId: clientId, block: blockTarget }),
+                success: function(res) {
+                    if(res.success) {
+                        sysAlert(res.message, 'success');
+                        // Update local state without full reload for better UX
+                        const deviceIndex = allDevices.findIndex(d => d.clientId === clientId);
+                        if(deviceIndex > -1) {
+                            allDevices[deviceIndex].isUsbBlocked = blockTarget;
+                            allDevices[deviceIndex].updatedOn = new Date().toISOString();
+                            updateStats();
+                            
+                            // Re-render only if there's no active search, else re-render full filtered list
+                            const term = $('#searchInput').val();
+                            if(term) $('#searchInput').trigger('keyup');
+                            else renderDevices(allDevices);
+                        } else {
+                            loadDevices();
+                        }
+                    } else {
+                        $(\`#loading-\${clientId}\`).remove();
+                        sysAlert(res.message, 'error');
+                    }
+                },
+                error: function() {
+                    $(\`#loading-\${clientId}\`).remove();
+                    sysAlert('Server communication failed.', 'error');
+                }
+            });
+        }
+    </script>
+}

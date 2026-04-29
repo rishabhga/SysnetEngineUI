@@ -1,9 +1,10 @@
+﻿using ManageEngineWebApp.Attributes;
 using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Models;
-using ManageEngineWebApp.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Text;
 
@@ -58,8 +59,8 @@ namespace ManageEngineWebApp.Controllers
                 Debug.WriteLine($"Error: {ex.Message}");
             }
             ViewBag.ActiveComputers = activeComputers;
+            ViewBag.ApiBaseUrl = _baseUrl;
 
-            HttpContext.Session.Remove("CompanyLogo");
             var hierarchyData = await LoadHierarchyAsync();
             return View(hierarchyData ?? new List<CompanyHierarchyDto>());
         }
@@ -105,8 +106,34 @@ namespace ManageEngineWebApp.Controllers
             var response = await client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Groupdata{query}");
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
-                return Content(content, "application/json");
+                var json = await response.Content.ReadAsStringAsync();
+                var groups = Newtonsoft.Json.Linq.JArray.Parse(json);
+                if (companyId > 0)
+                {
+                    groups = new Newtonsoft.Json.Linq.JArray(groups.Where(g =>
+                    {
+                        var gCompId = g["companyID"]?.Value<int?>()
+                                   ?? g["CompanyID"]?.Value<int?>()
+                                   ?? g["companyId"]?.Value<int?>()
+                                   ?? g["CompanyId"]?.Value<int?>()
+                                   ?? 0;
+                        return gCompId == companyId;
+                    }));
+                }
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                {
+                    var userGroupIds = RoleHelper.GetGroupIds(HttpContext);
+                    if (userGroupIds.Any())
+                    {
+                        groups = new Newtonsoft.Json.Linq.JArray(groups.Where(g =>
+                        {
+                            var id = g["id"]?.Value<int>() ?? g["Id"]?.Value<int>() ?? 0;
+                            return userGroupIds.Contains(id);
+                        }));
+                    }
+                }
+
+                return Content(groups.ToString(Newtonsoft.Json.Formatting.None), "application/json");
             }
             return Json(new List<object>());
         }
@@ -122,8 +149,34 @@ namespace ManageEngineWebApp.Controllers
             var response = await client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Locationdata{query}");
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
-                return Content(content, "application/json");
+                var json = await response.Content.ReadAsStringAsync();
+                var locations = Newtonsoft.Json.Linq.JArray.Parse(json);
+                if (groupId > 0)
+                {
+                    locations = new Newtonsoft.Json.Linq.JArray(locations.Where(l =>
+                    {
+                        var lGroupId = l["groupsID"]?.Value<int?>()
+                                    ?? l["GroupsID"]?.Value<int?>()
+                                    ?? l["groupId"]?.Value<int?>()
+                                    ?? l["GroupId"]?.Value<int?>()
+                                    ?? 0;
+                        return lGroupId == groupId;
+                    }));
+                }
+                if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                {
+                    var userLocationIds = RoleHelper.GetLocationIds(HttpContext);
+                    if (userLocationIds.Any())
+                    {
+                        locations = new Newtonsoft.Json.Linq.JArray(locations.Where(l =>
+                        {
+                            var id = l["id"]?.Value<int>() ?? l["Id"]?.Value<int>() ?? 0;
+                            return userLocationIds.Contains(id);
+                        }));
+                    }
+                }
+
+                return Content(locations.ToString(Newtonsoft.Json.Formatting.None), "application/json");
             }
             return Json(new List<object>());
         }
@@ -268,6 +321,24 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Logo(string path)
+        {
+            try
+            {
+                using var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}{path}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var bytes = await response.Content.ReadAsByteArrayAsync();
+                    var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/png";
+                    return File(bytes, contentType);
+                }
+            }
+            catch { }
+            return NotFound();
+        }
+
         [HttpPost]
         [DynamicPermission("Companies.Edit", "Upload Logo")]
         public async Task<IActionResult> UploadLogo(IFormFile logo, int companyId)
@@ -282,11 +353,11 @@ namespace ManageEngineWebApp.Controllers
             {
                 using var client = GetClient();
                 using var content = new MultipartFormDataContent();
-                
+
                 using var stream = logo.OpenReadStream();
                 var fileContent = new StreamContent(stream);
                 fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(logo.ContentType);
-                
+
                 content.Add(fileContent, "logo", logo.FileName);
                 content.Add(new StringContent(companyId.ToString()), "companyId");
 
@@ -340,16 +411,8 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.RemoteSessions = remoteSessions;
 
             var company = await LoadSingleCompanyHierarchyAsync(id, companyName);
-            
-            if (!string.IsNullOrEmpty(company?.LogoUrl))
-            {
-                HttpContext.Session.SetString("CompanyLogo", $"{_baseUrl}{company.LogoUrl}");
-            }
-            else
-            {
-                HttpContext.Session.Remove("CompanyLogo");
-            }
-            
+            ViewBag.ApiBaseUrl = _baseUrl;
+
             return View(company);
         }
 

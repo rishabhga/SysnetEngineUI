@@ -88,6 +88,36 @@
             background: #fff;
             color: #9ca3af;
         }
+
+    /* ── live-sync indicator (top-right of toolbar) ── */
+    #liveSyncIndicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 9px;
+        color: #6b7280;
+    }
+
+    #liveSyncDot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #9ca3af;
+        transition: background .4s;
+    }
+
+        #liveSyncDot.syncing {
+            background: #00BCEB;
+            animation: pulse 1s infinite;
+        }
+
+        #liveSyncDot.synced {
+            background: #22c55e;
+        }
+
+        #liveSyncDot.error {
+            background: #ef4444;
+        }
 </style>
 
 <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3">
@@ -101,6 +131,11 @@
         </div>
 
         <div class="flex items-center gap-2">
+            <span id="liveSyncIndicator" title="Live status sync">
+                <span id="liveSyncDot"></span>
+                <span id="liveSyncLabel">Syncing…</span>
+            </span>
+
             <span id="selectedPill" class="hidden items-center gap-1 px-2.5 py-1 bg-cyan-50 border border-cyan-200 rounded-full text-[11px] font-semibold text-cyan-700">
                 <i class="fas fa-check-circle text-[9px]"></i>
                 <span id="selCountPill">0</span> selected
@@ -179,7 +214,7 @@
                     <tbody id="deviceTableBody" class="divide-y divide-gray-100">
                         @foreach (var item in Model)
                         {
-                            bool isOnline = activeComputers.Contains(item.DomainName);
+                            bool isOnline = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase));
                             <tr class="device-row transition-colors"
                                 data-id="@item.Id"
                                 data-domain="@item.DomainName"
@@ -196,7 +231,7 @@
                                            @(isOnline ? "" : "disabled")
                                            onchange="updateRowSelection(this)">
                                 </td>
-                                <td class="px-3 py-2">
+                                <td class="px-3 py-2 status-badge-cell">
                                     @if (isOnline)
                                     {
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold pm-badge-online">
@@ -254,10 +289,145 @@
         let currentPage  = 1;
         let pageSize     = 50;
 
-        let selectedIds     = new Set();   
-        let selectedDomains = new Map();  
-        let selectedNames   = new Map();  
+        let selectedIds     = new Set();
+        let selectedDomains = new Map();
+        let selectedNames   = new Map();
+        const syncDot   = document.getElementById('liveSyncDot');
+        const syncLabel = document.getElementById('liveSyncLabel');
 
+        function setSyncState(state) {
+            syncDot.className = '';
+            switch (state) {
+                case 'connecting': syncDot.classList.add('syncing'); syncLabel.textContent = 'Connecting…'; break;
+                case 'live':       syncDot.classList.add('synced');  syncLabel.textContent = 'Live';         break;
+                case 'error':      syncDot.classList.add('error');   syncLabel.textContent = 'Reconnecting…'; break;
+            }
+        }
+
+        let hasReceivedInitialSync = false;
+
+        function applyDeviceStatuses(devices) {
+            if (!Array.isArray(devices)) return;
+            if (devices.length === 0 && !hasReceivedInitialSync) {
+                return;
+            }
+
+            const onlineSet = new Set(
+                devices.map(d => (d || '').toString().trim().toUpperCase())
+            );
+
+            ALL_ROWS.forEach(row => {
+                const domain    = (row.dataset.domain || '').trim().toUpperCase();
+                const wasOnline = row.dataset.status === 'online';
+                const isOnline  = onlineSet.has(domain);
+
+                if (isOnline) {
+                    row.dataset.missCount = 0;
+                    if (!wasOnline || !hasReceivedInitialSync) {
+                        updateRowUI(row, true);
+                    }
+                } else {
+                    let misses = (parseInt(row.dataset.missCount) || 0) + 1;
+                    row.dataset.missCount = misses;
+                    if (wasOnline && misses >= 2) {
+                        updateRowUI(row, false);
+                    } else if (!wasOnline && !hasReceivedInitialSync) {
+                        updateRowUI(row, false);
+                    }
+                }
+            });
+
+            function updateRowUI(row, isOnline) {
+                row.dataset.status = isOnline ? 'online' : 'offline';
+
+                const badgeCell = row.querySelector('.status-badge-cell');
+                if (badgeCell) {
+                    badgeCell.innerHTML = isOnline
+                        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold pm-badge-online">
+                               <span class="w-1.5 h-1.5 rounded-full bg-green-500 pulse-dot"></span> Online
+                           </span>`
+                        : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold pm-badge-offline">
+                               <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Offline
+                           </span>`;
+                }
+
+                const cb = row.querySelector('.device-checkbox');
+                if (cb) {
+                    cb.disabled = !isOnline;
+                    if (!isOnline && cb.checked) {
+                        cb.checked = false;
+                        const id = cb.value;
+                        selectedIds.delete(id);
+                        selectedDomains.delete(id);
+                        selectedNames.delete(id);
+                    }
+                }
+            }
+
+            hasReceivedInitialSync = true;
+            updateHeader();
+            applyFilters();
+        }
+
+        function fallbackPoll() {
+            fetch('@Url.Action("GetConnectedDevices", "ComputerSummary")')
+                .then(r => r.ok ? r.json() : [])
+                .then(devices => { 
+                    if (Array.isArray(devices)) {
+                        const ids = devices.map(d => d.clientId || d);
+                        applyDeviceStatuses(ids); 
+                    }
+                })
+                .catch(() => {});
+        }
+
+        let patchHubConnection = null;
+
+        function startPatchHubConnection() {
+            const apiBase = (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.apiBaseUrl) || '';
+            const hubUrl  = `${apiBase}/scanHub?clientId=PatchPage&computerName=WebPortal`;
+
+            patchHubConnection = new signalR.HubConnectionBuilder()
+                .withUrl(hubUrl, {
+                    transport: signalR.HttpTransportType.WebSockets
+                           | signalR.HttpTransportType.ServerSentEvents
+                           | signalR.HttpTransportType.LongPolling
+                })
+                .withAutomaticReconnect([0, 2000, 5000, 10000])
+                .build();
+            patchHubConnection.on('DeviceStatusChanged', function(connectedDevices) {
+                applyDeviceStatuses(connectedDevices);
+                setSyncState('live');
+            });
+
+            patchHubConnection.on('ReceiveConnectedDevices', function(connectedDevices) {
+                applyDeviceStatuses(connectedDevices);
+                setSyncState('live');
+            });
+
+            patchHubConnection.onreconnecting(() => setSyncState('connecting'));
+            patchHubConnection.onreconnected(() => {
+                setSyncState('live');
+                patchHubConnection.invoke('RequestConnectedDevices').catch(() => {});
+            });
+            patchHubConnection.onclose(() => setSyncState('error'));
+
+            setSyncState('connecting');
+            patchHubConnection.start()
+                .then(() => {
+                    setSyncState('live');
+                    return patchHubConnection.invoke('RequestConnectedDevices');
+                })
+                .catch(err => {
+                    console.warn('Patch Hub connection failed, falling back to HTTP poll:', err);
+                    setSyncState('error');
+                    fallbackPoll();
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            startPatchHubConnection();
+        });
         function renderPage() {
             const start = (currentPage - 1) * pageSize;
             const end   = start + pageSize;
@@ -283,7 +453,7 @@
 
             const addBtn = (label, page, disabled) => {
                 const b = document.createElement('button');
-                b.className = 'page-btn' + (page === currentPage ? ' active' : '') + (disabled ? '' : '');
+                b.className = 'page-btn' + (page === currentPage ? ' active' : '');
                 b.disabled  = disabled;
                 b.innerHTML = label;
                 b.onclick   = () => { currentPage = page; renderPage(); };
@@ -325,17 +495,17 @@
 
         function setStatusFilter(val) {
             document.getElementById('statusFilter').value = val;
-            
+
             document.querySelectorAll('.status-tab').forEach(tab => {
                 tab.classList.remove('bg-white', 'shadow-sm', 'ring-1', 'ring-gray-200', 'text-gray-700');
                 tab.classList.add('text-gray-500');
             });
-            
+
             const activeId = val === '' ? 'filterAll' : (val === 'online' ? 'filterOnline' : 'filterOffline');
             const activeTab = document.getElementById(activeId);
             activeTab.classList.remove('text-gray-500');
             activeTab.classList.add('bg-white', 'shadow-sm', 'ring-1', 'ring-gray-200', 'text-gray-700');
-            
+
             applyFilters();
         }
 
@@ -344,16 +514,16 @@
             const status = document.getElementById('statusFilter').value;
 
             filteredRows = ALL_ROWS.filter(r => {
-                const text   = r.textContent.toLowerCase();
+                const text    = r.textContent.toLowerCase();
                 const rStatus = r.dataset.status;
                 const matchesSearch = !search || text.includes(search);
                 const matchesStatus = !status || rStatus === status;
                 return matchesSearch && matchesStatus;
             });
 
-            const onlineCount = ALL_ROWS.filter(r => r.dataset.status === 'online').length;
+            const onlineCount  = ALL_ROWS.filter(r => r.dataset.status === 'online').length;
             const offlineCount = ALL_ROWS.filter(r => r.dataset.status === 'offline').length;
-            document.getElementById('onlineCountTop').textContent = onlineCount;
+            document.getElementById('onlineCountTop').textContent  = onlineCount;
             document.getElementById('offlineCountTop').textContent = offlineCount;
 
             currentPage = 1;
@@ -366,10 +536,10 @@
         }
 
         function updateRowSelection(cb) {
-            const id = cb.value;
+            const id     = cb.value;
             const domain = cb.dataset.domain;
-            const name = cb.dataset.name || domain;
-            
+            const name   = cb.dataset.name || domain;
+
             if (cb.checked) {
                 selectedIds.add(id);
                 selectedDomains.set(id, domain);
@@ -405,7 +575,6 @@
                 const status = r.dataset.status;
 
                 if (master.checked) {
-                    // Strictly only select if online
                     if (status === 'online') {
                         selectedIds.add(id);
                         selectedDomains.set(id, domain);

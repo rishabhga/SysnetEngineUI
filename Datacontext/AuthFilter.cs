@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 namespace ManageEngineWebApp.Datacontext
 {
@@ -73,7 +73,13 @@ namespace ManageEngineWebApp.Datacontext
                 var routeCompanyId = GetCompanyIdFromRoute(context);
                 if (routeCompanyId.HasValue)
                 {
-                    if (routeCompanyId.Value.ToString() != sessionCompanyId)
+                    var allowedCompanyIds = sessionCompanyId
+                        .Split(',')
+                        .Select(s => s.Trim())
+                        .Where(s => !string.IsNullOrEmpty(s))
+                        .ToHashSet();
+
+                    if (!allowedCompanyIds.Contains(routeCompanyId.Value.ToString()))
                     {
                         context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
                         return;

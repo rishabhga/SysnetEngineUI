@@ -1,8 +1,3 @@
-/**
- * Search Mediator
- * Centralizes search events from the navigation bar to individual page content.
- */
-
 window.SearchMediator = (function() {
     const init = () => {
         const $searchInput = $('#globalSearchInput');
@@ -14,19 +9,14 @@ window.SearchMediator = (function() {
             const term = $(this).val();
             
             debounceTimer = setTimeout(() => {
-                // Dispatch a custom event that any page can listen to
                 $(document).trigger('searchEvent', [term]);
-                
-                // Also support a legacy global function pattern if needed
-                if (typeof window.onGlobalSearch === 'function') {
+                                if (typeof window.onGlobalSearch === 'function') {
                     window.onGlobalSearch(term);
                 }
                 
-        console.log('Search dispatched:', term);
             }, 250);
         });
 
-        // Clear search on ESC
         $searchInput.on('keydown', function(e) {
             if (e.key === 'Escape') {
                 $(this).val('').trigger('input');

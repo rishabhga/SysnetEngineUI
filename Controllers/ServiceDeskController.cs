@@ -1,4 +1,4 @@
-using ManageEngineWebApp.Datacontext;
+﻿using ManageEngineWebApp.Datacontext;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using ManageEngineWebApp.Attributes;
@@ -114,7 +114,7 @@ namespace ManageEngineWebApp.Controllers
                             body = JsonConvert.SerializeObject(ticketObj);
                         }
                     }
-                    catch {  }
+                    catch { }
                 }
 
                 var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
@@ -234,11 +234,11 @@ namespace ManageEngineWebApp.Controllers
                             s => ((string)s.systemAction).ToUpperInvariant(),
                             s => (int)(s.sortOrder ?? 0)
                         );
-                    
+
                     ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
                     ViewBag.SystemActionsJson = Newtonsoft.Json.JsonConvert.SerializeObject(actionMappings);
                     ViewBag.ClosedStatusesJson = Newtonsoft.Json.JsonConvert.SerializeObject(closedStatuses);
-                    
+
                     var approvedStatus = statuses?.FirstOrDefault(s => (string)s.systemAction == "Approve" || (string)s.statusCode == "Approved" || (string)s.statusName == "Approved");
                     ViewBag.ApprovedStatusSortOrder = approvedStatus != null ? (int)approvedStatus.sortOrder : 2;
                 }
@@ -326,7 +326,7 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
-        [DynamicPermission("ServiceDesk.Approve", "Reject Ticket")] 
+        [DynamicPermission("ServiceDesk.Approve", "Reject Ticket")]
         public async Task<IActionResult> RejectTicket()
         {
             try
@@ -395,11 +395,11 @@ namespace ManageEngineWebApp.Controllers
             {
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{id}");
                 if (!response.IsSuccessStatusCode) return NotFound();
-                
+
                 var content = await response.Content.ReadAsStringAsync();
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var ticket = System.Text.Json.JsonSerializer.Deserialize<ManageEngineWebApp.Models.HelpdeskTicket>(content, options);
-                
+
                 // Fetch approved status sort order
                 var statusResponse = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Statuses");
                 if (statusResponse.IsSuccessStatusCode)
@@ -452,12 +452,23 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var query = BuildScopedQuery();
-                var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata{query}");
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
                 var json = await response.Content.ReadAsStringAsync();
+
+                if (!IsTopLevelAdmin())
+                {
+                    var (userCompanyIds, _, _) = GetUserScope();
+                    if (userCompanyIds.Any())
+                    {
+                        var companies = JsonConvert.DeserializeObject<List<Companies>>(json) ?? new List<Companies>();
+                        companies = companies.Where(c => userCompanyIds.Contains(c.Id)).ToList();
+                        return Json(companies);
+                    }
+                }
+
                 return Content(json, "application/json");
             }
-            catch { return Json(new List<object>()); }
+            catch { return Json(new List<Companies>()); }
         }
 
         [HttpGet]
@@ -466,11 +477,52 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
+                if (!IsTopLevelAdmin() && companyId > 0 && !IsAuthorized(companyId))
+                    return Json(new List<object>());
+
                 var query = BuildScopedQuery(companyId > 0 ? companyId : (int?)null, null, groupId > 0 ? groupId : (int?)null);
-                var url = $"{_baseUrl}/api/CompaniesDetails/Locationdata{query}";
-                
-                var response = await GetClient().GetAsync(url);
-                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Locationdata{query}");
+                var json = await response.Content.ReadAsStringAsync();
+
+                var locations = JArray.Parse(json);
+                if (groupId.HasValue && groupId.Value > 0)
+                {
+                    locations = new JArray(locations.Where(l =>
+                    {
+                        var lGroupId = l["groupsID"]?.Value<int?>()
+                                    ?? l["GroupsID"]?.Value<int?>()
+                                    ?? l["groupId"]?.Value<int?>()
+                                    ?? l["GroupId"]?.Value<int?>()
+                                    ?? 0;
+                        return lGroupId == groupId.Value;
+                    }));
+                }
+                else if (companyId > 0)
+                {
+                    locations = new JArray(locations.Where(l =>
+                    {
+                        var lCompId = l["companyID"]?.Value<int?>()
+                                   ?? l["CompanyID"]?.Value<int?>()
+                                   ?? l["companyId"]?.Value<int?>()
+                                   ?? l["CompanyId"]?.Value<int?>()
+                                   ?? 0;
+                        return lCompId == companyId;
+                    }));
+                }
+                if (!IsTopLevelAdmin())
+                {
+                    var (_, _, userLocationIds) = GetUserScope();
+                    if (userLocationIds.Any())
+                    {
+                        locations = new JArray(locations.Where(l =>
+                        {
+                            var id = l["id"]?.Value<int>() ?? l["Id"]?.Value<int>() ?? 0;
+                            return userLocationIds.Contains(id);
+                        }));
+                    }
+                }
+
+                return Content(locations.ToString(Newtonsoft.Json.Formatting.None), "application/json");
             }
             catch { return Json(new List<object>()); }
         }
@@ -481,11 +533,11 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
-                
+                if (!IsTopLevelAdmin() && !IsAuthorized(companyId, groupId, locationId))
+                    return Json(new List<object>());
                 var query = BuildScopedQuery(companyId > 0 ? companyId : (int?)null, locationId > 0 ? locationId : (int?)null, groupId > 0 ? groupId : (int?)null);
                 var url = $"{_baseUrl}/api/WindowsUserDetails/allUser{query}";
- 
+
                 var response = await GetClient().GetAsync(url);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
@@ -498,11 +550,38 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
+                if (!IsTopLevelAdmin() && companyId > 0 && !IsAuthorized(companyId))
+                    return Json(new List<object>());
+
                 var query = BuildScopedQuery(companyId > 0 ? companyId : (int?)null);
-                var url = $"{_baseUrl}/api/CompaniesDetails/Groupdata{query}";
- 
-                var response = await GetClient().GetAsync(url);
-                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/CompaniesDetails/Groupdata{query}");
+                var json = await response.Content.ReadAsStringAsync();
+                var groups = JArray.Parse(json);
+                if (companyId > 0)
+                {
+                    groups = new JArray(groups.Where(g =>
+                    {
+                        var gCompId = g["companyID"]?.Value<int?>()
+                                   ?? g["CompanyID"]?.Value<int?>()
+                                   ?? g["companyId"]?.Value<int?>()
+                                   ?? g["CompanyId"]?.Value<int?>()
+                                   ?? 0;
+                        return gCompId == companyId;
+                    }));
+                }
+                if (!IsTopLevelAdmin())
+                {
+                    var (_, userGroupIds, _) = GetUserScope();
+                    if (userGroupIds.Any())
+                    {
+                        groups = new JArray(groups.Where(g =>
+                        {
+                            var id = g["id"]?.Value<int>() ?? g["Id"]?.Value<int>() ?? 0;
+                            return userGroupIds.Contains(id);
+                        }));
+                    }
+                }
+                return Content(groups.ToString(Newtonsoft.Json.Formatting.None), "application/json");
             }
             catch { return Json(new List<object>()); }
         }
@@ -560,13 +639,13 @@ namespace ManageEngineWebApp.Controllers
                 using var stream = file.OpenReadStream();
                 using var fileContent = new StreamContent(stream);
                 fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
-                
+
                 content.Add(fileContent, "File", file.FileName);
                 content.Add(new StringContent(ticketId.ToString()), "TicketId");
-                
+
                 var username = HttpContext.Session.GetString("username") ?? "System";
                 var userId = HttpContext.Session.GetString("userId") ?? "0";
-                
+
                 content.Add(new StringContent(username), "UploadedBy");
                 content.Add(new StringContent(userId), "UploadedById");
 
@@ -583,13 +662,11 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 if (string.IsNullOrEmpty(path)) return NotFound();
-                
-                // Security: prevent directory traversal
                 if (path.Contains("..") || path.Contains("~")) return BadRequest("Invalid path");
-                
+
                 var response = await GetClient().GetAsync($"{_baseUrl}{path}");
                 if (!response.IsSuccessStatusCode) return NotFound();
-                
+
                 var fileBytes = await response.Content.ReadAsByteArrayAsync();
                 var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
                 return File(fileBytes, contentType, name ?? "download");
@@ -661,7 +738,7 @@ namespace ManageEngineWebApp.Controllers
 
 
         [AuthFilter]
-        [DynamicPermission("ServiceDesk.ManageParts", "Manage Parts Inventory")] 
+        [DynamicPermission("ServiceDesk.ManageParts", "Manage Parts Inventory")]
         public IActionResult PartsInventory()
         {
             SetViewPermissions();
@@ -924,12 +1001,14 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.AdminSettings", "Create Category")]
         public async Task<IActionResult> CreateCategory()
         {
-            try {
+            try
+            {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Categories", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost]
@@ -937,12 +1016,14 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.AdminSettings", "Update Category")]
         public async Task<IActionResult> UpdateCategory()
         {
-            try {
+            try
+            {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Categories/Update", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost]
@@ -950,10 +1031,12 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.AdminSettings", "Delete Category")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            try {
+            try
+            {
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Categories/Delete?id={id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
 
@@ -975,12 +1058,14 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.AdminSettings", "Create Priority")]
         public async Task<IActionResult> CreatePriority()
         {
-            try {
+            try
+            {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Priorities", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost]
@@ -988,12 +1073,14 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.AdminSettings", "Update Priority")]
         public async Task<IActionResult> UpdatePriority()
         {
-            try {
+            try
+            {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Priorities/Update", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost]
@@ -1001,10 +1088,12 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.AdminSettings", "Delete Priority")]
         public async Task<IActionResult> DeletePriority(int id)
         {
-            try {
+            try
+            {
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Priorities/Delete?id={id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
 
@@ -1026,12 +1115,14 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.AdminSettings", "Create Status")]
         public async Task<IActionResult> CreateTicketStatus()
         {
-            try {
+            try
+            {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Statuses", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost]
@@ -1039,12 +1130,14 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.AdminSettings", "Update Status")]
         public async Task<IActionResult> UpdateTicketStatus()
         {
-            try {
+            try
+            {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Statuses/Update", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
         [HttpPost]
@@ -1052,10 +1145,12 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ServiceDesk.AdminSettings", "Delete Status")]
         public async Task<IActionResult> DeleteTicketStatus(int id)
         {
-            try {
+            try
+            {
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Statuses/Delete?id={id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            }
+            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
 

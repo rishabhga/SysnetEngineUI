@@ -6,8 +6,7 @@
     var username = Context.Session.GetString("username");
     var userRole = Context.Session.GetString("role");
     var activeComputers = ViewBag.ActiveComputers as List<string> ?? new List<string>();
-    
-    // Explicit casting to avoid dynamic dispatch errors
+
     var data = Model as List<ManageEngineWebApp.Models.WindowsUserDetails> ?? new List<ManageEngineWebApp.Models.WindowsUserDetails>();
     var totalDevices = data.Count;
     var onlineDevices = data.Count(x => activeComputers.Contains(x.DomainName));
@@ -27,9 +26,24 @@
                 <i class="fas fa-arrow-left text-gray-600 text-[10px]"></i>
             </a>
             <div class="flex items-center space-x-1.5">
-                <div class="w-7 h-7 rounded-md flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                    <i class="fas fa-map-marker-alt text-white text-[10px]"></i>
-                </div>
+                @{
+                    var logoUrl = ViewBag.CompanyLogoUrl as string;
+                }
+                @if (!string.IsNullOrEmpty(logoUrl))
+                {
+                    <div class="w-7 h-7 rounded-md flex items-center justify-center overflow-hidden border border-gray-100 bg-white shadow-sm">
+                        <img src="/Companies/Logo?path=@Uri.EscapeDataString(logoUrl)"
+                             alt="@ViewBag.CompanyName"
+                             class="max-h-5 object-contain"
+                             onerror="let p = this.parentElement; if (p) { p.innerHTML = '<i class=\'fas fa-map-marker-alt text-white text-[10px]\'></i>'; p.style.background = 'linear-gradient(135deg, #00BCEB 0%, #0096BE 100%)'; } this.onerror = null;" />
+                    </div>
+                }
+                else
+                {
+                    <div class="w-7 h-7 rounded-md flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                        <i class="fas fa-map-marker-alt text-white text-[10px]"></i>
+                    </div>
+                }
                 <div>
                     <div class="flex items-center space-x-1.5">
                         <h1 class="text-sm font-bold text-gray-900">@ViewBag.locationName</h1>
@@ -142,7 +156,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5" id="devicesGrid">
             @foreach (var item in Model)
             {
-                bool isActive = activeComputers.Contains(item.DomainName);
+                bool isActive = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase));
                 var deviceIcon = item.DomainName.ToUpper().Contains("LAPTOP") ? "fa-laptop" :
                 item.DomainName.ToUpper().Contains("DESKTOP") ? "fa-desktop" : "fa-computer";
 
@@ -205,7 +219,7 @@
                                     @if (isActive)
                                     {
                                         <span class="w-1 h-1 bg-white rounded-full mr-0.5 animate-pulse"></span>
-                            
+
                                         @:online
                                     }
                                     else
@@ -348,7 +362,6 @@
     }
 </div>
 
-<!-- Temporary Protection Modal (unchanged functionality, slightly smaller) -->
 <div id="tempProtectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3" style="display:none; align-items:center; justify-content:center;">
     <div class="bg-white rounded-lg shadow-2xl w-full max-w-xs overflow-hidden">
         <div class="px-3 py-2 bg-gradient-to-r from-orange-500 to-red-500">
@@ -427,12 +440,12 @@
         var domainUserMap = {
         @foreach (var item in Model)
         {
-                        var domain = item.DomainName?.Trim().ToUpper() ?? "";
-                        var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
-                        if (!string.IsNullOrEmpty(domain))
-                        {
-                                        @: "@domain": "@name",
-                        }
+                            var domain = item.DomainName?.Trim().ToUpper() ?? "";
+                            var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
+                            if (!string.IsNullOrEmpty(domain))
+                            {
+                                                @: "@domain": "@name",
+                            }
         }
         };
 
@@ -586,7 +599,7 @@
             $list.empty();
 
             if (!list || list.length === 0) {
-                $list.append('<div class="px-3 py-3 text-gray-400 text-center">No notifications.</div>');
+                $list.append('<div class="px-3 py-3 text-gray-400 text-center"><div class="flex flex-col items-center py-4"><i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i><span class="text-xs font-semibold text-gray-600">No new notifications</span></div></div>');
                 $badge.addClass('hidden');
                 $countLabel.text('0 new');
                 return;
@@ -598,17 +611,28 @@
                 var isUnread = !n.isRead;
                 if (isUnread) unreadCount++;
 
-                var type = (n.msNotificationType || n.mSNotificationType || '').toUpperCase();
-                var typeClass = type === 'ALERT'
+                var type = (n.msNotificationType || n.MSNotificationType || '').toUpperCase();
+                var msg = n.message || n.Message || '';
+                var createdAtRaw = n.createdAt || n.CreatedAt || '';
+                var machineId = n.machineId || n.MachineId || '';
+
+                var typeClass = (type === 'CRITICAL' || type === 'ALERT')
                     ? 'bg-red-50 border-red-100'
                     : 'bg-yellow-50 border-yellow-100';
 
-                var iconClass = type === 'ALERT'
+                var iconClass = (type === 'CRITICAL' || type === 'ALERT')
                     ? 'fa-exclamation-circle text-red-500'
                     : 'fa-exclamation-triangle text-yellow-500';
 
-                var createdAt = n.createdAt || '';
-                var userName = getUserNameFromDomain(n.machineId);
+                var formattedDate = createdAtRaw;
+                if (createdAtRaw) {
+                    var d = new Date(createdAtRaw);
+                    if (!isNaN(d.getTime())) {
+                        formattedDate = d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    }
+                }
+
+                var userName = getUserNameFromDomain(machineId);
                 var row =
                     '<button class="w-full text-left px-3 py-2 border-b last:border-b-0 ' + typeClass +
                     ' notification-item" data-id="' + n.id + '" data-unread="' + (isUnread ? '1' : '0') + '">' +
@@ -616,14 +640,14 @@
                             '<div class="mt-0.5"><i class="fas ' + iconClass + ' text-xs"></i></div>' +
                             '<div class="flex-1">' +
                                 '<div class="flex items-center justify-between">' +
-                                    '<span class="font-semibold text-[11px] text-gray-800">' + (type || '') + '</span>' +
-                                    '<span class="text-[10px] text-gray-400">' + createdAt + '</span>' +
+                                    '<span class="font-bold text-[10px] text-gray-800 uppercase">' + type + '</span>' +
+                                    '<span class="text-[9px] text-gray-400">' + formattedDate + '</span>' +
                                 '</div>' +
                                 (userName
-                                    ? '<p class="text-[10px] text-gray-500">User: ' + userName +
-                                      ' (' + (n.machineId || '') + ')</p>'
-                                    : '<p class="text-[10px] text-gray-500">Machine: ' + (n.machineId || '') + '</p>') +
-                                '<p class="text-[11px] text-gray-700 mt-0.5">' + (n.message || '') + '</p>' +
+                                    ? '<p class="text-[10px] text-gray-500 font-medium">User: ' + userName +
+                                      ' <span class="opacity-60">(' + machineId + ')</span></p>'
+                                    : '<p class="text-[10px] text-gray-500 font-medium">Device: ' + machineId + '</p>') +
+                                '<p class="text-[11px] text-gray-700 mt-0.5 leading-tight">' + msg + '</p>' +
                                 (isUnread ? '<div class="text-[9px] text-blue-600 font-bold mt-1 uppercase tracking-tighter">New Alert</div>' : '') +
                             '</div>' +
                             (isUnread ? '<span class="w-2 h-2 rounded-full bg-blue-500 mt-1"></span>' : '') +
@@ -643,56 +667,81 @@
         }
 
 
-        $(document).on('click', '.notification-item', function (e) {
-            e.stopPropagation();
-            var id = $(this).data('id');
-            var isUnread = $(this).data('unread') === 1 || $(this).data('unread') === '1';
+        let dashHubConnection = null;
 
-            if (!isUnread) return;
+        function startDashboardHub() {
+            const apiBase = (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.apiBaseUrl) || '';
+            const hubUrl  = `${apiBase}/scanHub?clientId=Dashboard&computerName=WebPortal`;
 
-            $.post('@Url.Action("MarkNotificationRead", "ComputerSummary")',
-                { id: id },
-                function () {
-                    loadNotifications();
+            dashHubConnection = new signalR.HubConnectionBuilder()
+                .withUrl(hubUrl, {
+                    transport: signalR.HttpTransportType.WebSockets
+                           | signalR.HttpTransportType.ServerSentEvents
+                           | signalR.HttpTransportType.LongPolling
+                })
+                .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+                .build();
+
+            dashHubConnection.on('DeviceStatusChanged', function(connectedDevices) {
+                if (Array.isArray(connectedDevices)) {
+                    updateDeviceStatuses(connectedDevices);
+                }
+            });
+
+            dashHubConnection.on('ReceiveConnectedDevices', function(connectedDevices) {
+                if (Array.isArray(connectedDevices)) {
+                    updateDeviceStatuses(connectedDevices);
+                }
+            });
+
+            dashHubConnection.onreconnected(() => {
+                dashHubConnection.invoke('RequestConnectedDevices').catch(() => {});
+            });
+
+            dashHubConnection.start()
+                .then(() => {
+                    return dashHubConnection.invoke('RequestConnectedDevices');
+                })
+                .catch(err => {
+                    console.warn('Hub connection failed, falling back to HTTP poll:', err);
+                    fallbackPoll();
+                    setTimeout(startDashboardHub, 15000);
                 });
-        });
+        }
 
-        setInterval(function() {
+        function fallbackPoll() {
             fetch('@Url.Action("GetConnectedDevices", "ComputerSummary")')
-                .then(r => {
-                    if (!r.ok) throw new Error('HTTP ' + r.status);
-                    return r.text();
-                })
-                .then(text => {
-                    if (!text || text.trim() === '' || text === 'null') return [];
-                    try {
-                        return JSON.parse(text);
-                    } catch (e) {
-                        return [];
-                    }
-                })
-                .then(devices => {
-                    if (Array.isArray(devices)) {
-                        updateDeviceStatuses(devices);
-                    }
-                })
-                .catch(err => {});
-        }, 5000);
+                .then(r => r.ok ? r.json() : [])
+                .then(devices => { if (Array.isArray(devices)) updateDeviceStatuses(devices); })
+                .catch(() => {});
+        }
+
+        startDashboardHub();
+
+        let hasReceivedInitialStatusSync = false;
 
         function updateDeviceStatuses(connectedDevices) {
+            if (!Array.isArray(connectedDevices)) return;
+            
+            if (connectedDevices.length === 0 && !hasReceivedInitialStatusSync) return;
+
             let onlineCount = 0;
             let offlineCount = 0;
+
+            const onlineSet = new Set(
+                connectedDevices.map(d => (d || '').toString().trim().toUpperCase())
+            );
 
             $('.device-card').each(function() {
                 const card = $(this);
                 const domain = (card.data('domain') || '').toString().trim().toUpperCase();
                 const wasOnline = card.data('status') === 'online';
 
-                const isFound = connectedDevices.some(d => d && d.toString().trim().toUpperCase() === domain);
+                const isOnline = onlineSet.has(domain);
 
-                if (isFound) {
+                if (isOnline) {
                     card.data('miss-count', 0);
-                    if (!wasOnline) {
+                    if (!wasOnline || !hasReceivedInitialStatusSync) {
                         setDeviceStatus(card, true, domain);
                     }
                 } else {
@@ -700,6 +749,8 @@
                     card.data('miss-count', misses);
 
                     if (wasOnline && misses >= 2) {
+                        setDeviceStatus(card, false, domain);
+                    } else if (!wasOnline && !hasReceivedInitialStatusSync) {
                         setDeviceStatus(card, false, domain);
                     }
                 }
@@ -710,6 +761,10 @@
 
             $('#onlineCount').text(onlineCount);
             $('#offlineCount').text(offlineCount);
+
+            if (connectedDevices.length > 0) {
+                hasReceivedInitialStatusSync = true;
+            }
         }
 
         function setDeviceStatus(card, isOnline, domain) {
@@ -1364,12 +1419,12 @@
         function filterDevices(searchTerm) {
             var term = (searchTerm !== undefined ? searchTerm : $('#globalSearchInput').val()).toLowerCase();
             var status = $('#statusFilter').val();
-            
+
             $('#devicesGrid .device-card').each(function() {
                 var card = $(this);
                 var content = card.text().toLowerCase();
                 var cardStatus = card.data('status');
-                
+
                 var matchesSearch = content.indexOf(term) > -1;
                 var matchesStatus = status === 'all' || status === cardStatus;
 
@@ -1437,23 +1492,53 @@
         $('.rescan-link').on('click', function() {
             if ($(this).prop('disabled')) return;
 
-            var link = $(this);
+            var link   = $(this);
             var domain = link.data('domain');
+            var card   = link.closest('.device-card');
 
-            link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin mr-0.5"></i>...');
+            link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin mr-0.5"></i>Scanning…');
             link.prop('disabled', true);
 
             $.post('@Url.Action("Comanddata", "ComputerSummary")?domain=' + domain, function() {
+                var pollCount = 0;
+                var maxPolls  = 24;  
+
                 var interval = setInterval(function() {
+                    pollCount++;
                     $.get('@Url.Action("CheckScanResult", "ComputerSummary")?domain=' + domain, function(r) {
-                        if (r.status === 'success' || r.status === 'failed') {
+                        if (r.status === 'success' || r.status === 'failed' || pollCount >= maxPolls) {
                             clearInterval(interval);
-                            setTimeout(function() {
-                                location.reload();
-                            }, 1500);
+                            link.find('.rescan-text').html(
+                                '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i>' +
+                                '<span class="js-txt">Rescan</span>'
+                            );
+                            link.prop('disabled', false);
+
+                            if (r.status === 'success') {
+                                loadSystemUsageData(card, domain);
+                                $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")',
+                                    { domain: domain },
+                                    function(res) {
+                                        card.find('.ip-address-value').text(res.success ? res.ipAddress : 'N/A');
+                                    }
+                                ).fail(function() { card.find('.ip-address-value').text('N/A'); });
+
+                                sysAlert('Scan complete for ' + domain, 'success');
+                            } else if (pollCount >= maxPolls) {
+                                sysAlert('Scan timed out for ' + domain, 'warning');
+                            } else {
+                                sysAlert('Scan failed for ' + domain, 'error');
+                            }
                         }
+                    }).fail(function() {
                     });
                 }, 5000);
+            }).fail(function() {
+                link.find('.rescan-text').html(
+                    '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i><span class="js-txt">Rescan</span>'
+                );
+                link.prop('disabled', false);
+                sysAlert('Could not start scan for ' + domain, 'error');
             });
         });
 
