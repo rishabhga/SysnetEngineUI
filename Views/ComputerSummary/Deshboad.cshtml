@@ -179,10 +179,10 @@
                                         <i class="fas fa-crown text-[6px] text-white"></i>
                                     </span>
                                 </div>
-                                <div class="min-w-0 flex-1 deshboard-name-cell" data-id="@item.Id" data-domain-id="@item.DomainName"
+                                <div class="min-w-0 flex-1 deshboard-name-cell" data-id="@item.Id" data-domain-id="@item.UserCode"
                                      data-company-id="@item.CompanyId" data-group-id="@item.GroupId" data-location-id="@item.LocationId">
                                     <div class="display-name-section">
-                                        <a href="/ComputerSummary/Index?domain=@item.DomainName"
+                                        <a href="/ComputerSummary/Index?domain=@item.UserCode"
                                            class="text-[10px] font-bold text-gray-900 transition-colors block truncate" style="text-decoration:none;"
                                            title="@item.UserName">
                                             @(string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName)
@@ -325,7 +325,7 @@
                         <div class="flex gap-0.5">
                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Chat"))
                             {
-                                <a href="javascript:void(0)" onclick="window.openChatModal('@item.DomainName')" class="open-chat-btn relative flex-none p-1 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors" title="Chat with Client">
+                                <a href="javascript:void(0)" onclick="window.openChatModal('@item.UserCode')" class="open-chat-btn relative flex-none p-1 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors" title="Chat with Client">
                                     <i class="fas fa-comment-dots text-[9px]"></i>
                                     <span class="chat-unread-badge hidden">0</span>
                                 </a>
@@ -333,7 +333,7 @@
                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Scan"))
                             {
                                 <button class="rescan-link flex-1 px-1.5 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-[8px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
-                                        data-domain="@item.DomainName"
+                                        data-domain="@item.UserCode"
                                         @(isActive ? "" : "disabled")>
                                     <span class="rescan-text"><i class="fas fa-sync-alt mr-0.5 text-[7px]"></i><span class="js-txt">@(isActive ? "Rescan" : "Offline")</span></span>
                                 </button>
@@ -342,7 +342,7 @@
                             {
                                 <button class="remote-link flex-1 px-1.5 py-1 text-white rounded-md text-[8px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
                                         style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"
-                                        data-domain="@item.DomainName"
+                                        data-domain="@item.UserCode"
                                         @(isActive ? "" : "disabled")>
                                     <span class="remote-text"><i class="fas fa-desktop mr-0.5 text-[7px]"></i><span class="js-txt">@(isActive ? "Remote" : "Offline")</span></span>
                                 </button>
@@ -440,11 +440,11 @@
         var domainUserMap = {
         @foreach (var item in Model)
         {
-                            var domain = item.DomainName?.Trim().ToUpper() ?? "";
+                            var domainKey = item.UserCode?.Trim().ToUpper() ?? "";
                             var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
-                            if (!string.IsNullOrEmpty(domain))
+                            if (!string.IsNullOrEmpty(domainKey))
                             {
-                                                @: "@domain": "@name",
+                                                @: "@domainKey": "@name",
                             }
         }
         };

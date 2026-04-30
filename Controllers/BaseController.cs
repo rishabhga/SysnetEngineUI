@@ -118,9 +118,7 @@ namespace ManageEngineWebApp.Controllers
 
         protected string GetUCodeFromDomain(string domain)
         {
-            if (string.IsNullOrEmpty(domain)) return "";
-            var parts = domain.Split('-');
-            return parts.Length > 1 ? parts[1] : domain;
+            return domain;
         }
 
         protected async Task<List<CompanyHierarchyDto>> LoadHierarchyAsync()

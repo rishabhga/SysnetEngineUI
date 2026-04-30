@@ -128,7 +128,7 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.GroupId = groupId;
             ViewBag.LocationId = locationId;
             ViewBag.CompanyName = companyName ?? "Unknown Company";
-
+            
             return View();
         }
 
@@ -1319,51 +1319,74 @@ namespace ManageEngineWebApp.Controllers
             {
                 return RedirectToAction("Companies", "Companies");
             }
-            HttpClientHandler handler = new HttpClientHandler
+
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            using (var httpClient = new HttpClient(handler))
-            {
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/UserDetails");
-                var response = await httpClient.GetAsync("");
+                using var httpClient = GetClient();
+                var winUserResponse = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
+                WindowsUserDetails winUser = null;
+                if (winUserResponse.IsSuccessStatusCode)
+                {
+                    var winContent = await winUserResponse.Content.ReadAsStringAsync();
+                    var winUsers = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(winContent);
+                    winUser = winUsers?.FirstOrDefault(x => 
+                        (x.DomainName?.Equals(domain, StringComparison.OrdinalIgnoreCase) == true) || 
+                        (x.UserCode?.Equals(domain, StringComparison.OrdinalIgnoreCase) == true));
+                }
+                using var detailsClient = GetClient();
+                detailsClient.BaseAddress = new Uri($"{_baseUrl}/api/UserDetails");
+                var response = await detailsClient.GetAsync("");
+                                ViewBag.DisplayDomain = winUser?.DomainName ?? domain;
+                ViewBag.UserCode = winUser?.UserCode ?? "N/A";
+                ViewBag.LastLogUser = winUser?.UserName ?? "N/A";
+                ViewBag.UserName = winUser?.UserCode ?? domain; // ID for scripts
+                
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<UserDetails>>(content) : null;
+                    var data = JsonConvert.DeserializeObject<List<UserDetails>>(content);
 
                     if (data != null)
                     {
-                        datalist = data.Where(x => x.domainName == domain).ToList();
+                        datalist = data.Where(x => 
+                            (x.domainName?.Equals(domain, StringComparison.OrdinalIgnoreCase) == true) || 
+                            (winUser != null && x.domainName?.Equals(winUser.DomainName, StringComparison.OrdinalIgnoreCase) == true)).ToList();
 
                         if (datalist.Any())
                         {
-                            ViewBag.UserName = datalist[0].domainName;
-                            ViewBag.windowdetails = datalist[0].WindowName;
-                            ViewBag.ip = datalist[0].IpAddress;
-                            ViewBag.LastLogUser = datalist[0].UserName;
-                            ViewBag.LastBootTime = datalist[0].LastBootTime;
-                            ViewBag.scanTime = datalist[0].DateTime;
-                            ViewBag.primaryow = datalist[0].PrimaryOwner;
+                            var details = datalist[0];
+                            ViewBag.UserName = winUser?.UserCode ?? details.domainName; 
+                            ViewBag.DisplayDomain = winUser?.DomainName ?? details.domainName;
+                            ViewBag.windowdetails = details.WindowName;
+                            ViewBag.ip = details.IpAddress;
+                            ViewBag.LastLogUser = !string.IsNullOrEmpty(winUser?.UserName) ? winUser.UserName : details.UserName;
+                            ViewBag.scanTime = details.DateTime.ToString("yyyy-MM-dd HH:mm:ss");
+                            ViewBag.LastBootTime = details.LastBootTime;
+                            ViewBag.primaryow = !string.IsNullOrEmpty(winUser?.FullName) ? winUser.FullName : details.PrimaryOwner;
+                            ViewBag.UserFullName = winUser?.FullName;
+                            ViewBag.UserCode = winUser?.UserCode ?? "N/A";
+                        }
+                        else if (winUser != null)
+                        {
+                            ViewBag.NoDevicesFoundInDetails = true;
                         }
                         else
                         {
                             ViewBag.NoDevices = true;
                         }
                     }
-                    else
-                    {
-                        datalist = new List<UserDetails>();
-                        ViewBag.NoDevices = true;
-                    }
                 }
                 else
                 {
-                    datalist = new List<UserDetails>();
-                    ViewBag.NoDevices = true;
+                    ViewBag.ApiError = "Failed to fetch UserDetails";
                 }
-                return View();
             }
+            catch (Exception ex)
+            {
+                ViewBag.Error = ex.Message;
+                ViewBag.NoDevices = true;
+            }
+            return View();
         }
 
 
@@ -3879,13 +3902,6 @@ namespace ManageEngineWebApp.Controllers
             {
                 return Json(new { items = new List<object>(), count = 0 });
             }
-        }
-
-        private string GetUCodeFromDomain(string domain)
-        {
-            if (string.IsNullOrEmpty(domain)) return "";
-            var parts = domain.Split('-');
-            return parts.Length > 1 ? parts[1] : domain;
         }
     }
 }
