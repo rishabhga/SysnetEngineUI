@@ -181,16 +181,16 @@
                                     <p class="text-[10px] text-gray-500">@groupOnline/@groupUsers Online</p>
                                 </div>
                             </div>
-                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Create"))
-                                {
-                                    <button class="edit-group-btn w-7 h-7 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors"
-                                            data-group-id="@group.GroupId"
-                                            data-group-name="@group.GroupName"
-                                            data-company-id="@Model.CompanyId"
-                                            title="Edit Group">
-                                        <i class="fas fa-edit text-gray-600 text-xs"></i>
-                                    </button>
-                                }
+                            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Create"))
+                            {
+                                <button class="edit-group-btn w-7 h-7 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors"
+                                        data-group-id="@group.GroupId"
+                                        data-group-name="@group.GroupName"
+                                        data-company-id="@Model.CompanyId"
+                                        title="Edit Group">
+                                    <i class="fas fa-edit text-gray-600 text-xs"></i>
+                                </button>
+                            }
                         </div>
                     </div>
                     <div class="p-2.5 bg-white flex-grow overflow-y-auto">
@@ -223,8 +223,8 @@
                                             <div class="min-w-0 flex-1">
                                                 <div class="flex items-center space-x-2">
                                                     <p class="text-xs font-semibold text-gray-900 truncate">@location.LocationName</p>
-                                                    <button onclick="event.preventDefault(); event.stopPropagation(); toggleLocationCritical(@location.LocationId, @location.IsCritical.ToString().ToLower(), @group.GroupId, @Model.CompanyId)" 
-                                                            class="critical-toggle-btn transition-colors duration-200" 
+                                                    <button onclick="event.preventDefault(); event.stopPropagation(); toggleLocationCritical(@location.LocationId, @location.IsCritical.ToString().ToLower(), @group.GroupId, @Model.CompanyId)"
+                                                            class="critical-toggle-btn transition-colors duration-200"
                                                             title="@(location.IsCritical ? "Marked as Critical" : "Mark as Critical")">
                                                         <i class="fas fa-crown text-[10px] @(location.IsCritical ? "text-amber-500 shadow-amber-200" : "text-gray-300 hover:text-amber-300") shadow-sm"></i>
                                                     </button>
@@ -232,7 +232,7 @@
                                                 <p class="text-[10px] text-gray-500">@locationOnline/@locationUsers Online</p>
                                             </div>
                                         </a>
-                                        <button onclick="event.preventDefault(); event.stopPropagation(); downloadInstaller(@location.LocationId, @group.GroupId, @Model.CompanyId, '@location.LocationName')"
+                                        <button onclick="event.preventDefault(); event.stopPropagation(); downloadInstaller(this, @location.LocationId, @group.GroupId, @Model.CompanyId, '@Html.Raw(location.LocationName?.Replace("'", "\\'"))')"
                                                 class="px-1.5 py-1 text-white rounded text-[10px] font-medium flex-shrink-0 transition-colors"
                                                 style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);"
                                                 title="Download Installer">
@@ -275,7 +275,7 @@
                                         </select>
                                         <i class="fas fa-chevron-down absolute right-2 top-1/2 transform -translate-y-1/2 text-white text-[10px] pointer-events-none"></i>
                                     </div>
-                                    <button onclick="openAddLocationModal(@group.GroupId, '@group.GroupName', @Model.CompanyId)"
+                                    <button onclick="openAddLocationModal(@group.GroupId, '@Html.Raw(group.GroupName?.Replace("'", "\\'"))', @Model.CompanyId)"
                                             class="px-2 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center justify-center space-x-1"
                                             style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
                                         <i class="fas fa-plus text-[10px]"></i>
@@ -285,7 +285,7 @@
                             }
                             else
                             {
-                                <button onclick="openAddLocationModal(@group.GroupId, '@group.GroupName', @Model.CompanyId)"
+                                <button onclick="openAddLocationModal(@group.GroupId, '@Html.Raw(group.GroupName?.Replace("'", "\\'"))', @Model.CompanyId)"
                                         class="w-full px-2 py-1.5 text-white rounded-lg text-xs font-medium transition-colors flex items-center justify-center space-x-1"
                                         style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
                                     <i class="fas fa-plus text-[10px]"></i>
@@ -552,9 +552,6 @@
             });
         }
         function editSelectedLocation(groupId, companyId) {
-            const select = document.getElementById(`locationSelect-${groupId}`);
-            const locationId = select?.value;
-            if (!locationId) return;
             const selectElement = document.getElementById('locationSelect-' + groupId);
             const selectedOption = selectElement.options[selectElement.selectedIndex];
             const locationId = selectedOption.value;
@@ -618,8 +615,8 @@
                 }
             });
         }
-        function downloadInstaller(locationId, groupId, companyId, locationName) {
-            const clickedButton = event.currentTarget;
+        function downloadInstaller(btn, locationId, groupId, companyId, locationName) {
+            const clickedButton = btn;
             const originalHtml = clickedButton.innerHTML;
             clickedButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             clickedButton.disabled = true;
@@ -707,8 +704,8 @@
         }
 
         function toggleLocationCritical(locationId, currentStatus, groupId, companyId) {
-            const newStatus = !(currentStatus === true || currentStatus === 'true'); 
-            const locationName = $(`#locationSelect-${groupId} option[value="${locationId}"]`).data('name') || 
+            const newStatus = !(currentStatus === true || currentStatus === 'true');
+            const locationName = $(`#locationSelect-${groupId} option[value="${locationId}"]`).data('name') ||
                                $(`a[href*="locationId=${locationId}"] p.font-semibold`).text().trim();
 
             $.ajax({
@@ -720,7 +717,7 @@
                     IsCritical: newStatus,
                     GroupsID: parseInt(groupId),
                     CompanyID: parseInt(companyId),
-                    LocationName: locationName 
+                    LocationName: locationName
                 }),
                 success: function() {
                     location.reload();

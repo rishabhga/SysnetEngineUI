@@ -6,7 +6,6 @@ using System.Diagnostics;
 
 namespace ManageEngineWebApp.Controllers
 {
-    [AuthFilter]
     public class InstallerController : Controller
     {
 
@@ -16,9 +15,9 @@ namespace ManageEngineWebApp.Controllers
                 _env = env;
         }
 
-
+        [HttpGet]
+        public IActionResult Ping() => Ok("InstallerController is alive");
         [HttpPost]
-        [DynamicPermission("Installer.Download", "Download Installer")]
         public IActionResult DownloadInstaller([FromBody] InstallerRequest requestData)
         {
             string safeLocation = requestData.LocationName.Replace(" ", "_").Replace("/", "").Replace("\\", "").Replace("..", "");
@@ -39,7 +38,6 @@ namespace ManageEngineWebApp.Controllers
 
 
         [HttpPost]
-        [DynamicPermission("Installer.Generate", "Generate Installer")]
         public async Task<IActionResult> GenerateInstaller([FromBody] InstallerRequest requestData)
         {
 

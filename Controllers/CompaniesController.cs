@@ -326,22 +326,38 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(path))
+                    return NotFound();
+
+                string targetUrl;
+                if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    targetUrl = path;
+                }
+                else
+                {
+                    var cleanPath = path.TrimStart('/');
+                    targetUrl = $"{_baseUrl.TrimEnd('/')}/{cleanPath}";
+                }
+
                 using var client = GetClient();
-                var targetUrl = path.StartsWith("http", StringComparison.OrdinalIgnoreCase) 
-                    ? path 
-                    : $"{_baseUrl.TrimEnd('/')}/{path.TrimStart('/')}";
                 var response = await client.GetAsync(targetUrl);
+
                 if (response.IsSuccessStatusCode)
                 {
                     var bytes = await response.Content.ReadAsByteArrayAsync();
                     var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/png";
                     return File(bytes, contentType);
                 }
+
+                Console.WriteLine($"[Logo] Failed to fetch: {targetUrl} — Status: {response.StatusCode}");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Logo] Exception: {ex.Message}");
+            }
             return NotFound();
         }
-
         [HttpPost]
         [DynamicPermission("Companies.Edit", "Upload Logo")]
         public async Task<IActionResult> UploadLogo(IFormFile logo, int companyId)
