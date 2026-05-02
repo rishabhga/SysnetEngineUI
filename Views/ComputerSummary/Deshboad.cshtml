@@ -456,15 +456,6 @@
         }
 
 
-        $(document).on('click', '#notificationBell', function (e) {
-            e.stopPropagation();
-            $('#notificationPanel').toggleClass('hidden');
-        });
-
-        $(document).on('click', function () {
-            $('#notificationPanel').addClass('hidden');
-        });
-
         function getCurrentMachineId() {
             var card = $('.device-card').first();
             return card.data('domain');
@@ -476,7 +467,6 @@
             updateLocationBadgeUI(isLocationCurrentlyCritical); // Update UI immediately from ViewBag value
             loadLocationCriticalStatus(); // Still fetch to be sure
             loadCriticalClientsList();
-            loadNotifications();
             checkOtpStatusOnLoad();
 
             $('.device-card').each(function() {
@@ -499,8 +489,6 @@
                     loadLastSeenTime(card, domain);
                 }
             });
-
-            setInterval(loadNotifications, 60000);
         });
 
         let isLocationCurrentlyCritical = @(ViewBag.IsLocationCritical != null ? (ViewBag.IsLocationCritical ? "true" : "false") : "false");
@@ -584,89 +572,6 @@
             });
         }
 
-        function loadNotifications() {
-            $.get('@Url.Action("GetNotificationsByLocation", "ComputerSummary")',
-                { companyId: @ViewBag.companyid, groupId: @ViewBag.groupid, locationId: @ViewBag.locationid },
-                function (list) {
-                    renderNotifications(list);
-                });
-        }
-
-        function renderNotifications(list) {
-            var $list = $('#notificationList');
-            var $badge = $('#notificationBadge');
-            var $countLabel = $('#notificationCountLabel');
-
-            $list.empty();
-
-            if (!list || !Array.isArray(list) || list.length === 0) {
-                $list.append('<div class="px-3 py-3 text-gray-400 text-center"><div class="flex flex-col items-center py-4"><i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i><span class="text-xs font-semibold text-gray-600">No new notifications</span></div></div>');
-                $badge.addClass('hidden');
-                $countLabel.text('0 new');
-                return;
-            }
-
-            var unreadCount = 0;
-
-            list.forEach(function (n) {
-                var isUnread = !n.isRead;
-                if (isUnread) unreadCount++;
-
-                var type = (n.msNotificationType || n.MSNotificationType || '').toUpperCase();
-                var msg = n.message || n.Message || '';
-                var createdAtRaw = n.createdAt || n.CreatedAt || '';
-                var machineId = n.machineId || n.MachineId || '';
-
-                var typeClass = (type === 'CRITICAL' || type === 'ALERT')
-                    ? 'bg-red-50 border-red-100'
-                    : 'bg-yellow-50 border-yellow-100';
-
-                var iconClass = (type === 'CRITICAL' || type === 'ALERT')
-                    ? 'fa-exclamation-circle text-red-500'
-                    : 'fa-exclamation-triangle text-yellow-500';
-
-                var formattedDate = createdAtRaw;
-                if (createdAtRaw) {
-                    var d = new Date(createdAtRaw);
-                    if (!isNaN(d.getTime())) {
-                        formattedDate = d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                    }
-                }
-
-                var userName = getUserNameFromDomain(machineId);
-                var row =
-                    '<button class="w-full text-left px-3 py-2 border-b last:border-b-0 ' + typeClass +
-                    ' notification-item" data-id="' + n.id + '" data-unread="' + (isUnread ? '1' : '0') + '">' +
-                        '<div class="flex items-start space-x-2">' +
-                            '<div class="mt-0.5"><i class="fas ' + iconClass + ' text-xs"></i></div>' +
-                            '<div class="flex-1">' +
-                                '<div class="flex items-center justify-between">' +
-                                    '<span class="font-bold text-[10px] text-gray-800 uppercase">' + type + '</span>' +
-                                    '<span class="text-[9px] text-gray-400">' + formattedDate + '</span>' +
-                                '</div>' +
-                                (userName
-                                    ? '<p class="text-[10px] text-gray-500 font-medium">User: ' + userName +
-                                      ' <span class="opacity-60">(' + machineId + ')</span></p>'
-                                    : '<p class="text-[10px] text-gray-500 font-medium">Device: ' + machineId + '</p>') +
-                                '<p class="text-[11px] text-gray-700 mt-0.5 leading-tight">' + msg + '</p>' +
-                                (isUnread ? '<div class="text-[9px] text-blue-600 font-bold mt-1 uppercase tracking-tighter">New Alert</div>' : '') +
-                            '</div>' +
-                            (isUnread ? '<span class="w-2 h-2 rounded-full bg-blue-500 mt-1"></span>' : '') +
-                        '</div>' +
-                    '</button>';
-
-                $list.append(row);
-            });
-
-            if (unreadCount > 0) {
-                $badge.removeClass('hidden').text(unreadCount);
-                $countLabel.text(unreadCount + ' new');
-            } else {
-                $badge.addClass('hidden');
-                $countLabel.text('0 new');
-            }
-        }
-
 
         let dashHubConnection = null;
 
@@ -746,10 +651,18 @@
                         setDeviceStatus(card, true, domain);
                     }
                 } else {
+                    // Safety: Don't mark as offline if we are currently rescanning this device
+                    var rescanText = card.find('.rescan-text').text() || "";
+                    if (rescanText.includes('Scanning')) {
+                        console.log("Skipping offline status for " + domain + " because scan is in progress.");
+                        return; 
+                    }
+
                     let misses = (card.data('miss-count') || 0) + 1;
                     card.data('miss-count', misses);
 
-                    if (wasOnline && misses >= 2) {
+                    // Increased threshold to 5 misses (approx 25-30s) to prevent flickering during heavy agent tasks
+                    if (wasOnline && misses >= 5) {
                         setDeviceStatus(card, false, domain);
                     } else if (!wasOnline && !hasReceivedInitialStatusSync) {
                         setDeviceStatus(card, false, domain);

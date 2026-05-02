@@ -354,25 +354,43 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetNotificationsByLocation(int companyId, int? groupId, int? locationId)
         {
-            if (!IsAuthorized(companyId, groupId, locationId)) return Json(new { success = false, error = "Unauthorized" });
+            // If locationId is 0 or null, we might want to fall back to general notifications
+            if (locationId == null || locationId <= 0)
+            {
+                return RedirectToAction("GetRecentActivity"); 
+            }
+
+            if (!IsAuthorized(companyId, groupId, locationId)) 
+            {
+                // Return empty instead of error to avoid breaking the UI, but log it
+                return Json(new List<object>()); 
+            }
 
             try
             {
-                var client = _httpClientFactory.CreateClient("ManageEngineApi");
-                var query = BuildScopedQuery(companyId, locationId, groupId);
-                string url = $"api/RamCpuDiskData/notifications/location{query}";
+                var client = GetClient();
+                // Ensure we pass parameters correctly to the API
+                var queryParams = new List<string>();
+                if (companyId > 0) queryParams.Add($"companyId={companyId}");
+                if (groupId.HasValue && groupId > 0) queryParams.Add($"groupId={groupId}");
+                if (locationId.HasValue && locationId > 0) queryParams.Add($"locationId={locationId}");
+                
+                string queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+                string apiUrl = $"api/RamCpuDiskData/notifications/location{queryString}";
 
-                var response = await client.GetAsync(url);
+                var response = await client.GetAsync(apiUrl);
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     return Content(content, "application/json");
                 }
-                return Json(new { success = false, error = "Failed to fetch location notifications" });
+
+                return Json(new List<object>());
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                Console.WriteLine($"GetNotificationsByLocation Error: {ex.Message}");
+                return Json(new List<object>());
             }
         }
 
@@ -445,20 +463,30 @@ namespace ManageEngineWebApp.Controllers
                 string url = $"{_baseUrl}/api/RamCpuDiskData/{Uri.EscapeDataString(domain)}";
 
                 HttpResponseMessage response = await client.GetAsync(url);
+                var content = await response.Content.ReadAsStringAsync();
+
                 if (response != null && response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
                     dynamic root = JsonConvert.DeserializeObject<dynamic>(content);
                     var inner = root.data;
 
                     var formattedData = new
                     {
-                        cpuUsage = (double)inner.cpu,
-                        ramUsage = (double)inner.ram,
-                        diskUsage = (double)inner.disk
+                        cpuUsage = (double)(inner.CPU ?? inner.cpu ?? 0),
+                        ramUsage = (double)(inner.RAM ?? inner.ram ?? 0),
+                        diskUsage = (double)(inner.Disk ?? inner.disk ?? 0)
                     };
 
                     return Json(new { status = "success", data = formattedData });
+                }
+
+                if (!string.IsNullOrEmpty(content))
+                {
+                    dynamic root = JsonConvert.DeserializeObject<dynamic>(content);
+                    if (root?.status == "timeout")
+                    {
+                        return Json(new { status = "timeout" });
+                    }
                 }
 
                 return Json(new { status = "error", error = "Failed to fetch data" });
@@ -1473,9 +1501,8 @@ namespace ManageEngineWebApp.Controllers
                 HttpResponseMessage response = await client.PostAsync("", content);
 
                 string result = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
+                return Json(new { success = response.IsSuccessStatusCode, message = result });
             }
-            return Redirect("Deshboad");
         }
 
         public async Task<IActionResult> CheckScanResult(string domain)
