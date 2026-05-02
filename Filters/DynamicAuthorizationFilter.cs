@@ -29,7 +29,7 @@ namespace ManageEngineWebApp.Filters
                 return;
             }
 
-            var skipControllers = new[] { "Home" };
+            var skipControllers = new[] { "Home", "Installer" };
             if (skipControllers.Contains(controller, StringComparer.OrdinalIgnoreCase))
             {
                 await next();

@@ -232,7 +232,7 @@
                                                 <p class="text-[10px] text-gray-500">@locationOnline/@locationUsers Online</p>
                                             </div>
                                         </a>
-                                        <button onclick="event.preventDefault(); event.stopPropagation(); downloadInstaller(this, @location.LocationId, @group.GroupId, @Model.CompanyId, '@Html.Raw(location.LocationName?.Replace("'", "\\'"))')"
+                                        <button onclick="event.preventDefault(); event.stopPropagation(); downloadInstaller(@location.LocationId, @group.GroupId, @Model.CompanyId, '@Html.Raw(location.LocationName?.Replace("'", "\\'"))')"
                                                 class="px-1.5 py-1 text-white rounded text-[10px] font-medium flex-shrink-0 transition-colors"
                                                 style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);"
                                                 title="Download Installer">
@@ -615,8 +615,8 @@
                 }
             });
         }
-        function downloadInstaller(btn, locationId, groupId, companyId, locationName) {
-            const clickedButton = btn;
+        function downloadInstaller(locationId, groupId, companyId, locationName) {
+            const clickedButton = event.currentTarget;
             const originalHtml = clickedButton.innerHTML;
             clickedButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             clickedButton.disabled = true;
