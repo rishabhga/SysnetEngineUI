@@ -325,7 +325,7 @@
                         <div class="flex gap-0.5">
                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Chat"))
                             {
-                                <a href="javascript:void(0)" onclick="window.openChatModal('@item.UserCode')" class="open-chat-btn relative flex-none p-1 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors" title="Chat with Client">
+                                <a href="javascript:void(0)" onclick="window.openChatModal('@item.DomainName')" data-chat-domain="@item.DomainName" class="open-chat-btn relative flex-none p-1 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors" title="Chat with Client">
                                     <i class="fas fa-comment-dots text-[9px]"></i>
                                     <span class="chat-unread-badge hidden">0</span>
                                 </a>
@@ -440,7 +440,7 @@
         var domainUserMap = {
         @foreach (var item in Model)
         {
-                            var domainKey = item.UserCode?.Trim().ToUpper() ?? "";
+                            var domainKey = item.DomainName?.Trim().ToUpper() ?? "";
                             var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
                             if (!string.IsNullOrEmpty(domainKey))
                             {

@@ -90,7 +90,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsService");
                 if (response.IsSuccessStatusCode)
@@ -113,7 +113,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/Summary");
                 if (response.IsSuccessStatusCode)
@@ -156,7 +156,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsGroupDetails");
                 if (response.IsSuccessStatusCode)
@@ -178,7 +178,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowDrivers");
                 if (response.IsSuccessStatusCode)
@@ -223,7 +223,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
                 if (response.IsSuccessStatusCode)
@@ -246,7 +246,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/BIOSDetails");
                 if (response.IsSuccessStatusCode)
@@ -268,7 +268,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails");
                 if (response.IsSuccessStatusCode)
@@ -342,7 +342,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails");
                 if (response.IsSuccessStatusCode)
@@ -391,7 +391,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/PhysicalMemoryDetails");
 
@@ -446,7 +446,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/ProcessorDetails");
                 if (response.IsSuccessStatusCode)
@@ -469,7 +469,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/SoundDeviceDetails");
                 if (response.IsSuccessStatusCode)
@@ -518,7 +518,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/USBHubDetails");
                 if (response.IsSuccessStatusCode)
@@ -541,7 +541,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/InstalledApplication");
                 if (response.IsSuccessStatusCode)
@@ -563,7 +563,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/InstalledApplication");
                 if (response.IsSuccessStatusCode)
@@ -585,7 +585,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/InstalledApplication");
                 if (response.IsSuccessStatusCode)
@@ -608,7 +608,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/UsbDeviceInfo");
                 if (response.IsSuccessStatusCode)
@@ -632,7 +632,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/AntivirusDetails");
                 if (response.IsSuccessStatusCode)
@@ -653,7 +653,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/AntivirusDetails");
                 if (response.IsSuccessStatusCode)
@@ -675,7 +675,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/CustomComputerDetails");
                 if (response.IsSuccessStatusCode)
@@ -697,7 +697,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/DeviceSummary");
                 if (response.IsSuccessStatusCode)
@@ -720,7 +720,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/OSSummary");
                 if (response.IsSuccessStatusCode)
@@ -744,7 +744,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/SecurityPrivacyDetails");
                 if (response.IsSuccessStatusCode)
@@ -768,7 +768,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/ApplicationSettings");
                 if (response.IsSuccessStatusCode)
@@ -791,7 +791,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/SocialSearchSettings");
                 if (response.IsSuccessStatusCode)
@@ -814,7 +814,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/DeviceRestrictionDetails");
                 if (response.IsSuccessStatusCode)
@@ -838,7 +838,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/MonitorInfo");
                 if (response.IsSuccessStatusCode)
@@ -861,7 +861,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/NetworkAdapterDetails");
                 if (response.IsSuccessStatusCode)
@@ -885,7 +885,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/KeyboardDetails");
                 if (response.IsSuccessStatusCode)
@@ -907,7 +907,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/PrinterDetails");
                 if (response.IsSuccessStatusCode)
@@ -934,7 +934,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/PointingDeviceInfo");
                 if (response.IsSuccessStatusCode)
@@ -958,7 +958,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/VideoDeviceInfo");
                 if (response.IsSuccessStatusCode)
@@ -981,7 +981,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/USBControllerInfo");
                 if (response.IsSuccessStatusCode)
@@ -1003,7 +1003,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/UserAuditHistory");
                 if (response.IsSuccessStatusCode)
@@ -1027,7 +1027,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = domain.Contains("-") ? domain.Split('-')[1] : domain;
+                string UCode = domain;
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/UserLogonHistory");
                 if (response.IsSuccessStatusCode)
