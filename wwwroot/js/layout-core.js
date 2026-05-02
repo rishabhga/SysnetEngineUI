@@ -153,7 +153,6 @@
                     items = data.data || data.Data;
                 }
 
-                // Fallback: If on dashboard and location results are empty, try general notifications
                 if (items.length === 0 && url.includes("GetNotificationsByLocation")) {
                     console.log("Location notifications empty, falling back to general...");
                     url = "/Home/GetNotifications";
@@ -298,5 +297,26 @@
         setupAjaxUnauthorizedHandling();
         loadNotificationCount();
         setInterval(loadNotificationCount, 60000);
+
+        $(document).on('keyup', '#globalSearchInput', function () {
+            var term = $(this).val().toLowerCase().trim();
+            var $cards = $('.device-card, .bg-white.rounded-lg.shadow-md.border');
+
+            if ($cards.length === 0) {
+                $cards = $('.grid > div').filter(function() {
+                    return $(this).hasClass('bg-white') || $(this).hasClass('device-card');
+                });
+            }
+
+            $cards.each(function () {
+                var $card = $(this);
+                var text = $card.text().toLowerCase();
+                if (text.indexOf(term) > -1) {
+                    $card.show();
+                } else {
+                    $card.hide();
+                }
+            });
+        });
     };
 })();

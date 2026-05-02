@@ -70,7 +70,8 @@ namespace ManageEngineWebApp.Controllers
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content);
                     var machine = data?.FirstOrDefault(x =>
-                        x.DomainName == domainOrUserCode || x.UserCode == domainOrUserCode);
+                        string.Equals(x.DomainName, domainOrUserCode, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(x.UserCode, domainOrUserCode, StringComparison.OrdinalIgnoreCase));
                     if (machine != null)
                     {
                         return RoleHelper.ValidateScope(HttpContext, machine.CompanyId, machine.GroupId, machine.LocationId);

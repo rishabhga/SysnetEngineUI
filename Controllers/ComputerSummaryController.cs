@@ -143,7 +143,7 @@ namespace ManageEngineWebApp.Controllers
                 var query = BuildScopedQuery(companyId, locationId, groupId);
                 string url = $"api/WindowsUserDetails/allUser{query}";
 
-                var response = await httpClient.GetAsync(url);
+                var response = await httpClient.GetAsync($"{_baseUrl}/{url}");
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -231,7 +231,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 var client = GetClient();
                 var query = BuildScopedQuery(companyId, locationId, groupId);
-                var response = await client.GetAsync($"api/RamCpuDiskData/list{query}");
+                var response = await client.GetAsync($"{_baseUrl}/api/RamCpuDiskData/list{query}");
 
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -261,7 +261,7 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var client = _httpClientFactory.CreateClient("ManageEngineApi");
+                var client = GetClient();
                 var dto = new
                 {
                     ClientId = criticalClient.ClientId,
@@ -273,7 +273,7 @@ namespace ManageEngineWebApp.Controllers
                 string jsonData = JsonConvert.SerializeObject(dto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-                var response = await client.PostAsync("api/RamCpuDiskData/add", content);
+                var response = await client.PostAsync($"{_baseUrl}/api/RamCpuDiskData/add", content);
 
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -301,11 +301,11 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var client = _httpClientFactory.CreateClient("ManageEngineApi");
+                var client = GetClient();
                 string jsonData = JsonConvert.SerializeObject(clientId);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-                var response = await client.PostAsync("api/RamCpuDiskData/remove", content);
+                var response = await client.PostAsync($"{_baseUrl}/api/RamCpuDiskData/remove", content);
 
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -333,10 +333,10 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var client = _httpClientFactory.CreateClient("ManageEngineApi");
+                var client = GetClient();
                 string url = $"api/RamCpuDiskData/notifications/{Uri.EscapeDataString(machineId)}";
 
-                var response = await client.GetAsync(url);
+                var response = await client.GetAsync($"{_baseUrl}/{url}");
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();

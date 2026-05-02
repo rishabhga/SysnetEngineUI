@@ -1048,8 +1048,8 @@
         function addCriticalClient(e) {
             if (e && e.preventDefault) e.preventDefault();
 
-            const clientId = $('#clientId').val();
-            const clientName = $('#clientName').val();
+            const clientId = $('#clientId').val()?.trim();
+            const clientName = $('#clientName').val()?.trim();
 
             if (!clientId || !clientName) {
                 showToast('Data requirements missing.', 'error');

@@ -193,13 +193,6 @@
         </div>
     </div>
 
-    <!-- Debug banner — visible only when result is unexpectedly empty -->
-    <div id="debugBanner">
-        <strong><i class="fas fa-info-circle mr-1"></i>Debug info:</strong>
-        <span id="debugText"></span>
-    </div>
-
-    <!-- Filter Chips -->
     <div class="flex items-center gap-2 mb-5 flex-wrap">
         <button class="filter-chip active" data-filter="all" onclick="filterNotifications('all', this)">
             <i class="fas fa-inbox text-xs"></i> All
@@ -215,9 +208,7 @@
         </button>
     </div>
 
-    <!-- Notification List -->
     <div class="notif-page-card" id="notifContainer">
-        <!-- Initial skeleton -->
         <div class="skeleton-row"><div class="sk-circle"></div><div class="flex-1"><div class="sk-line" style="width:70%;"></div><div class="sk-line mt-2" style="width:40%;"></div></div></div>
         <div class="skeleton-row"><div class="sk-circle"></div><div class="flex-1"><div class="sk-line" style="width:55%;"></div><div class="sk-line mt-2" style="width:35%;"></div></div></div>
         <div class="skeleton-row"><div class="sk-circle"></div><div class="flex-1"><div class="sk-line" style="width:65%;"></div><div class="sk-line mt-2" style="width:45%;"></div></div></div>
