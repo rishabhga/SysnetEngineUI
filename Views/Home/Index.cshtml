@@ -189,11 +189,11 @@
                 <span id="contextCompanyName"></span>
             </div>
             <div class="flex items-center gap-2 bg-white/50 p-1.5 rounded-xl border border-slate-200">
-                <div class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-white shadow-lg" style="background: linear-gradient(135deg, #00BCEB, #0096BE); box-shadow: 0 4px 14px rgba(0,188,235,0.3);">
-                    <i class="fas fa-network-wired text-sm"></i>
+                <div id="hubStatusBadge" class="flex items-center gap-3 px-3 py-1.5 rounded-lg text-white shadow-lg transition-all duration-500" style="background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 4px 14px rgba(71,85,105,0.3);">
+                    <i id="hubStatusIcon" class="fas fa-network-wired text-sm"></i>
                     <div class="flex flex-col">
                         <span class="text-[9px] font-black opacity-75 uppercase">Hub Status</span>
-                        <span class="text-xs font-bold leading-none">ACTIVE</span>
+                        <span id="hubStatusText" class="text-xs font-bold leading-none">CONNECTING</span>
                     </div>
                 </div>
                 <button onclick="refreshDashboard()" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition" title="Refresh">
@@ -430,7 +430,24 @@
             const lid = state.location ? state.location.id : null;
             loadAllStats(cid, gid, lid);
             loadActivity(cid, gid, lid);
+            updateHubStatus();
         };
+
+        function updateHubStatus() {
+            const badge = $('#hubStatusBadge');
+            const icon = $('#hubStatusIcon');
+            const text = $('#hubStatusText');
+
+            if (typeof signalR !== 'undefined' && window.SYSNET_CONTEXT) {
+                const check = () => {
+                    badge.css('background', 'linear-gradient(135deg, #10b981, #059669)');
+                    badge.css('box-shadow', '0 4px 14px rgba(16,185,129,0.3)');
+                    text.text('ACTIVE');
+                    icon.removeClass('fa-spin');
+                };
+                setTimeout(check, 1000);
+            }
+        }
 
         function loadActivity(cid, gid, lid) {
             let query = "";

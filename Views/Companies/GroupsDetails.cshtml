@@ -153,7 +153,7 @@
                     }
                 }
 
-                <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 h-64 flex flex-col">
+                <div class="group-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 h-64 flex flex-col">
                     <div class="bg-white border-b border-gray-200 p-2 flex-shrink-0">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-2">
@@ -453,6 +453,13 @@
             }
         });
         $(document).ready(function () {
+            $(document).on('searchEvent', (e, term) => {
+                const query = term.toLowerCase();
+                $('.group-card').each(function() {
+                    const text = $(this).text().toLowerCase();
+                    $(this).toggle(text.includes(query));
+                });
+            });
             $('.edit-group-btn').on('click', function () {
                 const $btn = $(this);
                 const groupId = $btn.data('group-id');

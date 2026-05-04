@@ -179,9 +179,11 @@ namespace ManageEngineWebApp.Controllers
                             {
                                 locDto.Users.Add(new UserHierarchyDto
                                 {
-                                    UserName = usr.UserCode,
+                                    UserName = !string.IsNullOrEmpty(usr.UserName) ? usr.UserName : 
+                                               (!string.IsNullOrEmpty(usr.FullName) ? usr.FullName : usr.UserCode),
                                     DomainName = usr.DomainName,
                                     PrimaryOwner = usr.FullName,
+                                    OsLicenseStatus = usr.AccountType ?? "PENDING",
                                     IsOnline = activeUserNames.Contains(usr.DomainName?.ToUpper().Trim() ?? "") || 
                                                activeUserNames.Contains(usr.UserCode?.ToUpper().Trim() ?? "")
                                 });

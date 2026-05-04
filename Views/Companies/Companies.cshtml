@@ -150,7 +150,7 @@
                 var companyGroups = company.Groups?.Count ?? 0;
                 var companyLocations = company.Groups?.Sum(g => g.Locations?.Count ?? 0) ?? 0;
 
-                <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 h-64 flex flex-col">
+                <div class="company-card bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 h-64 flex flex-col">
                     <div class="bg-white border-b border-gray-200 p-2 flex-shrink-0">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-2">
@@ -592,6 +592,13 @@
 
 
     $(document).ready(function() {
+        $(document).on('searchEvent', (e, term) => {
+            const query = term.toLowerCase();
+            $('.company-card').each(function() {
+                const text = $(this).text().toLowerCase();
+                $(this).toggle(text.includes(query));
+            });
+        });
     });
 </script>
 
