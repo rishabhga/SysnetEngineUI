@@ -7,11 +7,11 @@
     --side-active-bg: #e0f2fe;
     --side-active-color: #0284c7;
     --side-border: #e2e8f0;
-    --side-w-expanded: 195px;
+    --side-w-expanded: 240px;
     --side-w-collapsed: 0px;
-    --nav-h: 52px;
-    --transition-speed: 0.35s;
-    --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+    --nav-h: 56px;
+    --transition-speed: 0.4s;
+    --transition-timing: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* ── Anti-flicker: instant hide before JS loads ── */
