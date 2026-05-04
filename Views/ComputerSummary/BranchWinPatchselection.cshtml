@@ -249,12 +249,12 @@
                 url: '@Url.Action("UpdatewinPatchselection", "ComputerSummary")',
                 type: 'POST', contentType: 'application/json',
                 data: JSON.stringify({
-                    companyid:  parseInt('@companyid'),
-                    groupid:    parseInt('@groupid'),
-                    locationid: parseInt('@locationid'),
+                    companyid:  parseInt('@companyid') || 0,
+                    groupid:    parseInt('@groupid') || 0,
+                    locationid: parseInt('@locationid') || 0,
                     selectedIds: ids.join(','),
-                    deviceIds:  '@deviceIds',   
-                    domainids:  '@deviceIds'     
+                    deviceIds:  '@deviceIds',
+                    domainids:  '@domainids'
                 }),
                 success: function(res) {
                     btn.disabled = false; btn.innerHTML = orig;

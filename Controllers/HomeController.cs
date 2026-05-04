@@ -1,5 +1,6 @@
 using ManageEngineWebApp.Models;
 using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -39,41 +40,40 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetNetworkStats()
+        public async Task<IActionResult> GetNetworkStats(int? companyId, int? groupId, int? locationId)
         {
             try
             {
                 var client = GetClient();
-                var query = BuildScopedQuery();
+                var query = BuildScopedQuery(companyId, locationId, groupId);
                 var totalTask = client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser{query}");
                 var activeTask = client.GetAsync($"{_baseUrl}/api/Command/GetConnectedDevices");
 
                 await Task.WhenAll(totalTask, activeTask);
 
                 var totalContent = await totalTask.Result.Content.ReadAsStringAsync();
-                var allDevices = JsonConvert.DeserializeObject<List<dynamic>>(totalContent) ?? new List<dynamic>();
+                var allDevices = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(totalContent) ?? new List<WindowsUserDetails>();
 
                 var activeContent = await activeTask.Result.Content.ReadAsStringAsync();
-                var activeDevices = JsonConvert.DeserializeObject<List<dynamic>>(activeContent) ?? new List<dynamic>();
+                var activeDevices = JsonConvert.DeserializeObject<List<ConnectedClientDto>>(activeContent) ?? new List<ConnectedClientDto>();
 
-                var authorizedUserCodes = allDevices
-                    .Select(d => (string)(d.userCode ?? d.UserCode ?? d.domainName ?? d.DomainName))
-                    .Where(code => !string.IsNullOrEmpty(code))
-                    .Select(code => code.ToUpper().Trim())
-                    .ToHashSet();
+                var activeIdentifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var d in activeDevices)
+                {
+                    if (!string.IsNullOrEmpty(d.ClientId)) activeIdentifiers.Add(d.ClientId.Trim());
+                    if (!string.IsNullOrEmpty(d.UserName)) activeIdentifiers.Add(d.UserName.Trim());
+                }
 
-                var filteredActiveCount = activeDevices
-                    .Select(d => (string)(d.userName ?? d.UserName))
-                    .Where(name => !string.IsNullOrEmpty(name))
-                    .Select(name => name.ToUpper().Trim())
-                    .Distinct() // Ensure unique computer counts
-                    .Count(name => IsTopLevelAdmin() || authorizedUserCodes.Contains(name));
+                var onlineCount = allDevices.Count(d => 
+                    (!string.IsNullOrEmpty(d.UserCode) && activeIdentifiers.Contains(d.UserCode.Trim())) ||
+                    (!string.IsNullOrEmpty(d.DomainName) && activeIdentifiers.Contains(d.DomainName.Trim()))
+                );
 
                 return Json(new
                 {
                     total = allDevices.Count,
-                    online = filteredActiveCount,
-                    offline = Math.Max(0, allDevices.Count - filteredActiveCount)
+                    online = onlineCount,
+                    offline = Math.Max(0, allDevices.Count - onlineCount)
                 });
             }
             catch (Exception ex)
@@ -83,12 +83,12 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetPatchOverview()
+        public async Task<IActionResult> GetPatchOverview(int? companyId, int? groupId, int? locationId)
         {
             try
             {
                 var client = GetClient();
-                var query = BuildScopedQuery();
+                var query = BuildScopedQuery(companyId, locationId, groupId);
 
                 var tpTask = client.GetAsync($"{_baseUrl}/api/MissingPatch{query}");
                 var winTask = client.GetAsync($"{_baseUrl}/api/MissingPatch/windowpatch{query}");
@@ -115,12 +115,12 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetSwitchStatus()
+        public async Task<IActionResult> GetSwitchStatus(int? companyId, int? groupId, int? locationId)
         {
             try
             {
                 var client = GetClient();
-                var query = BuildScopedQuery();
+                var query = BuildScopedQuery(companyId, locationId, groupId);
 
                 var swTask = client.GetAsync($"{_baseUrl}/api/Zabbix{query}");
                 var statusTask = client.GetAsync($"{_baseUrl}/api/Zabbix/AllDeviceStatuses{query}");
@@ -152,13 +152,13 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
-        private async Task<List<dynamic>> FetchNotificationsForCurrentUser()
+        private async Task<List<dynamic>> FetchNotificationsForCurrentUser(int? companyId = null, int? groupId = null, int? locationId = null)
         {
             var client = GetClient();
             var allItems = new List<dynamic>();
             var seenIds = new HashSet<string>();
 
-            if (IsTopLevelAdmin())
+            if (IsTopLevelAdmin() && !companyId.HasValue && !groupId.HasValue && !locationId.HasValue)
             {
                 var response = await client.GetAsync(
                     $"{_baseUrl}/api/RamCpuDiskData/notifications/location");
@@ -173,17 +173,33 @@ namespace ManageEngineWebApp.Controllers
             }
             else
             {
-                var (companyIds, _, _) = GetUserScope();
+                var userScope = GetUserScope();
+                var targetCompanyIds = new List<int>();
 
-                if (!companyIds.Any())
-                    return allItems;
-                foreach (var cid in companyIds)
+                if (companyId.HasValue && companyId.Value > 0)
                 {
-                    var url = $"{_baseUrl}/api/RamCpuDiskData/notifications/location?companyId={cid}";
-                    var response = await client.GetAsync(url);
+                    if (IsAuthorized(companyId)) targetCompanyIds.Add(companyId.Value);
+                }
+                else if (userScope.companyIds.Any())
+                {
+                    targetCompanyIds.AddRange(userScope.companyIds);
+                }
+                else if (IsTopLevelAdmin())
+                {
+                    // For admins with no specific company filter, we might need a different approach or fetch all
+                }
 
-                    if (!response.IsSuccessStatusCode) continue;
+                if (!targetCompanyIds.Any() && !IsTopLevelAdmin())
+                    return allItems;
 
+                // Build query for the service
+                var query = BuildScopedQuery(companyId, locationId, groupId);
+
+                var url = $"{_baseUrl}/api/RamCpuDiskData/notifications/location{query}";
+                var response = await client.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
                     var content = await response.Content.ReadAsStringAsync();
                     var items = JsonConvert.DeserializeObject<List<dynamic>>(content)
                                   ?? new List<dynamic>();
@@ -201,14 +217,14 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetRecentActivity()
+        public async Task<IActionResult> GetRecentActivity(int? companyId, int? groupId, int? locationId)
         {
             if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
                 return Content("[]", "application/json");
 
             try
             {
-                var notifications = await FetchNotificationsForCurrentUser();
+                var notifications = await FetchNotificationsForCurrentUser(companyId, groupId, locationId);
                 return Content(JsonConvert.SerializeObject(notifications), "application/json");
             }
             catch

@@ -872,8 +872,8 @@ namespace ManageEngineWebApp.Controllers
                     var query = BuildScopedQuery(companyid, locationid, groupid);
                     string userUrl = $"api/WindowsUserDetails/allUser{query}";
 
-                    var userTask = httpClient.GetAsync(userUrl);
-                    var connectedTask = httpClient.GetAsync("api/Command/GetConnectedDevices");
+                    var userTask = httpClient.GetAsync($"{_baseUrl}/{userUrl}");
+                    var connectedTask = httpClient.GetAsync($"{_baseUrl}/api/Command/GetConnectedDevices");
 
                     await Task.WhenAll(userTask, connectedTask);
 
@@ -928,8 +928,8 @@ namespace ManageEngineWebApp.Controllers
                 var httpClient = GetClient();
                 var query = BuildScopedQuery(companyid, locationid, groupid);
                 // Append deviceIds manually as they are feature-specific
-                var patchTask = httpClient.GetAsync($"api/MissingPatch{query}&deviceIds={selectedIds}");
-                var repoTask = httpClient.GetAsync("api/SoftwareRepoDetails");
+                var patchTask = httpClient.GetAsync($"{_baseUrl}/api/MissingPatch{query}&deviceIds={selectedIds}");
+                var repoTask = httpClient.GetAsync($"{_baseUrl}/api/SoftwareRepoDetails");
 
                 await Task.WhenAll(patchTask, repoTask);
 
@@ -1048,6 +1048,9 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
+                if (string.IsNullOrEmpty(updatewinPatchselectiondto.deviceIds))
+                    updatewinPatchselectiondto.deviceIds = updatewinPatchselectiondto.domainids;
+
                 if (string.IsNullOrEmpty(updatewinPatchselectiondto.deviceIds))
                     return Json(new { success = false, error = "No device IDs were received. Please go back and re-select your devices." });
                 using var client = GetClient();

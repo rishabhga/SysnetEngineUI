@@ -429,10 +429,16 @@
             const gid = state.group ? state.group.id : null;
             const lid = state.location ? state.location.id : null;
             loadAllStats(cid, gid, lid);
+            loadActivity(cid, gid, lid);
         };
 
-        function loadActivity() {
-            $.get('@Url.Action("GetRecentActivity", "Home")', function(data) {
+        function loadActivity(cid, gid, lid) {
+            let query = "";
+            if (cid) query += (query ? "&" : "?") + "companyId=" + cid;
+            if (gid) query += (query ? "&" : "?") + "groupId=" + gid;
+            if (lid) query += (query ? "&" : "?") + "locationId=" + lid;
+
+            $.get('@Url.Action("GetRecentActivity", "Home")' + query, function(data) {
                 const feed = $('#activityFeed');
                 if (!data || !data.length) {
                     feed.html('<div class="text-center py-8"><i class="fas fa-check-circle text-3xl text-emerald-200 mb-2"></i><p class="text-sm text-slate-400">No recent alerts</p></div>');
