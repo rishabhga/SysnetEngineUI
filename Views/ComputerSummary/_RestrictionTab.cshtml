@@ -1,0 +1,76 @@
+<div id="Restriction" class="tab-pane">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                <h3 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-mobile-alt" style="color:#00BCEB;"></i> Device Restrictions</h3>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Camera Access</span><span id="tdIsCameraEnabled" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Telemetry</span><span id="tdIsTelemetryEnabled" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Modify Date / Time</span><span id="tdCanModifyDateTime" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Bluetooth</span><span id="tdIsBluetoothEnabled" class="text-[11px] font-semibold"></span></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                <h3 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-network-wired text-green-500"></i> Network Restrictions</h3>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Internet Sharing</span><span id="tdInternetSharing" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">VPN</span><span id="tdVPN" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Wi-Fi</span><span id="tdWiFi" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Wi-Fi Configuration</span><span id="tdAllowWiFiConfiguration" class="text-[11px] font-semibold"></span></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                <h3 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fab fa-bluetooth text-blue-500"></i> Bluetooth Settings</h3>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Bluetooth Status</span><span id="tdBluetooth" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Discovery</span><span id="tdBluetoothdiscovery" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Pre-pairing</span><span id="tdBluetoothprepairing" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Services Advertising</span><span id="tdBluetoothservicesadvertising" class="text-[11px] font-semibold"></span></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                <h3 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-user-shield text-purple-500"></i> Security & Privacy</h3>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Location Services</span><span id="tdLocationServices" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Microsoft Account Connected</span><span id="tdIsMicrosoftAccountConnected" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Add Non-Microsoft Accounts</span><span id="tdCanAddNonMicrosoftAccounts" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Reset Device</span><span id="tdCanResetDevice" class="text-[11px] font-semibold"></span></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                <h3 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-box-open text-amber-500"></i> Application Settings</h3>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Install Non-Store Apps</span><span id="tdInstallNonStoreApps" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Install Apps Only in Memory</span><span id="tdInstallAppsOnlyInDeviceMemory" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Store App Data in Memory Only</span><span id="tdStoreAppDataOnlyInDeviceMemory" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Auto Update Store Apps</span><span id="tdAutoUpdateStoreApps" class="text-[11px] font-semibold"></span></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                <h3 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-search text-cyan-500"></i> Social & Search</h3>
+            </div>
+            <div class="divide-y divide-gray-100">
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Cortana Enabled</span><span id="tdCortanaEnabled" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Sync Settings</span><span id="tdSyncSettingsEnabled" class="text-[11px] font-semibold"></span></div>
+                <div class="flex justify-between items-center px-4 py-2 hover:bg-gray-50 transition-colors gap-3"><span class="text-[11px] text-gray-500 font-medium">Search Location</span><span id="tdSearchLocationEnabled" class="text-[11px] font-semibold"></span></div>
+            </div>
+        </div>
+
+    </div>
+</div>

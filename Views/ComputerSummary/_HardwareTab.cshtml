@@ -1,0 +1,102 @@
+<div id="Hardware" class="tab-pane">
+    <div class="flex flex-col lg:flex-row gap-4">
+        <div class="w-full lg:w-56 flex-shrink-0">
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden sticky top-4">
+                <div class="px-4 py-3.5 bg-gray-50/50 border-b border-gray-200 text-[11px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2.5">
+                    <div class="w-6 h-6 rounded-lg bg-cyan-soft flex items-center justify-center">
+                        <i class="fas fa-microchip text-[11px] text-cyan-dark"></i>
+                    </div>
+                    Hardware
+                </div>
+                <ul class="py-2 space-y-1 max-h-[600px] overflow-y-auto" role="tablist">
+                    <li class="hardware-tab active"><a href="#BatteryHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-battery-full text-center w-5"></i><span>Battery</span></a></li>
+                    <li class="hardware-tab"><a href="#BIOSHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-fingerprint text-center w-5"></i><span>BIOS</span></a></li>
+                    <li class="hardware-tab"><a href="#HardDiskHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-hdd text-center w-5"></i><span>Hard Disk</span></a></li>
+                    <li class="hardware-tab"><a href="#KeyboardHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-keyboard text-center w-5"></i><span>Keyboard</span></a></li>
+                    <li class="hardware-tab"><a href="#MonitorHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-desktop text-center w-5"></i><span>Monitor</span></a></li>
+                    <li class="hardware-tab"><a href="#MotherboardHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-microchip text-center w-5"></i><span>Motherboard</span></a></li>
+                    <li class="hardware-tab"><a href="#NetworkHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-network-wired text-center w-5"></i><span>Network</span></a></li>
+                    <li class="hardware-tab"><a href="#MemoryHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-memory text-center w-5"></i><span>Memory</span></a></li>
+                    <li class="hardware-tab"><a href="#PointingHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-mouse text-center w-5"></i><span>Pointing</span></a></li>
+                    <li class="hardware-tab"><a href="#PrintersHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-print text-center w-5"></i><span>Printers</span></a></li>
+                    <li class="hardware-tab"><a href="#ProcessorsHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-microchip text-center w-5"></i><span>Processors</span></a></li>
+                    <li class="hardware-tab"><a href="#SoundHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-volume-up text-center w-5"></i><span>Sound</span></a></li>
+                    <li class="hardware-tab"><a href="#VideoHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-tv text-center w-5"></i><span>Video</span></a></li>
+                    <li class="hardware-tab"><a href="#USBHw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-usb text-center w-5"></i><span>USB</span></a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                <div class="tab-content p-4">
+                    <div id="BatteryHw" class="tab-pane active">
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-battery-full" style="color:#B4D334;"></i> Battery Information</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Manufacturer</div><div class="text-[12px] font-bold text-gray-700" id="batteryManufacturer">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Status</div><div class="text-[12px] font-bold text-gray-700" id="batteryStatus">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Battery Level</div><div class="text-lg font-extrabold" style="color:#00BCEB;" id="batteryLevel">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">System Type</div><div class="text-[12px] font-bold text-gray-700" id="batterySystemType">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100 sm:col-span-2"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Description</div><div class="text-[11px] text-gray-500" id="batteryDescription">--</div></div>
+                        </div>
+                    </div>
+                    <div id="BIOSHw" class="tab-pane">
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-memory" style="color:#00BCEB;"></i> BIOS Details</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Manufacturer</div><div class="text-[12px] font-bold text-gray-700" id="biosManufacturer">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Version</div><div class="text-[12px] font-mono text-gray-600" id="biosVersion">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">SMBIOS</div><div class="text-[12px] font-mono text-gray-600" id="biosSmbiosVersion">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Release Date</div><div class="text-[12px] font-bold text-gray-700" id="biosReleaseDate">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Status</div><div class="text-[12px] font-bold text-gray-700" id="biosStatus">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Description</div><div class="text-[11px] text-gray-500" id="biosDescription">--</div></div>
+                        </div>
+                    </div>
+                    <div id="HardDiskHw" class="tab-pane">
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-hdd" style="color:#B4D334;"></i> Physical Disks</h4>
+                        <div class="mb-4"><table id="hardDiskTable" class="w-full"><thead><tr><th>Model</th><th>Manufacturer</th><th>Serial Number</th><th>Capacity</th></tr></thead><tbody></tbody></table></div>
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 mt-4"><i class="fas fa-folder" style="color:#00BCEB;"></i> Logical Drives</h4>
+                        <table id="logicalDiskTable" class="w-full"><thead><tr><th>Drive</th><th>File System</th><th>Total</th><th>Free</th><th>Used</th><th>Usage %</th></tr></thead><tbody></tbody></table>
+                    </div>
+                    <div id="KeyboardHw" class="tab-pane"><h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-keyboard" style="color:#00BCEB;"></i> Keyboard</h4><div id="keyboardContainer"></div></div>
+                    <div id="MonitorHw" class="tab-pane">
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-desktop" style="color:#F59E0B;"></i> Monitor</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Manufacturer</div><div class="text-[12px] font-bold text-gray-700" id="monitorManufacturer">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Type</div><div class="text-[12px] font-bold text-gray-700" id="monitorType">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Resolution</div><div class="text-[12px] font-bold text-gray-700" id="monitorResolution">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Size</div><div class="text-[12px] font-bold text-gray-700" id="monitorSize">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Serial</div><div class="text-[12px] font-mono text-gray-600" id="monitorSerial">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Status</div><div class="text-[12px] font-bold text-gray-700" id="monitorStatus">--</div></div>
+                        </div>
+                    </div>
+                    <div id="MotherboardHw" class="tab-pane"><h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-microchip" style="color:#00BCEB;"></i> Motherboard</h4><div id="motherboardContainer"></div></div>
+                    <div id="NetworkHw" class="tab-pane"><h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-network-wired" style="color:#00BCEB;"></i> Network Adapters</h4><div id="networkContainer" class="space-y-3"></div></div>
+                    <div id="MemoryHw" class="tab-pane">
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-memory" style="color:#F59E0B;"></i> Physical Memory</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Max RAM</div><div class="text-lg font-extrabold" style="color:#00BCEB;" id="tdMaximumSupportedRAM">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Location</div><div class="text-[12px] font-bold text-gray-700" id="tdLocation">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Slots Available</div><div class="text-lg font-extrabold text-green-500" id="tdSlotsAvailable">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Slots Used</div><div class="text-lg font-extrabold text-amber-500" id="tdSlotsUsed">--</div></div>
+                        </div>
+                    </div>
+                    <div id="PointingHw" class="tab-pane"><h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-mouse" style="color:#00BCEB;"></i> Pointing Devices</h4><table id="pointingTable" class="w-full"><thead><tr><th>Manufacturer</th><th>Description</th><th>Buttons</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+                    <div id="PrintersHw" class="tab-pane"><h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-print" style="color:#00BCEB;"></i> Printers</h4><table id="printersTable" class="w-full"><thead><tr><th>Printer Name</th><th>Manufacturer</th><th>Port</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+                    <div id="ProcessorsHw" class="tab-pane">
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-microchip" style="color:#00BCEB;"></i> Processor</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Speed</div><div class="text-lg font-extrabold" style="color:#00BCEB;" id="processorSpeed">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Manufacturer</div><div class="text-[12px] font-bold text-gray-700" id="processorManufacturer">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Cores</div><div class="text-lg font-extrabold" style="color:#B4D334;" id="processorCores">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Socket</div><div class="text-[12px] font-bold text-gray-700" id="processorSocket">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Status</div><div class="text-[12px] font-bold text-gray-700" id="processorStatus">--</div></div>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><div class="text-[9px] text-gray-400 font-semibold uppercase mb-1">Description</div><div class="text-[11px] text-gray-500" id="processorDescription">--</div></div>
+                        </div>
+                    </div>
+                    <div id="SoundHw" class="tab-pane"><h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-volume-up" style="color:#00BCEB;"></i> Sound</h4><table id="soundTable" class="w-full"><thead><tr><th>Name</th><th>Manufacturer</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+                    <div id="VideoHw" class="tab-pane"><h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-tv" style="color:#F59E0B;"></i> Video</h4><table id="videoTable" class="w-full"><thead><tr><th>Adapter</th><th>Memory</th><th>Resolution</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+                    <div id="USBHw" class="tab-pane"><h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3"><i class="fas fa-usb" style="color:#00BCEB;"></i> USB</h4><table id="usbTable" class="w-full"><thead><tr><th>Name</th><th>Manufacturer</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

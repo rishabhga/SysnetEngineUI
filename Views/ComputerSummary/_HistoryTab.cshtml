@@ -1,0 +1,33 @@
+<div id="History" class="tab-pane">
+    <div class="flex flex-col lg:flex-row gap-3">
+        <div class="w-full lg:w-48 flex-shrink-0">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-3 py-2.5 bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-history" style="color:#00BCEB;"></i> History</div>
+                <ul class="p-1.5 space-y-0.5" role="tablist">
+                    <li class="history-tab active"><a href="#AuditHistory" data-toggle="tab" class="flex items-center gap-2 px-3 py-2 rounded-md text-[11px] font-medium transition-all"><i class="fas fa-clipboard-list text-[10px] w-4 text-center"></i> Audit History</a></li>
+                    <li class="history-tab"><a href="#LoginHistory" data-toggle="tab" class="flex items-center gap-2 px-3 py-2 rounded-md text-[11px] font-medium transition-all"><i class="fas fa-user-clock text-[10px] w-4 text-center"></i> Login History</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                <div class="tab-content p-3">
+                    <div id="AuditHistory" class="tab-pane active">
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-clipboard-list" style="color:#00BCEB;"></i> Audit History</h4>
+                        <table id="auditHistoryTable" class="w-full">
+                            <thead><tr><th>Device Name</th><th>Username</th><th>Device Type</th><th>Manufacturer</th><th>Connected Time</th><th>Duration</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div id="LoginHistory" class="tab-pane">
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-user-clock" style="color:#F59E0B;"></i> Login History</h4>
+                        <table id="loginHistoryTable" class="w-full">
+                            <thead><tr><th>Username</th><th>Logon Time</th><th>Logoff Time</th><th>Date</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

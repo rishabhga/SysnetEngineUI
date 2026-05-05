@@ -1354,7 +1354,7 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 using var httpClient = GetClient();
-                var winUserResponse = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
+                var winUserResponse = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser");
                 WindowsUserDetails winUser = null;
                 if (winUserResponse.IsSuccessStatusCode)
                 {
@@ -1827,21 +1827,20 @@ namespace ManageEngineWebApp.Controllers
         [HttpPost]
         public IActionResult UploadSoftware(IFormFile file)
         {
-            //if (file == null || file.Length == 0)
-            //    return Json("No file selected");
+            if (file == null || file.Length == 0)
+                return Json("No file selected");
 
-            //string wwwPath = _hostEnvironment.WebRootPath;
-            //string folderPath = Path.Combine(wwwPath, "Softwares");
+            string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Softwares");
 
-            //if (!Directory.Exists(folderPath))
-            //    Directory.CreateDirectory(folderPath);
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
 
-            //string filePath = Path.Combine(folderPath, file.FileName);
+            string filePath = Path.Combine(folderPath, file.FileName);
 
-            //using (var stream = new FileStream(filePath, FileMode.Create))
-            //{
-            //    file.CopyTo(stream);
-            //}
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                file.CopyTo(stream);
+            }
 
             return Json("Software uploaded successfully");
         }
@@ -1982,6 +1981,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> users(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<WindowsUserDetails>();
             try
             {
@@ -1991,9 +1991,10 @@ namespace ManageEngineWebApp.Controllers
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
+                    string UCode = GetUCodeFromDomain(domain);
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                    localDatalist = data?.Where(x => x.DomainName == domain).ToList() ?? new List<WindowsUserDetails>();
+                    localDatalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<WindowsUserDetails>();
                 }
             }
             catch (Exception) { }
@@ -2850,8 +2851,7 @@ namespace ManageEngineWebApp.Controllers
                 string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"?userCode={UCode}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -2873,13 +2873,45 @@ namespace ManageEngineWebApp.Controllers
                 string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/MissingPatch/windowpatch");
-
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"?userCode={UCode}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<PatchDetail>>(content) : null;
                     if (data != null) localDatalist = data.Where(x => x != null && x.UserCode == UCode).ToList();
+                }
+            }
+            catch (Exception) { }
+            return Json(localDatalist);
+        }
+        [DynamicPermission("ComputerSummary.View", "Installed Hotfixes")]
+        public async Task<IActionResult> Hotfix(string domain)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            var localDatalist = new List<WindowsPatchInfo>();
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/ComputerDetails");
+
+                var response = await httpClient.GetAsync("");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        using var patchClient = GetClient();
+                        patchClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsPatchInfo");
+                        var patchResponse = await patchClient.GetAsync($"?userCode={UCode}");
+                        if (patchResponse.IsSuccessStatusCode)
+                        {
+                            var patchContent = await patchResponse.Content.ReadAsStringAsync();
+                            var patchData = !string.IsNullOrEmpty(patchContent) ? JsonConvert.DeserializeObject<List<WindowsPatchInfo>>(patchContent) : null;
+                            if (patchData != null) localDatalist = patchData.Where(x => x.UserCode == UCode).ToList();
+                        }
+                    }
+                    catch { }
                 }
             }
             catch (Exception) { }
@@ -3292,7 +3324,7 @@ namespace ManageEngineWebApp.Controllers
                 var batterydata = new
                 {
                     Manufacturer = localDatalist[0].Manufacturer,
-                    Status = localDatalist[0].Manufacturer,
+                    Status = localDatalist[0].Status,
                     Description = localDatalist[0].Description,
                     BatteryLevel = localDatalist[0].BatteryLevel,
                     SystemType = localDatalist[0].SystemType,
@@ -3309,6 +3341,26 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
+        public async Task<IActionResult> BatteryLog(string domain)
+        {
+            var localDatalist = new List<BiosSummaryChangeAudit>();
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/TableChangesAudit/Batterylist/{UCode}");
+
+                var response = await httpClient.GetAsync("");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<BiosSummaryChangeAudit>>(content) : null;
+                    if (data != null) localDatalist = data;
+                }
+            }
+            catch (Exception) { }
+            return Json(localDatalist);
+        }
 
         //SummaryUpdateLog
         public async Task<IActionResult> SummaryUpdateLog(string domain)
@@ -3745,7 +3797,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<List<UserDetails>>(content);
-                    var userDetail = data?.FirstOrDefault(x => x.domainName == domain);
+                    var userDetail = data?.FirstOrDefault(x => string.Equals(x.domainName, domain, StringComparison.OrdinalIgnoreCase));
 
                     if (userDetail != null)
                     {

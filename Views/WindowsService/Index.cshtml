@@ -1,244 +1,97 @@
-﻿@model List<WindowsService>
+@model List<WindowsService>
+@{
+    ViewData["Title"] = "Windows Services";
+}
 
-<h2>Windows Services Details</h2>
-
-
-
-
-    <style>
-        /* Horizontal Menu Styles */
-        .horizontal-menu ul {
-            list-style-type: none;
-            display: flex;
-           /*  background-color: #333; */
-            padding: 0;
-        }
-
-        .horizontal-menu li {
-            padding: 14px 20px;
-            cursor: pointer;
-            color: white;
-        }
-
-            .horizontal-menu li:hover {
-                background-color: #575757;
-            }
-
-        /* Vertical Menu Styles */
-        .vertical-menu {
-            float: left;
-            width: 20%;
-            background-color: #f4f4f4;
-            padding: 10px;
-            height: 100vh; /* Full screen height */
-        }
-
-            .vertical-menu ul {
-                list-style-type: none;
-                padding: 0;
-            }
-
-            .vertical-menu li {
-                padding: 8px 10px;
-                cursor: pointer;
-                color: #333;
-            }
-
-                .vertical-menu li:hover {
-                    background-color: #ddd;
-                }
-
-        /* Content Area */
-        .content-area {
-            margin-left: 21%; /* Align next to the vertical menu */
-            padding: 20px;
-        }
-    </style>
-
-    <!-- Horizontal Menu -->
-<div class="horizontal-menu">
-    <ul>
-        <li><a href="#" onclick="loadVerticalMenu('summary')">Summary</a></li>
-        <li><a href="#" onclick="loadVerticalMenu('system')">System</a></li>
-        <li><a href="#" onclick="loadVerticalMenu('hardware')">Hardware</a></li>
-        <li><a href="#" onclick="loadVerticalMenu('software')">Software</a></li>
-        <li><a href="#" onclick="loadVerticalMenu('security')">Security</a></li>
-    </ul>
-</div>
-  @*   <div class="horizontal-menu">
-        <ul>
-            <li onclick="updateVerticalMenu('summary')">Summary</li>
-            <li onclick="updateVerticalMenu('system')">System</li>
-            <li onclick="updateVerticalMenu('hardware')">Hardware</li>
-            <li onclick="updateVerticalMenu('software')">Software</li>
-            <li onclick="updateVerticalMenu('security')">Security</li>
-        </ul>
-    </div> *@
-
-
-<div id="vertical-menu-summary" class="vertical-menu" style="display:none;">
-    <ul>
-        <li><a href="@Url.Action("Index", "WindowsUserDetails")">Overview</a></li>
-        <li><a href="@Url.Action("Index", "WindowDrivers")">Statistics</a></li>
-        <li><a href="@Url.Action("Reports", "ComputerDetails")">Reports</a></li>
-    </ul>
-</div>
-
-<div id="vertical-menu-system" class="vertical-menu" style="display:none;">
-    <ul>
-        <li><a href="@Url.Action("Services", "ComputerDetails")">Services</a></li>
-        <li><a href="@Url.Action("Users", "ComputerDetails")">Users</a></li>
-        <li><a href="@Url.Action("Groups", "ComputerDetails")">Groups</a></li>
-        <li><a href="@Url.Action("Drivers", "ComputerDetails")">Drivers</a></li>
-    </ul>
-</div>
-
-<!-- Similarly for other categories: hardware, software, security -->
-<!-- vertical Menu -->
-@* <div id="vertical-menu">
-    <ul>
-        <li><a href="@Url.Action("Overview", "ComputerDetails")">Overview</a></li>
-        <li><a href="@Url.Action("Statistics", "ComputerDetails")">Statistics</a></li>
-        <li><a href="@Url.Action("Reports", "ComputerDetails")">Reports</a></li>
-        <li><a href="@Url.Action("Services", "ComputerDetails")">Services</a></li>
-        <li><a href="@Url.Action("Users", "ComputerDetails")">Users</a></li>
-        <li><a href="@Url.Action("Groups", "ComputerDetails")">Groups</a></li>
-        <li><a href="@Url.Action("Drivers", "ComputerDetails")">Drivers</a></li>
-        <li><a href="@Url.Action("Components", "ComputerDetails")">Components</a></li>
-        <li><a href="@Url.Action("Monitors", "ComputerDetails")">Monitors</a></li>
-        <li><a href="@Url.Action("Specifications", "ComputerDetails")">Specifications</a></li>
-        <li><a href="@Url.Action("InstalledPrograms", "ComputerDetails")">Installed Programs</a></li>
-        <li><a href="@Url.Action("Updates", "ComputerDetails")">Updates</a></li>
-        <li><a href="@Url.Action("Settings", "ComputerDetails")">Settings</a></li>
-        <li><a href="@Url.Action("Firewall", "ComputerDetails")">Firewall</a></li>
-        <li><a href="@Url.Action("Antivirus", "ComputerDetails")">Antivirus</a></li>
-        <li><a href="@Url.Action("Encryption", "ComputerDetails")">Encryption</a></li>
-    </ul>
-</div> *@
-
-
-    <!-- Main Content Section -->
-    <div class="main-container">
-        <!-- Vertical Menu -->
-        <div class="vertical-menu" id="vertical-menu">
-            <ul>
-                <!-- Items will be dynamically loaded here -->
-            </ul>
+<div class="max-w-7xl mx-auto px-4 pt-3">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <i class="fas fa-cogs text-white text-sm"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-gray-900">Windows Services</h1>
+                <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wider">System Service Details</p>
+            </div>
         </div>
-
-        <!-- Content Area -->
-        <div class="content-area" id="content-area">
-            <h2>Welcome</h2>
-            <p>Select a menu item to load its content.</p>
-        </div>
+        <span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200">
+            @(Model?.Count ?? 0) Services
+        </span>
     </div>
 
-<script>
-    function loadVerticalMenu(menuType) {
-        // Hide all vertical menus
-        const menus = document.querySelectorAll('.vertical-menu');
-        menus.forEach(function (menu) {
-            menu.style.display = 'none';
-        });
-
-        // Show the relevant vertical menu
-        const verticalMenu = document.getElementById('vertical-menu-' + menuType);
-        if (verticalMenu) {
-            verticalMenu.style.display = 'block';
-        }
-    }
-</script>
-
-
-    @* <script>
-        // Pre-defined vertical menu data
-        const verticalMenus = {
-            summary: ["Overview", "Statistics", "Reports"],
-            system: ["Services", "Users", "Groups", "Drivers"],
-            hardware: ["Components", "Monitors", "Specifications"],
-            software: ["Installed Programs", "Updates", "Settings"],
-            security: ["Firewall", "Antivirus", "Encryption"]
-        };
-
-        // Function to update the vertical menu based on the selected horizontal menu item
-        function updateVerticalMenu(selectedMenu) {
-            const verticalMenuContainer = document.getElementById("vertical-menu").querySelector("ul");
-            verticalMenuContainer.innerHTML = ""; // Clear existing items
-
-            // Dynamically populate the vertical menu
-            if (verticalMenus[selectedMenu]) {
-                verticalMenus[selectedMenu].forEach(item => {
-                    const li = document.createElement("li");
-                    li.textContent = item;
-                    li.onclick = () => loadContent(item); // Set click handler for loading content
-                    verticalMenuContainer.appendChild(li);
-                });
-            }
-
-            // Clear content area
-            const contentArea = document.getElementById("content-area");
-            contentArea.innerHTML = `<h2>${selectedMenu.charAt(0).toUpperCase() + selectedMenu.slice(1)}</h2>
-                                              <p>Select a vertical menu item to load its content.</p>`;
-        }
-
-        // Function to load content dynamically into the content area
-        function loadContent(page) {
-            const contentArea = document.getElementById("content-area");
-
-            // Simulate dynamic content loading
-            contentArea.innerHTML = `<h2>${page}</h2>
-                                             <p>Loading content for ${page}...</p>`;
-
-            // Example: Fetch content dynamically from an API (replace with your API URL)
-            fetch(`/api/${page.toLowerCase()}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("Failed to fetch data");
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="border-b border-gray-100" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9);">
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">#</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Display Name</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Startup Type</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Description</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Logon</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">State</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @if (Model != null && Model.Any())
+                    {
+                        var idx = 0;
+                        @foreach (var item in Model)
+                        {
+                            idx++;
+                            <tr class="hover:bg-emerald-50/40 transition-colors">
+                                <td class="px-4 py-2.5 text-gray-400 font-mono">@idx</td>
+                                <td class="px-4 py-2.5 font-semibold text-gray-800">@item.DisplayName</td>
+                                <td class="px-4 py-2.5">
+                                    @if (item.StartupType == "Automatic")
+                                    {
+                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-md border border-blue-200">@item.StartupType</span>
+                                    }
+                                    else if (item.StartupType == "Manual")
+                                    {
+                                        <span class="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-md border border-amber-200">@item.StartupType</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-md border border-gray-200">@item.StartupType</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-2.5 text-gray-500 max-w-[250px] truncate" title="@item.Description">@item.Description</td>
+                                <td class="px-4 py-2.5 text-gray-500 font-mono text-[10px]">@item.LogonName</td>
+                                <td class="px-4 py-2.5">
+                                    @if (item.State == "Running")
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold rounded-md border border-green-200">
+                                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse"></span>@item.State
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-md border border-gray-200">
+                                            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1"></span>@item.State
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-4 py-2.5 text-gray-400">@item.DateTime</td>
+                            </tr>
+                        }
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    contentArea.innerHTML = `<h2>${page}</h2>
-                                                     <pre>${JSON.stringify(data, null, 2)}</pre>`;
-                })
-                .catch(error => {
-                    contentArea.innerHTML = `<h2>Error</h2><p>Could not load content for ${page}.</p>`;
-                    console.error(error);
-                });
-        }
-    </script> *@
-
-
-
-
-
-
-
-<table class="table table-bordered font-monospace">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Display Name</th>
-            <th>Startup Type</th>
-            <th>Description</th>
-            <th>Logon Name</th>
-            <th>State</th>           
-            <th>Date Time</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-            <td>@item.Id</td>
-            <td class="col-md-3">@item.DisplayName</td>
-            <td>@item.StartupType</td>
-            <td>@item.Description</td>
-            <td>@item.LogonName</td>
-            <td>@item.State</td>            
-            <td>@item.DateTime</td>
-            </tr>
-        }
-    </tbody>
-</table>
-
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="px-4 py-12 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                                        <i class="fas fa-cogs text-gray-300 text-lg"></i>
+                                    </div>
+                                    <p class="text-gray-400 font-semibold text-sm">No service data available</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

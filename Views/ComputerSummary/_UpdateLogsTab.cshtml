@@ -1,0 +1,60 @@
+<div id="Updatelogs" class="tab-pane">
+    <div class="flex flex-col lg:flex-row gap-3">
+        <div class="w-full lg:w-48 flex-shrink-0">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-3 py-2.5 bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-file-alt" style="color:#00BCEB;"></i> Change Logs</div>
+                <ul class="p-1.5 space-y-0.5" role="tablist">
+                    <li class="updatelog-tab active"><a href="#SummaryLog" data-toggle="tab" class="flex items-center gap-2 px-3 py-2 rounded-md text-[11px] font-medium transition-all"><i class="fas fa-list-alt text-[10px] w-4 text-center"></i> Summary</a></li>
+                    <li class="updatelog-tab"><a href="#SystemLogs" data-toggle="tab" class="flex items-center gap-2 px-3 py-2 rounded-md text-[11px] font-medium transition-all"><i class="fas fa-desktop text-[10px] w-4 text-center"></i> System</a></li>
+                    <li class="updatelog-tab"><a href="#HardwareLogs" data-toggle="tab" class="flex items-center gap-2 px-3 py-2 rounded-md text-[11px] font-medium transition-all"><i class="fas fa-microchip text-[10px] w-4 text-center"></i> Hardware</a></li>
+                    <li class="updatelog-tab"><a href="#SoftwareLogs" data-toggle="tab" class="flex items-center gap-2 px-3 py-2 rounded-md text-[11px] font-medium transition-all"><i class="fas fa-laptop-code text-[10px] w-4 text-center"></i> Software</a></li>
+                    <li class="updatelog-tab"><a href="#SecurityLogs" data-toggle="tab" class="flex items-center gap-2 px-3 py-2 rounded-md text-[11px] font-medium transition-all"><i class="fas fa-shield-alt text-[10px] w-4 text-center"></i> Security</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                <div class="tab-content p-3">
+                    <div id="SummaryLog" class="tab-pane active space-y-6">
+                        <div>
+                            <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-info-circle text-blue-500"></i> General Summary</h4>
+                            <table id="summaryLogTable" class="w-full"><thead><tr><th>Field Name</th><th>Previous Value</th><th>Changed Value</th><th>Change Date</th></tr></thead><tbody></tbody></table>
+                        </div>
+                        <div>
+                            <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fab fa-windows" style="color:#00BCEB;"></i> OS Summary</h4>
+                            <table id="osSummaryLogTable" class="w-full"><thead><tr><th>Field Name</th><th>Previous Value</th><th>Changed Value</th><th>Change Date</th></tr></thead><tbody></tbody></table>
+                        </div>
+                    </div>
+                    <div id="SystemLogs" class="tab-pane space-y-6">
+                        <div>
+                            <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-users text-amber-500"></i> User Changes</h4>
+                            <table id="userLogTable" class="w-full"><thead><tr><th>Field Name</th><th>Previous Value</th><th>Changed Value</th><th>Change Date</th></tr></thead><tbody></tbody></table>
+                        </div>
+                        <div>
+                            <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-users-cog text-cyan-500"></i> Group Changes</h4>
+                            <table id="groupLogTable" class="w-full"><thead><tr><th>Field Name</th><th>Previous Value</th><th>Changed Value</th><th>Change Date</th></tr></thead><tbody></tbody></table>
+                        </div>
+                    </div>
+                    <div id="HardwareLogs" class="tab-pane space-y-6">
+                        <div>
+                            <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-battery-full text-green-500"></i> Battery Changes</h4>
+                            <table id="batteryLogTable" class="w-full"><thead><tr><th>Field Name</th><th>Previous Value</th><th>Changed Value</th><th>Change Date</th></tr></thead><tbody></tbody></table>
+                        </div>
+                        <div>
+                            <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-memory" style="color:#00BCEB;"></i> BIOS Changes</h4>
+                            <table id="biosLogTable" class="w-full"><thead><tr><th>Field Name</th><th>Previous Value</th><th>Changed Value</th><th>Change Date</th></tr></thead><tbody></tbody></table>
+                        </div>
+                    </div>
+                    <div id="SoftwareLogs" class="tab-pane">
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-window-maximize" style="color:#00BCEB;"></i> Desktop Apps Changes</h4>
+                        <table id="desktopAppsLogTable" class="w-full"><thead><tr><th>Field Name</th><th>Previous Value</th><th>Changed Value</th><th>Change Date</th></tr></thead><tbody></tbody></table>
+                    </div>
+                    <div id="SecurityLogs" class="tab-pane">
+                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-virus-slash text-red-500"></i> Antivirus Changes</h4>
+                        <table id="antivirusLogTable" class="w-full"><thead><tr><th>Field Name</th><th>Previous Value</th><th>Changed Value</th><th>Change Date</th></tr></thead><tbody></tbody></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

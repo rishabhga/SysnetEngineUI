@@ -1,579 +1,190 @@
-﻿@model List<WindowsUserDetails>
-<style>
-    /* Horizontal Menu Styles */
-    .horizontal-menu ul {
-        list-style-type: none;
-        display: flex;
-       /* background-color: #333;  */
-        padding: 0;
-    }
-
-    .horizontal-menu li {
-        padding: 10px 15px;
-        cursor: pointer;
-        color: black;
-    }
-
-    .horizontal-menu li {
-        position: relative;
-        list-style: none; /* Remove default bullet points */
-        padding: 10px 15px; /* Adjust padding as needed */
-        display: inline-block; /* Make items inline */
-        color: black; /* Default text color */
-        transition: color 0.3s ease; /* Smooth transition for text color */
-    }
-
-        .horizontal-menu li:hover {
-            color: blue; /* Change text color to blue on hover */
-        }
-
-            .horizontal-menu li:hover::after {
-                content: ''; /* Add an empty content */
-                position: absolute;
-                bottom: 0; /* Position it at the bottom */
-                left: 0;
-                width: 100%; /* Full width of the menu item */
-                height: 2px; /* Adjust thickness of the line */
-                background-color: blue; /* Blue line on hover */
-            }
-        /* .horizontal-menu li:hover {
-            background-color: #575757;
-        } */
-
-    /* Vertical Menu Styles */
-    .vertical-menu {
-        float: left;
-        width: 100%;
-        background-color: #f4f4f4;
-        padding: 10px;
-        height: 100vh; /* Full screen height */
-    }
-
-        .vertical-menu ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .vertical-menu li {
-            padding: 8px 10px;
-            cursor: pointer;
-            color: #333;
-        }
-
-            .vertical-menu li:hover {
-                background-color: #ddd;
-            }
-
-    /* Content Area */
-    .content-area {
-        margin-left: 21%; /* Align next to the vertical menu */
-        padding: 20px;
-    }
-</style>
-
- 
+@model List<WindowsUserDetails>
 @{
-
-
+    ViewData["Title"] = "Computer Details";
     ViewBag.SomeValue = ViewBag.UserName;
 }
-<h6> Computer Details -  <b> @ViewBag.SomeValue </b></h6>
-<input id="domainid" value="@ViewBag.SomeValue" type="hidden" />
-<br /><br />
 
-
-<div class="card">
-
-
-    <div class="row">
-        <div class="col-md-9">
-            Last Scan : <b> @ViewBag.lastScan </b>   &nbsp; &nbsp; &nbsp;&nbsp;   User Current Login : <b> @ViewBag.UserName </b> </br>
+<div class="max-w-7xl mx-auto px-4 pt-3">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-3">
+            <a href="/Summary/Index" class="w-8 h-8 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg flex items-center justify-center transition shadow-sm">
+                <i class="fas fa-arrow-left text-gray-500 text-xs"></i>
+            </a>
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                <i class="fas fa-laptop text-white text-sm"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-gray-900">@ViewBag.SomeValue</h1>
+                <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Computer Details</p>
+            </div>
         </div>
     </div>
-        <div class="row">
-       <div class="col-md-9">
-                    Last Login User : <b> @ViewBag.LastLogUser </b> &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; Last boot Time : <b> @ViewBag.LastBootTime </b>
-    </div>
-    </div>
-    
 
-<div class="main-containermain">
-    <!-- Horizontal Menu -->
-    <div class="horizontal-menu">
-        <ul>
-            <li onclick="updateVerticalMenu('summary')">Summary</li>
-            <li onclick="updateVerticalMenu('system')">System</li>
-            <li onclick="updateVerticalMenu('hardware')">Hardware</li>
-            <li onclick="updateVerticalMenu('software')">Software</li>
-            <li onclick="updateVerticalMenu('Certificate')">Certificate</li>
-            <li onclick="updateVerticalMenu('GeoTracking')">GeoTracking</li>
-            <li onclick="updateVerticalMenu('FileDetails')">FileDetails</li>
-            <li onclick="updateVerticalMenu('security')">Security</li>
-            <li onclick="updateVerticalMenu('Restriction')">Restriction</li>
-            <li onclick="updateVerticalMenu('UsbAudit')">UsbAudit</li>
-            <li onclick="updateVerticalMenu('LoginHistory')">LoginHistory</li>
-        </ul>
+    <!-- Info Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Last Scan</p>
+            <p class="text-sm font-bold text-gray-800">@ViewBag.lastScan</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Current User</p>
+            <p class="text-sm font-bold text-gray-800">@ViewBag.UserName</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Last Login User</p>
+            <p class="text-sm font-bold text-gray-800">@ViewBag.LastLogUser</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Last Boot Time</p>
+            <p class="text-sm font-bold text-gray-800">@ViewBag.LastBootTime</p>
+        </div>
     </div>
 
+    <input id="domainid" value="@ViewBag.SomeValue" type="hidden" />
 
-<div class="row">
-    <div class="col-md-2">
-    <div id="vertical-menu-summary" class="vertical-menu" style="display:none;">
-        <ul>
-            <li onclick="loadContent('Summary')" >Summary</li>
-            <li onclick="loadContent('CustomComputerDetails')">Custom Computer Details</li>
-            <li onclick="loadContent('DeviceSummary')">Device Summary</li>
-            <li onclick="loadContent('OSSummary')">OS Summary</li>
-            
-        </ul>
-    </div>
+    <!-- Category Tabs -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="flex overflow-x-auto border-b border-gray-100 px-2 pt-2 gap-1" id="categoryTabs">
+            <button onclick="selectCategory('summary')" class="cat-tab active-cat px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="summary">Summary</button>
+            <button onclick="selectCategory('system')" class="cat-tab px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="system">System</button>
+            <button onclick="selectCategory('hardware')" class="cat-tab px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="hardware">Hardware</button>
+            <button onclick="selectCategory('software')" class="cat-tab px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="software">Software</button>
+            <button onclick="selectCategory('Certificate')" class="cat-tab px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="Certificate">Certificate</button>
+            <button onclick="selectCategory('GeoTracking')" class="cat-tab px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="GeoTracking">GeoTracking</button>
+            <button onclick="selectCategory('FileDetails')" class="cat-tab px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="FileDetails">File Details</button>
+            <button onclick="selectCategory('security')" class="cat-tab px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="security">Security</button>
+            <button onclick="selectCategory('Restriction')" class="cat-tab px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="Restriction">Restriction</button>
+            <button onclick="selectCategory('UsbAudit')" class="cat-tab px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="UsbAudit">USB Audit</button>
+            <button onclick="selectCategory('LoginHistory')" class="cat-tab px-3 py-2 text-xs font-bold rounded-t-lg transition-all whitespace-nowrap" data-cat="LoginHistory">Login History</button>
+        </div>
 
-    <div id="vertical-menu-system" class="vertical-menu" style="display:none;">
-        <ul>
-            <li onclick="loadContent('services')">Service</li>
-            <li onclick="loadContent('users')">Users</li>
-            <li onclick="loadContent('groups')">Groups</li>
-            <li onclick="loadContent('drivers')">Drivers</li>
-            <li onclick="loadContent('Share')">Share</li>
-        </ul>
-    </div>
-     <div id="vertical-menu-hardware" class="vertical-menu" style="display:none;">
-        <ul>
-                        <li onclick="loadContent('Battery')">Battery</li>
-                        <li onclick="loadContent('BIOS')">BIOS</li>
-                        <li onclick="loadContent('HardDisk')">Hard Disk</li>
-                        <li onclick="loadContent('Keyboard')">Keyboard</li>
-                        <li onclick="loadContent('Monitor')">Monitor</li>
-                        <li onclick="loadContent('Motherboard')">Motherboard</li>
-                        <li onclick="loadContent('NetworkAdapters')">NetworkAdapters</li>
-                        <li onclick="loadContent('PhysicalMemory')">PhysicalMemory</li>
-                        <li onclick="loadContent('PointingDevices')">PointingDevices</li>
-                        <li onclick="loadContent('Printers')">Printers</li>
-                        <li onclick="loadContent('Processors')">Processors</li>
-                        <li onclick="loadContent('Sound')">Sound</li>
-                        <li onclick="loadContent('VideoControllers')">Video Controllers</li>
-                        <li onclick="loadContent('USBControllers')">USB Controllers</li>
-                        <li onclick="loadContent('USBHub')">USB Hub</li>
-                      
-                      
-        </ul>
-    </div>
-     <div id="vertical-menu-software" class="vertical-menu" style="display:none;">
-        <ul>
+        <div class="flex min-h-[400px]">
+            <!-- Left Sub-Menu -->
+            <div class="w-48 border-r border-gray-100 bg-gray-50/50 flex-shrink-0" id="subMenuPanel">
+                <!-- Sub-menu items injected by JS -->
+            </div>
 
-                        <li onclick="loadContent('DesktopApps')">Desktop Apps</li>
-                        <li onclick="loadContent('MicrosoftstoreApps')">Microsoft Store Apps</li>
-                        <li onclick="loadContent('MeteredSoftware')">Metered Software</li>
-           
-        </ul>
-    </div>
-
-     <div id="vertical-menu-security" class="vertical-menu" style="display:none;">
-        <ul>
-                        <li onclick="loadContent('BltLocker')">BltLocker</li>
-                        <li onclick="loadContent('Antivirus')">Antivirus</li>
-                        <li onclick="loadContent('Firewall')">Firewall</li>
-                        <li onclick="loadContent('MissingPatches')">Missing Patches</li>
-           
-        </ul>
-    </div>
-                <div id="vertical-menu-UsbAudit" class="vertical-menu" style="display:none;">
-            <ul>
-               <li onclick="loadContent('UsbDeviceAudit')">USB Audit</li>
-                       
-
-            </ul>
-       </div>
-
-
-        <div id="vertical-menu-Restriction" class="vertical-menu" style="display:none;">
-            <ul>
-                        <li onclick="loadContent('RestrictionOnDevice')">Restriction On Device </li>
-                        <li onclick="loadContent('SecurityPrivacyDetails')">Security Privacy </li>
-                        <li onclick="loadContent('ApplicationSettings')">Applications</li>
-                        <li onclick="loadContent('SocialSearchSettings')">Social Search Settings </li>
-                       @*  <li onclick="loadContent('RestrictionOnDevice')">Social Search Settings </li> *@
-                       
-                        
-
-            </ul>
-       </div>
-
-                <div id="vertical-menu-LoginHistory" class="vertical-menu" style="display:none;">
-                    <ul>
-                        <li onclick="loadContent('AuditHistory')">Audit History</li>
-                        <li onclick="loadContent('LoginHistory')">Login History </li>
-                      
-
-                    </ul>
-                </div>
-
-        
-
-    </div>
-    <div class="col-md-10">
-                <div class="content-container">
-
-
-                    <!-- Content Area -->
-                    <div id="vertical-menu-Services" class="table" style="display:none;" @* class="content-area" id="content-area *@">
-
-                        
-
-                        <!-- Display Employees -->
-                       @*  <table id="employeeTable">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Description</th>
-                                    <th>status</th>
-                                    <th>dateTime</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Dynamic Rows -->
-                            </tbody>
-                        </table> *@
-                       @*  <h2>Welcome</h2>
-                        <p>Select a menu item to load its test content.</p> *@
-                       @*  <div id="employeeList"></div>
-                    </div> *@
-
-
-                    <div class="content-area" id="content-area1" style="display:none;">
-                           @*   <div id="employeeTableContainer"></div>  *@
+            <!-- Content Area -->
+            <div class="flex-1 p-4" id="dataContent">
+                <div class="flex flex-col items-center justify-center h-full py-12">
+                    <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                        <i class="fas fa-mouse-pointer text-gray-300 text-xl"></i>
                     </div>
+                    <p class="text-gray-400 font-semibold text-sm">Select a category and sub-item to view data</p>
                 </div>
-
-
-                    <div id="vertical-menu-users" class="table" style="display:none;" @* class="content-area" id="content-area *@">
-
-
-
-                        <!-- Display Employees -->
-                        @* <table id="employeeTable">
-                            <thead>
-                                <tr>
-                                    <th>ID1</th>
-                                    <th>Name2</th>
-                                    <th>Description3</th>
-                                    <th>status4</th>
-                                    <th>dateTime5</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Dynamic Rows -->
-                            </tbody>
-                        </table> *@
-                        @*  <h2>Welcome</h2>
-                        <p>Select a menu item to load its test content.</p> *@
-                           <div id="employeeTableContainer"></div> 
-                        </div> 
-
-
-                        <div class="content-area" id="content-area1" style="display:none;">
-                            <h2>Welcome</h2>
-                            <p>Select a menu item to load its user data.</p>
-                        </div>
-                    </div>
+            </div>
+        </div>
     </div>
-  
-    
-</div>
-           
-
-
-                 
-                    
-              
 </div>
 
-
-       @*  @foreach (var item in @ViewBag.WindowDrivers)
-        {
-            
-        } *@
-
-
-
+<style>
+    .cat-tab { color: #94a3b8; background: transparent; border: none; cursor: pointer; }
+    .cat-tab:hover { color: #0284c7; background: #f0f9ff; }
+    .cat-tab.active-cat { color: #0284c7; background: #eff6ff; border-bottom: 2px solid #0284c7; }
+    .sub-item { display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 12px; font-weight: 500; color: #475569; background: transparent; border: none; border-left: 3px solid transparent; cursor: pointer; transition: all 0.15s; }
+    .sub-item:hover { background: #f0f9ff; color: #0284c7; border-left-color: #38bdf8; }
+    .sub-item.active-sub { background: #eff6ff; color: #0284c7; border-left-color: #0284c7; font-weight: 700; }
+</style>
 
 <script>
-    
+    const subMenus = {
+        summary: ['Summary', 'CustomComputerDetails', 'DeviceSummary', 'OSSummary'],
+        system: ['services', 'users', 'groups', 'drivers', 'Share'],
+        hardware: ['Battery', 'BIOS', 'HardDisk', 'Keyboard', 'Monitor', 'Motherboard', 'NetworkAdapters', 'PhysicalMemory', 'PointingDevices', 'Printers', 'Processors', 'Sound', 'VideoControllers', 'USBControllers', 'USBHub'],
+        software: ['DesktopApps', 'MicrosoftstoreApps', 'MeteredSoftware'],
+        security: ['BltLocker', 'Antivirus', 'Firewall', 'MissingPatches'],
+        UsbAudit: ['UsbDeviceAudit'],
+        Restriction: ['RestrictionOnDevice', 'SecurityPrivacyDetails', 'ApplicationSettings', 'SocialSearchSettings'],
+        LoginHistory: ['AuditHistory', 'LoginHistory'],
+        Certificate: [],
+        GeoTracking: [],
+        FileDetails: []
+    };
 
-   
-    //debugger;
-    function updateVerticalMenu(menuType) {
-        // Hide all vertical menus
-        const menus = document.querySelectorAll('.vertical-menu');
-        menus.forEach(function (menu) {
-            menu.style.display = 'none';
-        });
+    function selectCategory(cat) {
+        document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active-cat'));
+        document.querySelector(`.cat-tab[data-cat="${cat}"]`)?.classList.add('active-cat');
 
-        // Show the relevant vertical menu
-        const verticalMenu = document.getElementById('vertical-menu-' + menuType);
-        if (verticalMenu) {
-            verticalMenu.style.display = 'block';
+        const panel = document.getElementById('subMenuPanel');
+        const items = subMenus[cat] || [];
+        if (items.length === 0) {
+            panel.innerHTML = '<div class="p-4 text-center text-gray-400 text-xs">No sub-items</div>';
+            return;
         }
+        panel.innerHTML = items.map(item => {
+            const label = item.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
+            return `<button class="sub-item" onclick="loadData('${item}', this)">${label}</button>`;
+        }).join('');
     }
-    
-    function loadContent(page) {
-        // Hide all vertical menus
-        const menus = document.querySelectorAll('.table');
-        menus.forEach(function (menu) {
-            menu.style.display = 'none';
-        });
 
-        // Show the relevant vertical menu
-            const verticalMenu = document.getElementById('vertical-menu-users');
-        if (verticalMenu) {
-            verticalMenu.style.display = 'block';
-        }
+    function loadData(page, btn) {
+        document.querySelectorAll('.sub-item').forEach(s => s.classList.remove('active-sub'));
+        if (btn) btn.classList.add('active-sub');
 
-        var domaindata = $('#domainid').val();
-               
-               
-                   
+        const domain = $('#domainid').val();
+        const content = document.getElementById('dataContent');
+        content.innerHTML = `<div class="flex items-center justify-center py-12"><div class="flex items-center space-x-2 text-gray-400"><i class="fas fa-spinner fa-spin"></i><span class="text-sm font-semibold">Loading...</span></div></div>`;
 
-            $.ajax({
-                        url: `/Summary/${page}?domain=${domaindata}`, // Replace with your dynamic URL
-                type: 'GET',
-                success: function (data) {
+        $.ajax({
+            url: `/Summary/${page}?domain=${domain}`,
+            type: 'GET',
+            success: function(data) {
+                if (data && data.length > 0) {
+                    const headers = Object.keys(data[0]);
+                    const hide = ['id', 'userCode'];
+                    let headerHtml = '';
+                    let bodyHtml = '';
 
-                    if (data.length > 0) {
-                        let headers = Object.keys(data[0]); // Extract column names
-                        let columnsToHide = ["id","userCode"]; // List of column names to hide
-                        //let columnsToHide = ["id", "status"]; // List of column names to hide
-                        let headerHtml = '';
-                        let bodyHtml = '';
+                    headers.forEach(h => {
+                        if (!hide.includes(h)) {
+                            const label = h.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
+                            headerHtml += `<th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">${label}</th>`;
+                        }
+                    });
 
-                                // function formatHeader(header) {
-                                //     // Replace camelCase or PascalCase with words separated by spaces
-                                //     const formattedHeader = header
-                                //         .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space before uppercase letters
-                                //         .replace(/_/g, ' ') // Replace underscores with spaces
-                                //         .replace(/\b\w/g, char => char.toUpperCase()); // Capitalize first letter of each word
-                                //     return formattedHeader;
-                                // }
-                        // Generate table headers dynamically, skipping hidden columns
-                        headers.forEach(header => {
-                            if (!columnsToHide.includes(header)) {
-                                        const formattedHeader = header.charAt(0).toUpperCase() + header.slice(1) + ' ';
-                               headerHtml += `<th>${formattedHeader}</th>`;
-                                //headerHtml += `<th>${header}</th>`;
+                    data.forEach(row => {
+                        bodyHtml += '<tr class="hover:bg-blue-50/40 transition-colors">';
+                        headers.forEach(h => {
+                            if (!hide.includes(h)) {
+                                bodyHtml += `<td class="px-4 py-2.5 text-xs text-gray-700">${row[h] ?? ''}</td>`;
                             }
                         });
+                        bodyHtml += '</tr>';
+                    });
 
-                        // Generate table rows dynamically, skipping hidden columns
-                        data.forEach(row => {
-                            bodyHtml += '<tr>';
-                            headers.forEach(header => {
-                                if (!columnsToHide.includes(header)) {
-                                    bodyHtml += `<td>${row[header]}</td>`; // Add table cells only for visible columns
-                                }
-                            });
-                            bodyHtml += '</tr>';
-                        });
-
-                        // Construct the table with headers and rows
-                        const table = `
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>${headerHtml}</tr>
-                            </thead>
-                            <tbody>${bodyHtml}</tbody>
-                        </table>
-                    `;
-
-                        // Append the table to the container
-                        $('#employeeTableContainer').html(table);
-                    } else {
-                        $('#employeeTableContainer').html('<p>No data available</p>');
-                    }
-                },
-                error: function (err) {
-                    console.error('Error fetching data:', err);
-                    $('#employeeTableContainer').html('<p>NO Data </p>');
+                    content.innerHTML = `
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-bold text-gray-500">${data.length} records</span>
+                        </div>
+                        <div class="overflow-x-auto rounded-lg border border-gray-200">
+                            <table class="w-full text-xs">
+                                <thead><tr class="border-b border-gray-100" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9);">${headerHtml}</tr></thead>
+                                <tbody class="divide-y divide-gray-50">${bodyHtml}</tbody>
+                            </table>
+                        </div>`;
+                } else {
+                    content.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-12">
+                            <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                                <i class="fas fa-inbox text-gray-300 text-lg"></i>
+                            </div>
+                            <p class="text-gray-400 font-semibold text-sm">No data available</p>
+                        </div>`;
                 }
-            });
-
-
-            
-        //}
-
-
-
+            },
+            error: function(err) {
+                content.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12">
+                        <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-3">
+                            <i class="fas fa-exclamation-triangle text-red-300 text-lg"></i>
+                        </div>
+                        <p class="text-red-400 font-semibold text-sm">Error loading data</p>
+                    </div>`;
+            }
+        });
     }
 
-
-
-                // $.ajax({
-                //     url: `/WindowDrivers/${page}`,
-                //     //url: '/WindowDrivers/datalist',
-                //     type: 'GET',
-                //     success: function (data) {
-                //         let html = '';
-                //         data.forEach(emp => {
-                //             html += `
-                //                         <tr>
-                //                             <td>${emp.id}</td>
-                //                             <td>${emp.name}</td>
-                //                             <td>${emp.description}</td>
-                //                             <td>${emp.status}</td>
-                //                             <td>${emp.dateTime}</td>
-                //                         </tr>
-                //                     `;
-                //         });
-                //         $('#employeeTable tbody').html(html);
-                //     }
-                // });
-
-
-                // $.ajax({
-                //     url: '/WindowDrivers/users',
-                //     type: 'GET',
-                //     success: function (data) {
-                //         let html = '';
-                //         data.forEach(emp => {
-                //             html += `
-                //                                     <tr>
-                //                                         <td>${emp.id}</td>
-                //                                         <td>${emp.name}</td>
-                //                                         <td>${emp.description}</td>
-                //                                         <td>${emp.status}</td>
-                //                                         <td>${emp.dateTime}</td>
-                //                                     </tr>
-                //                                 `;
-                //         });
-                //         $('#employeeuser tbody').html(html);
-                //     }
-                // });
-
-                // $.ajax({
-                //     url: `/WindowDrivers/${page}`, // Replace with your dynamic URL
-                //     type: 'GET',
-                //     success: function (data) {
-                //         if (data.length > 0) {
-                //             let headers = Object.keys(data[0]); // Extract column names from the first object
-                //             let headerHtml = '';
-                //             let bodyHtml = '';
-
-                //             // Generate table headers dynamically
-                //             headers.forEach(header => {
-                //                 headerHtml += `<th>${header}</th>`;
-                //             });
-
-                //             // Generate table rows dynamically
-                //             data.forEach(row => {
-                //                 bodyHtml += '<tr>';
-                //                 headers.forEach(header => {
-                //                     bodyHtml += `<td>${row[header]}</td>`; // Dynamically add table cells based on the keys
-                //                 });
-                //                 bodyHtml += '</tr>';
-                //             });
-
-                //             // Construct the table with headers and rows
-                //             const table = `
-                //             <table class="table table-bordered">
-                //                 <thead>
-                //                     <tr>${headerHtml}</tr>
-                //                 </thead>
-                //                 <tbody>${bodyHtml}</tbody>
-                //             </table>
-                //         `;
-
-                //             // Append the table to the container
-                //             $('#employeeTableContainer').html(table);
-                //         } else {
-                //             $('#employeeTableContainer').html('<p>No data available</p>');
-                //         }
-                //     },
-                //     error: function (err) {
-                //         console.error('Error fetching data:', err);
-                //         $('#employeeTableContainer').html('<p>Error loading data</p>');
-                //     }
-                // });
-
-
-
-
-
-    // function loadContent(page) {
-    //     debugger;
-    //     // if (page == "services") 
-    //     // { 
-    //             const contentArea = document.getElementById("content-area");
-                
-    //             // Simulate loading content for the selected page
-
-    //             // contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
-    //             //                          <p>Loading content for ${page}...</p>`;
-
-    //             // Example: Fetch content dynamically from a server
-    //             fetch(`${page}`)
-    //                 .then(response => response.json())
-    //                 .then(data => {
-
-
-    //             // Generate table HTML from fetched data
-    //             let tableHtml = '<table border="1" cellspacing="0" cellpadding="5">';
-    //             tableHtml += '<thead>';
-
-    //             // Assuming the first object contains the keys (column headers)
-    //             const keys = Object.keys(data[0]);
-    //             tableHtml += '<tr>';
-    //             keys.forEach(key => {
-    //                 tableHtml += `<th>${key}</th>`;
-    //             });
-    //             tableHtml += '</tr>';
-    //             tableHtml += '</thead>';
-
-    //             tableHtml += '<tbody>';
-
-    //             // Populate rows with data
-    //             data.forEach(row => {
-    //                 tableHtml += '<tr>';
-    //                 keys.forEach(key => {
-    //                     tableHtml += `<td>${row[key]}</td>`;
-    //                 });
-    //                 tableHtml += '</tr>';
-    //             });
-
-    //             tableHtml += '</tbody>';
-    //             tableHtml += '</table>';
-
-
-
-    //             contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>${tableHtml}`;
-    //             // contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
-    //                     //                          <pre>${JSON.stringify(data, null, 2)}</pre>`;
-    //                 })
-    //                 .catch(error => {
-    //                     contentArea.innerHTML = `<h2>Error</h2><p>Could not load content for ${page}.</p>`;
-    //                     console.error(error);
-    //                 });
-    //     // }
-    //     // if (page == "users") {
-    //     //     const contentArea = document.getElementById("content-area1");
-
-    //     //     // Simulate loading content for the selected page
-    //     //     contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
-    //     //                                      <p>Loading content for ${page}...</p>`;
-
-    //     //     // Example: Fetch content dynamically from a server
-    //     //     fetch(`/api/${page}`)
-    //     //         .then(response => response.json())
-    //     //         .then(data => {
-    //     //             contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
-    //     //                                              <pre>${JSON.stringify(data, null, 2)}</pre>`;
-    //     //         })
-    //     //         .catch(error => {
-    //     //             contentArea.innerHTML = `<h2>Error</h2><p>Could not load content for ${page}.</p>`;
-    //     //             console.error(error);
-    //     //         });
-    //     // }
-    // }
-                
+    // Auto-select Summary on load
+    selectCategory('summary');
 </script>
-
-

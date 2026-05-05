@@ -1,0 +1,92 @@
+﻿<div class="modal fade" id="uploadSoftwareModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-cloud-upload-alt" style="color:#22c55e;margin-right:8px;"></i> Upload Software Installer</h5>
+                <button type="button" class="close" data-dismiss="modal" style="background:none;border:none;font-size:22px;color:#64748b;cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="cs-dropzone" id="uploadDropzone" onclick="$('#softwareFileInput').click()">
+                    <i class="fas fa-file-archive" style="font-size:40px;color:#94a3b8;display:block;margin-bottom:12px;"></i>
+                    <input type="file" name="file" id="softwareFileInput" style="display:none;" onchange="updateFileName(this)" />
+                    <p id="fileNameDisplay" style="font-size:13.5px;color:#64748b;font-weight:500;">Click to browse or drag & drop a file</p>
+                    <p style="font-size:11.5px;color:#94a3b8;margin-top:6px;">Supported: .exe, .msi, .zip</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content:flex-end;display:flex;gap:10px;">
+                <button type="button" class="cs-btn cs-btn-secondary" data-dismiss="modal">Cancel</button>
+                <button id="uploadBtn" class="cs-btn cs-btn-success">
+                    <i class="fas fa-upload"></i> Upload File
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openUploadModal() {
+        $('#softwareFileInput').val('');
+        $('#fileNameDisplay').text('Click to browse or drag & drop a file').css('color', '#64748b');
+        $('#uploadSoftwareModal').modal('show');
+    }
+
+    function updateFileName(input) {
+        var display = document.getElementById('fileNameDisplay');
+        if (input.files && input.files.length > 0) {
+            display.innerText = '✓  ' + input.files[0].name;
+            display.style.color = '#2563eb';
+        } else {
+            display.innerText = 'Click to browse or drag & drop a file';
+            display.style.color = '#64748b';
+        }
+    }
+
+    (function () {
+        var dz = document.getElementById('uploadDropzone');
+        if (!dz) return;
+        dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.classList.add('active'); });
+        dz.addEventListener('dragleave', function () { dz.classList.remove('active'); });
+        dz.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dz.classList.remove('active');
+            var fi = document.getElementById('softwareFileInput');
+            fi.files = e.dataTransfer.files;
+            updateFileName(fi);
+        });
+    })();
+
+    $('#uploadBtn').on('click', function () {
+        var fileInput = $('#softwareFileInput')[0];
+        if (!fileInput || !fileInput.files.length) {
+            sysAlert('Please select a file to upload.', 'warning');
+            return;
+        }
+        var formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        var btn = $(this);
+        btn.html('<i class="fas fa-spinner fa-spin"></i> Uploading...').prop('disabled', true);
+
+        $.ajax({
+            url: '/ComputerSummary/UploadSoftware',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (res) {
+                sysAlert('Software uploaded successfully!', 'success');
+                $('#uploadSoftwareModal').modal('hide');
+                if ($.fn.DataTable.isDataTable('#installersTable')) {
+                    $('#installersTable').DataTable().ajax.reload();
+                }
+            },
+            error: function () {
+                sysAlert('Upload failed. Please try again.', 'error');
+            },
+            complete: function () {
+                btn.html('<i class="fas fa-upload"></i> Upload File').prop('disabled', false);
+            }
+        });
+    });
+</script>
+

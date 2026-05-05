@@ -1,464 +1,80 @@
-﻿@model List<WindowDrivers>
+@model List<WindowDrivers>
+@{
+    ViewData["Title"] = "Window Drivers";
+}
 
-<h2>Window Drivers</h2>
-<style>
-    /* Horizontal Menu Styles */
-    .horizontal-menu ul {
-        list-style-type: none;
-        display: flex;
-       background-color: #333; 
-        padding: 0;
-    }
-
-    .horizontal-menu li {
-        padding: 14px 20px;
-        cursor: pointer;
-        color: white;
-    }
-
-        .horizontal-menu li:hover {
-            background-color: #575757;
-        }
-
-    /* Vertical Menu Styles */
-    .vertical-menu {
-        float: left;
-        width: 100%;
-        background-color: #f4f4f4;
-        padding: 10px;
-        height: 100vh; /* Full screen height */
-    }
-
-        .vertical-menu ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .vertical-menu li {
-            padding: 8px 10px;
-            cursor: pointer;
-            color: #333;
-        }
-
-            .vertical-menu li:hover {
-                background-color: #ddd;
-            }
-
-    /* Content Area */
-    .content-area {
-        margin-left: 21%; /* Align next to the vertical menu */
-        padding: 20px;
-    }
-</style>
-<div class="card">
-<div class="main-container">
-    <!-- Horizontal Menu -->
-    <div class="horizontal-menu">
-        <ul>
-            <li onclick="updateVerticalMenu('summary')">Summary</li>
-            <li onclick="updateVerticalMenu('system')">System</li>
-            <li onclick="updateVerticalMenu('hardware')">Hardware</li>
-            <li onclick="updateVerticalMenu('software')">Software</li>
-            <li onclick="updateVerticalMenu('security')">Security</li>
-        </ul>
+<div class="max-w-7xl mx-auto px-4 pt-3">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                <i class="fas fa-microchip text-white text-sm"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-gray-900">Window Drivers</h1>
+                <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Installed Driver Information</p>
+            </div>
+        </div>
+        <span class="px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-200">
+            @(Model?.Count ?? 0) Drivers
+        </span>
     </div>
 
-
-<div class="row">
-    <div class="col-md-2">
-    <div id="vertical-menu-summary" class="vertical-menu" style="display:none;">
-        <ul>
-            <li onclick="loadContent('Summary')" >Summary</li>
-            
-        </ul>
-    </div>
-
-    <div id="vertical-menu-system" class="vertical-menu" style="display:none;">
-        <ul>
-            <li onclick="loadContent('services')">Service</li>
-            <li onclick="loadContent('users')">Users</li>
-            <li onclick="loadContent('groups')">Groups</li>
-            <li onclick="loadContent('drivers')">Drivers</li>
-            <li onclick="loadContent('Share')">Share</li>
-        </ul>
-    </div>
-     <div id="vertical-menu-hardware" class="vertical-menu" style="display:none;">
-        <ul>
-            <li onclick="loadContent('services')">Service</li>
-            <li onclick="loadContent('users')">Users</li>
-            <li onclick="loadContent('groups')">Groups</li>
-            <li onclick="loadContent('drivers')">Drivers</li>
-            <li onclick="loadContent('drivers')">Share</li>
-        </ul>
-    </div>
-     <div id="vertical-menu-software" class="vertical-menu" style="display:none;">
-        <ul>
-            <li onclick="loadContent('services')">Service</li>
-            <li onclick="loadContent('users')">Users</li>
-            <li onclick="loadContent('groups')">Groups</li>
-            <li onclick="loadContent('drivers')">Drivers</li>
-            <li onclick="loadContent('drivers')">Share</li>
-        </ul>
-    </div>
-
-     <div id="vertical-menu-security" class="vertical-menu" style="display:none;">
-        <ul>
-            <li onclick="loadContent('services')">Service</li>
-            <li onclick="loadContent('users')">Users</li>
-            <li onclick="loadContent('groups')">Groups</li>
-            <li onclick="loadContent('drivers')">Drivers</li>
-            <li onclick="loadContent('drivers')">Share</li>
-        </ul>
-    </div>
-        
-
-    </div>
-    <div class="col-md-10">
-                <div class="content-container">
-
-
-                    <!-- Content Area -->
-                    <div id="vertical-menu-Services" class="table" style="display:none;" @* class="content-area" id="content-area *@">
-
-                        
-
-                        <!-- Display Employees -->
-                       @*  <table id="employeeTable">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Description</th>
-                                    <th>status</th>
-                                    <th>dateTime</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Dynamic Rows -->
-                            </tbody>
-                        </table> *@
-                       @*  <h2>Welcome</h2>
-                        <p>Select a menu item to load its test content.</p> *@
-                       @*  <div id="employeeList"></div>
-                    </div> *@
-
-
-                    <div class="content-area" id="content-area1" style="display:none;">
-                           @*   <div id="employeeTableContainer"></div>  *@
-                    </div>
-                </div>
-
-
-                    <div id="vertical-menu-users" class="table" style="display:none;" @* class="content-area" id="content-area *@">
-
-
-
-                        <!-- Display Employees -->
-                        @* <table id="employeeTable">
-                            <thead>
-                                <tr>
-                                    <th>ID1</th>
-                                    <th>Name2</th>
-                                    <th>Description3</th>
-                                    <th>status4</th>
-                                    <th>dateTime5</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Dynamic Rows -->
-                            </tbody>
-                        </table> *@
-                        @*  <h2>Welcome</h2>
-                        <p>Select a menu item to load its test content.</p> *@
-                           <div id="employeeTableContainer"></div> 
-                        </div> 
-
-
-                        <div class="content-area" id="content-area1" style="display:none;">
-                            <h2>Welcome</h2>
-                            <p>Select a menu item to load its user data.</p>
-                        </div>
-                    </div>
-    </div>
-  
-    
-</div>
-           
-
-
-                 
-                    
-              
-</div>
-
-
-       @*  @foreach (var item in @ViewBag.WindowDrivers)
-        {
-            
-        } *@
-
-
-
-
-<script>
-    function updateVerticalMenu(menuType) {
-        // Hide all vertical menus
-        const menus = document.querySelectorAll('.vertical-menu');
-        menus.forEach(function (menu) {
-            menu.style.display = 'none';
-        });
-
-        // Show the relevant vertical menu
-        const verticalMenu = document.getElementById('vertical-menu-' + menuType);
-        if (verticalMenu) {
-            verticalMenu.style.display = 'block';
-        }
-    }
-
-    function loadContent(page) {
-        // Hide all vertical menus
-        const menus = document.querySelectorAll('.table');
-        menus.forEach(function (menu) {
-            menu.style.display = 'none';
-        });
-
-        // Show the relevant vertical menu
-            const verticalMenu = document.getElementById('vertical-menu-users');
-        if (verticalMenu) {
-            verticalMenu.style.display = 'block';
-        }
-
-         
-               
-                // $.ajax({
-                //     url: `/WindowDrivers/${page}`,
-                //     //url: '/WindowDrivers/datalist',
-                //     type: 'GET',
-                //     success: function (data) {
-                //         let html = '';
-                //         data.forEach(emp => {
-                //             html += `
-                //                         <tr>
-                //                             <td>${emp.id}</td>
-                //                             <td>${emp.name}</td>
-                //                             <td>${emp.description}</td>
-                //                             <td>${emp.status}</td>
-                //                             <td>${emp.dateTime}</td>
-                //                         </tr>
-                //                     `;
-                //         });
-                //         $('#employeeTable tbody').html(html);
-                //     }
-                // });
-
-
-                // $.ajax({
-                //     url: '/WindowDrivers/users',
-                //     type: 'GET',
-                //     success: function (data) {
-                //         let html = '';
-                //         data.forEach(emp => {
-                //             html += `
-                //                                     <tr>
-                //                                         <td>${emp.id}</td>
-                //                                         <td>${emp.name}</td>
-                //                                         <td>${emp.description}</td>
-                //                                         <td>${emp.status}</td>
-                //                                         <td>${emp.dateTime}</td>
-                //                                     </tr>
-                //                                 `;
-                //         });
-                //         $('#employeeuser tbody').html(html);
-                //     }
-                // });
-
-                // $.ajax({
-                //     url: `/WindowDrivers/${page}`, // Replace with your dynamic URL
-                //     type: 'GET',
-                //     success: function (data) {
-                //         if (data.length > 0) {
-                //             let headers = Object.keys(data[0]); // Extract column names from the first object
-                //             let headerHtml = '';
-                //             let bodyHtml = '';
-
-                //             // Generate table headers dynamically
-                //             headers.forEach(header => {
-                //                 headerHtml += `<th>${header}</th>`;
-                //             });
-
-                //             // Generate table rows dynamically
-                //             data.forEach(row => {
-                //                 bodyHtml += '<tr>';
-                //                 headers.forEach(header => {
-                //                     bodyHtml += `<td>${row[header]}</td>`; // Dynamically add table cells based on the keys
-                //                 });
-                //                 bodyHtml += '</tr>';
-                //             });
-
-                //             // Construct the table with headers and rows
-                //             const table = `
-                //             <table class="table table-bordered">
-                //                 <thead>
-                //                     <tr>${headerHtml}</tr>
-                //                 </thead>
-                //                 <tbody>${bodyHtml}</tbody>
-                //             </table>
-                //         `;
-
-                //             // Append the table to the container
-                //             $('#employeeTableContainer').html(table);
-                //         } else {
-                //             $('#employeeTableContainer').html('<p>No data available</p>');
-                //         }
-                //     },
-                //     error: function (err) {
-                //         console.error('Error fetching data:', err);
-                //         $('#employeeTableContainer').html('<p>Error loading data</p>');
-                //     }
-                // });
-
-            $.ajax({
-                url: `/WindowDrivers/${page}`, // Replace with your dynamic URL
-                type: 'GET',
-                success: function (data) {
-                    if (data.length > 0) {
-                        let headers = Object.keys(data[0]); // Extract column names
-                        let columnsToHide = ["userCode"]; // List of column names to hide
-                        //let columnsToHide = ["id", "status"]; // List of column names to hide
-                        let headerHtml = '';
-                        let bodyHtml = '';
-
-                        // Generate table headers dynamically, skipping hidden columns
-                        headers.forEach(header => {
-                            if (!columnsToHide.includes(header)) {
-                                headerHtml += `<th>${header}</th>`;
-                            }
-                        });
-
-                        // Generate table rows dynamically, skipping hidden columns
-                        data.forEach(row => {
-                            bodyHtml += '<tr>';
-                            headers.forEach(header => {
-                                if (!columnsToHide.includes(header)) {
-                                    bodyHtml += `<td>${row[header]}</td>`; // Add table cells only for visible columns
-                                }
-                            });
-                            bodyHtml += '</tr>';
-                        });
-
-                        // Construct the table with headers and rows
-                        const table = `
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>${headerHtml}</tr>
-                            </thead>
-                            <tbody>${bodyHtml}</tbody>
-                        </table>
-                    `;
-
-                        // Append the table to the container
-                        $('#employeeTableContainer').html(table);
-                    } else {
-                        $('#employeeTableContainer').html('<p>No data available</p>');
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs" id="driversTable">
+                <thead>
+                    <tr class="border-b border-gray-100" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9);">
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">#</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Name</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Description</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @if (Model != null && Model.Any())
+                    {
+                        var idx = 0;
+                        @foreach (var item in Model)
+                        {
+                            idx++;
+                            <tr class="hover:bg-red-50/30 transition-colors">
+                                <td class="px-4 py-2.5 text-gray-400 font-mono">@idx</td>
+                                <td class="px-4 py-2.5 font-semibold text-gray-800">@item.Name</td>
+                                <td class="px-4 py-2.5 text-gray-500 max-w-[300px] truncate" title="@item.Description">@item.Description</td>
+                                <td class="px-4 py-2.5">
+                                    @if (item.Status == "OK" || item.Status == "Running")
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold rounded-md border border-green-200">
+                                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></span>@item.Status
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-md border border-gray-200">
+                                            <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1"></span>@item.Status
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-4 py-2.5 text-gray-400">@item.DateTime</td>
+                            </tr>
+                        }
                     }
-                },
-                error: function (err) {
-                    console.error('Error fetching data:', err);
-                    $('#employeeTableContainer').html('<p>Error loading data</p>');
-                }
-            });
-
-
-            
-        //}
-
-
-
-    }
-
-
-
-
-
-
-
-
-    // function loadContent(page) {
-    //     debugger;
-    //     // if (page == "services") 
-    //     // { 
-    //             const contentArea = document.getElementById("content-area");
-                
-    //             // Simulate loading content for the selected page
-
-    //             // contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
-    //             //                          <p>Loading content for ${page}...</p>`;
-
-    //             // Example: Fetch content dynamically from a server
-    //             fetch(`${page}`)
-    //                 .then(response => response.json())
-    //                 .then(data => {
-
-
-    //             // Generate table HTML from fetched data
-    //             let tableHtml = '<table border="1" cellspacing="0" cellpadding="5">';
-    //             tableHtml += '<thead>';
-
-    //             // Assuming the first object contains the keys (column headers)
-    //             const keys = Object.keys(data[0]);
-    //             tableHtml += '<tr>';
-    //             keys.forEach(key => {
-    //                 tableHtml += `<th>${key}</th>`;
-    //             });
-    //             tableHtml += '</tr>';
-    //             tableHtml += '</thead>';
-
-    //             tableHtml += '<tbody>';
-
-    //             // Populate rows with data
-    //             data.forEach(row => {
-    //                 tableHtml += '<tr>';
-    //                 keys.forEach(key => {
-    //                     tableHtml += `<td>${row[key]}</td>`;
-    //                 });
-    //                 tableHtml += '</tr>';
-    //             });
-
-    //             tableHtml += '</tbody>';
-    //             tableHtml += '</table>';
-
-
-
-    //             contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>${tableHtml}`;
-    //             // contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
-    //                     //                          <pre>${JSON.stringify(data, null, 2)}</pre>`;
-    //                 })
-    //                 .catch(error => {
-    //                     contentArea.innerHTML = `<h2>Error</h2><p>Could not load content for ${page}.</p>`;
-    //                     console.error(error);
-    //                 });
-    //     // }
-    //     // if (page == "users") {
-    //     //     const contentArea = document.getElementById("content-area1");
-
-    //     //     // Simulate loading content for the selected page
-    //     //     contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
-    //     //                                      <p>Loading content for ${page}...</p>`;
-
-    //     //     // Example: Fetch content dynamically from a server
-    //     //     fetch(`/api/${page}`)
-    //     //         .then(response => response.json())
-    //     //         .then(data => {
-    //     //             contentArea.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)}</h2>
-    //     //                                              <pre>${JSON.stringify(data, null, 2)}</pre>`;
-    //     //         })
-    //     //         .catch(error => {
-    //     //             contentArea.innerHTML = `<h2>Error</h2><p>Could not load content for ${page}.</p>`;
-    //     //             console.error(error);
-    //     //         });
-    //     // }
-    // }
-
-</script>
-
-
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="px-4 py-12 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                                        <i class="fas fa-microchip text-gray-300 text-lg"></i>
+                                    </div>
+                                    <p class="text-gray-400 font-semibold text-sm">No driver data available</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

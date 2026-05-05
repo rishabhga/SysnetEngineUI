@@ -1,35 +1,89 @@
-﻿@model List<WindowsUserDetails>
+@model List<WindowsUserDetails>
+@{
+    ViewData["Title"] = "User Accounts";
+}
 
-<h2>Computer Details</h2>
+<div class="max-w-7xl mx-auto px-4 pt-3">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">
+                <i class="fas fa-user-friends text-white text-sm"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-gray-900">User Accounts</h1>
+                <p class="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Windows User Details</p>
+            </div>
+        </div>
+        <span class="px-3 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded-lg border border-purple-200">
+            @(Model?.Count ?? 0) Users
+        </span>
+    </div>
 
-<table class="table table-bordered font-monospace">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>User Name</th>
-            <th>Domain Name</th>
-           @*  <th>SID</th> *@
-            <th>Account Type</th>
-            <th>Full Name</th>
-            <th>Status</th>
-           @*  <th>Date Time</th> *@
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@item.Id</td>
-                <td>@item.UserName</td>
-               @*  <td>@item.DomainName</td> *@
-                <td> <a href="/WindowsUserDetails/Index?domain=@item.DomainName">@item.DomainName</a></td>
-               @*  <td class="col-md-3">@item.SID</td> *@
-                <td>@item.AccountType</td>
-                <td>@item.FullName</td>
-                <td>@item.Status</td>
-               @*  <td>@item.DateTime</td> *@
-            </tr>
-        }
-    </tbody>
-</table>
-
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="border-b border-gray-100" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9);">
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">#</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">User Name</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Domain</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Account Type</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Full Name</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @if (Model != null && Model.Any())
+                    {
+                        var idx = 0;
+                        @foreach (var item in Model)
+                        {
+                            idx++;
+                            <tr class="hover:bg-purple-50/40 transition-colors">
+                                <td class="px-4 py-2.5 text-gray-400 font-mono">@idx</td>
+                                <td class="px-4 py-2.5 font-semibold text-gray-800">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-6 h-6 rounded-md flex items-center justify-center text-[9px] font-black text-white" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                                            @item.UserName?.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <span>@item.UserName</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-2.5">
+                                    <a href="/WindowsUserDetails/Index?domain=@item.DomainName" class="text-blue-600 hover:text-blue-800 font-semibold hover:underline">
+                                        @item.DomainName
+                                    </a>
+                                </td>
+                                <td class="px-4 py-2.5 text-gray-600">@item.AccountType</td>
+                                <td class="px-4 py-2.5 text-gray-600">@item.FullName</td>
+                                <td class="px-4 py-2.5">
+                                    @if (item.Status == "Enabled" || item.Status == "OK")
+                                    {
+                                        <span class="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold rounded-md border border-green-200">@item.Status</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] font-bold rounded-md border border-gray-200">@item.Status</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="px-4 py-12 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                                        <i class="fas fa-users text-gray-300 text-lg"></i>
+                                    </div>
+                                    <p class="text-gray-400 font-semibold text-sm">No user accounts found</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
