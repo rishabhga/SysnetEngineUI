@@ -35,14 +35,13 @@ window.sysAlert = function (msg, type) {
 };
 
 $(document).ready(function () {
+    initTabStyles();
     domaindata = $('#domainid').val();
 
     if (!domaindata) {
-        console.error("Domain ID not found");
+        console.error("Domain ID not found - skipping data load");
         return;
     }
-
-    initTabStyles();
 
     loadSummaryData();
     loadDiskChart();

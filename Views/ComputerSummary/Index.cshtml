@@ -140,6 +140,22 @@
             border-left-color: #00BCEB !important;
             font-weight: 700 !important;
         }
+
+        /* Explicitly handle tab-pane visibility to prevent all tabs showing at once in deployment */
+        .tab-content > .tab-pane {
+            display: none !important;
+        }
+        .tab-content > .tab-pane.active {
+            display: block !important;
+        }
+        
+        /* For nested tabs */
+        .tab-pane .tab-pane {
+            display: none !important;
+        }
+        .tab-pane .tab-pane.active {
+            display: block !important;
+        }
     </style>
 }
 
@@ -270,5 +286,5 @@
     <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="~/js/computer-summary.js"></script>
+    <script src="~/js/computer-summary.js" asp-append-version="true"></script>
 }
