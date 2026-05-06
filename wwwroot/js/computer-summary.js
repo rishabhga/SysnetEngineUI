@@ -91,91 +91,41 @@ function lazyLoadTabData(tabId) {
 }
 
 function initTabStyles() {
-    $('.tab-item a').on('click', function (e) {
+    // 1. Top-level category tabs
+    $('.tab-item a').off('click').on('click', function (e) {
         e.preventDefault();
+        var $li = $(this).closest('.tab-item');
         $('.tab-item').removeClass('active');
-        $(this).closest('.tab-item').addClass('active');
+        $li.addClass('active');
+        
         var target = $(this).attr('href');
-        $('.tab-pane').removeClass('active');
+        $('.tab-content').first().children('.tab-pane').removeClass('active');
         $(target).addClass('active');
+        
+        // Trigger resize for DataTables in the newly shown tab
+        setTimeout(function() {
+            $(window).trigger('resize');
+        }, 150);
     });
 
-    $('.tab-item.active a').css({
-        background: '#eff6ff',
-        color: '#3b82f6'
-    });
-
-    $('.tab-item a').on('mouseenter', function () {
-        if (!$(this).closest('.tab-item').hasClass('active')) {
-            $(this).css({ background: '#f8fafc', color: '#475569' });
-        }
-    }).on('mouseleave', function () {
-        if (!$(this).closest('.tab-item').hasClass('active')) {
-            $(this).css({ background: 'transparent', color: '#64748b' });
-        }
-    });
-
-    $('.system-tab a').on('click', function (e) {
+    // 2. Sub-tabs (sidebar tabs inside main categories)
+    // Consolidate all sub-tabs into one delegated handler to prevent recursion and double-binding
+    const subTabSelector = '.system-tab a, .hardware-tab a, .software-tab a, .security-tab a, .patch-sub-tab a, .usb-tab a, .history-tab a, .updatelog-tab a';
+    $(document).off('click', subTabSelector).on('click', subTabSelector, function (e) {
         e.preventDefault();
-        $('.system-tab').removeClass('active');
-        $(this).closest('.system-tab').addClass('active');
+        var $li = $(this).closest('li');
+        $li.siblings().removeClass('active');
+        $li.addClass('active');
+        
         var target = $(this).attr('href');
-        $('#System .tab-pane').removeClass('active');
+        // Handle case where target might not be a sibling (e.g. nested deeply)
+        $(target).parent().children('.tab-pane').removeClass('active');
         $(target).addClass('active');
-    });
-
-    $('.hardware-tab a').on('click', function (e) {
-        e.preventDefault();
-        $('.hardware-tab').removeClass('active');
-        $(this).closest('.hardware-tab').addClass('active');
-        var target = $(this).attr('href');
-        $('#Hardware .tab-pane').removeClass('active');
-        $(target).addClass('active');
-    });
-
-    $('.software-tab a').on('click', function (e) {
-        e.preventDefault();
-        $('.software-tab').removeClass('active');
-        $(this).closest('.software-tab').addClass('active');
-        var target = $(this).attr('href');
-        $('#Software .tab-pane').removeClass('active');
-        $(target).addClass('active');
-    });
-
-    $('.security-tab a').on('click', function (e) {
-        e.preventDefault();
-        $('.security-tab').removeClass('active');
-        $(this).closest('.security-tab').addClass('active');
-        var target = $(this).attr('href');
-        $('#security .tab-pane').removeClass('active');
-        $(target).addClass('active');
-    });
-
-    $('.patch-sub-tab a').on('click', function (e) {
-        e.preventDefault();
-        $('.patch-sub-tab').removeClass('active');
-        $(this).closest('.patch-sub-tab').addClass('active');
-        var target = $(this).attr('href');
-        $('#PatchManagment .tab-pane').removeClass('active');
-        $(target).addClass('active');
-    });
-
-    $('.history-tab a').on('click', function (e) {
-        e.preventDefault();
-        $('.history-tab').removeClass('active');
-        $(this).closest('.history-tab').addClass('active');
-        var target = $(this).attr('href');
-        $('#History .tab-pane').removeClass('active');
-        $(target).addClass('active');
-    });
-
-    $('.updatelog-tab a').on('click', function (e) {
-        e.preventDefault();
-        $('.updatelog-tab').removeClass('active');
-        $(this).closest('.updatelog-tab').addClass('active');
-        var target = $(this).attr('href');
-        $('#Updatelogs .tab-pane').removeClass('active');
-        $(target).addClass('active');
+        
+        // Trigger resize for DataTables
+        setTimeout(function() {
+            $(window).trigger('resize');
+        }, 150);
     });
 }
 
@@ -397,7 +347,7 @@ function initializeAllTables() {
 }
 
 function initTable(selector, url, columns) {
-    tableRegistry[selector] = { url: url, columns: columns };
+    dataTables[selector] = { url: url, columns: columns };
 
     if ($.fn.DataTable.isDataTable(selector)) {
         $(selector).DataTable().destroy();
