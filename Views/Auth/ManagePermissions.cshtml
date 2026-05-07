@@ -3,25 +3,89 @@
 }
 
 <style>
+    :root {
+        --primary: #0ea5e9;
+        --secondary: #64748b;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --violet: #8b5cf6;
+    }
+
+    .mgmt-card {
+        background: #fff;
+        border: 1px solid #f1f5f9;
+        border-radius: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .mgmt-card:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+
+    .mgmt-card-header {
+        padding: 18px 24px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fafafa;
+    }
+
     .mgmt-header-icon {
-        width: 42px; height: 42px; border-radius: 12px;
+        width: 48px; height: 48px; border-radius: 16px;
         display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);
-        box-shadow: 0 4px 12px rgba(0,188,235,0.3);
+        background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+        box-shadow: 0 8px 16px rgba(14, 165, 233, 0.2);
     }
+
     .mgmt-stat {
-        background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
-        padding: 14px 16px; position: relative; overflow: hidden; transition: all 0.3s;
+        background: #fff; border: 1px solid #f1f5f9; border-radius: 18px;
+        padding: 20px; position: relative; overflow: hidden; transition: all 0.3s;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
     }
+
     .mgmt-stat::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-        border-radius: 14px 14px 0 0;
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
     }
-    .mgmt-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
-    .mgmt-stat.s-cyan::before { background: linear-gradient(90deg, #00BCEB, #0096BE); }
-    .mgmt-stat.s-emerald::before { background: linear-gradient(90deg, #10b981, #059669); }
-    .mgmt-stat.s-amber::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
-    .mgmt-stat.s-violet::before { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+
+    .mgmt-stat.s-cyan::before { background: var(--primary); }
+    .mgmt-stat.s-emerald::before { background: var(--success); }
+    .mgmt-stat.s-amber::before { background: var(--warning); }
+    .mgmt-stat.s-violet::before { background: var(--violet); }
+
+    /* Modal Styling */
+    .modal-overlay {
+        backdrop-filter: blur(8px);
+        background: rgba(15, 23, 42, 0.4);
+    }
+
+    .modal-content {
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        animation: modalFadeUp 0.3s ease-out;
+    }
+
+    @@keyframes modalFadeUp {
+        from { opacity: 0; transform: translateY(20px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .policy-perm-group {
+        border: 1px solid #f1f5f9;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+        background: #fff;
+        transition: all 0.2s;
+    }
+
+    .policy-perm-group:hover {
+        border-color: var(--violet);
+        background: #fdfbff;
+    }
 </style>
 
 <!-- Toast Container -->
@@ -143,31 +207,38 @@
                 <i class="fas fa-sitemap text-xs text-violet-500"></i>
                 Policy Templates <span class="text-gray-400 text-[10px] font-normal ml-1" id="policyTemplateCount">0</span>
             </h2>
-            <button onclick="openPolicyModal()" class="bg-violet-500 hover:bg-violet-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 shadow-sm transition">
-                <i class="fas fa-plus text-[9px]"></i>Template
+            <button onclick="openPolicyModal()" class="bg-violet-500 hover:bg-violet-600 text-white px-4 py-2 rounded-xl text-[11px] font-bold shadow-lg transition hover:scale-105">
+                <i class="fas fa-plus text-[9px] mr-1"></i>New Template
             </button>
         </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
-            <div>
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Templates</p>
-                <div id="policyTemplateList" class="space-y-2 max-h-80 overflow-y-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 p-6">
+            <div class="lg:col-span-4">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Templates</p>
+                <div id="policyTemplateList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                     <p class="text-gray-400 text-[10px]">Loading templates...</p>
                 </div>
             </div>
-            <div>
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Permission Editor</p>
-                <div class="border border-dashed border-gray-200 rounded-xl p-3 bg-gray-50/50 mb-3">
-                    <p class="text-[11px] text-gray-500 flex items-center gap-2">
-                        <i class="fas fa-info-circle text-violet-400"></i>
-                        Select a template, then check permissions to assign and save.
-                    </p>
+            <div class="lg:col-span-8 border-l border-gray-100 pl-6">
+                <div class="flex items-center justify-between mb-4">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Permission Configuration</p>
+                    <div id="policyEditorActions" class="hidden flex items-center gap-2">
+                        <input type="text" id="policyPermSearch" placeholder="Search permissions..." class="text-[10px] border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-violet-200 outline-none w-48">
+                        <button onclick="toggleAllGroupPerms(true)" class="text-[10px] font-bold text-violet-600 hover:text-violet-700">Select All</button>
+                    </div>
                 </div>
-                <div id="policyPermissionEditor" class="max-h-72 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-white">
-                    <p class="text-gray-400 text-[10px]">Select a policy template to edit permissions.</p>
+                
+                <div id="policyPermissionEditor" class="max-h-[450px] overflow-y-auto rounded-2xl p-4 bg-gray-50/50 border border-dashed border-gray-200">
+                    <div class="flex flex-col items-center justify-center py-12 text-center">
+                        <div class="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-shield-alt text-violet-400 text-2xl"></i>
+                        </div>
+                        <p class="text-xs text-gray-500 font-medium">Select a policy template from the left to configure its permissions.</p>
+                    </div>
                 </div>
-                <div class="flex justify-end mt-3">
-                    <button id="savePolicyPermsBtn" onclick="savePolicyPermissions()" class="bg-violet-500 hover:bg-violet-600 text-white px-4 py-2 rounded-lg text-[11px] font-bold hidden shadow-sm transition">
-                        <i class="fas fa-save mr-1.5"></i>Save Template Permissions
+                
+                <div class="flex justify-end mt-4">
+                    <button id="savePolicyPermsBtn" onclick="savePolicyPermissions()" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold hidden shadow-xl transition hover:scale-105">
+                        <i class="fas fa-save mr-2"></i>Save Configuration
                     </button>
                 </div>
             </div>
@@ -176,8 +247,8 @@
 </div>
 
 <!-- Menu Modal - Compact -->
-<div id="menuModal" class="hidden fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-lg w-full max-w-sm">
+<div id="menuModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+    <div class="bg-white modal-content w-full max-w-lg">
         <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
             <h3 class="text-sm font-semibold text-gray-900" id="menuModalTitle">Add Menu</h3>
             <button onclick="closeMenuModal()" class="text-gray-400 hover:text-gray-600">
@@ -186,20 +257,37 @@
         </div>
         <form id="menuForm" class="p-4 space-y-3">
             <input type="hidden" id="menuId">
-            <input type="hidden" id="menuIcon" value="fas fa-circle">
-            <input type="hidden" id="menuSortOrder" value="0">
             <input type="hidden" id="routeController" value="">
             <input type="hidden" id="routeAction" value="">
 
-            <div class="grid grid-cols-2 gap-2">
-                <div class="col-span-2">
-                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Display Name</label>
-                    <input type="text" id="menuName" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs" placeholder="e.g. Companies">
+            <div class="bg-gray-50/50 p-4 rounded-2xl border border-gray-100 mb-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Sidebar Icon (FontAwesome)</label>
+                <div class="flex items-center gap-2">
+                    <div class="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-xl text-orange-500 shadow-sm" id="iconPreview">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="flex-1">
+                        <input type="text" id="menuIcon" class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-orange-100 outline-none" placeholder="e.g. users, home, database">
+                        <p class="text-[9px] text-gray-400 mt-1 ml-1">Icons will use the system-wide orange theme automatically.</p>
+                    </div>
                 </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Sort Order</label>
+                    <input type="number" id="menuSortOrder" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs" value="0">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Display Name</label>
+                    <input type="text" id="menuName" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs" placeholder="e.g. Companies">
+                </div>
+            </div>
 
-                <div class="col-span-2">
-                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Module</label>
-                    <select id="menuModuleSelect" required class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
+            <div class="grid grid-cols-1 gap-2">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Module</label>
+                    <select id="menuModuleSelect" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs">
                         <option value="">Select Module</option>
                     </select>
                 </div>
@@ -263,8 +351,8 @@
 </div>
 
 <!-- Module Modal - Compact -->
-<div id="moduleModal" class="hidden fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-lg w-full max-w-sm">
+<div id="moduleModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+    <div class="bg-white modal-content w-full max-w-md">
         <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
             <h3 class="text-sm font-semibold text-gray-900" id="moduleModalTitle">Manage Module</h3>
             <button onclick="closeModuleModal()" class="text-gray-400 hover:text-gray-600">
@@ -298,8 +386,8 @@
 </div>
 
 <!-- Permission Modal - Compact -->
-<div id="permissionModal" class="hidden fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-lg w-full max-w-md">
+<div id="permissionModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+    <div class="bg-white modal-content w-full max-w-xl">
         <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
             <h3 class="text-sm font-semibold text-gray-900" id="permissionModalTitle">Add Permission</h3>
             <button onclick="closePermissionModal()" class="text-gray-400 hover:text-gray-600">
@@ -362,8 +450,8 @@
     </div>
 </div>
 
-<div id="policyModal" class="hidden fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-3">
-    <div class="bg-white rounded-lg w-full max-w-md">
+<div id="policyModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+    <div class="bg-white modal-content w-full max-w-lg">
         <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
             <h3 class="text-sm font-semibold text-gray-900" id="policyModalTitle">Add Policy Template</h3>
             <button onclick="closePolicyModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xs"></i></button>
@@ -577,21 +665,34 @@
         function renderPolicyTemplateList() {
             const list = $('#policyTemplateList');
             if (!_policyTemplates.length) {
-                list.html('<p class="text-gray-400 text-[10px]">No policy templates found.</p>');
+                list.html('<div class="p-6 text-center border border-dashed border-gray-100 rounded-2xl"><p class="text-gray-400 text-[10px]">No policy templates found.</p></div>');
                 return;
             }
 
             const html = _policyTemplates.map(t => {
                 const isSelected = _selectedPolicy && _selectedPolicy.id === t.id;
-                return `<div class="p-2 rounded border ${isSelected ? 'border-violet-300 bg-violet-50' : 'border-gray-200 bg-white'}">
-                    <div class="flex justify-between items-start gap-2">
-                        <button onclick="selectPolicyTemplate(${t.id})" class="text-left flex-1">
-                            <p class="text-xs font-semibold text-gray-800">${t.displayName || t.policyName}</p>
-                            <p class="text-[10px] text-gray-500">${t.policyName} • ${t.category || 'General'} • ${t.permissionCount || 0} perms</p>
+                return `<div class="p-4 rounded-2xl border transition-all duration-300 ${isSelected ? 'border-violet-300 bg-violet-50/50 shadow-md transform scale-[1.02]' : 'border-gray-100 bg-white hover:border-violet-200'}">
+                    <div class="flex justify-between items-start gap-4">
+                        <button onclick="selectPolicyTemplate(${t.id})" class="text-left flex-1 group">
+                            <div class="flex items-center gap-2 mb-1">
+                                <p class="text-xs font-bold text-gray-800 group-hover:text-violet-600 transition">${t.displayName || t.policyName}</p>
+                                <span class="px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-600 text-[8px] font-bold uppercase tracking-widest">${t.category || 'General'}</span>
+                            </div>
+                            <p class="text-[10px] text-gray-400 line-clamp-1">${t.description || 'No description provided'}</p>
+                            <div class="flex items-center gap-3 mt-2">
+                                <div class="flex items-center gap-1 text-[9px] text-gray-500">
+                                    <i class="fas fa-key text-emerald-400"></i>
+                                    ${t.permissionCount || 0} permissions
+                                </div>
+                            </div>
                         </button>
                         <div class="flex items-center gap-1">
-                            <button onclick="editPolicyTemplate(${t.id})" class="text-sky-600 hover:text-sky-700 text-[10px]"><i class="fas fa-edit"></i></button>
-                            <button onclick="deletePolicyTemplate(${t.id},'${(t.policyName || '').replace(/'/g, "\\'")}')" class="text-red-500 hover:text-red-700 text-[10px]"><i class="fas fa-trash"></i></button>
+                            <button onclick="editPolicyTemplate(${t.id})" class="w-7 h-7 rounded-lg flex items-center justify-center text-sky-500 hover:bg-sky-50 transition" title="Edit Properties">
+                                <i class="fas fa-pen text-[10px]"></i>
+                            </button>
+                            <button onclick="deletePolicyTemplate(${t.id},'${(t.policyName || '').replace(/'/g, "\\'")}')" class="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 transition" title="Delete Template">
+                                <i class="fas fa-trash text-[10px]"></i>
+                            </button>
                         </div>
                     </div>
                 </div>`;
@@ -616,23 +717,60 @@
 
                 const html = Object.keys(grouped).sort().map(module => {
                     const permissions = grouped[module].sort((a,b) => (a.permissionCode || '').localeCompare(b.permissionCode || ''));
-                    return `<div class="mb-2">
-                        <p class="text-[10px] font-semibold text-gray-700 mb-1">${module}</p>
-                        <div class="space-y-1">
-                            ${permissions.map(p => `<label class="flex items-center gap-2 text-[10px] text-gray-600">
-                                <input type="checkbox" class="policy-perm-checkbox rounded accent-violet-500" value="${p.id || p.Id}" ${selectedIds.has(p.id || p.Id) ? 'checked' : ''} />
-                                <span>${p.permissionCode}</span>
-                            </label>`).join('')}
+                    return `<div class="policy-perm-group" data-module="${module}">
+                        <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-50">
+                            <p class="text-[11px] font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-folder text-violet-400"></i>
+                                ${module}
+                            </p>
+                            <button onclick="toggleGroupPerms('${module}', true)" class="text-[9px] font-bold text-violet-600 hover:underline">Select Group</button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
+                            ${permissions.map(p => `
+                                <label class="flex items-center gap-2.5 group cursor-pointer p-1.5 rounded-lg hover:bg-gray-50 transition">
+                                    <input type="checkbox" class="policy-perm-checkbox w-3.5 h-3.5 rounded border-gray-300 text-violet-600 focus:ring-violet-500" 
+                                           value="${p.id || p.Id}" ${selectedIds.has(p.id || p.Id) ? 'checked' : ''} />
+                                    <div class="flex flex-col">
+                                        <span class="text-[11px] font-semibold text-gray-700 group-hover:text-violet-600 transition">${p.permissionCode}</span>
+                                        <span class="text-[9px] text-gray-400">${p.permissionName}</span>
+                                    </div>
+                                </label>
+                            `).join('')}
                         </div>
                     </div>`;
                 }).join('');
 
-                $('#policyPermissionEditor').html(html || '<p class="text-gray-400 text-[10px]">No permissions available.</p>');
-                $('#savePolicyPermsBtn').removeClass('hidden');
+                $('#policyPermissionEditor').html(html || '<p class="text-gray-400 text-center py-10">No permissions available.</p>');
+                $('#savePolicyPermsBtn, #policyEditorActions').removeClass('hidden');
+                
+                // Reset search
+                $('#policyPermSearch').val('').trigger('input');
             }).fail(() => {
-                $('#policyPermissionEditor').html('<p class="text-red-500 text-[10px]">Failed to load policy template details.</p>');
+                $('#policyPermissionEditor').html('<div class="p-6 text-center text-red-500"><i class="fas fa-exclamation-circle text-2xl mb-2"></i><p class="text-xs">Failed to load policy template details.</p></div>');
                 $('#savePolicyPermsBtn').addClass('hidden');
             });
+        }
+
+        $(document).on('input', '#policyPermSearch', function() {
+            const val = $(this).val().toLowerCase();
+            $('.policy-perm-group').each(function() {
+                let hasMatch = false;
+                $(this).find('label').each(function() {
+                    const text = $(this).text().toLowerCase();
+                    const match = text.includes(val);
+                    $(this).toggle(match);
+                    if (match) hasMatch = true;
+                });
+                $(this).toggle(hasMatch);
+            });
+        });
+
+        function toggleGroupPerms(module, state) {
+            $(`.policy-perm-group[data-module="${module}"] .policy-perm-checkbox`).prop('checked', state);
+        }
+
+        function toggleAllGroupPerms(state) {
+            $('.policy-perm-checkbox').prop('checked', state);
         }
 
         function openPolicyModal() {
@@ -920,6 +1058,14 @@
         }
 
     
+        function updateIconPreview() {
+            const iconName = $('#menuIcon').val() || 'layer-group';
+            const fullClass = iconName.startsWith('fa-') ? `fas ${iconName}` : `fas fa-${iconName}`;
+            $('#iconPreview').html(`<i class="${fullClass} text-orange-500"></i>`);
+        }
+
+        $(document).on('input', '#menuIcon', updateIconPreview);
+
         function openMenuModal(cb) {
             $('#menuModal').removeClass('hidden');
           
@@ -942,7 +1088,9 @@
         function closeMenuModal() {
             $('#menuModal').addClass('hidden'); $('#menuForm')[0].reset();
             $('#menuId').val('');
-            $('#menuIcon').val('fas fa-circle'); $('#menuSortOrder').val('0');
+            $('#menuIcon').val('layer-group');
+            updateIconPreview();
+            $('#menuSortOrder').val('0');
             $('#routeController').val(''); $('#routeAction').val('');
             $('#controllerSelect').val('');
             $('#actionSelect').val('').prop('disabled', true);
@@ -1018,12 +1166,16 @@
                 return;
             }
 
+            // Simple Icon Class
+            const iconName = $('#menuIcon').val() || 'layer-group';
+            const fullIcon = iconName.startsWith('fa-') ? `fas ${iconName}` : `fas fa-${iconName}`;
+
             const data = {
                 id: idVal ? parseInt(idVal) : 0,
                 menuName: $('#menuName').val(),
                 routeController: controller,
                 routeAction: action,
-                menuIcon: $('#menuIcon').val() || 'fas fa-circle',
+                menuIcon: fullIcon,
                 sortOrder: parseInt($('#menuSortOrder').val()) || 0,
                 moduleId: parseInt(moduleId) || 0,
                 parentId: $('#menuParentId').val() ? parseInt($('#menuParentId').val()) : null,
@@ -1098,16 +1250,24 @@
 
                 $('#routeController').val(m.routeController);
                 $('#routeAction').val(m.routeAction);
-
                 $('#menuModuleSelect').val(m.moduleId || '');
-
-             
                 $('#controllerSelect').val(m.routeController);
 
                 updateActionSelect(m.routeController, '#actionSelect');
                 $('#actionSelect').val(m.routeAction);
 
-                $('#menuIcon').val(m.menuIcon || 'fas fa-circle');
+                // Parse Icon
+                const iconStr = m.menuIcon || 'fas fa-layer-group';
+                const parts = iconStr.split(' ');
+                let iconName = 'layer-group';
+
+                parts.forEach(p => {
+                    if (p.startsWith('fa-')) iconName = p.replace('fa-', '');
+                });
+
+                $('#menuIcon').val(iconName);
+                updateIconPreview();
+
                 $('#menuSortOrder').val(m.sortOrder || 0);
                 $('#menuRequiredPermission').val(m.requiredPermissionCode || '');
                 $('#menuParentId').val(m.parentId || '');

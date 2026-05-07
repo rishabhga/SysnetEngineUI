@@ -76,7 +76,7 @@
 
     function loadNotificationCount() {
         if (typeof $ === "undefined") return;
-        
+
         const ctx = window.SYSNET_CONTEXT || {};
         let url = "/Home/GetNotificationCount";
         let params = {};
@@ -113,7 +113,7 @@
                     label.textContent = count + " new";
                 }
             },
-            error: function() {
+            error: function () {
                 console.warn("Failed to load notification count");
             }
         });
@@ -159,7 +159,7 @@
                     params = {};
                     $.ajax({
                         url: url,
-                        success: function(fallbackData) {
+                        success: function (fallbackData) {
                             var fallbackItems = Array.isArray(fallbackData) ? fallbackData : (fallbackData.items || fallbackData.data || []);
                             renderNotificationList(fallbackItems);
                         }
@@ -188,31 +188,31 @@
                 var isRead = n.isRead || n.IsRead;
                 var type = (n.msNotificationType || n.MSNotificationType || "INFO").toUpperCase();
                 var time = n.createdAt || n.CreatedAt || "";
-                
+
                 var iconClass = "fa-info-circle";
                 var iconColor = "#3b82f6";
                 var bgColor = isRead ? "#fff" : "#f8fafc";
                 var borderLeft = "none";
 
-                if (type.includes("CRIT") || type.includes("ALERT")) { 
-                    iconClass = "fa-exclamation-circle"; 
-                    iconColor = "#ef4444"; 
+                if (type.includes("CRIT") || type.includes("ALERT")) {
+                    iconClass = "fa-exclamation-circle";
+                    iconColor = "#ef4444";
                     if (!isRead) { bgColor = "#fef2f2"; borderLeft = "3px solid #ef4444"; }
                 }
-                else if (type.includes("WARN")) { 
-                    iconClass = "fa-exclamation-triangle"; 
-                    iconColor = "#f59e0b"; 
+                else if (type.includes("WARN")) {
+                    iconClass = "fa-exclamation-triangle";
+                    iconColor = "#f59e0b";
                     if (!isRead) { bgColor = "#fffbeb"; borderLeft = "3px solid #f59e0b"; }
                 }
-                
+
                 var formattedTime = "";
                 if (time) {
                     var d = new Date(time);
                     if (!isNaN(d.getTime())) {
-                        formattedTime = d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+                        formattedTime = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
                         var now = new Date();
                         if (d.toDateString() !== now.toDateString()) {
-                            formattedTime = d.toLocaleDateString([], {month:'short', day:'numeric'}) + " " + formattedTime;
+                            formattedTime = d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + " " + formattedTime;
                         }
                     }
                 }
@@ -225,7 +225,7 @@
                     downloadBtn = '<div style="margin-top:6px;"><a href="' + urlPart + '" class="notif-download-link" style="display:inline-block;padding:3px 8px;background:#0ea5e9;color:#fff;border-radius:4px;font-size:9px;font-weight:600;text-decoration:none;"><i class="fas fa-download" style="margin-right:4px;"></i>Download EXE</a></div>';
                 }
 
-                return '<div class="notification-item" data-id="' + id + '" style="padding:12px 14px;border-bottom:1px solid #f1f5f9;display:flex;gap:12px;cursor:pointer;transition:all 0.2s;' + 
+                return '<div class="notification-item" data-id="' + id + '" style="padding:12px 14px;border-bottom:1px solid #f1f5f9;display:flex;gap:12px;cursor:pointer;transition:all 0.2s;' +
                     (isRead ? 'opacity:0.7;' : 'background:' + bgColor + ';border-left:' + borderLeft + ';') + '">' +
                     '<div style="margin-top:2px;"><i class="fas ' + iconClass + '" style="color:' + iconColor + ';font-size:13px;"></i></div>' +
                     '<div style="flex:1;min-width:0;">' +
@@ -243,20 +243,20 @@
             }).join("");
 
             listEl.innerHTML = html;
-            
+
             var notifItems = listEl.querySelectorAll('.notification-item');
-            notifItems.forEach(function(item) {
-                item.addEventListener('click', function(e) {
+            notifItems.forEach(function (item) {
+                item.addEventListener('click', function (e) {
                     if (e.target.closest('a')) return;
-                    
+
                     var id = this.getAttribute('data-id');
                     var isRead = this.style.opacity === '0.7';
-                    
+
                     if (!isRead) {
                         this.style.opacity = '0.7';
                         this.style.background = '#fff';
                         this.style.borderLeft = 'none';
-                        $.post("/ComputerSummary/MarkNotificationRead", { id: id }, function() {
+                        $.post("/ComputerSummary/MarkNotificationRead", { id: id }, function () {
                             loadNotificationCount();
                         });
                     }
@@ -297,26 +297,5 @@
         setupAjaxUnauthorizedHandling();
         loadNotificationCount();
         setInterval(loadNotificationCount, 60000);
-
-        $(document).on('keyup', '#globalSearchInput', function () {
-            var term = $(this).val().toLowerCase().trim();
-            var $cards = $('.device-card, .bg-white.rounded-lg.shadow-md.border');
-
-            if ($cards.length === 0) {
-                $cards = $('.grid > div').filter(function() {
-                    return $(this).hasClass('bg-white') || $(this).hasClass('device-card');
-                });
-            }
-
-            $cards.each(function () {
-                var $card = $(this);
-                var text = $card.text().toLowerCase();
-                if (text.indexOf(term) > -1) {
-                    $card.show();
-                } else {
-                    $card.hide();
-                }
-            });
-        });
     };
 })();

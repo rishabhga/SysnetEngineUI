@@ -1,4 +1,4 @@
- @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
     var username = Context.Session.GetString("username");
     var userRole = Context.Session.GetString("role");
@@ -33,7 +33,7 @@
     <link href="~/css/prettify.css" rel="stylesheet" />
     <link href="~/css/datepicker.css" rel="stylesheet" />
     <link href="~/css/Custom.css" rel="stylesheet" />
-    <link href="~/css/sidebar.css" rel="stylesheet" />
+    <link href="~/css/sidebar.css" rel="stylesheet" asp-append-version="true" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
@@ -183,15 +183,15 @@
             transition: all 0.2s;
         }
 
-        .nav-search-input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-        }
+            .nav-search-input::placeholder {
+                color: rgba(255, 255, 255, 0.6);
+            }
 
-        .nav-search-input:focus {
-            background: rgba(255, 255, 255, 0.25);
-            border-color: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
-        }
+            .nav-search-input:focus {
+                background: rgba(255, 255, 255, 0.25);
+                border-color: rgba(255, 255, 255, 0.4);
+                box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
+            }
 
         .nav-search-icon {
             position: absolute;
@@ -836,61 +836,119 @@
                     var menuTree = await ManageEngineWebApp.Datacontext.RoleHelper.GetMenuTree(Context);
                     var currentQuery = Context.Request.QueryString.HasValue ? Context.Request.QueryString.Value : "";
 
-                    var filteredMenuTree = menuTree.Where(m => {
+                    var filteredMenuTree = menuTree.Where(m =>
+                    {
                         if (string.IsNullOrEmpty(m.VisibilityController)) return true;
                         if (m.VisibilityController != currentController) return false;
                         if (!string.IsNullOrEmpty(m.VisibilityAction) && m.VisibilityAction != currentAction) return false;
                         return true;
                     }).ToList();
 
+                    // Restore nested child filtering
                     foreach (var m in filteredMenuTree)
                     {
-                        m.Children = m.Children.Where(c => {
-                            if (string.IsNullOrEmpty(c.VisibilityController)) return true;
-                            if (c.VisibilityController != currentController) return false;
-                            if (!string.IsNullOrEmpty(c.VisibilityAction) && c.VisibilityAction != currentAction) return false;
-                            return true;
-                        }).ToList();
+                        if (m.Children != null)
+                        {
+                            m.Children = m.Children.Where(c =>
+                            {
+                                if (string.IsNullOrEmpty(c.VisibilityController)) return true;
+                                if (c.VisibilityController != currentController) return false;
+                                if (!string.IsNullOrEmpty(c.VisibilityAction) && c.VisibilityAction != currentAction) return false;
+                                return true;
+                            }).ToList();
+                        }
                     }
                 }
 
-                @foreach (var menu in filteredMenuTree.OrderBy(m => m.SortOrder))
+                @foreach (var m in filteredMenuTree.OrderBy(x => x.SortOrder))
                 {
-                    var isActive = currentController == menu.RouteController && currentAction == menu.RouteAction;
-                    var iconClass = string.IsNullOrWhiteSpace(menu.MenuIcon) ? "fas fa-circle-nodes" : menu.MenuIcon;
+                    var isActive = currentController == m.RouteController && currentAction == m.RouteAction;
+
+                    // Sanitize icon: reject placeholder circles, then map by menu name as fallback
+                    var rawIcon = m.MenuIcon?.Trim() ?? "";
+                    var isPlaceholder = string.IsNullOrWhiteSpace(rawIcon)
+                    || rawIcon == "fa fa-circle" || rawIcon == "fas fa-circle"
+                    || rawIcon == "far fa-circle" || rawIcon == "fa-circle"
+                    || rawIcon == "circle";
+
+                    string iconClass;
+                    if (!isPlaceholder)
+                    {
+                        iconClass = rawIcon;
+                    }
+                    else
+                    {
+                        // Auto-assign sensible icons based on menu name keywords
+                        var mn = (m.MenuName ?? "").ToLower();
+                        if (mn.Contains("switch")) iconClass = "fas fa-network-wired";
+                        else if (mn.Contains("compan")) iconClass = "fas fa-building";
+                        else if (mn.Contains("permission")) iconClass = "fas fa-shield-halved";
+                        else if (mn.Contains("patch")) iconClass = "fas fa-cloud-arrow-up";
+                        else if (mn.Contains("role")) iconClass = "fas fa-user-gear";
+                        else if (mn.Contains("user")) iconClass = "fas fa-users";
+                        else if (mn.Contains("report")) iconClass = "fas fa-chart-bar";
+                        else if (mn.Contains("setting")) iconClass = "fas fa-gear";
+                        else if (mn.Contains("dashboard")) iconClass = "fas fa-gauge";
+                        else if (mn.Contains("ticket")) iconClass = "fas fa-ticket";
+                        else if (mn.Contains("desk")) iconClass = "fas fa-headset";
+                        else iconClass = "fas fa-layer-group";
+                    }
 
                     // Contextual Link Generation
-                    var menuUrl = Url.Action(menu.RouteAction, menu.RouteController);
-                    if (!string.IsNullOrEmpty(currentQuery) && menuUrl != null && !menuUrl.Contains("?")) {
+                    var menuUrl = Url.Action(m.RouteAction, m.RouteController);
+                    if (!string.IsNullOrEmpty(currentQuery) && menuUrl != null && !menuUrl.Contains("?"))
+                    {
                         menuUrl += currentQuery;
                     }
 
-                    if (menu.Children != null && menu.Children.Any())
+                    if (m.Children != null && m.Children.Any())
                     {
-                        var isGroupActive = menu.Children.Any(c => c.RouteController == currentController && c.RouteAction == currentAction);
-
-                        <div class="nav-group @(isGroupActive ? "open" : "")">
+                        var hasActiveChild = m.Children.Any(c => currentController == c.RouteController && currentAction == c.RouteAction);
+                        <div class="nav-group @(hasActiveChild ? "open" : "")">
                             <div class="nav-item">
-                                <button type="button" class="sidebar-link group-trigger @(isGroupActive ? "active" : "")">
+                                <button type="button" class="sidebar-link group-trigger">
                                     <span class="sidebar-link-content">
-                                        <i class="@iconClass nav-icon"></i>
-                                        <span>@menu.MenuName</span>
+                                        <span class="nav-icon"><i class="@iconClass"></i></span>
+                                        <span class="nav-label">@m.MenuName</span>
                                     </span>
                                     <i class="fas fa-chevron-down group-chevron"></i>
                                 </button>
                             </div>
                             <div class="sidebar-subnav">
-                                @foreach (var child in menu.Children.OrderBy(c => c.SortOrder))
+                                @foreach (var child in m.Children.OrderBy(c => c.SortOrder))
                                 {
                                     var childActive = currentController == child.RouteController && currentAction == child.RouteAction;
                                     var childUrl = Url.Action(child.RouteAction, child.RouteController);
-                                    if (!string.IsNullOrEmpty(currentQuery) && childUrl != null && !childUrl.Contains("?")) {
+                                    if (!string.IsNullOrEmpty(currentQuery) && childUrl != null && !childUrl.Contains("?"))
+                                    {
                                         childUrl += currentQuery;
                                     }
+                                    var childRawIcon = child.MenuIcon?.Trim() ?? "";
+                                    var childIsPlaceholder = string.IsNullOrWhiteSpace(childRawIcon)
+                                    || childRawIcon == "fa fa-circle" || childRawIcon == "fas fa-circle"
+                                    || childRawIcon == "far fa-circle" || childRawIcon == "fa-circle"
+                                    || childRawIcon == "circle";
+                                    string childIconClass;
+                                    if (!childIsPlaceholder) { childIconClass = childRawIcon; }
+                                    else
+                                    {
+                                        var cn = (child.MenuName ?? "").ToLower();
+                                        if (cn.Contains("critical")) childIconClass = "fas fa-triangle-exclamation";
+                                        else if (cn.Contains("patch")) childIconClass = "fas fa-cloud-arrow-up";
+                                        else if (cn.Contains("user")) childIconClass = "fas fa-user";
+                                        else if (cn.Contains("report")) childIconClass = "fas fa-chart-bar";
+                                        else if (cn.Contains("setting")) childIconClass = "fas fa-gear";
+                                        else if (cn.Contains("log")) childIconClass = "fas fa-clock-rotate-left";
+                                        else if (cn.Contains("monitor")) childIconClass = "fas fa-desktop";
+                                        else if (cn.Contains("device")) childIconClass = "fas fa-computer";
+                                        else if (cn.Contains("location")) childIconClass = "fas fa-location-dot";
+                                        else if (cn.Contains("group")) childIconClass = "fas fa-layer-group";
+                                        else childIconClass = "fas fa-circle-dot";
+                                    }
 
-                                    <a href="@childUrl"
-                                       class="sidebar-sub-link @(childActive ? "active" : "")">
-                                        @child.MenuName
+                                    <a href="@childUrl" class="sidebar-sub-link @(childActive ? "active" : "")">
+                                        <span class="sub-nav-icon"><i class="@childIconClass"></i></span>
+                                        <span class="sub-nav-label">@child.MenuName</span>
                                     </a>
                                 }
                             </div>
@@ -899,11 +957,10 @@
                     else
                     {
                         <div class="nav-item">
-                            <a href="@menuUrl"
-                               class="sidebar-link @(isActive ? "active" : "")">
+                            <a href="@menuUrl" class="sidebar-link @(isActive ? "active" : "")">
                                 <span class="sidebar-link-content">
-                                    <i class="@iconClass nav-icon"></i>
-                                    <span>@menu.MenuName</span>
+                                    <span class="nav-icon"><i class="@iconClass"></i></span>
+                                    <span class="nav-label">@m.MenuName</span>
                                 </span>
                             </a>
                         </div>
@@ -912,7 +969,7 @@
             </nav>
 
             <div class="sidebar-footer">
-                
+
                 <a asp-controller="Auth" asp-action="Logout" class="logout-link">
                     <i class="fas fa-arrow-right-from-bracket"></i>
                     <span>Sign Out</span>
@@ -952,10 +1009,10 @@
                     </button>
                 </div>
             </div>
-            
+
             <!-- Chat Body -->
             <div id="chatMessages" class="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/80" style="scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;"></div>
-            
+
             <!-- Input Area -->
             <div class="p-4 bg-white border-t border-slate-100 shadow-[0_-4px_15px_rgba(0,0,0,0.02)]">
                 <div class="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1.5 focus-within:ring-2 focus-within:ring-sky-100 focus-within:border-sky-300 transition-all shadow-inner">
@@ -1071,13 +1128,13 @@
                             if (!clientId) return;
                             const normalizedClient = clientId.toString().trim().toLowerCase();
                             const normalizedActive = activeChatClientId ? activeChatClientId.toString().trim().toLowerCase() : "";
-                            
+
                             if (normalizedActive && normalizedClient === normalizedActive) {
                                 appendMessageToUI(message, isClient, time);
                                 if (isClient && chatConnection && chatConnection.state === signalR.HubConnectionState.Connected)
                                     chatConnection.invoke("MarkChatAsRead", clientId).catch(e => {});
-                            } else if (isClient) { 
-                                markDeviceWithNewMessage(clientId, message); 
+                            } else if (isClient) {
+                                markDeviceWithNewMessage(clientId, message);
                             }
                         });
                         chatConnection.on("ReceiveUnreadCounts", function(counts) {
@@ -1128,13 +1185,13 @@
 
             window.openChatModal = function(clientId) {
                 if (!clientId) return;
-                
+
                 var userName = clientId;
                 if (typeof window.getUserNameFromDomain === 'function') {
                     var n = window.getUserNameFromDomain(clientId);
                     if (n) userName = n;
                 }
-                
+
                 var isOnline = false;
                 var $card = $('.device-card').filter(function(){ return ($(this).attr('data-domain')||'').toLowerCase() === clientId.toLowerCase(); });
                 if ($card.length && $card.attr('data-status') === 'online') {
@@ -1145,14 +1202,14 @@
                 if (typeof window.updateDeviceBadge === "function") window.updateDeviceBadge(clientId, 0);
                 if (chatConnection && chatConnection.state === signalR.HubConnectionState.Connected)
                     chatConnection.invoke("MarkChatAsRead", clientId).catch(err => {});
-                
+
                 $('#chatClientName').text(userName);
                 if (isOnline) {
                     $('#chatStatusText').html('<span class="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)] animate-pulse"></span>Online');
                 } else {
                     $('#chatStatusText').html('<span class="w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[0_0_8px_rgba(156,163,175,0.8)]"></span>Offline');
                 }
-                
+
                 $('#chatMessages').html('<div class="flex justify-center py-16"><i class="fas fa-circle-notch fa-spin text-sky-500 text-2xl"></i></div>');
                 var modal = document.getElementById('chatModal');
                 if (modal) { modal.style.display = 'flex'; modal.classList.remove('hidden'); }
