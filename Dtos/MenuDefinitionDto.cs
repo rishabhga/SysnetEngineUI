@@ -1,4 +1,4 @@
-﻿namespace ManageEngineWebApp.Dtos
+namespace ManageEngineWebApp.Dtos
 {
     public class MenuDefinitionDto
     {
@@ -11,5 +11,7 @@
         public int? ParentId { get; set; }
         public string RequiredPermissionCode { get; set; } = string.Empty;
         public int ModuleId { get; set; }
+        public string? VisibilityController { get; set; }
+        public string? VisibilityAction { get; set; }
     }
 }

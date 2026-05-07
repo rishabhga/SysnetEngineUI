@@ -834,12 +834,36 @@
             <nav class="sidebar-nav" aria-label="Sidebar navigation">
                 @{
                     var menuTree = await ManageEngineWebApp.Datacontext.RoleHelper.GetMenuTree(Context);
+                    var currentQuery = Context.Request.QueryString.HasValue ? Context.Request.QueryString.Value : "";
+
+                    var filteredMenuTree = menuTree.Where(m => {
+                        if (string.IsNullOrEmpty(m.VisibilityController)) return true;
+                        if (m.VisibilityController != currentController) return false;
+                        if (!string.IsNullOrEmpty(m.VisibilityAction) && m.VisibilityAction != currentAction) return false;
+                        return true;
+                    }).ToList();
+
+                    foreach (var m in filteredMenuTree)
+                    {
+                        m.Children = m.Children.Where(c => {
+                            if (string.IsNullOrEmpty(c.VisibilityController)) return true;
+                            if (c.VisibilityController != currentController) return false;
+                            if (!string.IsNullOrEmpty(c.VisibilityAction) && c.VisibilityAction != currentAction) return false;
+                            return true;
+                        }).ToList();
+                    }
                 }
 
-                @foreach (var menu in menuTree.OrderBy(m => m.SortOrder))
+                @foreach (var menu in filteredMenuTree.OrderBy(m => m.SortOrder))
                 {
                     var isActive = currentController == menu.RouteController && currentAction == menu.RouteAction;
                     var iconClass = string.IsNullOrWhiteSpace(menu.MenuIcon) ? "fas fa-circle-nodes" : menu.MenuIcon;
+
+                    // Contextual Link Generation
+                    var menuUrl = Url.Action(menu.RouteAction, menu.RouteController);
+                    if (!string.IsNullOrEmpty(currentQuery) && menuUrl != null && !menuUrl.Contains("?")) {
+                        menuUrl += currentQuery;
+                    }
 
                     if (menu.Children != null && menu.Children.Any())
                     {
@@ -859,7 +883,12 @@
                                 @foreach (var child in menu.Children.OrderBy(c => c.SortOrder))
                                 {
                                     var childActive = currentController == child.RouteController && currentAction == child.RouteAction;
-                                    <a href="@Url.Action(child.RouteAction, child.RouteController)"
+                                    var childUrl = Url.Action(child.RouteAction, child.RouteController);
+                                    if (!string.IsNullOrEmpty(currentQuery) && childUrl != null && !childUrl.Contains("?")) {
+                                        childUrl += currentQuery;
+                                    }
+
+                                    <a href="@childUrl"
                                        class="sidebar-sub-link @(childActive ? "active" : "")">
                                         @child.MenuName
                                     </a>
@@ -870,7 +899,7 @@
                     else
                     {
                         <div class="nav-item">
-                            <a href="@Url.Action(menu.RouteAction, menu.RouteController)"
+                            <a href="@menuUrl"
                                class="sidebar-link @(isActive ? "active" : "")">
                                 <span class="sidebar-link-content">
                                     <i class="@iconClass nav-icon"></i>

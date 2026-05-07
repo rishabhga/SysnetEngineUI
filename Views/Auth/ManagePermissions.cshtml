@@ -70,6 +70,7 @@
                                 <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Name</th>
                                 <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Route</th>
                                 <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Module</th>
+                                <th class="px-4 py-2.5 text-left font-semibold text-gray-500 uppercase text-[10px] tracking-wider">Visibility</th>
                                 <th class="px-4 py-2.5 text-right font-semibold text-gray-500 uppercase text-[10px] tracking-wider"></th>
                             </tr>
                         </thead>
@@ -219,11 +220,38 @@
                 </div>
             </div>
 
-            <div>
-                <label class="block text-[10px] font-medium text-gray-600 mb-1">Required Permission</label>
-                <select id="menuRequiredPermission" class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
-                    <option value="">None</option>
-                </select>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Parent Menu</label>
+                    <select id="menuParentId" class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
+                        <option value="">None (Top Level)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-medium text-gray-600 mb-1">Required Permission</label>
+                    <select id="menuRequiredPermission" class="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs">
+                        <option value="">None</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-blue-50/50 p-2 rounded border border-blue-100">
+                <label class="block text-[10px] font-bold text-blue-700 mb-1.5 uppercase tracking-wider">Visibility Context (Optional)</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[9px] font-medium text-blue-600 mb-0.5">Show on Controller</label>
+                        <select id="visibilityController" class="w-full px-2 py-1 bg-white border border-blue-200 rounded text-[11px]">
+                            <option value="">Always Visible</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-medium text-blue-600 mb-0.5">Show on Action</label>
+                        <select id="visibilityAction" disabled class="w-full px-2 py-1 bg-white border border-blue-200 rounded text-[11px] disabled:opacity-50">
+                            <option value="">All Actions</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="text-[9px] text-blue-500 mt-1"><i class="fas fa-info-circle mr-1"></i>If set, this menu only appears on specific pages.</p>
             </div>
 
             <div class="flex justify-end gap-2 pt-2">
@@ -456,6 +484,7 @@
 
                     $('#controllerSelect').html(options); 
                     $('#permControllerSelect').html(options); 
+                    $('#visibilityController').html('<option value="">Always Visible</option>' + controllers.map(c => `<option value="${c}">${c}</option>`).join(''));
                     $('#filterController').html('<option value="">All Controllers</option>' + controllers.map(c => `<option value="${c}">${c}</option>`).join(''));
                 }
             });
@@ -465,10 +494,14 @@
         $(document).on('change', '#controllerSelect', function() {
             const ctrl = $(this).val();
             updateActionSelect(ctrl, '#actionSelect');
-
        
             $('#routeController').val(ctrl);
             $('#routeAction').val('');
+        });
+
+        $(document).on('change', '#visibilityController', function() {
+            const ctrl = $(this).val();
+            updateActionSelect(ctrl, '#visibilityAction', "-- All Actions --");
         });
 
         $(document).on('change', '#actionSelect', function() {
@@ -511,15 +544,15 @@
             renderPermissionsTable(selectedCtrl);
         });
 
-        function updateActionSelect(ctrl, selector) {
+        function updateActionSelect(ctrl, selector, defaultText = "-- Select Page --") {
             const actionSel = $(selector);
             if (ctrl && window._discoveredRoutes && window._discoveredRoutes[ctrl]) {
                 const actions = window._discoveredRoutes[ctrl].sort();
-                actionSel.html('<option value="">-- Select Page --</option>' +
+                actionSel.html(`<option value="">${defaultText}</option>` +
                     actions.map(a => `<option value="${a}">${a}</option>`).join(''));
                 actionSel.prop('disabled', false).removeClass('bg-gray-100');
             } else {
-                actionSel.html('<option value="">-- Select Page --</option>');
+                actionSel.html(`<option value="">${defaultText}</option>`);
                 actionSel.prop('disabled', true).addClass('bg-gray-100');
             }
         }
@@ -721,6 +754,9 @@
                         <td class="px-3 py-2">
                             <span class="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded">${m.moduleName || 'Unassigned'}</span>
                         </td>
+                        <td class="px-3 py-2">
+                            ${m.visibilityController ? `<span class="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-medium"><i class="fas fa-eye mr-1"></i>${m.visibilityController}${m.visibilityAction ? '.' + m.visibilityAction : ''}</span>` : '<span class="text-[9px] text-gray-400">Global</span>'}
+                        </td>
                         <td class="px-3 py-2 text-right">
                             <button onclick='editMenu(${JSON.stringify(m)})' class="text-sky-600 hover:text-sky-700 mr-1 p-1 rounded hover:bg-sky-50" title="Edit">
                                 <i class="fas fa-edit text-[10px]"></i>
@@ -891,7 +927,16 @@
                 const options = '<option value="">Select Module</option>' +
                     modules.map(m => `<option value="${m.id || m.Id}">${m.moduleName}</option>`).join('');
                 $('#menuModuleSelect').html(options);
-                if(cb) cb();
+                
+                // Also load menus for parent selection
+                $.get('@Url.Action("GetMenus", "Auth")', menus => {
+                    const currentId = $('#menuId').val();
+                    const parentOptions = '<option value="">None (Top Level)</option>' +
+                        menus.filter(m => !currentId || (m.id || m.Id) != currentId)
+                             .map(m => `<option value="${m.id || m.Id}">${m.menuName}</option>`).join('');
+                    $('#menuParentId').html(parentOptions);
+                    if(cb) cb();
+                });
             });
         }
         function closeMenuModal() {
@@ -903,6 +948,9 @@
             $('#actionSelect').val('').prop('disabled', true);
             $('#menuRequiredPermission').val('');
             $('#menuModuleSelect').val('');
+            $('#menuParentId').val('');
+            $('#visibilityController').val('');
+            $('#visibilityAction').val('').prop('disabled', true);
             $('#menuModalTitle').text('Add Menu');
         }
 
@@ -978,7 +1026,10 @@
                 menuIcon: $('#menuIcon').val() || 'fas fa-circle',
                 sortOrder: parseInt($('#menuSortOrder').val()) || 0,
                 moduleId: parseInt(moduleId) || 0,
+                parentId: $('#menuParentId').val() ? parseInt($('#menuParentId').val()) : null,
                 requiredPermissionCode: $('#menuRequiredPermission').val(),
+                visibilityController: $('#visibilityController').val(),
+                visibilityAction: $('#visibilityAction').val(),
                 isActive: true
             };
             $.ajax({
@@ -1059,6 +1110,9 @@
                 $('#menuIcon').val(m.menuIcon || 'fas fa-circle');
                 $('#menuSortOrder').val(m.sortOrder || 0);
                 $('#menuRequiredPermission').val(m.requiredPermissionCode || '');
+                $('#menuParentId').val(m.parentId || '');
+                $('#visibilityController').val(m.visibilityController || '').trigger('change');
+                if(m.visibilityAction) $('#visibilityAction').val(m.visibilityAction);
             });
         }
         function editPermission(p) {

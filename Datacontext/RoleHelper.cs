@@ -552,7 +552,9 @@ namespace ManageEngineWebApp.Datacontext
                     SortOrder = m.SortOrder,
                     ParentId = m.ParentId,
                     RequiredPermissionCode = m.RequiredPermissionCode,
-                    ModuleId = m.ModuleId
+                    ModuleId = m.ModuleId,
+                    VisibilityController = m.VisibilityController,
+                    VisibilityAction = m.VisibilityAction
                 });
 
             var roots = new List<MenuTreeItemDto>();

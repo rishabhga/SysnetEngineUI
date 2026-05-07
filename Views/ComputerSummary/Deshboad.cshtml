@@ -73,24 +73,6 @@
         </div>
 
         <div class="flex items-center gap-1.5">
-            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.VIP"))
-            {
-                <button onclick="window.location.href='/ComputerSummary/VIPClient?comId=@ViewBag.companyid&groupId=@ViewBag.groupid&locationId=@ViewBag.locationid&companyName=@System.Net.WebUtility.UrlEncode(ViewBag.CompanyName)'"
-                        class="px-2 py-1 text-white rounded-md text-[10px] font-medium transition-colors flex items-center gap-1 shadow-sm whitespace-nowrap"
-                        style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
-                    <i class="fas fa-crown text-[8px]"></i>
-                    <span>Critical</span>
-                </button>
-            }
-            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.DeployPatch"))
-            {
-                <button onclick="window.location.href='./BranchPatchMangnment?companyid=@ViewBag.companyid&groupid=@ViewBag.groupid&locationId=@ViewBag.locationid'"
-                        class="px-2 py-1 text-white rounded-md text-[10px] font-medium transition-colors flex items-center gap-1 shadow-sm whitespace-nowrap"
-                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                    <i class="fas fa-shield-alt text-[8px]"></i>
-                    <span>Patch</span>
-                </button>
-            }
         </div>
     </div>
 
