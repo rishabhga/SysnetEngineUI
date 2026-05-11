@@ -5,7 +5,6 @@
 
 <div class="min-h-screen p-4" style="background:#F0F4F8;">
     <div class="max-w-7xl mx-auto">
-        <!-- Header -->
         <div class="mb-5">
             <div class="flex justify-between items-start mb-3">
                 <div>
@@ -14,7 +13,7 @@
                 </div>
                 @if (ViewBag.CanManageSLA == true)
                 {
-                    <button class="px-3 py-1.5 text-white text-sm font-medium rounded flex items-center" style="background:linear-gradient(135deg,#00BCEB,#0096BE);" " data-toggle="modal" data-target="#addSLAConfigModal">
+                    <button id="btnOpenSLAModal" class="px-3 py-1.5 text-white text-sm font-medium rounded flex items-center" style="background:linear-gradient(135deg,#00BCEB,#0096BE);">
                         <i class="fas fa-plus mr-1.5 text-xs"></i>
                         Add SLA Policy
                     </button>
@@ -22,13 +21,12 @@
             </div>
         </div>
 
-        <!-- Stats Grid -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="slaStatsRow">
             <div class="bg-white rounded border border-gray-200 p-3 hover:border-emerald-300 transition-colors">
                 <div class="flex justify-between items-start">
                     <div>
                         <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">SLA Compliance</div>
-                        <div class="text-lg font-bold mt-1" style="color:#8FB829;" " id="statCompliance">--</div>
+                        <div class="text-lg font-bold mt-1" style="color:#8FB829;" id="statCompliance">--</div>
                     </div>
                     <div class="w-8 h-8 rounded bg-emerald-50 flex items-center justify-center">
                         <i class="fas fa-percent text-emerald-500 text-sm"></i>
@@ -39,7 +37,7 @@
                 <div class="flex justify-between items-start">
                     <div>
                         <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Breaches</div>
-                        <div class="text-lg font-bold mt-1" style="color:#EF4444;" " id="statTotalBreach">--</div>
+                        <div class="text-lg font-bold mt-1" style="color:#EF4444;" id="statTotalBreach">--</div>
                     </div>
                     <div class="w-8 h-8 rounded bg-red-50 flex items-center justify-center">
                         <i class="fas fa-exclamation-circle text-red-500 text-sm"></i>
@@ -50,7 +48,7 @@
                 <div class="flex justify-between items-start">
                     <div>
                         <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Response Breaches</div>
-                        <div class="text-lg font-bold mt-1" style="color:#F97316;" " id="statResponseBreach">--</div>
+                        <div class="text-lg font-bold mt-1" style="color:#F97316;" id="statResponseBreach">--</div>
                     </div>
                     <div class="w-8 h-8 rounded bg-amber-50 flex items-center justify-center">
                         <i class="fas fa-reply text-amber-500 text-sm"></i>
@@ -61,16 +59,15 @@
                 <div class="flex justify-between items-start">
                     <div>
                         <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Breach Duration</div>
-                        <div class="text-lg font-bold mt-1" style="color:#0096BE;" " id="statAvgDuration">--</div>
+                        <div class="text-lg font-bold mt-1" style="color:#0096BE;" id="statAvgDuration">--</div>
                     </div>
-                    <div class="w-8 h-8 rounded flex items-center" style="background:#E0F7FD;" justify-center">
+                    <div class="w-8 h-8 rounded flex items-center justify-center" style="background:#E0F7FD;">
                         <i class="fas fa-hourglass-half text-blue-500 text-sm"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- SLA Policies Table -->
         @if (ViewBag.CanManageSLA == true)
         {
             <div class="bg-white rounded border border-gray-200 mb-4">
@@ -95,8 +92,6 @@
                 </div>
             </div>
         }
-
-        <!-- SLA Breach History -->
         <div class="bg-white rounded border border-gray-200">
             <div class="px-3 py-2.5 border-b border-gray-100 bg-red-50 flex items-center gap-2">
                 <i class="fas fa-radiation text-red-500 text-sm"></i>
@@ -122,77 +117,89 @@
     </div>
 </div>
 
-<!-- SLA Config Modal -->
-<div id="addSLAConfigModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-md shadow-xl">
-        <div class="px-4 py-3 border-b" style="background:#F1F8E9; border-color:#d1e8a0;" flex items-center rounded-t-lg">
-            <i class="fas fa-sliders-h mr-2" style="color:#0096BE;" "></i>
-            <h3 class="font-medium text-sm" style="color:#0096BE;" ">SLA Policy Configuration</h3>
-            <button onclick="$('#addSLAConfigModal').addClass('hidden')" class="ml-auto text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times"></i>
-            </button>
+<div id="addSLAConfigModal" class="fixed inset-0 z-[9999] hidden" style="background:rgba(0,0,0,0.6);">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg w-full max-w-md shadow-2xl relative" style="max-height:90vh; overflow-y:auto;">
+            <div class="px-4 py-3 border-b flex items-center justify-between rounded-t-lg sticky top-0 z-10" style="background:#F1F8E9; border-color:#d1e8a0;">
+                <div class="flex items-center">
+                    <i class="fas fa-sliders-h mr-2" style="color:#0096BE;"></i>
+                    <h3 class="font-medium text-sm" style="color:#0096BE;">SLA Policy Configuration</h3>
+                </div>
+                <button type="button" id="btnCloseSLAModal" class="text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="slaConfigForm" class="p-4">
+                <input type="hidden" id="ConfigId" name="Id" value="0">
+
+                <div class="mb-3">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Priority Level</label>
+                    <select name="Priority" id="ConfigPriority" required
+                            class="w-full h-9 text-sm border border-gray-300 rounded px-2 bg-white outline-none focus:border-[#00BCEB] focus:ring-1 focus:ring-[#00BCEB] transition-colors"
+                            style="border:1px solid #d1d5db;">
+                        <option value="">-- Loading --</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Response Time (mins)</label>
+                        <input type="number" name="ResponseTimeMinutes" id="ConfigResponseTime" required min="1"
+                               class="w-full h-9 text-sm border border-gray-300 rounded px-3 outline-none focus:border-[#00BCEB] focus:ring-1 focus:ring-[#00BCEB] transition-colors"
+                               style="border:1px solid #d1d5db;"
+                               placeholder="e.g. 30">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Resolution Time (mins)</label>
+                        <input type="number" name="ResolutionTimeMinutes" id="ConfigResolutionTime" required min="1"
+                               class="w-full h-9 text-sm border border-gray-300 rounded px-3 outline-none focus:border-[#00BCEB] focus:ring-1 focus:ring-[#00BCEB] transition-colors"
+                               style="border:1px solid #d1d5db;"
+                               placeholder="e.g. 240">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                        <input type="checkbox" id="ConfigAutoEscalate" name="AutoEscalate" value="true"
+                               class="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                        <span>Enable Auto-Escalation on Breach</span>
+                    </label>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Breach Notification Emails (comma separated)</label>
+                    <input type="text" name="BreachNotificationEmails" id="ConfigEmails"
+                           class="w-full h-9 text-sm border border-gray-300 rounded px-3 outline-none focus:border-[#00BCEB] focus:ring-1 focus:ring-[#00BCEB] transition-colors"
+                           style="border:1px solid #d1d5db;"
+                           placeholder="admin@company.com, manager@company.com">
+                </div>
+
+                <div class="flex gap-2 pt-3 border-t border-gray-100">
+                    <button type="button" id="btnCancelSLAModal"
+                            class="flex-1 py-2 text-sm text-gray-600 font-medium hover:bg-gray-50 rounded border border-gray-200 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded transition-colors shadow-sm">
+                        Save Policy
+                    </button>
+                </div>
+            </form>
         </div>
-        <form id="slaConfigForm" class="p-4">
-            <input type="hidden" id="ConfigId" name="Id" value="0">
-            <div class="mb-3">
-                <label class="block text-xs font-medium text-gray-700 mb-1">Priority Level</label>
-                <select name="Priority" id="ConfigPriority" required
-                        class="w-full h-9 text-sm border border-gray-300 rounded px-2 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'" outline-none bg-white">
-                    <option value="">-- Loading --</option>
-                </select>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Response Time (mins)</label>
-                    <input type="number" name="ResponseTimeMinutes" id="ConfigResponseTime" required
-                           class="w-full h-9 text-sm border border-gray-300 rounded px-3 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'" outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Resolution Time (mins)</label>
-                    <input type="number" name="ResolutionTimeMinutes" id="ConfigResolutionTime" required
-                           class="w-full h-9 text-sm border border-gray-300 rounded px-3 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'" outline-none">
-                </div>
-            </div>
-            <div class="mb-3">
-                <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                    <input type="checkbox" id="ConfigAutoEscalate" name="AutoEscalate" value="true"
-                           class="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
-                    Enable Auto-Escalation on Breach
-                </label>
-            </div>
-            <div class="mb-4">
-                <label class="block text-xs font-medium text-gray-700 mb-1">Breach Notification Emails (comma separated)</label>
-                <input type="text" name="BreachNotificationEmails" id="ConfigEmails"
-                       class="w-full h-9 text-sm border border-gray-300 rounded px-3 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'" outline-none"
-                       placeholder="admin@company.com, manager@company.com">
-            </div>
-            <div class="flex gap-2 pt-3 border-t border-gray-100">
-                <button type="button" onclick="$('#addSLAConfigModal').addClass('hidden')"
-                        class="flex-1 py-1.5 text-sm text-gray-600 font-medium hover:bg-gray-50 rounded border border-gray-200">
-                    Cancel
-                </button>
-                <button type="submit"
-                        class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded">
-                    Save Policy
-                </button>
-            </div>
-        </form>
     </div>
 </div>
 
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // Auto-seed ServiceDesk permissions on first load
             $.ajax({
                 url: '@Url.Action("SeedServiceDeskPermissions", "ServiceDesk")',
                 type: 'POST',
                 success: function(res) {
                     if (res && res.permissionsCreated > 0) {
-                        console.log('ServiceDesk permissions seeded:', res.message);
                     }
                 },
-                error: function() { /* silent fail — permissions may already exist */ }
+                error: function() {  }
             });
 
             loadSLAConfigs();
@@ -200,10 +207,35 @@
             loadSLAStats();
             loadPriorities();
 
-            // Open modal
-            $('[data-toggle="modal"][data-target="#addSLAConfigModal"]').click(function() {
-                $('#addSLAConfigModal').removeClass('hidden');
+            $('#btnOpenSLAModal').on('click', function(e) {
+                e.preventDefault();
+                $('#addSLAConfigModal').removeClass('hidden').addClass('block');
+                $('body').addClass('overflow-hidden'); 
             });
+
+            $('#btnCloseSLAModal, #btnCancelSLAModal').on('click', function(e) {
+                e.preventDefault();
+                closeSLAModal();
+            });
+
+            $('#addSLAConfigModal').on('click', function(e) {
+                if (e.target === this) {
+                    closeSLAModal();
+                }
+            });
+
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && !$('#addSLAConfigModal').hasClass('hidden')) {
+                    closeSLAModal();
+                }
+            });
+
+            function closeSLAModal() {
+                $('#addSLAConfigModal').addClass('hidden').removeClass('block');
+                $('body').removeClass('overflow-hidden');
+                $('#slaConfigForm')[0].reset();
+                $('#ConfigId').val(0);
+            }
 
             $('#slaConfigForm').submit(function(e) {
                 e.preventDefault();
@@ -225,11 +257,9 @@
                     data: JSON.stringify(data),
                     success: function(res) {
                         if (res.success) {
-                            $('#addSLAConfigModal').addClass('hidden');
+                            closeSLAModal();
                             sysAlert('SLA Policy saved successfully', 'success');
                             loadSLAConfigs();
-                            $('#slaConfigForm')[0].reset();
-                            $('#ConfigId').val(0);
                         } else {
                             sysAlert('Error saving policy', 'error');
                         }
@@ -255,15 +285,15 @@
                         var escBadge = c.autoEscalate
                             ? '<span class="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">Yes</span>'
                             : '<span class="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">No</span>';
-                        var btn = `<button class="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded" onclick="deleteConfig(${c.id})"><i class="fas fa-trash"></i></button>`;
+                        var btn = `<button class="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded transition-colors" onclick="deleteConfig(${c.id})"><i class="fas fa-trash"></i></button>`;
 
-                        tbody.append(`<tr class="border-b border-gray-50 hover:bg-gray-50">
+                        tbody.append(`<tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                             <td class="px-3 py-2 font-medium text-gray-800">${c.priority}</td>
                             <td class="px-3 py-2 text-gray-600">${c.responseTimeMinutes} min</td>
                             <td class="px-3 py-2 text-gray-600">${c.resolutionTimeMinutes} min</td>
                             <td class="px-3 py-2">${escBadge}</td>
                             <td class="px-2 py-2 text-gray-500 text-[10px] break-all max-w-[150px]">${c.breachNotificationEmails || '-'}</td>
-                            <td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-medium text-[#5a7a00]" style="background:#F1F8E9;"">Active</span></td>
+                            <td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-medium text-[#5a7a00]" style="background:#F1F8E9;">Active</span></td>
                             <td class="px-3 py-2">${btn}</td>
                         </tr>`);
                     });
@@ -334,7 +364,7 @@
                             ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700';
                         var tClass = b.breachType === 'Response' ? 'bg-[#E0F7FD] text-blue-700' : 'bg-red-100 text-red-700';
 
-                        tbody.append(`<tr class="border-b border-gray-50 hover:bg-gray-50">
+                        tbody.append(`<tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                             <td class="px-3 py-2 text-gray-600">${date}</td>
                             <td class="px-3 py-2"><a href="/ServiceDesk/Details/${b.ticketId}" class="text-blue-600 hover:text-blue-800 font-medium">${b.ticketNo}</a></td>
                             <td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-medium ${tClass}">${b.breachType} SLA</span></td>
