@@ -1370,7 +1370,7 @@ namespace ManageEngineWebApp.Controllers
                                 ViewBag.DisplayDomain = winUser?.DomainName ?? domain;
                 ViewBag.UserCode = winUser?.UserCode ?? "N/A";
                 ViewBag.LastLogUser = winUser?.UserName ?? "N/A";
-                ViewBag.UserName = winUser?.UserCode ?? domain; // ID for scripts
+                ViewBag.UserName = winUser?.DomainName ?? domain; // ID for scripts
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -1386,7 +1386,7 @@ namespace ManageEngineWebApp.Controllers
                         if (datalist.Any())
                         {
                             var details = datalist[0];
-                            ViewBag.UserName = winUser?.UserCode ?? details.domainName; 
+                            ViewBag.UserName = winUser?.DomainName ?? details.domainName; 
                             ViewBag.DisplayDomain = winUser?.DomainName ?? details.domainName;
                             ViewBag.windowdetails = details.WindowName;
                             ViewBag.ip = details.IpAddress;
@@ -1782,6 +1782,8 @@ namespace ManageEngineWebApp.Controllers
                 return Json(null);
             }
         }
+
+        // single instation software ke liye 
 
         public async Task<IActionResult> PatchUpdate([FromBody] InstallRequest req, string domain)
         {
