@@ -1,4 +1,4 @@
-﻿namespace ManageEngineWebApp.Models
+namespace ManageEngineWebApp.Models
 {
     public class VIPClient
     {
@@ -10,5 +10,8 @@
         public int? GroupsID { get; set; }
         public int? LocationID { get; set; }
         public string Source { get; set; }
+        public double? CpuThreshold { get; set; }
+        public double? RamThreshold { get; set; }
+        public double? DiskThreshold { get; set; }
     }
 }

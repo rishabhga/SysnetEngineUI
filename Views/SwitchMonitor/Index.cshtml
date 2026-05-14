@@ -60,7 +60,21 @@
             </h1>
             <p class="text-[11px] text-gray-400 mt-0.5 uppercase font-bold tracking-wider">SNMP INFRASTRUCTURE</p>
         </div>
-        <div class="flex gap-3 flex-wrap">
+        <div class="flex gap-3 flex-wrap items-center">
+            <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+                <i class="fas fa-filter text-gray-400 text-xs"></i>
+                <select id="locationFilter" class="text-sm font-medium text-gray-700 bg-transparent outline-none border-none cursor-pointer" onchange="filterByLocation()">
+                    <option value="all">All Locations</option>
+                    @if (ViewBag.Locations != null)
+                    {
+                        foreach (var loc in (List<ManageEngineWebApp.Models.Locations>)ViewBag.Locations)
+                        {
+                            <option value="@loc.Id">@loc.LocationName</option>
+                        }
+                    }
+                </select>
+            </div>
+
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Create"))
             {
                 <button onclick="openAddSwitchModal()"
@@ -70,14 +84,21 @@
             }
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Poll"))
             {
-                <form asp-action="TriggerPoll" method="post" id="pollForm">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" id="pollBtn"
-                            class="px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-2 text-sm font-medium">
-                        <i class="fas fa-sync-alt" id="pollIcon"></i>
-                        <span id="pollText">Poll Now</span>
+                <div class="flex rounded-lg overflow-hidden shadow-sm">
+                    <button type="button" onclick="triggerLocationPoll()" id="locPollBtn"
+                            class="px-4 py-2 bg-white text-gray-700 border-y border-l border-gray-200 hover:bg-gray-50 transition flex items-center gap-2 text-sm font-medium">
+                        <i class="fas fa-map-marker-alt text-[#00BCEB]" id="locPollIcon"></i>
+                        <span id="locPollText">Poll Site</span>
                     </button>
-                </form>
+                    <form asp-action="TriggerPoll" method="post" id="pollForm">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" id="pollBtn"
+                                class="px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white border-y border-r border-[#00BCEB] hover:shadow-md transition flex items-center gap-2 text-sm font-medium">
+                            <i class="fas fa-sync-alt" id="pollIcon"></i>
+                            <span id="pollText">Poll All</span>
+                        </button>
+                    </form>
+                </div>
             }
         </div>
     </div>
@@ -127,7 +148,7 @@
             var portCount = status?.Ports?.Count ?? 0;
             var portsUp = status?.Ports?.Count(p => p.PortState == "Up") ?? 0;
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden card-hover flex flex-col">
+            <div class="card-container bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden card-hover flex flex-col" data-location-id="@sw.LocationId">
                 <!-- Card Header -->
                 <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-start">
                     <div class="min-w-0">
@@ -135,6 +156,9 @@
                         <p class="text-xs text-gray-500 font-mono mt-0.5">@sw.IpAddress</p>
                     </div>
                     <div class="flex items-center gap-2 ml-2 shrink-0">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold @(sw.PollingMode == "Auto" ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-amber-50 text-amber-600 border border-amber-100")">
+                            <i class="fas @(sw.PollingMode == "Auto" ? "fa-robot" : "fa-hand-pointer") mr-0.5"></i> @(sw.PollingMode ?? "Manual")
+                        </span>
                         <span class="px-2 py-0.5 rounded-full text-xs font-semibold @statusBadge flex items-center gap-1">
                             @if (isUp)
                             {
@@ -144,6 +168,19 @@
                         </span>
                     </div>
                 </div>
+
+                <!-- Location Info -->
+                @if (sw.LocationId.HasValue && ViewBag.Locations != null)
+                {
+                    var locName = ((List<ManageEngineWebApp.Models.Locations>)ViewBag.Locations).FirstOrDefault(l => l.Id == sw.LocationId)?.LocationName;
+                    if (!string.IsNullOrEmpty(locName))
+                    {
+                        <div class="px-4 py-1 bg-gray-50 border-b border-gray-100 flex items-center gap-1.5">
+                            <i class="fas fa-map-marker-alt text-gray-400 text-[10px]"></i>
+                            <span class="text-[10px] font-medium text-gray-500 truncate">@locName</span>
+                        </div>
+                    }
+                }
 
                 <!-- Card Body -->
                 <div class="px-4 py-3 space-y-2 text-sm flex-1">
@@ -350,6 +387,11 @@
             if (el.type === 'checkbox') {
                 formData[el.name] = el.checked;   // ← FIX: always use checkbox.checked (not hidden false)
                 seen.add(el.name);
+            } else if (el.type === 'radio') {
+                if (el.checked) {
+                    formData[el.name] = el.value;
+                    seen.add(el.name);
+                }
             } else if (!seen.has(el.name)) {      
                 formData[el.name] = el.value;
                 seen.add(el.name);
@@ -430,4 +472,63 @@
                 btn.textContent = 'Delete';
             });
     });
+
+    function filterByLocation() {
+        const locationId = document.getElementById('locationFilter').value;
+        const cards = document.querySelectorAll('.card-container');
+        
+        cards.forEach(card => {
+            if (locationId === 'all') {
+                card.classList.remove('hidden');
+            } else {
+                const cardLocId = card.getAttribute('data-location-id');
+                if (cardLocId === locationId) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            }
+        });
+    }
+
+    async function triggerLocationPoll() {
+        const locationId = document.getElementById('locationFilter').value;
+        if (locationId === 'all') {
+            window.sysAlert('Please select a specific location to poll site.', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('locPollBtn');
+        const icon = document.getElementById('locPollIcon');
+        const text = document.getElementById('locPollText');
+        
+        const originalIcon = icon.className;
+        const originalText = text.textContent;
+
+        btn.disabled = true;
+        icon.className = 'fas fa-spinner spin text-[#00BCEB]';
+        text.textContent = 'Polling Site...';
+
+        try {
+            const response = await fetch(`/SwitchMonitor/TriggerSitePoll?locationId=${locationId}`, {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value }
+            });
+
+            if (response.ok) {
+                window.sysAlert('Site polling completed successfully.', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                window.sysAlert('Site polling failed.', 'error');
+                btn.disabled = false;
+                icon.className = originalIcon;
+                text.textContent = originalText;
+            }
+        } catch (err) {
+            window.sysAlert('Network error: ' + err.message, 'error');
+            btn.disabled = false;
+            icon.className = originalIcon;
+            text.textContent = originalText;
+        }
+    }
 </script>

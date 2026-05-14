@@ -809,3 +809,51 @@ function refreshSoftwareTable() {
         $('#desktopAppsTable').DataTable().ajax.reload();
     }
 }
+
+function applyUsbBlock() {
+    if (!domaindata) return;
+    Swal.fire({
+        title: 'Block USB?',
+        text: 'This will disable USB ports on ' + domaindata,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'Yes, Block'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '/ComputerSummary/BlockUsb?domain=' + domaindata,
+                type: 'POST',
+                success: function(res) {
+                    if (res.success) sysAlert('USB Blocked successfully', 'success');
+                    else sysAlert(res.message || 'Block failed', 'error');
+                },
+                error: function() { sysAlert('Connection error', 'error'); }
+            });
+        }
+    });
+}
+
+function applyUsbUnblock() {
+    if (!domaindata) return;
+    Swal.fire({
+        title: 'Unblock USB?',
+        text: 'This will enable USB ports on ' + domaindata,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        confirmButtonText: 'Yes, Unblock'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '/ComputerSummary/UnblockUsb?domain=' + domaindata,
+                type: 'POST',
+                success: function(res) {
+                    if (res.success) sysAlert('USB Unblocked successfully', 'success');
+                    else sysAlert(res.message || 'Unblock failed', 'error');
+                },
+                error: function() { sysAlert('Connection error', 'error'); }
+            });
+        }
+    });
+}

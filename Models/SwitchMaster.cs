@@ -1,4 +1,4 @@
-﻿namespace ManageEngineWebApp.Models
+namespace ManageEngineWebApp.Models
 {
     public class SwitchMaster
     {
@@ -11,5 +11,7 @@
 
         public bool IsActive { get; set; }
         public string DeviceType { get; set; }
+        public string PollingMode { get; set; }
+        public int? LocationId { get; set; }
     }
 }

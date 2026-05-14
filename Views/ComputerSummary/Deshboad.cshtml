@@ -73,6 +73,12 @@
         </div>
 
         <div class="flex items-center gap-1.5">
+            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "DeviceSecurity.Index"))
+            {
+                <a href="/DeviceSecurity" class="px-2 py-1 bg-white border border-gray-200 hover:bg-gray-50 rounded-md text-[10px] font-bold text-gray-700 transition shadow-sm flex items-center gap-1">
+                    <i class="fas fa-shield-alt text-[#00BCEB]"></i> USB LOCKS
+                </a>
+            }
         </div>
     </div>
 
@@ -135,9 +141,12 @@
 
     @if (Model != null && Model.Any())
     {
+        var vipClients = ViewBag.VipClients as List<ManageEngineWebApp.Models.VIPClient> ?? new List<ManageEngineWebApp.Models.VIPClient>();
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-1.5" id="devicesGrid">
             @foreach (var item in Model)
             {
+                var vipStatus = vipClients.FirstOrDefault(v => string.Equals(v.ClientId, item.DomainName, StringComparison.OrdinalIgnoreCase));
+                var isVip = vipStatus != null;
                 bool isActive = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase));
                 var deviceIcon = item.DomainName.ToUpper().Contains("LAPTOP") ? "fa-laptop" :
                 item.DomainName.ToUpper().Contains("DESKTOP") ? "fa-desktop" : "fa-computer";
@@ -231,6 +240,22 @@
                                                         onclick="viewOtpCode('@item.DomainName')">
                                                     <i class="fas fa-eye mr-1 text-[8px]"></i>
                                                     <span>View OTP</span>
+                                                </button>
+                                                <button class="usb-protection-toggle w-full px-2 py-1 text-left text-[9px] hover:bg-gray-50 flex items-center justify-between transition-colors @(isActive ? "text-gray-700" : "text-gray-400 cursor-not-allowed")"
+                                                        onclick="toggleUsbRestriction(this, '@item.DomainName', '@item.Id')"
+                                                        @(isActive ? "" : "disabled")>
+                                                    <span class="flex items-center">
+                                                        <i class="fas fa-usb text-blue-500 mr-1 text-[8px]"></i>
+                                                        <span>USB Lock</span>
+                                                    </span>
+                                                    <span class="usb-status text-[8px] font-semibold px-1 py-0.5 rounded-full bg-gray-200 text-gray-600">OFF</span>
+                                                </button>
+                                                <button class="critical-settings-btn w-full px-2 py-1 text-left text-[9px] hover:bg-gray-50 flex items-center justify-between transition-colors"
+                                                        onclick="openCriticalSettings('@item.DomainName', '@item.Id', '@item.UserName', @isVip.ToString().ToLower(), @(vipStatus?.CpuThreshold ?? 0), @(vipStatus?.RamThreshold ?? 0), @(vipStatus?.DiskThreshold ?? 0))">
+                                                    <span class="flex items-center">
+                                                        <i class="fas fa-crown text-yellow-500 mr-1 text-[8px]"></i>
+                                                        <span>VIP Settings</span>
+                                                    </span>
                                                 </button>
                                             </div>
                                         </div>
@@ -344,8 +369,71 @@
     }
 </div>
 
-<div id="tempProtectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3" style="display:none; align-items:center; justify-content:center;">
-    <div class="bg-white rounded-lg shadow-2xl w-full max-w-xs overflow-hidden">
+    <!-- VIP Settings Modal -->
+    <div id="vipSettingsModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3 hidden items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
+            <div class="p-3 border-b border-gray-100 flex justify-between items-center" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-crown text-white text-xs"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-bold text-white">VIP Monitoring Settings</h3>
+                        <p id="vipDeviceName" class="text-[8px] text-white/80 font-mono"></p>
+                    </div>
+                </div>
+                <button onclick="closeVipModal()" class="text-white/80 hover:text-white transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-4 space-y-4">
+                <input type="hidden" id="vipDeviceId" />
+                <input type="hidden" id="vipDomain" />
+
+                <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
+                    <div>
+                        <p class="text-xs font-bold text-amber-900">Mark as VIP User</p>
+                        <p class="text-[9px] text-amber-700">Enable prioritized resource monitoring</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="vipIsCritical" class="sr-only peer">
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                </div>
+
+                <div class="space-y-3">
+                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Custom Thresholds (%)</h4>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-500 mb-1">CPU</label>
+                            <input type="number" id="vipCpu" step="0.1" placeholder="90" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none" />
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-500 mb-1">RAM</label>
+                            <input type="number" id="vipRam" step="0.1" placeholder="85" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none" />
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-gray-500 mb-1">DISK</label>
+                            <input type="number" id="vipDisk" step="0.1" placeholder="95" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none" />
+                        </div>
+                    </div>
+                    <p class="text-[8px] text-gray-400 italic mt-1">Leave empty to use location or system defaults.</p>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeVipModal()" class="flex-1 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-bold border border-gray-200 transition-all">
+                        Cancel
+                    </button>
+                    <button onclick="saveVipSettings()" id="saveVipBtn" class="flex-1 px-4 py-2 text-white rounded-lg text-xs font-bold shadow-lg shadow-blue-500/20 transition-all" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                        Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tempProtectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3" style="display:none; align-items:center; justify-content:center;">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-xs overflow-hidden">
         <div class="px-3 py-2 bg-gradient-to-r from-orange-500 to-red-500">
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
@@ -579,6 +667,29 @@
             dashHubConnection.on('ReceiveConnectedDevices', function(connectedDevices) {
                 if (Array.isArray(connectedDevices)) {
                     updateDeviceStatuses(connectedDevices);
+                }
+            });
+
+            dashHubConnection.on('ScanResultReceived', function(domain, isSuccess, message) {
+                const card = $(`.device-card[data-domain="${domain}"]`);
+                const link = card.find('.rescan-link');
+                
+                if (link.length) {
+                    link.find('.rescan-text').html(
+                        '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i>' +
+                        '<span class="js-txt">Rescan</span>'
+                    );
+                    link.prop('disabled', false);
+
+                    if (isSuccess) {
+                        loadSystemUsageData(card, domain);
+                        $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")', { domain: domain }, function(res) {
+                            card.find('.ip-address-value').text(res.success ? res.ipAddress : 'N/A');
+                        }).fail(function() { card.find('.ip-address-value').text('N/A'); });
+                        sysAlert('Scan complete for ' + domain, 'success');
+                    } else {
+                        sysAlert('Scan failed for ' + domain + ': ' + message, 'error');
+                    }
                 }
             });
 
@@ -838,6 +949,118 @@
             var menu = $(button).next('.menu-dropdown');
             $('.menu-dropdown').not(menu).addClass('hidden');
             menu.toggleClass('hidden');
+        }
+
+        function openCriticalSettings(domain, id, name, isCritical, cpu, ram, disk) {
+            var evt = window.event;
+            if (evt) evt.stopPropagation();
+            
+            $('#vipDomain').val(domain);
+            $('#vipDeviceId').val(id);
+            $('#vipDeviceName').text(`${name} (${domain})`);
+            $('#vipIsCritical').prop('checked', isCritical === true);
+            $('#vipCpu').val(cpu > 0 ? cpu : '');
+            $('#vipRam').val(ram > 0 ? ram : '');
+            $('#vipDisk').val(disk > 0 ? disk : '');
+            
+            $('#vipSettingsModal').removeClass('hidden').addClass('flex');
+            $('.menu-dropdown').addClass('hidden');
+        }
+
+        function closeVipModal() {
+            $('#vipSettingsModal').addClass('hidden').removeClass('flex');
+        }
+
+        async function saveVipSettings() {
+            const domain = $('#vipDomain').val();
+            const id = $('#vipDeviceId').val();
+            const isCritical = $('#vipIsCritical').is(':checked');
+            const cpu = $('#vipCpu').val();
+            const ram = $('#vipRam').val();
+            const disk = $('#vipDisk').val();
+
+            const $btn = $('#saveVipBtn');
+            const originalText = $btn.text();
+            $btn.prop('disabled', true).text('Saving...');
+
+            try {
+                const response = await fetch('/ComputerSummary/UpdateCriticalSettings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ClientId: domain,
+                        ClientName: $('#vipDeviceName').text().split(' (')[0],
+                        IsVIP: isCritical,
+                        CpuThreshold: cpu ? parseFloat(cpu) : null,
+                        RamThreshold: ram ? parseFloat(ram) : null,
+                        DiskThreshold: disk ? parseFloat(disk) : null
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    sysAlert('VIP settings updated successfully', 'success');
+                    closeVipModal();
+                    // Update the crown icon on the card
+                    const $card = $(`.device-card[data-device-id="${id}"]`);
+                    if (isCritical) {
+                        $card.find('.critical-user-crown').removeClass('hidden');
+                    } else {
+                        $card.find('.critical-user-crown').addClass('hidden');
+                    }
+                    // Update data attributes for next open
+                    // Note: This is simplified, for a full fix we'd update the onclick string carefully
+                    setTimeout(() => location.reload(), 1000); 
+                } else {
+                    sysAlert('Failed to update: ' + (result.message || 'Unknown error'), 'error');
+                }
+            } catch (e) {
+                sysAlert('Error: ' + e.message, 'error');
+            } finally {
+                $btn.prop('disabled', false).text(originalText);
+            }
+        }
+
+        async function toggleUsbRestriction(button, domain, deviceId) {
+            var evt = window.event;
+            if (evt) evt.stopPropagation();
+
+            var $card = $(button).closest('.device-card');
+            var isOnline = $card.data('status') === 'online';
+
+            if (!isOnline) {
+                sysAlert('USB control only available for ONLINE devices', 'warning');
+                $(button).closest('.menu-dropdown').addClass('hidden');
+                return;
+            }
+
+            var $statusBadge = $(button).find('.usb-status');
+            var isBlocked = $statusBadge.text().trim() === 'ON';
+
+            $(button).closest('.menu-dropdown').addClass('hidden');
+
+            const targetBlock = !isBlocked;
+            sysConfirm(`${targetBlock ? 'BLOCK' : 'UNBLOCK'} USB for ${domain}?`, async function() {
+                try {
+                    const response = await fetch('/DeviceSecurity/ToggleUsbStatus', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clientId: domain, block: targetBlock })
+                    });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        $statusBadge.text(targetBlock ? 'ON' : 'OFF');
+                        $statusBadge.toggleClass('bg-red-100 text-red-700', targetBlock)
+                                    .toggleClass('bg-gray-200 text-gray-600', !targetBlock);
+                        sysAlert(result.message, 'success');
+                    } else {
+                        sysAlert('Failed: ' + result.message, 'error');
+                    }
+                } catch (e) {
+                    sysAlert('Error: ' + e.message, 'error');
+                }
+            });
         }
 
         async function toggleTempProtection(button, domain, deviceId) {
@@ -1396,39 +1619,8 @@
             link.prop('disabled', true);
 
             $.post('@Url.Action("Comanddata", "ComputerSummary")?domain=' + domain, function() {
-                var pollCount = 0;
-                var maxPolls  = 24;  
-
-                var interval = setInterval(function() {
-                    pollCount++;
-                    $.get('@Url.Action("CheckScanResult", "ComputerSummary")?domain=' + domain, function(r) {
-                        if (r.status === 'success' || r.status === 'failed' || pollCount >= maxPolls) {
-                            clearInterval(interval);
-                            link.find('.rescan-text').html(
-                                '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i>' +
-                                '<span class="js-txt">Rescan</span>'
-                            );
-                            link.prop('disabled', false);
-
-                            if (r.status === 'success') {
-                                loadSystemUsageData(card, domain);
-                                $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")',
-                                    { domain: domain },
-                                    function(res) {
-                                        card.find('.ip-address-value').text(res.success ? res.ipAddress : 'N/A');
-                                    }
-                                ).fail(function() { card.find('.ip-address-value').text('N/A'); });
-
-                                sysAlert('Scan complete for ' + domain, 'success');
-                            } else if (pollCount >= maxPolls) {
-                                sysAlert('Scan timed out for ' + domain, 'warning');
-                            } else {
-                                sysAlert('Scan failed for ' + domain, 'error');
-                            }
-                        }
-                    }).fail(function() {
-                    });
-                }, 5000);
+                // Now waiting for SignalR message 'ScanResultReceived'
+                // No more setInterval here!
             }).fail(function() {
                 link.find('.rescan-text').html(
                     '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i><span class="js-txt">Rescan</span>'

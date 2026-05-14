@@ -129,13 +129,30 @@ namespace ManageEngineWebApp.Controllers
 
        
         [DynamicPermission("SwitchMonitor.Create", "Create Switch")]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            using var client = GetClient();
+            var locations = new List<Locations>();
+            try
+            {
+                var locResponse = await client.GetAsync($"{_baseUrl}/api/Location/get-all-location");
+                if (locResponse.IsSuccessStatusCode)
+                {
+                    var json = await locResponse.Content.ReadAsStringAsync();
+                    locations = JsonSerializer.Deserialize<List<Locations>>(json,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                        ?? new List<Locations>();
+                }
+            }
+            catch { }
+
+            ViewBag.Locations = locations;
             return PartialView("_SwitchForm", new SwitchMaster
             {
                 IsActive = true,
                 DeviceType = "Switch",
-                Community = "public"
+                Community = "public",
+                PollingMode = "Auto"
             });
         }
 
@@ -172,6 +189,22 @@ namespace ManageEngineWebApp.Controllers
             catch { }
 
             if (sw == null) return NotFound();
+
+            var locations = new List<Locations>();
+            try
+            {
+                var locResponse = await client.GetAsync($"{_baseUrl}/api/Location/get-all-location");
+                if (locResponse.IsSuccessStatusCode)
+                {
+                    var json = await locResponse.Content.ReadAsStringAsync();
+                    locations = JsonSerializer.Deserialize<List<Locations>>(json,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                        ?? new List<Locations>();
+                }
+            }
+            catch { }
+
+            ViewBag.Locations = locations;
             return PartialView("_SwitchForm", sw);
         }
 
@@ -240,6 +273,22 @@ namespace ManageEngineWebApp.Controllers
             }
 
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [DynamicPermission("SwitchMonitor.Poll", "Poll Switches")]
+        public async Task<IActionResult> TriggerSitePoll(int locationId)
+        {
+            using var client = GetClient();
+            var response = await client.GetAsync($"{_baseUrl}/api/Zabbix/PollByLocation?locationId={locationId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                TempData["Message"] = $"Site polling triggered for location {locationId}.";
+                return Json(new { success = true });
+            }
+
+            return Json(new { success = false, message = "Failed to trigger site poll." });
         }
     }
 }

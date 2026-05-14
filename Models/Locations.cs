@@ -1,4 +1,4 @@
-﻿namespace ManageEngineWebApp.Models
+namespace ManageEngineWebApp.Models
 {
     public class Locations
     {
@@ -8,6 +8,9 @@
         public int GroupsID { get; set; }
         public string LocationName { get; set; }
         public bool IsCritical { get; set; }
+        public double? CpuThreshold { get; set; }
+        public double? RamThreshold { get; set; }
+        public double? DiskThreshold { get; set; }
     }
 }
     

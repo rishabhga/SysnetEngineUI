@@ -53,11 +53,13 @@ namespace ManageEngineWebApp.Controllers
                 string userUrl = $"api/WindowsUserDetails/allUser{query}";
                 string connectedUrl = $"api/Command/GetConnectedDevices";
                 string companyUrl = $"api/CompaniesDetails/CompanyById?id={comId}";
+                string vipUrl = "api/RamCpuDiskData/GetAllVIPs";
                 var userTask = httpClient.GetAsync(userUrl);
                 var connectedTask = httpClient.GetAsync(connectedUrl);
                 var companyTask = httpClient.GetAsync(companyUrl);
+                var vipTask = httpClient.GetAsync(vipUrl);
 
-                await Task.WhenAll(userTask, connectedTask, companyTask);
+                await Task.WhenAll(userTask, connectedTask, companyTask, vipTask);
 
                 var response = await userTask;
                 if (response.IsSuccessStatusCode)
@@ -98,6 +100,20 @@ namespace ManageEngineWebApp.Controllers
                         string logoUrl = company.logoUrl ?? company.LogoUrl;
                         ViewBag.CompanyLogoUrl = logoUrl;
                     }
+                }
+
+                var vipResponse = await vipTask;
+                if (vipResponse.IsSuccessStatusCode)
+                {
+                    var vipContent = await vipResponse.Content.ReadAsStringAsync();
+                    var vipData = !string.IsNullOrEmpty(vipContent) 
+                        ? JsonConvert.DeserializeObject<List<VIPClient>>(vipContent) 
+                        : new List<VIPClient>();
+                    ViewBag.VipClients = vipData;
+                }
+                else
+                {
+                    ViewBag.VipClients = new List<VIPClient>();
                 }
                 string locationUrl = $"api/CompaniesDetails/Locationdata";
                 var locationResponse = await httpClient.GetAsync(locationUrl);
@@ -1490,34 +1506,44 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.RemoteAccess", "Execute Remote Command")]
         public async Task<IActionResult> Comanddata(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
+            using (var client = GetClient())
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            using (HttpClient client = new HttpClient(handler))
-            {
-                client.BaseAddress = new Uri($"{_baseUrl}/api/Command/" + domain + "");
-
+                client.BaseAddress = new Uri($"{_baseUrl}/api/Command/" + domain);
                 var content = new StringContent($"\"{"Scan"}\"", Encoding.UTF8, "application/json");
-
                 HttpResponseMessage response = await client.PostAsync("", content);
-
                 string result = await response.Content.ReadAsStringAsync();
                 return Json(new { success = response.IsSuccessStatusCode, message = result });
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> BlockUsb(string domain)
+        {
+            using var httpClient = GetClient();
+            var response = await httpClient.PostAsync($"{_baseUrl}/api/USbBlockingAndUnBlocking/block-usb/{domain}", null);
+            if (response.IsSuccessStatusCode)
+            {
+                return Json(new { success = true });
+            }
+            return Json(new { success = false, message = await response.Content.ReadAsStringAsync() });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UnblockUsb(string domain)
+        {
+            using var httpClient = GetClient();
+            var response = await httpClient.PostAsync($"{_baseUrl}/api/USbBlockingAndUnBlocking/unblock-usb/{domain}", null);
+            if (response.IsSuccessStatusCode)
+            {
+                return Json(new { success = true });
+            }
+            return Json(new { success = false, message = await response.Content.ReadAsStringAsync() });
+        }
+
         public async Task<IActionResult> CheckScanResult(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-
             var datalist = new List<MSGRequest>();
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
                 var response = await httpClient.GetAsync("");
@@ -1537,11 +1563,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.RemoteAccess", "Remote Control")]
         public async Task<IActionResult> RemoteAccess(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            using (HttpClient client = new HttpClient(handler))
+            using (var client = GetClient())
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/" + domain + "");
                 var content = new StringContent($"\"{"Remote"}\"", Encoding.UTF8, "application/json");
@@ -1555,12 +1577,8 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> Remotestatus(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             var datalist = new List<MSGRequest>();
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
                 var response = await httpClient.GetAsync("");
@@ -1572,15 +1590,12 @@ namespace ManageEngineWebApp.Controllers
                     return Json(data);
                 }
                 return Json(new { status = "failed" });
+
             }
         }
         public async Task<IActionResult> CheckAccessStatus(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 string url = $"{_baseUrl}/api/RemoteAccess/CheckStatus?domain={domain}";
                 try
@@ -1600,11 +1615,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Live(string domain)
         {
             ViewBag.Domain = domain;
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 string url = $"{_baseUrl}/api/RemoteAccess/monitor?domain={domain}";
                 var response = await httpClient.GetAsync(url);
@@ -1623,17 +1634,13 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> SendMouseMove(string domain, double x, double y)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (msg, cert, chain, ssl) => true
-            };
             var Mousedata = new MouseResponse
             {
                 X = x,
                 Y = y,
                 Time = DateTime.Now,
             };
-            using var client = new HttpClient(handler);
+            using var client = GetClient();
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseEvent/" + domain + "");
                 string jsonData = JsonConvert.SerializeObject(Mousedata);
@@ -1654,11 +1661,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> SendLeftClick(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (msg, cert, chain, ssl) => true
-            };
-            using var client = new HttpClient(handler);
+            using var client = GetClient();
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseLeftClick/" + domain + "");
                 string jsonData = JsonConvert.SerializeObject("");
@@ -1678,11 +1681,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> SendRightClick(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (msg, cert, chain, ssl) => true
-            };
-            using var client = new HttpClient(handler);
+            using var client = GetClient();
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseRightClick/" + domain + "");
                 string jsonData = JsonConvert.SerializeObject("");
@@ -1704,11 +1703,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> SendKeyPress(string domain, string key)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (msg, cert, chain, ssl) => true
-            };
-            using var client = new HttpClient(handler);
+            using var client = GetClient();
             {
 
 
@@ -1730,15 +1725,6 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
-
-        private HttpClient CreateClient()
-        {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (msg, cert, chain, ssl) => true
-            };
-            return new HttpClient(handler);
-        }
 
 
         [DynamicPermission("ComputerSummary.RemoteAccess", "Stop Remote Session")]
@@ -1790,18 +1776,13 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { status = "failed", message = "Invalid request data" });
             }
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
             var patchUpdateRequest = new PatchUpdateRequest
             {
                 SoftwareName = req.SoftwareName,
                 DownloadUrl = $"{_baseUrl}/installers/{req.SoftwareName}"
             };
 
-            using (HttpClient client = new HttpClient(handler))
+            using (HttpClient client = GetClient())
             {
 
                 client.BaseAddress = new Uri($"{_baseUrl}/api/Command/update/" + domain + "");
@@ -1851,12 +1832,7 @@ namespace ManageEngineWebApp.Controllers
             if (string.IsNullOrEmpty(fileName))
                 return Json(new { status = "failed", message = "fileName missing" });
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, ssl) => true
-            };
-
-            using (HttpClient client = new HttpClient(handler))
+            using (HttpClient client = GetClient())
             {
                 string apiUrl = $"{_baseUrl}/api/PatchDetails/DeleteSoftware/{fileName}";
 
@@ -1879,22 +1855,14 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> Uninstallsoftware([FromBody] UninstallRequest request, string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             var patchUpdateRequest = new PatchUpdateRequest
             {
                 SoftwareName = request.SoftwareName,
                 DownloadUrl = "https://chrome.com/latest-update.exe"
             };
-            using (HttpClient client = new HttpClient(handler))
+            using (HttpClient client = GetClient())
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/Command/softwareName/" + domain + "");
-                //var content = new StringContent($"\"{"Update"}\"", Encoding.UTF8, "application/json");
-                //HttpResponseMessage response = await client.PostAsync("", content);
-                //string result = await response.Content.ReadAsStringAsync();
-                //Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
                 string jsonData = JsonConvert.SerializeObject(patchUpdateRequest);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
                 HttpResponseMessage response = await client.PostAsync("", content);
@@ -1912,12 +1880,8 @@ namespace ManageEngineWebApp.Controllers
         }
         public async Task<IActionResult> Uninstallsoftwarestatus(string softwareName, string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             var datalist = new List<MSGRequest>();
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/uninstallstatus?softwareName={softwareName}&domain={domain}");
                 var response = await httpClient.GetAsync("");
@@ -1933,12 +1897,8 @@ namespace ManageEngineWebApp.Controllers
         }
         public async Task<IActionResult> installsoftwarestatus(string softwareName, string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             var datalist = new List<MSGRequest>();
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/installstatus?softwareName={softwareName}&domain={domain}");
                 var response = await httpClient.GetAsync("");
@@ -1955,12 +1915,8 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> SoftwareInstaller()
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             var datalist = new List<InstallerInfo>();
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/installers/");
                 var response = await httpClient.GetAsync("");
@@ -3984,6 +3940,20 @@ namespace ManageEngineWebApp.Controllers
             {
                 return Json(new { items = new List<object>(), count = 0 });
             }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateCriticalSettings([FromBody] VIPClient settings)
+        {
+            using var client = GetClient();
+            var response = await client.PostAsJsonAsync($"{_baseUrl}/api/RamCpuDiskData/UpdateCriticalSettings", settings);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return Json(new { success = true });
+            }
+
+            return Json(new { success = false, message = "Failed to update VIP settings." });
         }
     }
 }
