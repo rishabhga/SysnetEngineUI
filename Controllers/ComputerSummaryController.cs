@@ -394,7 +394,7 @@ namespace ManageEngineWebApp.Controllers
                 string queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
                 string apiUrl = $"api/RamCpuDiskData/notifications/location{queryString}";
 
-                var response = await client.GetAsync(apiUrl);
+                var response = await client.GetAsync($"{_baseUrl}/{apiUrl}");
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -444,8 +444,8 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var client = _httpClientFactory.CreateClient("ManageEngineApi");
-                string url = $"api/RamCpuDiskData/notification/read/{id}";
+                var client = GetClient();
+                string url = $"{_baseUrl}/api/RamCpuDiskData/notification/read/{id}";
 
                 var response = await client.PostAsync(url, null);
                 if (response != null && response.IsSuccessStatusCode)
@@ -1386,8 +1386,8 @@ namespace ManageEngineWebApp.Controllers
                                 ViewBag.DisplayDomain = winUser?.DomainName ?? domain;
                 ViewBag.UserCode = winUser?.UserCode ?? "N/A";
                 ViewBag.LastLogUser = winUser?.UserName ?? "N/A";
-                ViewBag.UserName = winUser?.UserCode ?? domain; // ID for scripts
-                
+                ViewBag.UserName = winUser?.UserCode ?? domain;
+                ViewBag.DomainNameForCommand = winUser?.DomainName ?? domain;
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -1403,7 +1403,7 @@ namespace ManageEngineWebApp.Controllers
                         {
                             var details = datalist[0];
                             ViewBag.UserName = winUser?.UserCode ?? details.domainName; 
-                            ViewBag.DisplayDomain = winUser?.DomainName ?? details.domainName;
+                            ViewBag.DomainNameForCommand = winUser?.DomainName ?? details.domainName;                            ViewBag.DisplayDomain = winUser?.DomainName ?? details.domainName;
                             ViewBag.windowdetails = details.WindowName;
                             ViewBag.ip = details.IpAddress;
                             ViewBag.LastLogUser = !string.IsNullOrEmpty(winUser?.UserName) ? winUser.UserName : details.UserName;
@@ -1504,12 +1504,13 @@ namespace ManageEngineWebApp.Controllers
             return View(localDatalist);
         }
         [DynamicPermission("ComputerSummary.RemoteAccess", "Execute Remote Command")]
+        [HttpPost]
         public async Task<IActionResult> Comanddata(string domain)
         {
             using (var client = GetClient())
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/Command/" + domain);
-                var content = new StringContent($"\"{"Scan"}\"", Encoding.UTF8, "application/json");
+                var content = new StringContent($"\"Scan\"", Encoding.UTF8, "application/json");
                 HttpResponseMessage response = await client.PostAsync("", content);
                 string result = await response.Content.ReadAsStringAsync();
                 return Json(new { success = response.IsSuccessStatusCode, message = result });
@@ -1542,7 +1543,6 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> CheckScanResult(string domain)
         {
-            var datalist = new List<MSGRequest>();
             using (var httpClient = GetClient())
             {
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
@@ -1552,7 +1552,6 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
-                    data.SoftwareName = "Notepad++";
                     return Json(data);
                 }
                 return Json(new { status = "failed" });
@@ -1577,7 +1576,6 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> Remotestatus(string domain)
         {
-            var datalist = new List<MSGRequest>();
             using (var httpClient = GetClient())
             {
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
@@ -1586,7 +1584,6 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
-                    data.SoftwareName = "Notepad++";
                     return Json(data);
                 }
                 return Json(new { status = "failed" });
@@ -1769,6 +1766,7 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
+        [HttpPost]
         public async Task<IActionResult> PatchUpdate([FromBody] InstallRequest req, string domain)
         {
             if (string.IsNullOrEmpty(domain) || req == null || string.IsNullOrEmpty(req.SoftwareName))
@@ -1853,8 +1851,14 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
+        [HttpPost]
         public async Task<IActionResult> Uninstallsoftware([FromBody] UninstallRequest request, string domain)
         {
+            if (string.IsNullOrEmpty(domain) || request == null || string.IsNullOrEmpty(request.SoftwareName))
+            {
+                return Json(new { status = "failed", message = "Invalid request data" });
+            }
+
             var patchUpdateRequest = new PatchUpdateRequest
             {
                 SoftwareName = request.SoftwareName,
@@ -1889,7 +1893,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
-                    data.SoftwareName = "Notepad++";
+                    if (data != null) data.SoftwareName = softwareName;
                     return Json(data);
                 }
                 return Json(new { status = "failed" });
@@ -1906,7 +1910,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
-                    data.SoftwareName = "Notepad++";
+                    if (data != null) data.SoftwareName = softwareName;
                     return Json(data);
                 }
                 return Json(new { status = "failed" });

@@ -1,4 +1,5 @@
 @using ManageEngineWebApp.Dtos
+@using Newtonsoft.Json
 @model List<ManageEngineWebApp.Models.WindowsUserDetails>
 @{
     ViewData["Title"] = $"{ViewBag.locationName} - Devices";
@@ -9,10 +10,10 @@
 
     var data = Model as List<ManageEngineWebApp.Models.WindowsUserDetails> ?? new List<ManageEngineWebApp.Models.WindowsUserDetails>();
     var totalDevices = data.Count;
-    var onlineDevices = data.Count(x => activeComputers.Contains(x.DomainName));
+    var onlineDevices = data.Count(x => activeComputers.Contains(x.DomainName, StringComparer.OrdinalIgnoreCase) || activeComputers.Contains(x.UserCode, StringComparer.OrdinalIgnoreCase));
     var offlineDevices = totalDevices - onlineDevices;
     var activeUsers = data.Count(x =>
-        activeComputers.Contains(x.DomainName) &&
+        (activeComputers.Contains(x.DomainName, StringComparer.OrdinalIgnoreCase) || activeComputers.Contains(x.UserCode, StringComparer.OrdinalIgnoreCase)) &&
         !string.IsNullOrEmpty(x.UserName) &&
         x.UserName != "N/A");
 }
@@ -47,38 +48,28 @@
                 <div>
                     <div class="flex items-center space-x-1.5">
                         <h1 class="text-sm font-bold text-gray-900">@ViewBag.locationName</h1>
-                        @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Edit"))
+                        @if (ViewBag.IsLocationCritical == true)
                         {
-                            <button id="locationCriticalToggle" class="group" onclick="toggleCurrentLocationCriticality()" title="Toggle Critical Monitoring for entire Location">
-                                <span id="locationCriticalBadge" class="hidden px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[8px] font-bold border border-amber-200 flex items-center hover:bg-amber-200 transition-all">
-                                    <i class="fas fa-crown mr-0.5 text-[7px]"></i> CRITICAL
-                                </span>
-                                <span id="locationNotCriticalBadge" class="px-1.5 py-0.5 bg-gray-50 text-gray-400 rounded text-[8px] font-bold border border-gray-200 flex items-center hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50 transition-all">
-                                    <i class="fas fa-crown mr-0.5 text-[7px]"></i> MONITOR SITE
-                                </span>
-                            </button>
-                        }
-                        else
-                        {
-                            <div id="locationCriticalBadgeStatus">
-                                <span id="locationCriticalBadge" class="hidden px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[8px] font-bold border border-amber-200 flex items-center">
-                                    <i class="fas fa-crown mr-0.5 text-[7px]"></i> CRITICAL
-                                </span>
-                            </div>
+                            <span class="critical-indicator" title="Critical Location">
+                                <i class="fas fa-crown text-amber-500 text-[10px] shadow-sm"></i>
+                            </span>
                         }
                     </div>
+
                     <p class="text-[9px] text-gray-600">@ViewBag.CompanyName › @ViewBag.groupName</p>
                 </div>
             </div>
         </div>
 
+        <input type="hidden" id="locCpuThreshold" value="@ViewBag.CpuThreshold" />
+        <input type="hidden" id="locRamThreshold" value="@ViewBag.RamThreshold" />
+        <input type="hidden" id="locDiskThreshold" value="@ViewBag.DiskThreshold" />
+        <script>
+            window.VIP_CLIENTS = @Html.Raw(JsonConvert.SerializeObject(ViewBag.VipClients ?? new List<VIPClient>()));
+        </script>
+
         <div class="flex items-center gap-1.5">
-            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "DeviceSecurity.Index"))
-            {
-                <a href="/DeviceSecurity" class="px-2 py-1 bg-white border border-gray-200 hover:bg-gray-50 rounded-md text-[10px] font-bold text-gray-700 transition shadow-sm flex items-center gap-1">
-                    <i class="fas fa-shield-alt text-[#00BCEB]"></i> USB LOCKS
-                </a>
-            }
+
         </div>
     </div>
 
@@ -145,9 +136,14 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-1.5" id="devicesGrid">
             @foreach (var item in Model)
             {
-                var vipStatus = vipClients.FirstOrDefault(v => string.Equals(v.ClientId, item.DomainName, StringComparison.OrdinalIgnoreCase));
-                var isVip = vipStatus != null;
-                bool isActive = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase));
+                var currentLocId = ViewBag.LocationId as int?;
+                var isVip = vipClients.Any(v => 
+                    (v.LocationID == currentLocId) && (v.IsVIP == true) && 
+                    ((!string.IsNullOrEmpty(v.ClientId) && string.Equals(v.ClientId, item.DomainName, StringComparison.OrdinalIgnoreCase)) || 
+                     (!string.IsNullOrEmpty(v.ClientId) && string.Equals(v.ClientId, item.UserCode, StringComparison.OrdinalIgnoreCase))));
+
+
+                bool isActive = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase) || string.Equals(d, item.UserCode, StringComparison.OrdinalIgnoreCase));
                 var deviceIcon = item.DomainName.ToUpper().Contains("LAPTOP") ? "fa-laptop" :
                 item.DomainName.ToUpper().Contains("DESKTOP") ? "fa-desktop" : "fa-computer";
 
@@ -166,18 +162,24 @@
                                         <i class="fas @deviceIcon js-status-icon @(isActive ? "text-white" : "text-gray-600") text-[9px]"></i>
                                     </div>
                                     <span class="temp-protection-badge hidden absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full border border-white"></span>
-                                    <span class="critical-user-crown hidden absolute -top-1 -left-1 w-3 h-3 bg-yellow-400 rounded-full border border-white flex items-center justify-center shadow-sm">
-                                        <i class="fas fa-crown text-[6px] text-white"></i>
-                                    </span>
+
                                 </div>
                                 <div class="min-w-0 flex-1 deshboard-name-cell" data-id="@item.Id" data-domain-id="@item.UserCode"
                                      data-company-id="@item.CompanyId" data-group-id="@item.GroupId" data-location-id="@item.LocationId">
                                     <div class="display-name-section">
-                                        <a href="/ComputerSummary/Index?domain=@item.UserCode"
-                                           class="text-[10px] font-bold text-gray-900 transition-colors block truncate" style="text-decoration:none;"
-                                           title="@item.UserName">
-                                            @(string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName)
-                                        </a>
+                                        <div class="flex items-center space-x-1">
+                                            <a href="/ComputerSummary/Index?domain=@item.UserCode"
+                                               class="text-[10px] font-bold text-gray-900 transition-colors truncate" style="text-decoration:none;"
+                                               title="@item.UserName">
+                                                @(string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName)
+                                            </a>
+                                            @if (isVip)
+                                            {
+                                                <span class="critical-indicator" title="Critical User">
+                                                    <i class="fas fa-crown text-amber-500 text-[8px] flex-shrink-0"></i>
+                                                </span>
+                                            }
+                                        </div>
                                         <div class="flex items-center">
                                             <p class="text-[8px] text-gray-500 truncate">@item.AccountType</p>
                                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Edit"))
@@ -241,22 +243,7 @@
                                                     <i class="fas fa-eye mr-1 text-[8px]"></i>
                                                     <span>View OTP</span>
                                                 </button>
-                                                <button class="usb-protection-toggle w-full px-2 py-1 text-left text-[9px] hover:bg-gray-50 flex items-center justify-between transition-colors @(isActive ? "text-gray-700" : "text-gray-400 cursor-not-allowed")"
-                                                        onclick="toggleUsbRestriction(this, '@item.DomainName', '@item.Id')"
-                                                        @(isActive ? "" : "disabled")>
-                                                    <span class="flex items-center">
-                                                        <i class="fas fa-usb text-blue-500 mr-1 text-[8px]"></i>
-                                                        <span>USB Lock</span>
-                                                    </span>
-                                                    <span class="usb-status text-[8px] font-semibold px-1 py-0.5 rounded-full bg-gray-200 text-gray-600">OFF</span>
-                                                </button>
-                                                <button class="critical-settings-btn w-full px-2 py-1 text-left text-[9px] hover:bg-gray-50 flex items-center justify-between transition-colors"
-                                                        onclick="openCriticalSettings('@item.DomainName', '@item.Id', '@item.UserName', @isVip.ToString().ToLower(), @(vipStatus?.CpuThreshold ?? 0), @(vipStatus?.RamThreshold ?? 0), @(vipStatus?.DiskThreshold ?? 0))">
-                                                    <span class="flex items-center">
-                                                        <i class="fas fa-crown text-yellow-500 mr-1 text-[8px]"></i>
-                                                        <span>VIP Settings</span>
-                                                    </span>
-                                                </button>
+
                                             </div>
                                         </div>
                                     </div>
@@ -369,68 +356,7 @@
     }
 </div>
 
-    <!-- VIP Settings Modal -->
-    <div id="vipSettingsModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3 hidden items-center justify-center">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
-            <div class="p-3 border-b border-gray-100 flex justify-between items-center" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                <div class="flex items-center gap-2">
-                    <div class="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-crown text-white text-xs"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-xs font-bold text-white">VIP Monitoring Settings</h3>
-                        <p id="vipDeviceName" class="text-[8px] text-white/80 font-mono"></p>
-                    </div>
-                </div>
-                <button onclick="closeVipModal()" class="text-white/80 hover:text-white transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="p-4 space-y-4">
-                <input type="hidden" id="vipDeviceId" />
-                <input type="hidden" id="vipDomain" />
 
-                <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
-                    <div>
-                        <p class="text-xs font-bold text-amber-900">Mark as VIP User</p>
-                        <p class="text-[9px] text-amber-700">Enable prioritized resource monitoring</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="vipIsCritical" class="sr-only peer">
-                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                    </label>
-                </div>
-
-                <div class="space-y-3">
-                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Custom Thresholds (%)</h4>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-[9px] font-bold text-gray-500 mb-1">CPU</label>
-                            <input type="number" id="vipCpu" step="0.1" placeholder="90" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none" />
-                        </div>
-                        <div>
-                            <label class="block text-[9px] font-bold text-gray-500 mb-1">RAM</label>
-                            <input type="number" id="vipRam" step="0.1" placeholder="85" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none" />
-                        </div>
-                        <div>
-                            <label class="block text-[9px] font-bold text-gray-500 mb-1">DISK</label>
-                            <input type="number" id="vipDisk" step="0.1" placeholder="95" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none" />
-                        </div>
-                    </div>
-                    <p class="text-[8px] text-gray-400 italic mt-1">Leave empty to use location or system defaults.</p>
-                </div>
-
-                <div class="flex gap-2 pt-2">
-                    <button onclick="closeVipModal()" class="flex-1 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-bold border border-gray-200 transition-all">
-                        Cancel
-                    </button>
-                    <button onclick="saveVipSettings()" id="saveVipBtn" class="flex-1 px-4 py-2 text-white rounded-lg text-xs font-bold shadow-lg shadow-blue-500/20 transition-all" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                        Save Settings
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div id="tempProtectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3" style="display:none; align-items:center; justify-content:center;">
         <div class="bg-white rounded-lg shadow-2xl w-full max-w-xs overflow-hidden">
@@ -531,12 +457,9 @@
             return card.data('domain');
         }
 
-        var allCriticalClients = [];
-
         $(document).ready(function () {
-            updateLocationBadgeUI(isLocationCurrentlyCritical); // Update UI immediately from ViewBag value
-            loadLocationCriticalStatus(); // Still fetch to be sure
-            loadCriticalClientsList();
+            // updateLocationBadgeUI(isLocationCurrentlyCritical); // Removed undefined call
+            loadLocationCriticalStatus(); 
             checkOtpStatusOnLoad();
 
             $('.device-card').each(function() {
@@ -561,87 +484,31 @@
             });
         });
 
-        let isLocationCurrentlyCritical = @(ViewBag.IsLocationCritical != null ? (ViewBag.IsLocationCritical ? "true" : "false") : "false");
-
-        function loadLocationCriticalStatus() {
-             $.get('@Url.Action("GetLocationCriticalStatus", "ComputerSummary")',
-                { locationId: @ViewBag.locationid },
-                function(res) {
-                    isLocationCurrentlyCritical = res && res.isCritical;
-                    updateLocationBadgeUI(isLocationCurrentlyCritical);
-                });
-        }
 
         function updateLocationBadgeUI(isCritical) {
+            const $indicator = $('.critical-indicator');
             if (isCritical) {
-                $('#locationCriticalBadge').removeClass('hidden');
-                $('#locationNotCriticalBadge').addClass('hidden');
+                if ($indicator.length === 0) {
+                    $('h1.text-sm').after(`
+                        <span class="critical-indicator" title="Critical Location">
+                            <i class="fas fa-crown text-amber-500 text-[10px] shadow-sm"></i>
+                        </span>
+                    `);
+                }
             } else {
-                $('#locationCriticalBadge').addClass('hidden');
-                $('#locationNotCriticalBadge').removeClass('hidden');
+                $indicator.remove();
             }
         }
 
-        function toggleCurrentLocationCriticality() {
-            const newStatus = !isLocationCurrentlyCritical;
-            const msg = newStatus
-                ? "Mark this entire location as CRITICAL? This will start monitoring resource health for all machines here."
-                : "Remove critical status from this location? (Individual VIP overrides will remain)";
-
-            sysConfirm(msg, function() {
-                const $btn = $('#locationCriticalToggle');
-                $btn.find('i').addClass('fa-spin');
-
-                $.ajax({
-                    url: '@Url.Action("Locationupdate", "Companies")',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        Id: @ViewBag.locationid,
-                        IsCritical: newStatus,
-                        GroupsID: @ViewBag.groupid,
-                        CompanyID: @ViewBag.companyid,
-                        LocationName: '@ViewBag.locationName'
-                    }),
-                    success: function() {
-                        isLocationCurrentlyCritical = newStatus;
-                        updateLocationBadgeUI(newStatus);
-                        loadCriticalClientsList();
-                        sysAlert('Location status updated.', 'success');
-                    },
-                    error: function() {
-                        sysAlert('Failed to update location status.', 'error');
-                    },
-                    complete: function() {
-                        $btn.find('i').removeClass('fa-spin');
-                    }
-                });
-            });
-        }
-
-        function loadCriticalClientsList() {
-            $.get('@Url.Action("GetCriticalClients", "ComputerSummary")',
-                { companyId: @ViewBag.companyid, groupId: @ViewBag.groupid, locationId: @ViewBag.locationid },
-                function(res) {
-                    if (res && res.success && res.data) {
-                        allCriticalClients = res.data;
-                        markCriticalDevices();
-                    }
-                });
-        }
-
-        function markCriticalDevices() {
-            var criticalIds = new Set(allCriticalClients.map(function(c) {
-                return c.clientId.toUpperCase();
-            }));
-            $('.device-card').each(function() {
-                var domain = $(this).data('domain').toUpperCase();
-                if (criticalIds.has(domain)) {
-                    $(this).find('.critical-user-crown').removeClass('hidden');
+        function loadLocationCriticalStatus() {
+            const locId = @(ViewBag.LocationId ?? 0);
+            if (!locId) return;
+            $.get('@Url.Action("GetLocationCriticalStatus", "ComputerSummary")', { locationId: locId }, function(res) {
+                if (res && res.success) {
+                    updateLocationBadgeUI(res.isCritical);
                 }
             });
         }
-
 
         let dashHubConnection = null;
 
@@ -675,11 +542,13 @@
                 const link = card.find('.rescan-link');
                 
                 if (link.length) {
+                    unregisterActiveRescan(domain);
                     link.find('.rescan-text').html(
                         '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i>' +
                         '<span class="js-txt">Rescan</span>'
                     );
                     link.prop('disabled', false);
+                    card.removeClass('opacity-75');
 
                     if (isSuccess) {
                         loadSystemUsageData(card, domain);
@@ -690,6 +559,12 @@
                     } else {
                         sysAlert('Scan failed for ' + domain + ': ' + message, 'error');
                     }
+                }
+            });
+
+            dashHubConnection.on('NotificationReceived', function() {
+                if (typeof loadNotificationCount === 'function') {
+                    loadNotificationCount();
                 }
             });
 
@@ -744,7 +619,6 @@
                         setDeviceStatus(card, true, domain);
                     }
                 } else {
-                    // Safety: Don't mark as offline if we are currently rescanning this device
                     var rescanText = card.find('.rescan-text').text() || "";
                     if (rescanText.includes('Scanning')) {
                         console.log("Skipping offline status for " + domain + " because scan is in progress.");
@@ -754,7 +628,6 @@
                     let misses = (card.data('miss-count') || 0) + 1;
                     card.data('miss-count', misses);
 
-                    // Increased threshold to 5 misses (approx 25-30s) to prevent flickering during heavy agent tasks
                     if (wasOnline && misses >= 5) {
                         setDeviceStatus(card, false, domain);
                     } else if (!wasOnline && !hasReceivedInitialStatusSync) {
@@ -898,43 +771,7 @@
             }
         }
 
-        setInterval(function() {
-            Object.keys(tempProtectionStates).forEach(async function(domain) {
-                try {
-                    var response = await fetch(`@Url.Action("GetOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
-                    var result = await response.json();
-
-                    var $card = $(`.device-card[data-domain="${domain}"]`);
-
-                    if (!result.success || !result.otp || result.isUsed) {
-                        updateCardUI($card, false);
-                        updateToggleButtonState($card, false);
-                        return;
-                    }
-
-                    if (result.expireAt) {
-                        var dateStr = result.expireAt.toString();
-                        var expireTime = Date.parse(dateStr);
-
-                        if (isNaN(expireTime)) {
-                            var d = new Date(dateStr);
-                            expireTime = d.getTime();
-                        }
-
-                        if (isNaN(expireTime)) {
-                            dateStr = dateStr.replace(' ', 'T');
-                            expireTime = Date.parse(dateStr);
-                        }
-
-                        if (!isNaN(expireTime) && expireTime <= Date.now()) {
-                            updateCardUI($card, false);
-                            updateToggleButtonState($card, false);
-                        }
-                    }
-                } catch (e) {
-                }
-            });
-        }, 30000);
+        // Polling removed per user request
 
         $(document).on('click', function(e) {
             if (!$(e.target).closest('.device-menu').length) {
@@ -951,117 +788,7 @@
             menu.toggleClass('hidden');
         }
 
-        function openCriticalSettings(domain, id, name, isCritical, cpu, ram, disk) {
-            var evt = window.event;
-            if (evt) evt.stopPropagation();
-            
-            $('#vipDomain').val(domain);
-            $('#vipDeviceId').val(id);
-            $('#vipDeviceName').text(`${name} (${domain})`);
-            $('#vipIsCritical').prop('checked', isCritical === true);
-            $('#vipCpu').val(cpu > 0 ? cpu : '');
-            $('#vipRam').val(ram > 0 ? ram : '');
-            $('#vipDisk').val(disk > 0 ? disk : '');
-            
-            $('#vipSettingsModal').removeClass('hidden').addClass('flex');
-            $('.menu-dropdown').addClass('hidden');
-        }
 
-        function closeVipModal() {
-            $('#vipSettingsModal').addClass('hidden').removeClass('flex');
-        }
-
-        async function saveVipSettings() {
-            const domain = $('#vipDomain').val();
-            const id = $('#vipDeviceId').val();
-            const isCritical = $('#vipIsCritical').is(':checked');
-            const cpu = $('#vipCpu').val();
-            const ram = $('#vipRam').val();
-            const disk = $('#vipDisk').val();
-
-            const $btn = $('#saveVipBtn');
-            const originalText = $btn.text();
-            $btn.prop('disabled', true).text('Saving...');
-
-            try {
-                const response = await fetch('/ComputerSummary/UpdateCriticalSettings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ClientId: domain,
-                        ClientName: $('#vipDeviceName').text().split(' (')[0],
-                        IsVIP: isCritical,
-                        CpuThreshold: cpu ? parseFloat(cpu) : null,
-                        RamThreshold: ram ? parseFloat(ram) : null,
-                        DiskThreshold: disk ? parseFloat(disk) : null
-                    })
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    sysAlert('VIP settings updated successfully', 'success');
-                    closeVipModal();
-                    // Update the crown icon on the card
-                    const $card = $(`.device-card[data-device-id="${id}"]`);
-                    if (isCritical) {
-                        $card.find('.critical-user-crown').removeClass('hidden');
-                    } else {
-                        $card.find('.critical-user-crown').addClass('hidden');
-                    }
-                    // Update data attributes for next open
-                    // Note: This is simplified, for a full fix we'd update the onclick string carefully
-                    setTimeout(() => location.reload(), 1000); 
-                } else {
-                    sysAlert('Failed to update: ' + (result.message || 'Unknown error'), 'error');
-                }
-            } catch (e) {
-                sysAlert('Error: ' + e.message, 'error');
-            } finally {
-                $btn.prop('disabled', false).text(originalText);
-            }
-        }
-
-        async function toggleUsbRestriction(button, domain, deviceId) {
-            var evt = window.event;
-            if (evt) evt.stopPropagation();
-
-            var $card = $(button).closest('.device-card');
-            var isOnline = $card.data('status') === 'online';
-
-            if (!isOnline) {
-                sysAlert('USB control only available for ONLINE devices', 'warning');
-                $(button).closest('.menu-dropdown').addClass('hidden');
-                return;
-            }
-
-            var $statusBadge = $(button).find('.usb-status');
-            var isBlocked = $statusBadge.text().trim() === 'ON';
-
-            $(button).closest('.menu-dropdown').addClass('hidden');
-
-            const targetBlock = !isBlocked;
-            sysConfirm(`${targetBlock ? 'BLOCK' : 'UNBLOCK'} USB for ${domain}?`, async function() {
-                try {
-                    const response = await fetch('/DeviceSecurity/ToggleUsbStatus', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ clientId: domain, block: targetBlock })
-                    });
-                    const result = await response.json();
-
-                    if (result.success) {
-                        $statusBadge.text(targetBlock ? 'ON' : 'OFF');
-                        $statusBadge.toggleClass('bg-red-100 text-red-700', targetBlock)
-                                    .toggleClass('bg-gray-200 text-gray-600', !targetBlock);
-                        sysAlert(result.message, 'success');
-                    } else {
-                        sysAlert('Failed: ' + result.message, 'error');
-                    }
-                } catch (e) {
-                    sysAlert('Error: ' + e.message, 'error');
-                }
-            });
-        }
 
         async function toggleTempProtection(button, domain, deviceId) {
             var evt = window.event;
@@ -1385,6 +1112,7 @@
                         if (!isNaN(cpuPercent)) {
                             cpuValue.text(cpuPercent.toFixed(1) + '%');
                             card.find('.cpu-bar').css('width', cpuPercent + '%');
+                            checkThreshold(domain, 'CPU', cpuPercent, card.find('.cpu-bar'));
                         } else {
                             cpuValue.text('N/A');
                             card.find('.cpu-bar').css('width', '0%');
@@ -1393,6 +1121,7 @@
                         if (!isNaN(ramPercent)) {
                             ramValue.text(ramPercent.toFixed(1) + '%');
                             card.find('.ram-bar').css('width', ramPercent + '%');
+                            checkThreshold(domain, 'RAM', ramPercent, card.find('.ram-bar'));
                         } else {
                             ramValue.text('N/A');
                             card.find('.ram-bar').css('width', '0%');
@@ -1401,6 +1130,7 @@
                         if (!isNaN(diskPercent)) {
                             diskValue.text(diskPercent.toFixed(1) + '%');
                             card.find('.disk-bar').css('width', diskPercent + '%');
+                            checkThreshold(domain, 'Disk', diskPercent, card.find('.disk-bar'));
                         } else {
                             diskValue.text('N/A');
                             card.find('.disk-bar').css('width', '0%');
@@ -1419,6 +1149,35 @@
                     }
                 }
             });
+        }
+
+        function checkThreshold(domain, type, value, barElement) {
+            const vip = (window.VIP_CLIENTS || []).find(v => (v.ClientId || '').toUpperCase() === domain.toUpperCase());
+            
+            let threshold = null;
+            if (vip) {
+                if (type === 'CPU') threshold = vip.CpuThreshold;
+                else if (type === 'RAM') threshold = vip.RamThreshold;
+                else if (type === 'Disk') threshold = vip.DiskThreshold;
+            }
+
+            // Fallback to location default if no VIP specific threshold
+            if (threshold === null || threshold === undefined) {
+                const locThres = $(`#loc${type}Threshold`).val();
+                if (locThres) threshold = parseFloat(locThres);
+            }
+
+            if (threshold !== null && threshold !== undefined && value >= threshold) {
+                barElement.addClass('bg-red-500').removeClass('bg-blue-500 bg-indigo-500 bg-amber-500');
+                if (!barElement.data('alerted')) {
+                    sysAlert(`Critical: ${domain} reached ${type} threshold (${value.toFixed(1)}% >= ${threshold}%)`, 'warning');
+                    barElement.data('alerted', true);
+                    setTimeout(() => barElement.data('alerted', false), 60000); // Re-alert after 1 min
+                }
+            } else {
+                barElement.removeClass('bg-red-500');
+                // Restore original colors if needed, but Tailwind usually handles via classes
+            }
         }
 
         function setErrorState(card) {
@@ -1617,18 +1376,70 @@
 
             link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin mr-0.5"></i>Scanning…');
             link.prop('disabled', true);
+            card.addClass('opacity-75'); // Visual cue
+            
+            registerActiveRescan(domain);
 
-            $.post('@Url.Action("Comanddata", "ComputerSummary")?domain=' + domain, function() {
-                // Now waiting for SignalR message 'ScanResultReceived'
-                // No more setInterval here!
+            $.post('@Url.Action("Comanddata", "ComputerSummary")?domain=' + domain, function(res) {
+                if (res.success) {
+                    sysAlert('Scan initiated for ' + domain, 'info');
+                } else {
+                    resetRescanButton(link, card);
+                    sysAlert('Failed: ' + (res.message || 'Server error'), 'error');
+                }
             }).fail(function() {
-                link.find('.rescan-text').html(
-                    '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i><span class="js-txt">Rescan</span>'
-                );
-                link.prop('disabled', false);
+                resetRescanButton(link, card);
                 sysAlert('Could not start scan for ' + domain, 'error');
             });
         });
+
+        function resetRescanButton(link, card) {
+            link.find('.rescan-text').html(
+                '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i><span class="js-txt">Rescan</span>'
+            );
+            link.prop('disabled', false);
+            if (card) card.removeClass('opacity-75');
+        }
+
+        // Duplicate startDashboardHub removed
+
+        // Initial load
+        $(document).ready(function() {
+            loadPersistedScans();
+        });
+
+        let activeScans = {};
+
+        function registerActiveRescan(domain) {
+            activeScans[domain.toUpperCase()] = true;
+            localStorage.setItem('activeScans', JSON.stringify(activeScans));
+        }
+
+        function unregisterActiveRescan(domain) {
+            delete activeScans[domain.toUpperCase()];
+            localStorage.setItem('activeScans', JSON.stringify(activeScans));
+        }
+
+        function loadPersistedScans() {
+            const saved = localStorage.getItem('activeScans');
+            if (saved) {
+                try {
+                    activeScans = JSON.parse(saved);
+                    Object.keys(activeScans).forEach(domain => {
+                        const card = $(`.device-card[data-domain="${domain}"]`);
+                        const link = card.find('.rescan-link');
+                        if (link.length) {
+                            link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin mr-0.5"></i>Scanning…');
+                            link.prop('disabled', true);
+                            card.addClass('opacity-75');
+                        }
+                    });
+                } catch (e) {
+                    activeScans = {};
+                }
+            }
+        }
+
 
         $('.remote-link').on('click', function() {
             if (!$(this).prop('disabled')) {

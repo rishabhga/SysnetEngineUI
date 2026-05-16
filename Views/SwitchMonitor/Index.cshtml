@@ -84,6 +84,10 @@
             }
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Poll"))
             {
+                <div class="flex bg-gray-100 rounded-lg p-1 items-center">
+                    <button id="btnManualPoll" class="px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-gray-800 transition-all" onclick="setPollingMode('manual')">Manual</button>
+                    <button id="btnAutoPoll" class="px-3 py-1.5 text-xs font-bold rounded-md text-gray-500 hover:text-gray-700 transition-all" onclick="setPollingMode('auto')">Auto</button>
+                </div>
                 <div class="flex rounded-lg overflow-hidden shadow-sm">
                     <button type="button" onclick="triggerLocationPoll()" id="locPollBtn"
                             class="px-4 py-2 bg-white text-gray-700 border-y border-l border-gray-200 hover:bg-gray-50 transition flex items-center gap-2 text-sm font-medium">
@@ -491,10 +495,10 @@
         });
     }
 
-    async function triggerLocationPoll() {
+    async function triggerLocationPoll(isSilent = false) {
         const locationId = document.getElementById('locationFilter').value;
         if (locationId === 'all') {
-            window.sysAlert('Please select a specific location to poll site.', 'warning');
+            if (!isSilent) window.sysAlert('Please select a specific location to poll site.', 'warning');
             return;
         }
 
@@ -516,19 +520,55 @@
             });
 
             if (response.ok) {
-                window.sysAlert('Site polling completed successfully.', 'success');
-                setTimeout(() => location.reload(), 1500);
+                if (!isSilent) {
+                    window.sysAlert('Site polling completed successfully.', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    location.reload();
+                }
             } else {
-                window.sysAlert('Site polling failed.', 'error');
+                if (!isSilent) window.sysAlert('Site polling failed.', 'error');
                 btn.disabled = false;
                 icon.className = originalIcon;
                 text.textContent = originalText;
             }
         } catch (err) {
-            window.sysAlert('Network error: ' + err.message, 'error');
+            if (!isSilent) window.sysAlert('Network error: ' + err.message, 'error');
             btn.disabled = false;
             icon.className = originalIcon;
             text.textContent = originalText;
         }
     }
+
+    let switchPollingInterval = null;
+    function setPollingMode(mode) {
+        if (mode === 'auto') {
+            document.getElementById('btnAutoPoll').className = 'px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-gray-800 transition-all';
+            document.getElementById('btnManualPoll').className = 'px-3 py-1.5 text-xs font-bold rounded-md text-gray-500 hover:text-gray-700 transition-all';
+            
+            switchPollingInterval = setInterval(() => {
+                const locId = document.getElementById('locationFilter').value;
+                if (locId && locId !== 'all') {
+                    triggerLocationPoll(true);
+                } else {
+                    document.getElementById('pollForm').submit();
+                }
+            }, 30000);
+            localStorage.setItem('switchPollingMode', 'auto');
+        } else {
+            document.getElementById('btnManualPoll').className = 'px-3 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-gray-800 transition-all';
+            document.getElementById('btnAutoPoll').className = 'px-3 py-1.5 text-xs font-bold rounded-md text-gray-500 hover:text-gray-700 transition-all';
+            
+            if (switchPollingInterval) {
+                clearInterval(switchPollingInterval);
+                switchPollingInterval = null;
+            }
+            localStorage.setItem('switchPollingMode', 'manual');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedMode = localStorage.getItem('switchPollingMode') || 'manual';
+        setPollingMode(savedMode);
+    });
 </script>

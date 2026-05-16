@@ -545,6 +545,13 @@ namespace ManageEngineWebApp.Controllers
             if (!RoleHelper.ValidateScope(HttpContext, locations.CompanyID, locations.GroupsID))
                 return Json(new { status = "error", message = "Access Denied" });
 
+            if ((locations.CpuThreshold.HasValue && (locations.CpuThreshold < 0 || locations.CpuThreshold > 100)) ||
+                (locations.RamThreshold.HasValue && (locations.RamThreshold < 0 || locations.RamThreshold > 100)) ||
+                (locations.DiskThreshold.HasValue && (locations.DiskThreshold < 0 || locations.DiskThreshold > 100)))
+            {
+                return Json(new { status = "error", message = "Thresholds must be between 0 and 100" });
+            }
+
             try
             {
                 using var client = GetClient();
@@ -605,3 +612,4 @@ namespace ManageEngineWebApp.Controllers
         }
     }
 }
+

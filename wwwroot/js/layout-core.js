@@ -162,6 +162,9 @@
                         success: function (fallbackData) {
                             var fallbackItems = Array.isArray(fallbackData) ? fallbackData : (fallbackData.items || fallbackData.data || []);
                             renderNotificationList(fallbackItems);
+                        },
+                        error: function() {
+                            if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444;"><i class="fas fa-exclamation-circle" style="font-size:1.5rem;display:block;margin-bottom:0.5rem;"></i><span style="font-size:11px;">Error loading fallback alerts</span></div>';
                         }
                     });
                     return;
@@ -238,6 +241,7 @@
                     '<div style="margin-top:4px;font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px;">' +
                     '<i class="fas fa-desktop" style="font-size:8px;opacity:0.7;"></i>' +
                     '<span style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + source + '</span>' +
+                    (n.hierarchy ? '<span style="background:#e2e8f0;padding:1px 4px;border-radius:3px;font-weight:700;color:#475569;font-size:7px;">' + n.hierarchy + '</span>' : '') +
                     (!isRead ? '<span style="margin-left:auto;width:6px;height:6px;background:#3b82f6;border-radius:50%;"></span>' : '') +
                     '</div></div></div>';
             }).join("");
@@ -276,9 +280,8 @@
                     if (typeof window.sysAlert === "function") {
                         window.sysAlert("Session expired or unauthorized access. Redirecting...", "error");
                     }
-                    setTimeout(function () {
-                        window.location.href = "/Auth/Login";
-                    }, 1500);
+                    window.location.href = "/Auth/Login";
+
                 } else if (jqXHR.status === 0) {
                     if (typeof window.sysAlert === "function") {
                         window.sysAlert("Network error: Please check your connection or VPN.", "error");
@@ -296,6 +299,6 @@
         initHeaderDropdowns();
         setupAjaxUnauthorizedHandling();
         loadNotificationCount();
-        setInterval(loadNotificationCount, 60000);
     };
+
 })();

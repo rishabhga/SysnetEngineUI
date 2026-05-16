@@ -1,4 +1,5 @@
 var domaindata = "";
+var actualDomainName = "";
 var dataTables = {};
 
 const flexRender = (row, ...fields) => {
@@ -37,6 +38,7 @@ window.sysAlert = function (msg, type) {
 $(document).ready(function () {
     initTabStyles();
     domaindata = $('#domainid').val();
+    actualDomainName = $('#domainName').val() || domaindata;
 
     if (!domaindata) {
         console.error("Domain ID not found - skipping data load");
@@ -722,20 +724,24 @@ function uninstallSoftware(softwareName) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: `/ComputerSummary/Uninstallsoftware?domain=${domaindata}`,
+                url: `/ComputerSummary/Uninstallsoftware?domain=${actualDomainName}`,
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ softwareName: softwareName }),
-                success: function () {
-                    sysAlert('Uninstall command sent successfully', 'success');
+                success: function (res) {
+                    if (res && res.status === 'success') {
+                        sysAlert('Uninstall command sent successfully', 'success');
+                    } else {
+                        sysAlert('Uninstall failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
+                    }
                     setTimeout(() => {
                         if ($.fn.DataTable.isDataTable('#desktopAppsTable')) {
-                            $('#desktopAppsTable').DataTable().ajax.reload();
+                            $('#desktopAppsTable').DataTable().ajax.reload(null, false);
                         }
                     }, 3000);
                 },
-                error: function () {
-                    sysAlert('Failed to send uninstall command', 'error');
+                error: function (xhr) {
+                    sysAlert('Failed to send uninstall command (HTTP ' + xhr.status + ')', 'error');
                 }
             });
         }
@@ -754,15 +760,27 @@ function installSoftware(fileName) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: `/ComputerSummary/PatchUpdate?domain=${domaindata}`,
+                url: `/ComputerSummary/PatchUpdate?domain=${actualDomainName}`,
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ softwareName: fileName }),
-                success: function () {
-                    sysAlert('Installation command sent successfully', 'success');
+                success: function (res) {
+                    if (res && res.status === 'success') {
+                        sysAlert('Installation command sent successfully', 'success');
+                    } else {
+                        sysAlert('Installation failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
+                    }
+                    setTimeout(() => {
+                        if ($.fn.DataTable.isDataTable('#installersTable')) {
+                            $('#installersTable').DataTable().ajax.reload(null, false);
+                        }
+                        if ($.fn.DataTable.isDataTable('#desktopAppsTable')) {
+                            $('#desktopAppsTable').DataTable().ajax.reload(null, false);
+                        }
+                    }, 5000);
                 },
-                error: function () {
-                    sysAlert('Failed to send installation command', 'error');
+                error: function (xhr) {
+                    sysAlert('Failed to send installation command (HTTP ' + xhr.status + ')', 'error');
                 }
             });
         }
@@ -822,7 +840,7 @@ function applyUsbBlock() {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/ComputerSummary/BlockUsb?domain=' + domaindata,
+                url: '/ComputerSummary/BlockUsb?domain=' + actualDomainName,
                 type: 'POST',
                 success: function(res) {
                     if (res.success) sysAlert('USB Blocked successfully', 'success');
@@ -846,7 +864,7 @@ function applyUsbUnblock() {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/ComputerSummary/UnblockUsb?domain=' + domaindata,
+                url: '/ComputerSummary/UnblockUsb?domain=' + actualDomainName,
                 type: 'POST',
                 success: function(res) {
                     if (res.success) sysAlert('USB Unblocked successfully', 'success');

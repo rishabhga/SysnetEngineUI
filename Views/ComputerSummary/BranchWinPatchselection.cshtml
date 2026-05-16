@@ -198,6 +198,83 @@
 
 @section Scripts {
     <script>
+        const PAGE_TYPE = '@(ViewData["Title"].ToString().Contains("Windows") ? "WinPatch" : "ThirdPartyPatch")';
+        const DOMAIN_IDS = '@domainids'.split(',').filter(s => !!s);
+        const ACTIVE_ACTIONS_KEY = `BranchPatch_Active_${PAGE_TYPE}_${DOMAIN_IDS.join('_')}`;
+
+        let activeActions = JSON.parse(localStorage.getItem(ACTIVE_ACTIONS_KEY) || '{}');
+
+        function saveActions() {
+            localStorage.setItem(ACTIVE_ACTIONS_KEY, JSON.stringify(activeActions));
+        }
+
+        function registerAction(ids) {
+            activeActions[ids] = true;
+            saveActions();
+            updateButtonState();
+        }
+
+        function unregisterAction(ids) {
+            delete activeActions[ids];
+            saveActions();
+            updateButtonState();
+        }
+
+        function updateButtonState() {
+            const btn = document.getElementById('submitPatchBtn');
+            const hasActive = Object.keys(activeActions).length > 0;
+            if (hasActive) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin text-[10px]"></i> <span>Deploying...</span>';
+            } else {
+                btn.disabled = document.querySelectorAll('.rowCheck:checked').length === 0;
+                btn.innerHTML = '<i class="fas fa-paper-plane text-[10px]"></i> <span>Deploy</span>';
+            }
+        }
+
+        // SignalR Connection
+        let hubConnection = null;
+        let machineNames = {}; // Map domain -> machineName
+
+        async function initHub() {
+            const apiBase = (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.apiBaseUrl) || '';
+            hubConnection = new signalR.HubConnectionBuilder()
+                .withUrl(`${apiBase}/scanHub?clientId=BranchPatch&computerName=WebPortal`)
+                .withAutomaticReconnect()
+                .build();
+
+            hubConnection.on('SendinstallReasultUpdate', (computerName, softwareName, isSuccess) => {
+                const upperComp = computerName.toUpperCase();
+                const isMatch = DOMAIN_IDS.some(d => d.toUpperCase() === upperComp || (machineNames[d] && machineNames[d].toUpperCase() === upperComp));
+                
+                if (isMatch) {
+                    const status = isSuccess ? 'success' : 'error';
+                    sysAlert(`Deployment to ${computerName} ${isSuccess ? 'Successful' : 'Failed'}: ${softwareName}`, status);
+                    
+                    // Unregister all active actions on any matching result to unlock the UI
+                    Object.keys(activeActions).forEach(key => {
+                        unregisterAction(key);
+                    });
+                }
+            });
+
+            try {
+                await hubConnection.start();
+            } catch (err) {
+                console.error("SignalR Hub Error:", err);
+            }
+        }
+
+        // Resolve machine names for all domains
+        async function resolveMachineNames() {
+            for (const domain of DOMAIN_IDS) {
+                try {
+                    const res = await $.get(`/ComputerSummary/GetUserDetailsJson?domain=${domain}`);
+                    if (res.success) machineNames[domain] = res.domainName;
+                } catch (e) {}
+            }
+        }
+
         let panelOpen = true;
         function togglePanel() {
             panelOpen = !panelOpen;
@@ -206,14 +283,20 @@
         }
 
         function updateSel() {
+            if (Object.keys(activeActions).length > 0) return; // Don't change during active deployment
             const n = document.querySelectorAll('.rowCheck:checked').length;
-            document.getElementById('submitPatchBtn').disabled = n === 0;
+            const btn = document.getElementById('submitPatchBtn');
+            if (btn) btn.disabled = n === 0;
             const b = document.getElementById('selectedBadge');
-            b.textContent = n; b.classList.toggle('hidden', n === 0);
+            if (b) { b.textContent = n; b.classList.toggle('hidden', n === 0); }
+            
             const all = Array.from(document.querySelectorAll('.rowCheck')).filter(c => c.closest('tr').style.display !== 'none');
             const ca = document.getElementById('checkAll');
             const cn = all.filter(c => c.checked).length;
-            ca.checked = cn > 0 && cn === all.length; ca.indeterminate = cn > 0 && cn < all.length;
+            if (ca) {
+                ca.checked = cn > 0 && cn === all.length; 
+                ca.indeterminate = cn > 0 && cn < all.length;
+            }
         }
 
         function toggleSelectAll() {
@@ -241,45 +324,42 @@
             document.querySelectorAll('.rowCheck:checked').forEach(c => ids.push(c.value));
             if (!ids.length) { sysAlert('Please select at least one patch!', 'warning'); return; }
 
-            const btn = document.getElementById('submitPatchBtn'), orig = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-[10px]"></i> <span>Deploying...</span>';
+            const idStr = ids.join(',');
+            registerAction(idStr);
 
             $.ajax({
                 url: '@Url.Action("UpdatewinPatchselection", "ComputerSummary")',
-                type: 'POST', contentType: 'application/json',
+                type: 'POST', 
+                contentType: 'application/json',
                 data: JSON.stringify({
                     companyid:  parseInt('@companyid') || 0,
                     groupid:    parseInt('@groupid') || 0,
                     locationid: parseInt('@locationid') || 0,
-                    selectedIds: ids.join(','),
+                    selectedIds: idStr,
                     deviceIds:  '@deviceIds',
                     domainids:  '@domainids'
                 }),
                 success: function(res) {
-                    btn.disabled = false; btn.innerHTML = orig;
                     if (res.success) {
-                        toast(res.message || 'Windows updates deployed!', 'ok');
-                        document.querySelectorAll('.rowCheck:checked').forEach(c => { const r = c.closest('.patch-row'); if (r) r.remove(); });
-                        updateSel();
-                    } else { toast(res.message || res.error || 'Deployment failed.', 'err'); }
+                        sysAlert(res.message || 'Windows updates deployment initiated!', 'success');
+                        // No timer here - UI will be unlocked by SignalR or manual refresh
+                    } else { 
+                        sysAlert(res.message || res.error || 'Deployment failed.', 'error');
+                        unregisterAction(idStr);
+                    }
                 },
                 error: function(xhr) {
-                    btn.disabled = false; btn.innerHTML = orig;
-                    toast('Network error: ' + (xhr.statusText || 'Unknown'), 'err');
+                    sysAlert('Network error: ' + (xhr.statusText || 'Unknown'), 'error');
+                    unregisterAction(idStr);
                 }
             });
         }
 
-        function toast(msg, type) {
-            let t = document.getElementById('_toast'); if (t) t.remove();
-            t = document.createElement('div'); t.id = '_toast';
-            const e = type === 'err';
-            t.className = `fixed top-4 right-4 max-w-xs px-4 py-3 rounded-lg shadow-xl text-white z-50 flex items-start gap-2.5 text-xs ${e?'bg-red-600':'bg-emerald-600'}`;
-            t.innerHTML = `<i class="fas ${e?'fa-exclamation-circle':'fa-check-circle'} mt-0.5"></i><div><div class="font-semibold mb-0.5">${e?'Error':'Success'}</div><div class="opacity-90 text-[10px]">${msg}</div></div>`;
-            document.body.appendChild(t);
-            setTimeout(()=>{t.style.transition='opacity .3s';t.style.opacity='0';},4000);
-            setTimeout(()=>t.remove(),4300);
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+            initHub();
+            resolveMachineNames();
+            updateButtonState();
+            filterTable();
+        });
     </script>
 }

@@ -214,7 +214,8 @@
                     <tbody id="deviceTableBody" class="divide-y divide-gray-100">
                         @foreach (var item in Model)
                         {
-                            bool isOnline = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase));
+                            bool isOnline = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase) || string.Equals(d, item.UserCode, StringComparison.OrdinalIgnoreCase));
+                            var statusClass = isOnline ? "text-green-500" : "text-gray-400";
                             <tr class="device-row transition-colors"
                                 data-id="@item.Id"
                                 data-domain="@item.DomainName"
@@ -289,9 +290,17 @@
         let currentPage  = 1;
         let pageSize     = 50;
 
-        let selectedIds     = new Set();
-        let selectedDomains = new Map();
-        let selectedNames   = new Map();
+        const STORAGE_KEY = `BranchPatch_Selection_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
+        
+        let selectedIds     = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY + '_Ids') || '[]'));
+        let selectedDomains = new Map(JSON.parse(localStorage.getItem(STORAGE_KEY + '_Domains') || '[]'));
+        let selectedNames   = new Map(JSON.parse(localStorage.getItem(STORAGE_KEY + '_Names') || '[]'));
+
+        function saveSelection() {
+            localStorage.setItem(STORAGE_KEY + '_Ids', JSON.stringify([...selectedIds]));
+            localStorage.setItem(STORAGE_KEY + '_Domains', JSON.stringify([...selectedDomains]));
+            localStorage.setItem(STORAGE_KEY + '_Names', JSON.stringify([...selectedNames]));
+        }
         const syncDot   = document.getElementById('liveSyncDot');
         const syncLabel = document.getElementById('liveSyncLabel');
 
@@ -551,6 +560,7 @@
             }
             updateSelection();
             updateSelectAllState();
+            saveSelection();
         }
 
         function syncRowHighlights() {
@@ -588,6 +598,7 @@
             });
             updateSelection();
             updateSelectAllState();
+            saveSelection();
         }
 
         function updateSelectAllState() {
@@ -627,6 +638,8 @@
         function navigate(action) {
             const ids     = [...selectedIds].join(',');
             const domains = [...selectedDomains.values()].join(',');
+            // Clear selection when navigating to deployment? 
+            // Actually, keep it in case they hit back. 
             window.location.href = `/ComputerSummary/${action}?companyid=@companyid&groupid=@groupid&locationid=@locationid&selectedIds=${ids}&domainids=${domains}`;
         }
 
@@ -642,6 +655,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             applyFilters();
             renderPage();
+            updateHeader(); // Ensure button state reflects persisted selection
         });
     </script>
 }
