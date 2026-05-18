@@ -1,6 +1,7 @@
 var domaindata = "";
 var actualDomainName = "";
-var dataTables = {};
+var dataTables = {};      
+var tableRegistry = {};    
 
 const flexRender = (row, ...fields) => {
     for (const field of fields) {
@@ -26,7 +27,7 @@ window.sysAlert = function (msg, type) {
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
-            timer: 3000,
+            timer: 3500,
             background: '#1e293b',
             color: '#ffffff'
         });
@@ -41,7 +42,7 @@ $(document).ready(function () {
     actualDomainName = $('#domainName').val() || domaindata;
 
     if (!domaindata) {
-        console.error("Domain ID not found - skipping data load");
+        console.error("Domain ID not found – skipping data load");
         return;
     }
 
@@ -93,41 +94,31 @@ function lazyLoadTabData(tabId) {
 }
 
 function initTabStyles() {
-    // 1. Top-level category tabs
     $('.tab-item a').off('click').on('click', function (e) {
         e.preventDefault();
         var $li = $(this).closest('.tab-item');
         $('.tab-item').removeClass('active');
         $li.addClass('active');
-        
+
         var target = $(this).attr('href');
         $('.tab-content').first().children('.tab-pane').removeClass('active');
         $(target).addClass('active');
-        
-        // Trigger resize for DataTables in the newly shown tab
-        setTimeout(function() {
-            $(window).trigger('resize');
-        }, 150);
+
+        setTimeout(function () { $(window).trigger('resize'); }, 150);
     });
 
-    // 2. Sub-tabs (sidebar tabs inside main categories)
-    // Consolidate all sub-tabs into one delegated handler to prevent recursion and double-binding
     const subTabSelector = '.system-tab a, .hardware-tab a, .software-tab a, .security-tab a, .patch-sub-tab a, .usb-tab a, .history-tab a, .updatelog-tab a';
     $(document).off('click', subTabSelector).on('click', subTabSelector, function (e) {
         e.preventDefault();
         var $li = $(this).closest('li');
         $li.siblings().removeClass('active');
         $li.addClass('active');
-        
+
         var target = $(this).attr('href');
-        // Handle case where target might not be a sibling (e.g. nested deeply)
         $(target).parent().children('.tab-pane').removeClass('active');
         $(target).addClass('active');
-        
-        // Trigger resize for DataTables
-        setTimeout(function() {
-            $(window).trigger('resize');
-        }, 150);
+
+        setTimeout(function () { $(window).trigger('resize'); }, 150);
     });
 }
 
@@ -220,9 +211,8 @@ function initializeAllTables() {
             data: null,
             render: function (data, type, row) {
                 const name = flexRender(row, 'Name', 'SoftwareName');
-                return `<button onclick="uninstallSoftware('${escapeHtml(name)}')" class="px-2 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition">
-                            <i class="fas fa-trash"></i> Uninstall
-                        </button>`;
+                return '<button data-software-name="' + escapeHtml(name) + '" class="btn-uninstall px-2 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition">' +
+                    '<i class="fas fa-trash"></i> Uninstall</button>';
             }
         }
     ]);
@@ -234,24 +224,15 @@ function initializeAllTables() {
         { data: null, render: (row) => flexRender(row, 'Manufacturer') }
     ]);
 
-    initTable('#meteredTable', `/ComputerSummary/MeteredSoftware?domain=${domaindata}`, [
-        { data: null, render: (row) => flexRender(row, 'SoftwareName', 'Name') },
-        { data: null, render: (row) => flexRender(row, 'Version') },
-        { data: null, render: (row) => flexRender(row, 'Manufacturer') },
-        { data: null, render: (row) => flexRender(row, 'Usages', 'UsageCount') }
-    ]);
-
     initTable('#installersTable', `/ComputerSummary/InstallationSoft?domain=${domaindata}`, [
         { data: null, render: (row) => flexRender(row, 'FileName', 'Name') },
         { data: null, render: (row) => flexRender(row, 'Version') },
-        { data: null, render: (row) => flexRender(row, 'FileSize', 'Size') },
         {
             data: null,
             render: function (data, type, row) {
                 const fileName = flexRender(row, 'FileName', 'Name');
-                return `<button onclick="installSoftware('${escapeHtml(fileName)}')" class="px-2 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition">
-                            <i class="fas fa-download"></i> Install
-                        </button>`;
+                return '<button data-file-name="' + escapeHtml(fileName) + '" class="btn-install px-2 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition">' +
+                    '<i class="fas fa-download"></i> Install</button>';
             }
         }
     ]);
@@ -279,7 +260,7 @@ function initializeAllTables() {
             data: null,
             render: function (data, type, row) {
                 const desc = flexRender(row, 'PatchDescription', 'Description');
-                if (desc && desc.length > 50) {
+                if (desc && desc !== 'N/A' && desc.length > 50) {
                     return '<span title="' + escapeHtml(desc) + '">' + escapeHtml(desc.substring(0, 50)) + '...</span>';
                 }
                 return escapeHtml(desc) || 'N/A';
@@ -299,9 +280,9 @@ function initializeAllTables() {
             data: null,
             render: function (data, type, row) {
                 const id = flexRender(row, 'PatchId', 'Id');
-                return `<button onclick="installPatch('${escapeHtml(id)}')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition">
-                            <i class="fas fa-download"></i> Update
-                        </button>`;
+                const name = flexRender(row, 'PatchName', 'Name');
+                return '<button data-patch-id="' + escapeHtml(id) + '" data-patch-name="' + escapeHtml(name) + '" class="btn-patch px-2 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition">' +
+                    '<i class="fas fa-download"></i> Update</button>';
             }
         }
     ]);
@@ -346,10 +327,27 @@ function initializeAllTables() {
     initTable('#biosLogTable', `/ComputerSummary/BiosSummaryChageUpdateLog?domain=${domaindata}`, commonLogColumns);
     initTable('#desktopAppsLogTable', `/ComputerSummary/DesktopAppsChangeAuditUpdateLog?domain=${domaindata}`, commonLogColumns);
     initTable('#antivirusLogTable', `/ComputerSummary/AntivirusChangeAuditUpdateLog?domain=${domaindata}`, commonLogColumns);
+
+    $(document).on('click', '.btn-uninstall', function () {
+        var name = $(this).data('software-name');
+        uninstallSoftware(name);
+    });
+
+    $(document).on('click', '.btn-install', function () {
+        var fileName = $(this).data('file-name');
+        installSoftware(fileName);
+    });
+
+    $(document).on('click', '.btn-patch', function () {
+        var patchId = $(this).data('patch-id');
+        var patchName = $(this).data('patch-name');
+        installPatch(patchId, patchName);
+    });
 }
 
 function initTable(selector, url, columns) {
     dataTables[selector] = { url: url, columns: columns };
+    tableRegistry[selector] = { url: url, columns: columns };
 
     if ($.fn.DataTable.isDataTable(selector)) {
         $(selector).DataTable().destroy();
@@ -361,11 +359,11 @@ function initTable(selector, url, columns) {
             type: "GET",
             dataSrc: function (json) {
                 if (Array.isArray(json)) return json;
-                if (json && typeof json === 'object' && json.data && Array.isArray(json.data)) return json.data;
+                if (json && typeof json === 'object' && Array.isArray(json.data)) return json.data;
                 return [];
             },
-            error: function (xhr, error, thrown) {
-                console.error("DataTable error for " + selector + ":", error);
+            error: function (xhr) {
+                console.error("DataTable error for " + selector + ":", xhr.status);
                 $(selector + ' tbody').html('<tr><td colspan="100" class="text-center py-8 text-slate-400"><i class="fas fa-exclamation-circle text-2xl mb-2 block"></i>Failed to load data</td></tr>');
             }
         },
@@ -377,10 +375,7 @@ function initTable(selector, url, columns) {
             searchPlaceholder: "Search records...",
             lengthMenu: "_MENU_ per page",
             info: "Showing _START_ to _END_ of _TOTAL_",
-            emptyTable: `<div class="text-center py-10">
-                            <i class="fas fa-inbox text-4xl text-slate-200 mb-3 block"></i>
-                            <span class="text-slate-400 font-medium">No records found</span>
-                         </div>`,
+            emptyTable: '<div class="text-center py-10"><i class="fas fa-inbox text-4xl text-slate-200 mb-3 block"></i><span class="text-slate-400 font-medium">No records found</span></div>',
             paginate: {
                 previous: '<i class="fas fa-chevron-left"></i>',
                 next: '<i class="fas fa-chevron-right"></i>'
@@ -393,30 +388,17 @@ function initTable(selector, url, columns) {
             $('.dataTables_paginate .paginate_button.disabled').addClass('opacity-50 cursor-not-allowed');
         },
         initComplete: function () {
-            $(selector).parent().find('.dataTables_filter input').addClass('pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-64 transition-all');
-            $(selector).parent().find('.dataTables_filter').addClass('relative').prepend('<i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm z-10"></i>');
-            $(selector).parent().find('.dataTables_length select').addClass('px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500');
+            $(selector).parent().find('.dataTables_filter input')
+                .addClass('pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-64 transition-all');
+            $(selector).parent().find('.dataTables_filter')
+                .addClass('relative')
+                .prepend('<i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm z-10"></i>');
+            $(selector).parent().find('.dataTables_length select')
+                .addClass('px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500');
         }
     });
 }
 
-function loadPhysicalMemoryDetails() {
-    $('#tdMaximumSupportedRAM, #tdLocation, #tdSlotsAvailable, #tdSlotsUsed').html('<i class="fas fa-spinner fa-spin text-gray-400"></i>');
-    $.get(`/ComputerSummary/PhysicalMemory?domain=${domaindata}`, function (data) {
-        if (data) {
-            $('#tdMaximumSupportedRAM').text(data.maximumSupportedRAM || data.MaximumSupportedRAM || 'N/A');
-            $('#tdLocation').text(data.location || data.Location || 'N/A');
-            $('#tdSlotsAvailable').text(data.slotsAvailable !== undefined ? data.slotsAvailable : (data.SlotsAvailable !== undefined ? data.SlotsAvailable : '0'));
-            $('#tdSlotsUsed').text(data.slotsUsed !== undefined ? data.slotsUsed : (data.SlotsUsed !== undefined ? data.SlotsUsed : '0'));
-        } else {
-            $('#tdMaximumSupportedRAM, #tdLocation, #tdSlotsAvailable, #tdSlotsUsed').text('N/A');
-        }
-    }).fail(function () {
-        $('#tdMaximumSupportedRAM, #tdLocation, #tdSlotsAvailable, #tdSlotsUsed').html('<span class="text-red-400">Error</span>');
-    });
-}
-
-var tableRegistry = {};
 function initTablesInPane(paneId) {
     $(paneId).find('table').each(function () {
         var tableId = '#' + $(this).attr('id');
@@ -426,9 +408,30 @@ function initTablesInPane(paneId) {
     });
 }
 
+function loadPhysicalMemoryDetails() {
+    $('#tdMaximumSupportedRAM, #tdLocation, #tdSlotsAvailable, #tdSlotsUsed')
+        .html('<i class="fas fa-spinner fa-spin text-gray-400"></i>');
+
+    $.get(`/ComputerSummary/PhysicalMemory?domain=${domaindata}`, function (data) {
+        if (data) {
+            $('#tdMaximumSupportedRAM').text(data.maximumSupportedRAM || data.MaximumSupportedRAM || 'N/A');
+            $('#tdLocation').text(data.location || data.Location || 'N/A');
+            $('#tdSlotsAvailable').text(data.slotsAvailable !== undefined ? data.slotsAvailable
+                : (data.SlotsAvailable !== undefined ? data.SlotsAvailable : '0'));
+            $('#tdSlotsUsed').text(data.slotsUsed !== undefined ? data.slotsUsed
+                : (data.SlotsUsed !== undefined ? data.SlotsUsed : '0'));
+        } else {
+            $('#tdMaximumSupportedRAM, #tdLocation, #tdSlotsAvailable, #tdSlotsUsed').text('N/A');
+        }
+    }).fail(function () {
+        $('#tdMaximumSupportedRAM, #tdLocation, #tdSlotsAvailable, #tdSlotsUsed')
+            .html('<span class="text-red-400">Error</span>');
+    });
+}
+
 function escapeHtml(str) {
-    if (!str) return '';
-    return str
+    if (str === null || str === undefined) return '';
+    return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -444,18 +447,14 @@ function loadSummaryData() {
         $("#tdNonCommercialSoftware").text(data.nonCommercialSoftware || data.NonCommercialSoftware || 0);
         $("#tdProhibitedSoftware").text(data.prohibitedSoftware || data.ProhibitedSoftware || 0);
         $("#tdMissingPatches").text(data.missingPatches || data.MissingPatches || 0);
-    }).fail(function () {
-        console.error("Failed to load summary data");
-    });
+    }).fail(function () { console.error("Failed to load summary data"); });
 }
 
 function loadDiskChart() {
     $.get(`/ComputerSummary/UsegeDisk?domain=${domaindata}`, function (data) {
         var ctx = document.getElementById('assetChart');
         if (!ctx) return;
-
-        var chartCtx = ctx.getContext('2d');
-        new Chart(chartCtx, {
+        new Chart(ctx.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: ['Used Space', 'Free Space'],
@@ -471,26 +470,12 @@ function loadDiskChart() {
                 maintainAspectRatio: true,
                 cutout: '65%',
                 plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            font: { size: 11, family: 'Inter' },
-                            padding: 15
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function (context) {
-                                return context.label + ': ' + context.raw + ' GB';
-                            }
-                        }
-                    }
+                    legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' }, padding: 15 } },
+                    tooltip: { callbacks: { label: (ctx) => ctx.label + ': ' + ctx.raw + ' GB' } }
                 }
             }
         });
-    }).fail(function () {
-        console.error("Failed to load disk chart data");
-    });
+    }).fail(function () { console.error("Failed to load disk chart"); });
 }
 
 function loadOSDetails() {
@@ -503,9 +488,7 @@ function loadOSDetails() {
         $('#tdSystemDrive').text(data.systemDrive || data.SystemDrive || 'N/A');
         $('#tdOSCDKey').text(data.oscdKey || data.OSCDKey || 'N/A');
         $('#tdOSBuildNumber').text(data.osBuildNumber || data.OSBuildNumber || 'N/A');
-    }).fail(function () {
-        console.error("Failed to load OS details");
-    });
+    }).fail(function () { console.error("Failed to load OS details"); });
 }
 
 function loadDeviceDetails() {
@@ -519,9 +502,7 @@ function loadDeviceDetails() {
         $('#tdProcessorArchitecture').text(data.processorArchitecture || data.ProcessorArchitecture || 'N/A');
         $('#tdUDID').text(data.udid || data.UDID || 'N/A');
         $('#tdBatteryLevel').text(data.batteryLevel || data.BatteryLevel || 'N/A');
-    }).fail(function () {
-        console.error("Failed to load device details");
-    });
+    }).fail(function () { console.error("Failed to load device details"); });
 }
 
 function loadBiosDetails() {
@@ -532,9 +513,7 @@ function loadBiosDetails() {
         $('#biosReleaseDate').text(data.releaseDate || 'N/A');
         $('#biosStatus').text(data.status || 'N/A');
         $('#biosDescription').text(data.description || 'N/A');
-    }).fail(function () {
-        console.error("Failed to load BIOS details");
-    });
+    }).fail(function () { console.error("Failed to load BIOS details"); });
 }
 
 function loadBatteryDetails() {
@@ -544,9 +523,7 @@ function loadBatteryDetails() {
         $('#batteryDescription').text(data.description || 'N/A');
         $('#batteryLevel').text(data.batteryLevel || 'N/A');
         $('#batterySystemType').text(data.systemType || 'N/A');
-    }).fail(function () {
-        console.error("Failed to load battery details");
-    });
+    }).fail(function () { console.error("Failed to load battery details"); });
 }
 
 function loadMonitorDetails() {
@@ -557,9 +534,7 @@ function loadMonitorDetails() {
         $('#monitorSerial').text(data.serialNumber || 'N/A');
         $('#monitorSize').text(data.monitorSize || 'N/A');
         $('#monitorStatus').text(data.deviceStatus || 'N/A');
-    }).fail(function () {
-        console.error("Failed to load monitor details");
-    });
+    }).fail(function () { console.error("Failed to load monitor details"); });
 }
 
 function loadProcessorDetails() {
@@ -570,33 +545,26 @@ function loadProcessorDetails() {
         $('#processorSocket').text(data.socketDesignation || 'N/A');
         $('#processorStatus').text(data.deviceStatus || 'N/A');
         $('#processorDescription').text(data.description || 'N/A');
-    }).fail(function () {
-        console.error("Failed to load processor details");
-    });
+    }).fail(function () { console.error("Failed to load processor details"); });
 }
 
 function loadNetworkAdapters() {
     $.get(`/ComputerSummary/NetworkAdapters?domain=${domaindata}`, function (data) {
-        var container = $('#networkContainer');
-        container.empty();
+        var container = $('#networkContainer').empty();
         if (data && data.length) {
-            data.forEach(function (adapter) {
-                container.append(`
-                    <div class="bg-gray-50 rounded-lg border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                        <div class="px-4 py-3 bg-white border-b border-gray-100">
-                            <h4 class="font-semibold text-gray-800 text-sm flex items-center gap-2">
-                                <i class="fas fa-network-wired text-blue-500"></i> ${escapeHtml(adapter.description || 'Network Adapter')}
-                            </h4>
-                        </div>
-                        <div class="p-4 space-y-2 text-sm">
-                            <div class="flex justify-between flex-wrap"><span class="text-gray-500">Manufacturer:</span> <span class="text-gray-700">${escapeHtml(adapter.manufacturer || 'N/A')}</span></div>
-                            <div class="flex justify-between flex-wrap"><span class="text-gray-500">MAC Address:</span> <span class="font-mono text-gray-700">${escapeHtml(adapter.macAddress || 'N/A')}</span></div>
-                            <div class="flex justify-between flex-wrap"><span class="text-gray-500">IP Address:</span> <span class="font-mono text-gray-700">${escapeHtml(adapter.ipAddress || 'N/A')}</span></div>
-                            <div class="flex justify-between flex-wrap"><span class="text-gray-500">DHCP Enabled:</span> <span>${adapter.dhcpEnabled ? '<i class="fas fa-check-circle text-green-500"></i> Yes' : '<i class="fas fa-times-circle text-red-400"></i> No'}</span></div>
-                            <div class="flex justify-between flex-wrap"><span class="text-gray-500">Status:</span> <span class="${adapter.deviceStatus === 'OK' ? 'text-green-600' : 'text-red-500'}">${escapeHtml(adapter.deviceStatus || 'N/A')}</span></div>
-                        </div>
-                    </div>
-                `);
+            data.forEach(function (a) {
+                container.append(
+                    '<div class="bg-gray-50 rounded-lg border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">' +
+                    '<div class="px-4 py-3 bg-white border-b border-gray-100"><h4 class="font-semibold text-gray-800 text-sm flex items-center gap-2">' +
+                    '<i class="fas fa-network-wired text-blue-500"></i> ' + escapeHtml(a.description || 'Network Adapter') + '</h4></div>' +
+                    '<div class="p-4 space-y-2 text-sm">' +
+                    '<div class="flex justify-between flex-wrap"><span class="text-gray-500">Manufacturer:</span><span class="text-gray-700">' + escapeHtml(a.manufacturer || 'N/A') + '</span></div>' +
+                    '<div class="flex justify-between flex-wrap"><span class="text-gray-500">MAC Address:</span><span class="font-mono text-gray-700">' + escapeHtml(a.macAddress || 'N/A') + '</span></div>' +
+                    '<div class="flex justify-between flex-wrap"><span class="text-gray-500">IP Address:</span><span class="font-mono text-gray-700">' + escapeHtml(a.ipAddress || 'N/A') + '</span></div>' +
+                    '<div class="flex justify-between flex-wrap"><span class="text-gray-500">DHCP:</span><span>' + (a.dhcpEnabled ? '<i class="fas fa-check-circle text-green-500"></i> Yes' : '<i class="fas fa-times-circle text-red-400"></i> No') + '</span></div>' +
+                    '<div class="flex justify-between flex-wrap"><span class="text-gray-500">Status:</span><span class="' + (a.deviceStatus === 'OK' ? 'text-green-600' : 'text-red-500') + '">' + escapeHtml(a.deviceStatus || 'N/A') + '</span></div>' +
+                    '</div></div>'
+                );
             });
         } else {
             container.html('<div class="text-center py-8 text-gray-400"><i class="fas fa-network-wired text-4xl mb-3 block"></i>No network adapters found</div>');
@@ -608,22 +576,18 @@ function loadNetworkAdapters() {
 
 function loadKeyboardDetails() {
     $.get(`/ComputerSummary/Keyboard?domain=${domaindata}`, function (data) {
-        var container = $('#keyboardContainer');
-        container.empty();
+        var container = $('#keyboardContainer').empty();
         if (data && data.length) {
-            data.forEach(function (keyboard) {
-                container.append(`
-                    <div class="bg-gray-50 rounded-lg border border-gray-100 p-4 hover:shadow-md transition-shadow">
-                        <div class="flex items-center gap-3 mb-3">
-                            <i class="fas fa-keyboard text-gray-500 text-xl"></i>
-                            <h4 class="font-semibold text-gray-800">${escapeHtml(keyboard.manufacturer || 'Keyboard')}</h4>
-                        </div>
-                        <div class="space-y-1 text-sm">
-                            <div class="flex justify-between flex-wrap"><span class="text-gray-500">Description:</span> <span class="text-gray-700">${escapeHtml(keyboard.description || 'N/A')}</span></div>
-                            <div class="flex justify-between flex-wrap"><span class="text-gray-500">Status:</span> <span class="${keyboard.deviceStatus === 'OK' ? 'text-green-600' : 'text-red-500'}">${escapeHtml(keyboard.deviceStatus || 'N/A')}</span></div>
-                        </div>
-                    </div>
-                `);
+            data.forEach(function (k) {
+                container.append(
+                    '<div class="bg-gray-50 rounded-lg border border-gray-100 p-4 hover:shadow-md transition-shadow">' +
+                    '<div class="flex items-center gap-3 mb-3"><i class="fas fa-keyboard text-gray-500 text-xl"></i>' +
+                    '<h4 class="font-semibold text-gray-800">' + escapeHtml(k.manufacturer || 'Keyboard') + '</h4></div>' +
+                    '<div class="space-y-1 text-sm">' +
+                    '<div class="flex justify-between flex-wrap"><span class="text-gray-500">Description:</span><span class="text-gray-700">' + escapeHtml(k.description || 'N/A') + '</span></div>' +
+                    '<div class="flex justify-between flex-wrap"><span class="text-gray-500">Status:</span><span class="' + (k.deviceStatus === 'OK' ? 'text-green-600' : 'text-red-500') + '">' + escapeHtml(k.deviceStatus || 'N/A') + '</span></div>' +
+                    '</div></div>'
+                );
             });
         } else {
             container.html('<div class="text-center py-8 text-gray-400"><i class="fas fa-keyboard text-4xl mb-3 block"></i>No keyboard devices found</div>');
@@ -635,24 +599,20 @@ function loadKeyboardDetails() {
 
 function loadMotherboardDetails() {
     $.get(`/ComputerSummary/Motherboard?domain=${domaindata}`, function (data) {
-        var container = $('#motherboardContainer');
-        container.empty();
+        var container = $('#motherboardContainer').empty();
         if (data && data.length) {
             data.forEach(function (mb) {
-                container.append(`
-                    <div class="bg-gray-50 rounded-lg border border-gray-100 p-4 hover:shadow-md transition-shadow">
-                        <div class="flex items-center gap-3 mb-3">
-                            <i class="fas fa-microchip text-blue-500 text-xl"></i>
-                            <h4 class="font-semibold text-gray-800">${escapeHtml(mb.manufacturer || 'Motherboard')}</h4>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                            <div><span class="text-gray-500">Model:</span> <span class="text-gray-700">${escapeHtml(mb.model || 'N/A')}</span></div>
-                            <div><span class="text-gray-500">Version:</span> <span class="text-gray-700">${escapeHtml(mb.version || 'N/A')}</span></div>
-                            <div><span class="text-gray-500">Serial Number:</span> <span class="font-mono text-gray-700">${escapeHtml(mb.serialNumber || 'N/A')}</span></div>
-                            <div><span class="text-gray-500">Status:</span> <span class="${mb.deviceStatus === 'OK' ? 'text-green-600' : 'text-red-500'}">${escapeHtml(mb.deviceStatus || 'N/A')}</span></div>
-                        </div>
-                    </div>
-                `);
+                container.append(
+                    '<div class="bg-gray-50 rounded-lg border border-gray-100 p-4 hover:shadow-md transition-shadow">' +
+                    '<div class="flex items-center gap-3 mb-3"><i class="fas fa-microchip text-blue-500 text-xl"></i>' +
+                    '<h4 class="font-semibold text-gray-800">' + escapeHtml(mb.manufacturer || 'Motherboard') + '</h4></div>' +
+                    '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">' +
+                    '<div><span class="text-gray-500">Model:</span> <span class="text-gray-700">' + escapeHtml(mb.model || 'N/A') + '</span></div>' +
+                    '<div><span class="text-gray-500">Version:</span> <span class="text-gray-700">' + escapeHtml(mb.version || 'N/A') + '</span></div>' +
+                    '<div><span class="text-gray-500">Serial:</span> <span class="font-mono text-gray-700">' + escapeHtml(mb.serialNumber || 'N/A') + '</span></div>' +
+                    '<div><span class="text-gray-500">Status:</span> <span class="' + (mb.deviceStatus === 'OK' ? 'text-green-600' : 'text-red-500') + '">' + escapeHtml(mb.deviceStatus || 'N/A') + '</span></div>' +
+                    '</div></div>'
+                );
             });
         } else {
             container.html('<div class="text-center py-8 text-gray-400"><i class="fas fa-microchip text-4xl mb-3 block"></i>No motherboard information found</div>');
@@ -713,119 +673,176 @@ function boolToIcon(value) {
 }
 
 function uninstallSoftware(softwareName) {
+    if (!softwareName || softwareName === 'N/A') return;
+
     Swal.fire({
         title: 'Confirm Uninstall',
-        text: `Are you sure you want to uninstall ${softwareName}?`,
+        text: 'Are you sure you want to uninstall ' + softwareName + '?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         confirmButtonText: 'Yes, Uninstall',
         cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: `/ComputerSummary/Uninstallsoftware?domain=${actualDomainName}`,
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ softwareName: softwareName }),
-                success: function (res) {
-                    if (res && res.status === 'success') {
-                        sysAlert('Uninstall command sent successfully', 'success');
-                    } else {
-                        sysAlert('Uninstall failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
-                    }
-                    setTimeout(() => {
-                        if ($.fn.DataTable.isDataTable('#desktopAppsTable')) {
-                            $('#desktopAppsTable').DataTable().ajax.reload(null, false);
-                        }
-                    }, 3000);
-                },
-                error: function (xhr) {
-                    sysAlert('Failed to send uninstall command (HTTP ' + xhr.status + ')', 'error');
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        sysAlert('Sending uninstall command…', 'info');
+
+        $.ajax({
+            url: '/ComputerSummary/Uninstallsoftware?domain=' + encodeURIComponent(actualDomainName),
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ softwareName: softwareName }),
+            success: function (res) {
+                if (res && res.status === 'success') {
+                    sysAlert('Uninstall command sent. Checking status…', 'info');
+                    pollUninstallStatus(softwareName, 0);
+                } else {
+                    sysAlert('Uninstall failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
                 }
-            });
-        }
+            },
+            error: function (xhr) {
+                sysAlert('Failed to send uninstall command (HTTP ' + xhr.status + ')', 'error');
+            }
+        });
     });
 }
 
+function pollUninstallStatus(softwareName, attempt) {
+    if (attempt > 10) {
+        sysAlert('Uninstall status unknown – check the device manually.', 'warning');
+        reloadTable('#desktopAppsTable');
+        return;
+    }
+    setTimeout(function () {
+        $.get('/ComputerSummary/Uninstallsoftwarestatus', {
+            softwareName: softwareName,
+            domain: actualDomainName
+        }, function (res) {
+            if (res && res.status === 'success') {
+                sysAlert(softwareName + ' uninstalled successfully.', 'success');
+                reloadTable('#desktopAppsTable');
+            } else if (res && res.status === 'Failed') {
+                sysAlert('Uninstall failed on device: ' + (res.message || ''), 'error');
+                reloadTable('#desktopAppsTable');
+            } else {
+                pollUninstallStatus(softwareName, attempt + 1);
+            }
+        }).fail(function () {
+            pollUninstallStatus(softwareName, attempt + 1);
+        });
+    }, 3000);
+}
+
 function installSoftware(fileName) {
+    if (!fileName || fileName === 'N/A') return;
+
     Swal.fire({
         title: 'Confirm Installation',
-        text: `Are you sure you want to install ${fileName}?`,
+        text: 'Are you sure you want to install ' + fileName + '?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#10b981',
         confirmButtonText: 'Yes, Install',
         cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: `/ComputerSummary/PatchUpdate?domain=${actualDomainName}`,
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ softwareName: fileName }),
-                success: function (res) {
-                    if (res && res.status === 'success') {
-                        sysAlert('Installation command sent successfully', 'success');
-                    } else {
-                        sysAlert('Installation failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
-                    }
-                    setTimeout(() => {
-                        if ($.fn.DataTable.isDataTable('#installersTable')) {
-                            $('#installersTable').DataTable().ajax.reload(null, false);
-                        }
-                        if ($.fn.DataTable.isDataTable('#desktopAppsTable')) {
-                            $('#desktopAppsTable').DataTable().ajax.reload(null, false);
-                        }
-                    }, 5000);
-                },
-                error: function (xhr) {
-                    sysAlert('Failed to send installation command (HTTP ' + xhr.status + ')', 'error');
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        sysAlert('Sending install command…', 'info');
+
+        $.ajax({
+            url: '/ComputerSummary/PatchUpdate?domain=' + encodeURIComponent(actualDomainName),
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ softwareName: fileName }),
+            success: function (res) {
+                if (res && res.status === 'success') {
+                    sysAlert('Install command sent. Checking status…', 'info');
+                    pollInstallStatus(fileName, 0);
+                } else {
+                    sysAlert('Install failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
                 }
-            });
-        }
+            },
+            error: function (xhr) {
+                sysAlert('Failed to send install command (HTTP ' + xhr.status + ')', 'error');
+            }
+        });
     });
 }
 
-function installPatch(patchId) {
+function pollInstallStatus(fileName, attempt) {
+    if (attempt > 12) {
+        sysAlert('Install status unknown – check the device manually.', 'warning');
+        reloadTable('#installersTable');
+        reloadTable('#desktopAppsTable');
+        return;
+    }
+    setTimeout(function () {
+        $.get('/ComputerSummary/installsoftwarestatus', {
+            softwareName: fileName,
+            domain: actualDomainName
+        }, function (res) {
+            if (res && res.status === 'success') {
+                sysAlert(fileName + ' installed successfully.', 'success');
+                reloadTable('#installersTable');
+                reloadTable('#desktopAppsTable');
+            } else if (res && res.status === 'Failed') {
+                sysAlert('Install failed on device: ' + (res.message || ''), 'error');
+                reloadTable('#installersTable');
+            } else {
+                pollInstallStatus(fileName, attempt + 1);
+            }
+        }).fail(function () {
+            pollInstallStatus(fileName, attempt + 1);
+        });
+    }, 4000);
+}
+
+function installPatch(patchId, patchName) {
+    if (!patchId || patchId === 'N/A') return;
+
+    var displayName = patchName || patchId;
+
     Swal.fire({
         title: 'Confirm Update',
-        text: `Are you sure you want to install this patch?`,
+        text: 'Are you sure you want to install: ' + displayName + '?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#3b82f6',
         confirmButtonText: 'Yes, Install',
         cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: `/ComputerSummary/UpdatePatch?domain=${domaindata}`,
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ patchId: patchId }),
-                success: function () {
-                    sysAlert('Patch installation started', 'success');
-                    setTimeout(() => {
-                        if ($.fn.DataTable.isDataTable('#thirdPartyTable')) {
-                            $('#thirdPartyTable').DataTable().ajax.reload();
-                        }
-                        if ($.fn.DataTable.isDataTable('#windowUpdateTable')) {
-                            $('#windowUpdateTable').DataTable().ajax.reload();
-                        }
-                    }, 5000);
-                },
-                error: function () {
-                    sysAlert('Failed to start patch installation', 'error');
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        sysAlert('Sending patch command…', 'info');
+        $.ajax({
+            url: '/ComputerSummary/PatchUpdate?domain=' + encodeURIComponent(actualDomainName),
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ softwareName: displayName }),
+            success: function (res) {
+                if (res && res.status === 'success') {
+                    sysAlert('Patch command sent. Checking status…', 'info');
+                    pollInstallStatus(displayName, 0);  
+                } else {
+                    sysAlert('Patch failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
                 }
-            });
-        }
+            },
+            error: function (xhr) {
+                sysAlert('Failed to send patch command (HTTP ' + xhr.status + ')', 'error');
+            }
+        });
     });
 }
 
-function refreshSoftwareTable() {
-    if ($.fn.DataTable.isDataTable('#desktopAppsTable')) {
-        $('#desktopAppsTable').DataTable().ajax.reload();
+function reloadTable(selector) {
+    if ($.fn.DataTable.isDataTable(selector)) {
+        $(selector).DataTable().ajax.reload(null, false);
     }
+}
+
+function refreshSoftwareTable() {
+    reloadTable('#desktopAppsTable');
 }
 
 function applyUsbBlock() {
@@ -837,18 +854,17 @@ function applyUsbBlock() {
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         confirmButtonText: 'Yes, Block'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: '/ComputerSummary/BlockUsb?domain=' + actualDomainName,
-                type: 'POST',
-                success: function(res) {
-                    if (res.success) sysAlert('USB Blocked successfully', 'success');
-                    else sysAlert(res.message || 'Block failed', 'error');
-                },
-                error: function() { sysAlert('Connection error', 'error'); }
-            });
-        }
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        $.ajax({
+            url: '/ComputerSummary/BlockUsb?domain=' + encodeURIComponent(actualDomainName),
+            type: 'POST',
+            success: function (res) {
+                if (res && res.success) sysAlert('USB Blocked successfully', 'success');
+                else sysAlert(res.message || 'Block failed', 'error');
+            },
+            error: function () { sysAlert('Connection error', 'error'); }
+        });
     });
 }
 
@@ -861,17 +877,16 @@ function applyUsbUnblock() {
         showCancelButton: true,
         confirmButtonColor: '#10b981',
         confirmButtonText: 'Yes, Unblock'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: '/ComputerSummary/UnblockUsb?domain=' + actualDomainName,
-                type: 'POST',
-                success: function(res) {
-                    if (res.success) sysAlert('USB Unblocked successfully', 'success');
-                    else sysAlert(res.message || 'Unblock failed', 'error');
-                },
-                error: function() { sysAlert('Connection error', 'error'); }
-            });
-        }
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        $.ajax({
+            url: '/ComputerSummary/UnblockUsb?domain=' + encodeURIComponent(actualDomainName),
+            type: 'POST',
+            success: function (res) {
+                if (res && res.success) sysAlert('USB Unblocked successfully', 'success');
+                else sysAlert(res.message || 'Unblock failed', 'error');
+            },
+            error: function () { sysAlert('Connection error', 'error'); }
+        });
     });
 }

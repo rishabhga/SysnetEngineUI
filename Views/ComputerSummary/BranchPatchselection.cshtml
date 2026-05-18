@@ -214,12 +214,10 @@
     <script>
         const PAGE_TYPE = '@(ViewData["Title"].ToString().Contains("Windows") ? "WinPatch" : "ThirdPartyPatch")';
         const DOMAIN_IDS = '@domainids'.split(',').filter(s => !!s);
-        const ACTIVE_ACTIONS_KEY = `BranchPatch_Active_${PAGE_TYPE}_${DOMAIN_IDS.join('_')}`;
-
-        let activeActions = JSON.parse(localStorage.getItem(ACTIVE_ACTIONS_KEY) || '{}');
+        let activeActions = {};
 
         function saveActions() {
-            localStorage.setItem(ACTIVE_ACTIONS_KEY, JSON.stringify(activeActions));
+            // Removed localStorage persistence to prevent stuck UI
         }
 
         function registerAction(ids) {
@@ -341,9 +339,18 @@
             const idStr = ids.join(',');
             registerAction(idStr);
 
+            // Safety timeout: auto-unlock UI after 90 seconds if neither success nor error fires
+            const safetyTimer = setTimeout(() => {
+                if (activeActions[idStr]) {
+                    unregisterAction(idStr);
+                    sysAlert('Deploy request timed out. Check device connectivity and try again.', 'warning');
+                }
+            }, 90 * 1000);
+
             $.ajax({
                 url: '@Url.Action("UpdatePatchselection", "ComputerSummary")',
-                type: 'POST', 
+                type: 'POST',
+                timeout: 60000,
                 contentType: 'application/json',
                 data: JSON.stringify({
                     companyid:  parseInt('@companyid') || 0,
@@ -354,16 +361,24 @@
                     domainids:  '@domainids'
                 }),
                 success: function(res) {
+                    clearTimeout(safetyTimer);
                     if (res.success) {
-                        sysAlert(res.message || 'Third-party updates deployment initiated!', 'success');
-                        // No timer here - state will be cleared via SignalR
+                        var msg = res.message || 'Third-party updates deployment initiated!';
+                        if (res.offlineClients && res.offlineClients.length > 0) {
+                            msg += ' (' + res.offlineClients.length + ' device(s) offline)';
+                        }
+                        sysAlert(msg, 'success');
                     } else { 
-                        sysAlert(res.message || res.error || 'Deployment failed.', 'error');
-                        unregisterAction(idStr);
+                        sysAlert(res.message || res.error || 'Deployment failed. Devices may be offline.', 'error');
                     }
+                    unregisterAction(idStr);
                 },
                 error: function(xhr) {
-                    sysAlert('Network error: ' + (xhr.statusText || 'Unknown'), 'error');
+                    clearTimeout(safetyTimer);
+                    var errMsg = xhr.status === 0 ? 'Connection lost — check your network.' :
+                                 xhr.status === 408 ? 'Request timed out — API may be busy.' :
+                                 'Server error (' + xhr.status + '): ' + (xhr.statusText || 'Unknown');
+                    sysAlert(errMsg, 'error');
                     unregisterAction(idStr);
                 }
             });

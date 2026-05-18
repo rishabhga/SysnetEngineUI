@@ -12,21 +12,15 @@ using ManageEngineWebApp.Attributes;
 namespace ManageEngineWebApp.Controllers
 {
     [AuthFilter]
-    public class SwitchMonitorController : Controller
+    public class SwitchMonitorController : BaseController
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly string _baseUrl;
-
         public SwitchMonitorController(IHttpClientFactory httpClientFactory, IConfiguration config)
+            : base(httpClientFactory, config)
         {
-            _httpClientFactory = httpClientFactory;
-            _baseUrl = config["ApiSettings:BaseUrl"];
         }
 
-        private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
-
         [DynamicPermission("SwitchMonitor.View", "View Switch Monitor")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? companyid = null, int? groupid = null, int? locationid = null)
         {
             var switches = new List<SwitchMaster>();
             var deviceStatuses = new Dictionary<int, DeviceStatus>();
@@ -63,6 +57,79 @@ namespace ManageEngineWebApp.Controllers
                 }
             }
             catch {  }
+
+            // Apply Hierarchy Scoping
+            var allowedLocationIds = new HashSet<int>();
+            bool hasFilter = false;
+
+            if (locationid.HasValue && locationid.Value > 0)
+            {
+                allowedLocationIds.Add(locationid.Value);
+                hasFilter = true;
+            }
+            else if (groupid.HasValue && groupid.Value > 0)
+            {
+                var hierarchy = await LoadHierarchyAsync();
+                var grp = hierarchy.SelectMany(c => c.Groups).FirstOrDefault(g => g.GroupId == groupid.Value);
+                if (grp != null)
+                {
+                    foreach (var loc in grp.Locations)
+                    {
+                        allowedLocationIds.Add(loc.LocationId);
+                    }
+                }
+                hasFilter = true;
+            }
+            else if (companyid.HasValue && companyid.Value > 0)
+            {
+                var hierarchy = await LoadHierarchyAsync();
+                var com = hierarchy.FirstOrDefault(c => c.CompanyId == companyid.Value);
+                if (com != null)
+                {
+                    foreach (var grp in com.Groups)
+                    {
+                        foreach (var loc in grp.Locations)
+                        {
+                            allowedLocationIds.Add(loc.LocationId);
+                        }
+                    }
+                }
+                hasFilter = true;
+            }
+            else
+            {
+                // Fallback to the user's allowed scope if not a super admin
+                var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
+                if (userCompanyIds.Any() || userGroupIds.Any() || userLocationIds.Any())
+                {
+                    var hierarchy = await LoadHierarchyAsync();
+                    var allowedComs = hierarchy;
+                    if (userCompanyIds.Any())
+                    {
+                        allowedComs = allowedComs.Where(c => userCompanyIds.Contains(c.CompanyId)).ToList();
+                    }
+                    var allowedGroups = allowedComs.SelectMany(c => c.Groups);
+                    if (userGroupIds.Any())
+                    {
+                        allowedGroups = allowedGroups.Where(g => userGroupIds.Contains(g.GroupId));
+                    }
+                    var allowedLocs = allowedGroups.SelectMany(g => g.Locations);
+                    if (userLocationIds.Any())
+                    {
+                        allowedLocs = allowedLocs.Where(l => userLocationIds.Contains(l.LocationId));
+                    }
+                    foreach (var loc in allowedLocs)
+                    {
+                        allowedLocationIds.Add(loc.LocationId);
+                    }
+                    hasFilter = true;
+                }
+            }
+
+            if (hasFilter)
+            {
+                switches = switches.Where(s => s.LocationId.HasValue && allowedLocationIds.Contains(s.LocationId.Value)).ToList();
+            }
 
             ViewBag.DeviceStatuses = deviceStatuses;
             return View(switches);
@@ -146,6 +213,12 @@ namespace ManageEngineWebApp.Controllers
             }
             catch { }
 
+            var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
+            if (userLocationIds.Any())
+            {
+                locations = locations.Where(l => userLocationIds.Contains(l.Id)).ToList();
+            }
+
             ViewBag.Locations = locations;
             return PartialView("_SwitchForm", new SwitchMaster
             {
@@ -203,6 +276,12 @@ namespace ManageEngineWebApp.Controllers
                 }
             }
             catch { }
+
+            var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
+            if (userLocationIds.Any())
+            {
+                locations = locations.Where(l => userLocationIds.Contains(l.Id)).ToList();
+            }
 
             ViewBag.Locations = locations;
             return PartialView("_SwitchForm", sw);

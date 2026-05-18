@@ -164,7 +164,7 @@
                                     <span class="temp-protection-badge hidden absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full border border-white"></span>
 
                                 </div>
-                                <div class="min-w-0 flex-1 deshboard-name-cell" data-id="@item.Id" data-domain-id="@item.UserCode"
+                                <div class="min-w-0 flex-1 deshboard-name-cell" data-id="@item.Id" data-domain-id="@item.DomainName"
                                      data-company-id="@item.CompanyId" data-group-id="@item.GroupId" data-location-id="@item.LocationId">
                                     <div class="display-name-section">
                                         <div class="flex items-center space-x-1">
@@ -538,26 +538,37 @@
             });
 
             dashHubConnection.on('ScanResultReceived', function(domain, isSuccess, message) {
-                const card = $(`.device-card[data-domain="${domain}"]`);
-                const link = card.find('.rescan-link');
-                
-                if (link.length) {
-                    unregisterActiveRescan(domain);
-                    link.find('.rescan-text').html(
-                        '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i>' +
-                        '<span class="js-txt">Rescan</span>'
-                    );
-                    link.prop('disabled', false);
-                    card.removeClass('opacity-75');
+                let card = null;
+                $('.device-card').each(function() {
+                    const d = $(this).attr('data-domain');
+                    if (d && d.toUpperCase() === domain.toUpperCase()) {
+                        card = $(this);
+                        return false;
+                    }
+                });
 
-                    if (isSuccess) {
-                        loadSystemUsageData(card, domain);
-                        $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")', { domain: domain }, function(res) {
-                            card.find('.ip-address-value').text(res.success ? res.ipAddress : 'N/A');
-                        }).fail(function() { card.find('.ip-address-value').text('N/A'); });
-                        sysAlert('Scan complete for ' + domain, 'success');
-                    } else {
-                        sysAlert('Scan failed for ' + domain + ': ' + message, 'error');
+                if (card && card.length) {
+                    const link = card.find('.rescan-link');
+                    const domainName = card.attr('data-domain');
+                    
+                    if (link.length) {
+                        unregisterActiveRescan(domainName);
+                        link.find('.rescan-text').html(
+                            '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i>' +
+                            '<span class="js-txt">Rescan</span>'
+                        );
+                        link.prop('disabled', false);
+                        card.removeClass('opacity-75');
+
+                        if (isSuccess) {
+                            loadSystemUsageData(card, domainName);
+                            $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")', { domain: domainName }, function(res) {
+                                card.find('.ip-address-value').text(res.success ? res.ipAddress : 'N/A');
+                            }).fail(function() { card.find('.ip-address-value').text('N/A'); });
+                            sysAlert('Scan complete for ' + domainName, 'success');
+                        } else {
+                            sysAlert('Scan failed for ' + domainName + ': ' + message, 'error');
+                        }
                     }
                 }
             });
@@ -1380,14 +1391,25 @@
             
             registerActiveRescan(domain);
 
+            // Stale scan safety timeout (3 minutes)
+            setTimeout(() => {
+                if (activeScans[domain.toUpperCase()]) {
+                    unregisterActiveRescan(domain);
+                    resetRescanButton(link, card);
+                    sysAlert('Scan timed out for ' + domain, 'warning');
+                }
+            }, 3 * 60 * 1000);
+
             $.post('@Url.Action("Comanddata", "ComputerSummary")?domain=' + domain, function(res) {
                 if (res.success) {
                     sysAlert('Scan initiated for ' + domain, 'info');
                 } else {
+                    unregisterActiveRescan(domain);
                     resetRescanButton(link, card);
                     sysAlert('Failed: ' + (res.message || 'Server error'), 'error');
                 }
             }).fail(function() {
+                unregisterActiveRescan(domain);
                 resetRescanButton(link, card);
                 sysAlert('Could not start scan for ' + domain, 'error');
             });
@@ -1411,7 +1433,7 @@
         let activeScans = {};
 
         function registerActiveRescan(domain) {
-            activeScans[domain.toUpperCase()] = true;
+            activeScans[domain.toUpperCase()] = Date.now();
             localStorage.setItem('activeScans', JSON.stringify(activeScans));
         }
 
@@ -1425,15 +1447,48 @@
             if (saved) {
                 try {
                     activeScans = JSON.parse(saved);
+                    const now = Date.now();
+                    const timeoutMs = 3 * 60 * 1000; // 3 minutes timeout
+
                     Object.keys(activeScans).forEach(domain => {
-                        const card = $(`.device-card[data-domain="${domain}"]`);
-                        const link = card.find('.rescan-link');
-                        if (link.length) {
-                            link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin mr-0.5"></i>Scanning…');
-                            link.prop('disabled', true);
-                            card.addClass('opacity-75');
+                        const registeredTime = activeScans[domain];
+                        
+                        // If it has been more than 3 minutes, or is old format (boolean true)
+                        if (typeof registeredTime !== 'number' || (now - registeredTime > timeoutMs)) {
+                            delete activeScans[domain];
+                            return;
+                        }
+
+                        // Case-insensitive card search
+                        let card = null;
+                        $('.device-card').each(function() {
+                            const d = $(this).attr('data-domain');
+                            if (d && d.toUpperCase() === domain.toUpperCase()) {
+                                card = $(this);
+                                return false;
+                            }
+                        });
+
+                        if (card && card.length) {
+                            const link = card.find('.rescan-link');
+                            if (link.length) {
+                                link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin mr-0.5"></i>Scanning…');
+                                link.prop('disabled', true);
+                                card.addClass('opacity-75');
+
+                                // Set timeout to clean up when the remaining time is reached
+                                const remainingTime = timeoutMs - (now - registeredTime);
+                                setTimeout(() => {
+                                    if (activeScans[domain]) {
+                                        unregisterActiveRescan(domain);
+                                        resetRescanButton(link, card);
+                                        sysAlert('Scan timed out for ' + domain, 'warning');
+                                    }
+                                }, remainingTime);
+                            }
                         }
                     });
+                    localStorage.setItem('activeScans', JSON.stringify(activeScans));
                 } catch (e) {
                     activeScans = {};
                 }
