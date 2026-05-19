@@ -1,0 +1,4 @@
+[19-05-2026 11:00:51] ERROR before code: Inno Setup compilation failed. ExitCode=2
+[19-05-2026 11:00:56] ERROR before code: Inno Setup compilation failed. ExitCode=2
+[19-05-2026 11:01:14] ERROR before code: Inno Setup compilation failed. ExitCode=2
+[19-05-2026 11:01:18] ERROR before code: Inno Setup compilation failed. ExitCode=2

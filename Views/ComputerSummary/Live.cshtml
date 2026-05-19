@@ -148,6 +148,7 @@
     const domain = '@ViewBag.Domain';
     const domainLower = domain.toLowerCase();
     const REQUEST_TIMEOUT = 30;
+    const SESSION_STORAGE_KEY = `LiveSession_${domainLower}`;
 
     let currentState = 'idle';        
     let pollingInterval = null;
@@ -164,6 +165,15 @@
     let pendingMouseMove = null;
     let liveConnection = null;
     let isDenied = false;
+
+    function saveSessionToStorage() {
+        const stateObj = {
+            currentState: currentState,
+            remainingSeconds: remainingSeconds,
+            isDenied: isDenied
+        };
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(stateObj));
+    }
 
     const MIN_FRESH_IMAGES_NEEDED = 2;
     const MAX_NO_IMAGE_COUNT = 10;
@@ -190,6 +200,7 @@
                     if (status.accepted === true) {
                         isDenied = false;
                         currentState = 'connected';
+                        saveSessionToStorage();
                         stopCountdown();
                         stopStatusCheck();
                         showRemoteScreen();
@@ -250,6 +261,7 @@
             if (currentState !== 'waiting' && currentState !== 'requesting') { stopCountdown(); return; }
             if (isDenied) { stopCountdown(); return; }
             remainingSeconds--;
+            saveSessionToStorage();
             updateCountdownDisplay();
             if (remainingSeconds <= 0) handleTimeout();
         }, 1000);
@@ -288,6 +300,7 @@
                 if (data.denied === true && !isDenied) handleDenial();
                 else if (data.accepted === true && !isDenied && currentState !== 'connected') {
                     currentState = 'connected';
+                    saveSessionToStorage();
                     stopCountdown();
                     stopStatusCheck();
                     showRemoteScreen();
@@ -324,6 +337,7 @@
                         }
                         if (currentState === 'waiting' && freshImageCount >= MIN_FRESH_IMAGES_NEEDED && !isDenied) {
                             currentState = 'connected';
+                            saveSessionToStorage();
                             stopCountdown();
                             stopStatusCheck();
                             showRemoteScreen();
@@ -375,6 +389,7 @@
         freshImageCount = 0;
         lastImageHash = '';
         remainingSeconds = REQUEST_TIMEOUT;
+        saveSessionToStorage();
 
         const btn = document.getElementById('mainBtn');
         const icon = document.getElementById('mainIcon');
@@ -394,6 +409,7 @@
         fetch(`/ComputerSummary/RemoteAccess?domain=${domain}`)
             .then(res => {
                 currentState = 'waiting';
+                saveSessionToStorage();
                 updateWaitingState('Request Sent!', 'Waiting for user to accept...', 'fa-clock text-green-400 animate-pulse');
                 updateStatus('orange', 'Waiting for approval');
                 text.textContent = 'Waiting...';
@@ -452,6 +468,7 @@
         stopPolling();
         stopCountdown();
         stopStatusCheck();
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
 
         const btn = document.getElementById('mainBtn');
         btn.disabled = false;
@@ -523,6 +540,48 @@
             document.getElementById('fullscreenText').textContent = 'Fullscreen';
         }
     });
+    document.addEventListener('DOMContentLoaded', () => {
+        const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (saved) {
+            try {
+                const stateObj = JSON.parse(saved);
+                if (stateObj.currentState === 'requesting' || stateObj.currentState === 'waiting') {
+                    currentState = stateObj.currentState;
+                    remainingSeconds = stateObj.remainingSeconds;
+                    isDenied = stateObj.isDenied;
+
+                    const btn = document.getElementById('mainBtn');
+                    const icon = document.getElementById('mainIcon');
+                    const text = document.getElementById('mainText');
+                    btn.disabled = true;
+                    btn.classList.remove('from-orange-500', 'to-red-600', 'from-red-500', 'to-red-700');
+                    btn.classList.add('from-gray-500', 'to-gray-600');
+                    icon.classList.remove('fa-satellite-dish', 'fa-power-off');
+                    icon.classList.add('fa-spinner', 'fa-spin');
+                    text.textContent = 'Waiting...';
+                    updateWaitingState('Request Sent!', 'Waiting for user to accept...', 'fa-clock text-green-400 animate-pulse');
+                    updateStatus('orange', 'Waiting for approval');
+
+                    setupLiveSignalR().then(() => {
+                        startPolling();
+                        startCountdown();
+                        startStatusCheck();
+                    });
+                } else if (stateObj.currentState === 'connected') {
+                    currentState = 'connected';
+                    isDenied = false;
+                    showRemoteScreen();
+                    switchToStopButton();
+                    setupLiveSignalR().then(() => {
+                        startPolling();
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to restore live session:", e);
+            }
+        }
+    });
+
     window.addEventListener('beforeunload', () => stopPolling());
 </script>
 

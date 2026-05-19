@@ -7,7 +7,7 @@
     var locationid = ViewBag.locationid?.ToString() ?? "";
     string deviceIds = ViewBag.selectedIds != null ? (string)ViewBag.selectedIds : "";
     string domainids = ViewBag.domainids != null ? (string)ViewBag.domainids : "";
-    var domainList = domainids.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+    var domainList = domainids.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().ToList();
 }
 <style>
     .pm-table {
@@ -102,22 +102,22 @@
     }
 
     <!-- Stats -->
-    <div class="mb-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <div class="bg-white rounded-md border border-gray-200 p-2.5 shadow-sm">
-            <p class="text-[9px] text-gray-500 uppercase font-medium">Total</p>
-            <p class="text-lg font-bold text-gray-900 leading-none mt-1">@(Model?.Count ?? 0)</p>
+            <p class="text-[9px] text-gray-500 uppercase font-medium">Total Updates</p>
+            <p id="totalCount" class="text-lg font-bold text-gray-900 leading-none mt-1">@Model.Count</p>
         </div>
         <div class="bg-white rounded-md border border-gray-200 p-2.5 shadow-sm">
             <p class="text-[9px] text-gray-500 uppercase font-medium">Critical</p>
-            <p class="text-lg font-bold text-red-600 leading-none mt-1">@(((IEnumerable<PatchDetail>)Model)?.Count(x => x.Severity == "Critical") ?? 0)</p>
+            <p id="criticalCount" class="text-lg font-bold text-red-600 leading-none mt-1">@(((IEnumerable<PatchDetail>)Model)?.Count(x => x.Severity == "Critical") ?? 0)</p>
         </div>
         <div class="bg-white rounded-md border border-gray-200 p-2.5 shadow-sm">
             <p class="text-[9px] text-gray-500 uppercase font-medium">Important</p>
-            <p class="text-lg font-bold text-orange-600 leading-none mt-1">@(((IEnumerable<PatchDetail>)Model)?.Count(x => x.Severity == "Important") ?? 0)</p>
+            <p id="importantCount" class="text-lg font-bold text-orange-600 leading-none mt-1">@(((IEnumerable<PatchDetail>)Model)?.Count(x => x.Severity == "Important") ?? 0)</p>
         </div>
         <div class="bg-white rounded-md border border-gray-200 p-2.5 shadow-sm">
             <p class="text-[9px] text-gray-500 uppercase font-medium">Other</p>
-            <p class="text-lg font-bold text-gray-600 leading-none mt-1">@(((IEnumerable<PatchDetail>)Model)?.Count(x => x.Severity != "Critical" && x.Severity != "Important") ?? 0)</p>
+            <p id="otherCount" class="text-lg font-bold text-gray-600 leading-none mt-1">@(((IEnumerable<PatchDetail>)Model)?.Count(x => x.Severity != "Critical" && x.Severity != "Important") ?? 0)</p>
         </div>
     </div>
 
@@ -143,19 +143,37 @@
         </label>
     </div>
 
+    <div id="activeDeploymentsPanel" class="hidden mb-3 bg-slate-900 text-slate-100 rounded-md border border-slate-800 p-3 shadow-md">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+            <span class="text-xs font-semibold text-cyan-400 flex items-center gap-1.5">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                </span>
+                Active Deployments Progress
+            </span>
+            <span id="activeProgressPct" class="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">0%</span>
+        </div>
+        <div id="activeDeploymentsList" class="space-y-1.5 max-h-36 overflow-y-auto font-mono text-[10px] divide-y divide-slate-800/50">
+        </div>
+    </div>
+
     <!-- Table -->
     @if (Model != null && Model.Any())
     {
         <div class="bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
             <div class="overflow-x-auto" style="max-height:calc(100vh - 360px);overflow-y:auto">
-                <table class="pm-table w-full text-xs">
+                <table class="pm-table w-full text-xs" style="table-layout: fixed;">
                     <thead>
                         <tr class="border-b border-gray-200 text-[9px] text-gray-500 uppercase">
-                            <th class="pl-3 pr-2 py-2 w-8"></th>
-                            <th class="px-3 py-2 text-left font-semibold">KB / Patch ID</th>
-                            <th class="px-3 py-2 text-left font-semibold">Bulletin</th>
+                            <th class="pl-3 pr-2 py-2" style="width: 40px;"></th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 100px;">KB / Patch ID</th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 100px;">Bulletin</th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 100px;">Vendor</th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 100px;">Patch Type</th>
                             <th class="px-3 py-2 text-left font-semibold">Patch Name</th>
-                            <th class="px-3 py-2 text-left font-semibold">Severity</th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 100px;">Severity</th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 100px;">Detected</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -168,14 +186,23 @@
                                 "Moderate" => "bg-yellow-50 text-yellow-700 border border-yellow-200",
                                 _ => "bg-gray-100 text-gray-600"
                             };
-                            <tr class="patch-row hover:bg-gray-50 transition-colors" data-severity="@item.Severity">
+                            <tr class="patch-row hover:bg-gray-50 transition-colors border-b border-gray-100" data-severity="@item.Severity" data-patchname="@item.PatchName">
                                 <td class="pl-3 pr-2 py-2 text-center">
                                     <input type="checkbox" class="rowCheck pm-cb w-3.5 h-3.5 rounded" value="@item.Id" onchange="updateSel()">
                                 </td>
-                                <td class="px-3 py-2 font-mono text-[10px] text-gray-600">@item.PatchId</td>
-                                <td class="px-3 py-2 text-[10px] text-gray-500">@item.Bulletin</td>
-                                <td class="px-3 py-2 text-gray-900 font-medium max-w-[200px] truncate">@item.PatchName</td>
-                                <td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold @sc">@item.Severity</span></td>
+                                <td class="px-3 py-2 font-mono text-[10px] text-gray-600 truncate">@item.PatchId</td>
+                                <td class="px-3 py-2 text-[10px] text-gray-500 truncate">@(string.IsNullOrEmpty(item.Bulletin) ? "N/A" : item.Bulletin)</td>
+                                <td class="px-3 py-2 text-[10px] text-gray-500 truncate">@(string.IsNullOrEmpty(item.Vendor) ? "Microsoft" : item.Vendor)</td>
+                                <td class="px-3 py-2 text-[10px] text-gray-500 truncate">@(string.IsNullOrEmpty(item.PatchType) ? "Security Update" : item.PatchType)</td>
+                                <td class="px-3 py-2 patch-name-cell">
+                                    <div class="text-gray-900 font-medium truncate max-w-md" title="@item.PatchName">@item.PatchName</div>
+                                    @if (!string.IsNullOrEmpty(item.PatchDescription))
+                                    {
+                                        <div class="text-[9px] text-gray-400 truncate max-w-md mt-0.5" title="@item.PatchDescription">@item.PatchDescription</div>
+                                    }
+                                </td>
+                                <td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded-full text-[8px] font-bold @sc truncate">@item.Severity</span></td>
+                                <td class="px-3 py-2 text-[10px] text-gray-400 truncate">@item.DateTime.ToString("MMM dd, yyyy")</td>
                             </tr>
                         }
                     </tbody>
@@ -202,18 +229,23 @@
         const DOMAIN_IDS = '@domainids'.split(',').filter(s => !!s);
         let activeActions = {};
 
-        function saveActions() {
+        const DEPLOY_STORAGE_KEY = `BranchPatch_Deployments_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
+        const ACTIONS_STORAGE_KEY = `BranchPatch_Actions_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
+
+        function saveDeploymentsToStorage() {
+            localStorage.setItem(DEPLOY_STORAGE_KEY, JSON.stringify(activeDeployments));
+            localStorage.setItem(ACTIONS_STORAGE_KEY, JSON.stringify(activeActions));
         }
 
         function registerAction(ids) {
             activeActions[ids] = true;
-            saveActions();
+            saveDeploymentsToStorage();
             updateButtonState();
         }
 
         function unregisterAction(ids) {
             delete activeActions[ids];
-            saveActions();
+            saveDeploymentsToStorage();
             updateButtonState();
         }
 
@@ -232,6 +264,15 @@
         // SignalR Connection
         let hubConnection = null;
         let machineNames = {}; // Map domain -> machineName
+        let activeDeployments = {}; // Key: "DEVICE_PATCHNAME" -> { device, patchName, status }
+
+        function updateProgressPercent() {
+            const keys = Object.keys(activeDeployments);
+            if (!keys.length) return;
+            const completed = keys.filter(k => activeDeployments[k].status !== 'In Progress').length;
+            const pct = Math.round((completed / keys.length) * 100);
+            document.getElementById('activeProgressPct').textContent = `${pct}%`;
+        }
 
         async function initHub() {
             const apiBase = (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.apiBaseUrl) || '';
@@ -241,17 +282,108 @@
                 .build();
 
             hubConnection.on('SendinstallReasultUpdate', (computerName, softwareName, isSuccess) => {
-                const upperComp = computerName.toUpperCase();
-                const isMatch = DOMAIN_IDS.some(d => d.toUpperCase() === upperComp || (machineNames[d] && machineNames[d].toUpperCase() === upperComp));
+                const upperComp = (computerName || '').trim().toUpperCase();
+                const upperSoft = (softwareName || '').trim().toUpperCase();
                 
-                if (isMatch) {
-                    const status = isSuccess ? 'success' : 'error';
-                    sysAlert(`Deployment to ${computerName} ${isSuccess ? 'Successful' : 'Failed'}: ${softwareName}`, status);
+                // Find matching active deployment key
+                const key = `${upperComp}_${upperSoft}`;
+                if (activeDeployments[key]) {
+                    const entry = activeDeployments[key];
+                    entry.status = isSuccess ? 'Success' : 'Failed';
+                    saveDeploymentsToStorage();
                     
-                    // Unregister all active actions on any matching result to unlock the UI
-                    Object.keys(activeActions).forEach(key => {
-                        unregisterAction(key);
+                    // Update console panel item
+                    const consoleElId = `console_${key.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    const consoleEl = document.getElementById(consoleElId);
+                    if (consoleEl) {
+                        const statusBadge = consoleEl.querySelector('.status-badge');
+                        if (isSuccess) {
+                            consoleEl.classList.remove('text-slate-300');
+                            consoleEl.classList.add('text-emerald-400');
+                            statusBadge.className = 'status-badge flex items-center gap-1 text-emerald-400 font-bold';
+                            statusBadge.innerHTML = '<i class="fas fa-check text-[8px]"></i> COMPLETED';
+                        } else {
+                            consoleEl.classList.remove('text-slate-300');
+                            consoleEl.classList.add('text-rose-400');
+                            statusBadge.className = 'status-badge flex items-center gap-1 text-rose-400 font-bold';
+                            statusBadge.innerHTML = '<i class="fas fa-times text-[8px]"></i> FAILED';
+                        }
+                    }
+
+                    // Update inline row status badge in table using class selector
+                    document.querySelectorAll(`.patch-row[data-patchname="${softwareName}"]`).forEach(row => {
+                        const tdName = row.querySelector('.patch-name-cell');
+                        if (tdName) {
+                            const badge = tdName.querySelector('.deployment-row-status');
+                            if (badge) {
+                                if (isSuccess) {
+                                    badge.className = 'deployment-row-status inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-medium bg-green-50 text-green-700 border border-green-200';
+                                    badge.innerHTML = '<i class="fas fa-check"></i> Completed';
+                                    
+                                    // Smoothly fade and remove the row
+                                    setTimeout(() => {
+                                        row.style.transition = 'all 0.5s ease';
+                                        row.style.opacity = '0';
+                                        setTimeout(() => {
+                                            row.remove();
+                                            updateCounts();
+                                        }, 500);
+                                    }, 2000);
+                                } else {
+                                    badge.className = 'deployment-row-status inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-medium bg-red-50 text-red-700 border border-red-200';
+                                    badge.innerHTML = '<i class="fas fa-times"></i> Failed';
+                                }
+                            }
+                        }
                     });
+
+                    updateProgressPercent();
+
+                    // Check if all are finished
+                    const keys = Object.keys(activeDeployments);
+                    const completedCount = keys.filter(k => activeDeployments[k].status !== 'In Progress').length;
+                    if (completedCount === keys.length) {
+                        const successes = keys.filter(k => activeDeployments[k].status === 'Success').length;
+                        sysAlert(`Deployment Completed! Successfully installed ${successes}/${keys.length} updates.`, successes === keys.length ? 'success' : 'warning');
+                        
+                        // Wait 5 seconds, then hide the progress console
+                        setTimeout(() => {
+                            document.getElementById('activeDeploymentsPanel').classList.add('hidden');
+                            localStorage.removeItem(DEPLOY_STORAGE_KEY);
+                            localStorage.removeItem(ACTIONS_STORAGE_KEY);
+                        }, 5000);
+
+                        // Clear active actions to re-enable button
+                        Object.keys(activeActions).forEach(actKey => {
+                            unregisterAction(actKey);
+                        });
+                    }
+                } else {
+                    // Fallback for general signalr alerts if it wasn't triggered by this user's tab session
+                    const isMatch = DOMAIN_IDS.some(d => {
+                        const cleanD = (d || '').trim().toUpperCase();
+                        const cleanMachine = (machineNames[d] || '').trim().toUpperCase();
+                        return cleanD === upperComp || (cleanMachine && cleanMachine === upperComp);
+                    });
+                    
+                    if (isMatch) {
+                        const status = isSuccess ? 'success' : 'error';
+                        sysAlert(`Deployment to ${computerName} ${isSuccess ? 'Successful' : 'Failed'}: ${softwareName}`, status);
+                        
+                        if (isSuccess) {
+                            document.querySelectorAll(`.patch-row[data-patchname="${softwareName}"]`).forEach(row => {
+                                row.style.transition = 'all 0.5s ease';
+                                row.style.opacity = '0';
+                                setTimeout(() => {
+                                    row.remove();
+                                    updateCounts();
+                                }, 500);
+                            });
+                        }
+                        Object.keys(activeActions).forEach(actKey => {
+                            unregisterAction(actKey);
+                        });
+                    }
                 }
             });
 
@@ -316,17 +448,178 @@
             updateSel();
         }
 
-        function deployPatches() {
-            const ids = [];
-            document.querySelectorAll('.rowCheck:checked').forEach(c => ids.push(c.value));
-            if (!ids.length) { sysAlert('Please select at least one patch!', 'warning'); return; }
+        function restoreActiveDeployments() {
+            const savedDeploy = localStorage.getItem(DEPLOY_STORAGE_KEY);
+            const savedActions = localStorage.getItem(ACTIONS_STORAGE_KEY);
+            
+            if (savedDeploy) {
+                try {
+                    activeDeployments = JSON.parse(savedDeploy);
+                } catch(e) {
+                    activeDeployments = {};
+                }
+            }
+            if (savedActions) {
+                try {
+                    activeActions = JSON.parse(savedActions);
+                } catch(e) {
+                    activeActions = {};
+                }
+            }
 
+            const keys = Object.keys(activeDeployments);
+            if (keys.length > 0) {
+                const panel = document.getElementById('activeDeploymentsPanel');
+                if (panel) panel.classList.remove('hidden');
+                
+                const listEl = document.getElementById('activeDeploymentsList');
+                if (listEl) listEl.innerHTML = '';
+                
+                keys.forEach(k => {
+                    const entry = activeDeployments[k];
+                    
+                    const itemEl = document.createElement('div');
+                    itemEl.id = `console_${k.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    
+                    let badgeHtml = '';
+                    if (entry.status === 'In Progress') {
+                        itemEl.className = 'py-1 flex items-center justify-between text-slate-300';
+                        badgeHtml = `
+                            <span class="status-badge flex items-center gap-1 text-cyan-400 font-semibold animate-pulse">
+                                <i class="fas fa-circle-notch fa-spin text-[8px]"></i> IN PROCESS
+                            </span>
+                        `;
+                        
+                        // Add inline badge to row using class selector
+                        document.querySelectorAll(`.patch-row[data-patchname="${entry.patchName}"]`).forEach(row => {
+                            const tdName = row.querySelector('.patch-name-cell');
+                            if (tdName) {
+                                const existing = tdName.querySelector('.deployment-row-status');
+                                if (existing) existing.remove();
+
+                                const badge = document.createElement('span');
+                                badge.className = 'deployment-row-status inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse';
+                                badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Installing';
+                                tdName.appendChild(badge);
+                            }
+                        });
+                    } else if (entry.status === 'Success') {
+                        itemEl.className = 'py-1 flex items-center justify-between text-emerald-400';
+                        badgeHtml = `
+                            <span class="status-badge flex items-center gap-1 text-emerald-400 font-bold">
+                                <i class="fas fa-check text-[8px]"></i> COMPLETED
+                            </span>
+                        `;
+                    } else if (entry.status === 'Failed') {
+                        itemEl.className = 'py-1 flex items-center justify-between text-rose-400';
+                        badgeHtml = `
+                            <span class="status-badge flex items-center gap-1 text-rose-400 font-bold">
+                                <i class="fas fa-times text-[8px]"></i> FAILED
+                            </span>
+                        `;
+                    } else {
+                        itemEl.className = 'py-1 flex items-center justify-between text-slate-500';
+                        badgeHtml = `
+                            <span class="status-badge flex items-center gap-1 text-slate-500 font-bold">
+                                <i class="fas fa-ban text-[8px]"></i> OFFLINE
+                            </span>
+                        `;
+                    }
+                    
+                    itemEl.innerHTML = `
+                        <div class="flex items-center gap-2 truncate">
+                            <span class="text-cyan-400 font-bold">[${entry.device}]</span>
+                            <span class="text-slate-400 truncate max-w-sm" title="${entry.patchName}">${entry.patchName}</span>
+                        </div>
+                        ${badgeHtml}
+                    `;
+                    if (listEl) listEl.appendChild(itemEl);
+                });
+                
+                updateProgressPercent();
+                updateButtonState();
+
+                // If everything is already finished, hide the panel after 5 seconds
+                const completedCount = keys.filter(k => activeDeployments[k].status !== 'In Progress').length;
+                if (completedCount === keys.length) {
+                    setTimeout(() => {
+                        if (panel) panel.classList.add('hidden');
+                        localStorage.removeItem(DEPLOY_STORAGE_KEY);
+                        localStorage.removeItem(ACTIONS_STORAGE_KEY);
+                    }, 5000);
+                }
+            }
+        }
+
+        function deployPatches() {
+            const selectedChecks = Array.from(document.querySelectorAll('.rowCheck:checked'));
+            if (!selectedChecks.length) { sysAlert('Please select at least one patch!', 'warning'); return; }
+
+            const ids = selectedChecks.map(c => c.value);
             const idStr = ids.join(',');
             registerAction(idStr);
+
+            // Clear selection keys on computer management selection page immediately
+            const selStorageKey = `BranchPatch_Selection_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
+            localStorage.removeItem(selStorageKey + '_Ids');
+            localStorage.removeItem(selStorageKey + '_Domains');
+            localStorage.removeItem(selStorageKey + '_Names');
+
+            // Initialize active deployments progress panel
+            activeDeployments = {};
+            const listEl = document.getElementById('activeDeploymentsList');
+            listEl.innerHTML = '';
+            document.getElementById('activeDeploymentsPanel').classList.remove('hidden');
+
+            selectedChecks.forEach(c => {
+                const row = c.closest('tr');
+                const patchName = row.dataset.patchname;
+                
+                // Add inline row loading badge to name cell using class selector
+                const tdName = row.querySelector('.patch-name-cell');
+                if (tdName) {
+                    const existing = tdName.querySelector('.deployment-row-status');
+                    if (existing) existing.remove();
+
+                    const badge = document.createElement('span');
+                    badge.className = 'deployment-row-status inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse';
+                    badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Installing';
+                    tdName.appendChild(badge);
+                }
+
+                // Register tracking entries
+                DOMAIN_IDS.forEach(device => {
+                    const cleanDev = device.trim().toUpperCase();
+                    const key = `${cleanDev}_${patchName.trim().toUpperCase()}`;
+                    activeDeployments[key] = {
+                        device: device.trim(),
+                        patchName: patchName.trim(),
+                        status: 'In Progress'
+                    };
+
+                    const itemEl = document.createElement('div');
+                    itemEl.id = `console_${key.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    itemEl.className = 'py-1 flex items-center justify-between text-slate-300';
+                    itemEl.innerHTML = `
+                        <div class="flex items-center gap-2 truncate">
+                            <span class="text-cyan-400 font-bold">[${device.trim()}]</span>
+                            <span class="text-slate-400 truncate max-w-sm" title="${patchName}">${patchName}</span>
+                        </div>
+                        <span class="status-badge flex items-center gap-1 text-cyan-400 font-semibold animate-pulse">
+                            <i class="fas fa-circle-notch fa-spin text-[8px]"></i> IN PROCESS
+                        </span>
+                    `;
+                    listEl.appendChild(itemEl);
+                });
+            });
+
+            updateProgressPercent();
+            saveDeploymentsToStorage();
+
             const safetyTimer = setTimeout(() => {
                 if (activeActions[idStr]) {
                     unregisterAction(idStr);
-                    sysAlert('Deploy request timed out. Check device connectivity and try again.', 'warning');
+                    sysAlert('Deploy request safety timeout reached. Check device connectivity.', 'warning');
                 }
             }, 90 * 1000);
 
@@ -346,15 +639,43 @@
                 success: function(res) {
                     clearTimeout(safetyTimer);
                     if (res.success) {
-                        var msg = res.message || 'Windows updates deployment initiated!';
+                        var targetComp = DOMAIN_IDS.length > 0 ? DOMAIN_IDS.join(', ') : 'the selected device(s)';
+                        var msg = `Deployment command sent successfully! 🚀 The installation has started in the background on ${targetComp}. You will receive a final confirmation notification here shortly when the update completes.`;
                         if (res.offlineClients && res.offlineClients.length > 0) {
-                            msg += ' (' + res.offlineClients.length + ' device(s) offline)';
+                            msg += ` (Note: ${res.offlineClients.length} device(s) are offline and did not receive the command).`;
+                            
+                            res.offlineClients.forEach(offDev => {
+                                const cleanOff = offDev.trim().toUpperCase();
+                                selectedChecks.forEach(c => {
+                                    const row = c.closest('tr');
+                                    const patchName = row.dataset.patchname;
+                                    const key = `${cleanOff}_${patchName.trim().toUpperCase()}`;
+                                    if (activeDeployments[key]) {
+                                        activeDeployments[key].status = 'Failed';
+                                        
+                                        const consoleElId = `console_${key.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                                        const consoleEl = document.getElementById(consoleElId);
+                                        if (consoleEl) {
+                                            consoleEl.classList.remove('text-slate-300');
+                                            consoleEl.classList.add('text-slate-500');
+                                            const statusBadge = consoleEl.querySelector('.status-badge');
+                                            statusBadge.className = 'status-badge flex items-center gap-1 text-slate-500 font-bold';
+                                            statusBadge.innerHTML = '<i class="fas fa-ban text-[8px]"></i> OFFLINE';
+                                        }
+                                    }
+                                });
+                            });
+                            updateProgressPercent();
+                            saveDeploymentsToStorage();
                         }
                         sysAlert(msg, 'success');
                     } else { 
                         sysAlert(res.message || res.error || 'Deployment failed. Devices may be offline.', 'error');
+                        document.getElementById('activeDeploymentsPanel').classList.add('hidden');
+                        unregisterAction(idStr);
+                        localStorage.removeItem(DEPLOY_STORAGE_KEY);
+                        localStorage.removeItem(ACTIONS_STORAGE_KEY);
                     }
-                    unregisterAction(idStr);
                 },
                 error: function(xhr) {
                     clearTimeout(safetyTimer);
@@ -362,13 +683,48 @@
                                  xhr.status === 408 ? 'Request timed out — API may be busy.' :
                                  'Server error (' + xhr.status + '): ' + (xhr.statusText || 'Unknown');
                     sysAlert(errMsg, 'error');
+                    document.getElementById('activeDeploymentsPanel').classList.add('hidden');
                     unregisterAction(idStr);
+                    localStorage.removeItem(DEPLOY_STORAGE_KEY);
+                    localStorage.removeItem(ACTIONS_STORAGE_KEY);
                 }
             });
         }
 
+        function updateCounts() {
+            const rows = Array.from(document.querySelectorAll('.patch-row'));
+            const total = rows.length;
+            
+            const critical = rows.filter(r => r.dataset.severity === 'Critical').length;
+            const important = rows.filter(r => r.dataset.severity === 'Important').length;
+            const other = total - critical - important;
+
+            const tEl = document.getElementById('totalCount');
+            if (tEl) tEl.textContent = total;
+
+            const cEl = document.getElementById('criticalCount');
+            if (cEl) cEl.textContent = critical;
+
+            const iEl = document.getElementById('importantCount');
+            if (iEl) iEl.textContent = important;
+
+            const oEl = document.getElementById('otherCount');
+            if (oEl) oEl.textContent = other;
+
+            const visCount = document.getElementById('visCount');
+            if (visCount) visCount.textContent = total;
+
+            updateButtonState();
+
+            if (total === 0) {
+                setTimeout(() => { location.reload(); }, 1000);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            initHub();
+            initHub().then(() => {
+                restoreActiveDeployments();
+            });
             resolveMachineNames();
             updateButtonState();
             filterTable();
