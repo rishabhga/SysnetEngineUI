@@ -42,7 +42,7 @@ $(document).ready(function () {
     actualDomainName = $('#domainName').val() || domaindata;
 
     if (!domaindata) {
-        console.error("Domain ID not found – skipping data load");
+        console.error("Domain ID not found ï¿½ skipping data load");
         return;
     }
 
@@ -225,7 +225,7 @@ function initializeAllTables() {
     ]);
 
     initTable('#installersTable', `/ComputerSummary/InstallationSoft?domain=${domaindata}`, [
-        { data: null, render: (row) => flexRender(row, 'FileName', 'Name') },
+        { data: null, render: (row) => flexRender(row, 'SoftwareName', 'FileName', 'Name') },
         { data: null, render: (row) => flexRender(row, 'Version') },
         {
             data: null,
@@ -686,7 +686,7 @@ function uninstallSoftware(softwareName) {
     }).then(function (result) {
         if (!result.isConfirmed) return;
 
-        sysAlert('Sending uninstall command…', 'info');
+        sysAlert('Sending uninstall commandï¿½', 'info');
 
         $.ajax({
             url: '/ComputerSummary/Uninstallsoftware?domain=' + encodeURIComponent(actualDomainName),
@@ -695,7 +695,7 @@ function uninstallSoftware(softwareName) {
             data: JSON.stringify({ softwareName: softwareName }),
             success: function (res) {
                 if (res && res.status === 'success') {
-                    sysAlert('Uninstall command sent. Checking status…', 'info');
+                    sysAlert('Uninstall command sent. Checking statusï¿½', 'info');
                     pollUninstallStatus(softwareName, 0);
                 } else {
                     sysAlert('Uninstall failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
@@ -710,7 +710,7 @@ function uninstallSoftware(softwareName) {
 
 function pollUninstallStatus(softwareName, attempt) {
     if (attempt > 10) {
-        sysAlert('Uninstall status unknown – check the device manually.', 'warning');
+        sysAlert('Uninstall status unknown ï¿½ check the device manually.', 'warning');
         reloadTable('#desktopAppsTable');
         return;
     }
@@ -748,7 +748,7 @@ function installSoftware(fileName) {
     }).then(function (result) {
         if (!result.isConfirmed) return;
 
-        sysAlert('Sending install command…', 'info');
+        sysAlert('Sending install commandï¿½', 'info');
 
         $.ajax({
             url: '/ComputerSummary/PatchUpdate?domain=' + encodeURIComponent(actualDomainName),
@@ -757,7 +757,7 @@ function installSoftware(fileName) {
             data: JSON.stringify({ softwareName: fileName }),
             success: function (res) {
                 if (res && res.status === 'success') {
-                    sysAlert('Install command sent. Checking status…', 'info');
+                    sysAlert('Install command sent. Checking statusï¿½', 'info');
                     pollInstallStatus(fileName, 0);
                 } else {
                     sysAlert('Install failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
@@ -772,7 +772,7 @@ function installSoftware(fileName) {
 
 function pollInstallStatus(fileName, attempt) {
     if (attempt > 12) {
-        sysAlert('Install status unknown – check the device manually.', 'warning');
+        sysAlert('Install status unknown ï¿½ check the device manually.', 'warning');
         reloadTable('#installersTable');
         reloadTable('#desktopAppsTable');
         return;
@@ -814,7 +814,7 @@ function installPatch(patchId, patchName) {
     }).then(function (result) {
         if (!result.isConfirmed) return;
 
-        sysAlert('Sending patch command…', 'info');
+        sysAlert('Sending patch commandï¿½', 'info');
         $.ajax({
             url: '/ComputerSummary/PatchUpdate?domain=' + encodeURIComponent(actualDomainName),
             type: 'POST',
@@ -822,7 +822,7 @@ function installPatch(patchId, patchName) {
             data: JSON.stringify({ softwareName: displayName }),
             success: function (res) {
                 if (res && res.status === 'success') {
-                    sysAlert('Patch command sent. Checking status…', 'info');
+                    sysAlert('Patch command sent. Checking statusï¿½', 'info');
                     pollInstallStatus(displayName, 0);  
                 } else {
                     sysAlert('Patch failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');

@@ -808,15 +808,23 @@
 
     function submitStatusAction(newStatus) {
         if (newStatus==='Rejected') {
-            const remarks = $('#rejectRemarks').val();
-            if(!remarks){ sysAlert('Please provide rejection reason','warning'); return; }
-            doStatusUpdate(newStatus, remarks);
+            submitReject();
         } else if (newStatus==='Approved') { submitApprove();
         } else { $('#newStatusValue').val(newStatus); $('#statusPriority').val(currentPriority); openModal('statusModal'); }
     }
 
     function executeStatusUpdate() {
         doStatusUpdate($('#newStatusValue').val(), $('#statusRemarks').val()||'Status updated', $('#statusPriority').val(), $('#statusCategory').val());
+    }
+
+    function submitReject() {
+        const remarks = $('#rejectRemarks').val();
+        if(!remarks){ sysAlert('Please provide rejection reason','warning'); return; }
+        closeModal('rejectModal');
+        $.ajax({ url:'@Url.Action("RejectTicket","ServiceDesk")', type:'POST', contentType:'application/json',
+            data: JSON.stringify({ ticketId, remarks, username:currentUser }),
+            success: function(res){ if(res.success) location.reload(); else sysAlert(res.message,'error'); }
+        });
     }
 
     function submitApprove() {

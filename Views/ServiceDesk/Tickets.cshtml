@@ -702,7 +702,7 @@
             const isOpen = status === 'OPEN' || status === 'NEW' || status === 'PENDING';
             const isApproved = status === 'APPROVED';
             const isAssigned = status === 'ASSIGNED';
-            const isInProgress = status === 'INPROGRESS' || status === 'WORKING';
+            const isInProgress = status === 'INPROGRESS' || status === 'IN_PROGRESS' || status === 'WORKING';
             const isRejected = status === 'REJECTED';
 
             if (isOpen && canApprove) {

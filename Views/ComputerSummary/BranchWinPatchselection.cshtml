@@ -226,7 +226,7 @@
 @section Scripts {
     <script>
         const PAGE_TYPE = '@(ViewData["Title"].ToString().Contains("Windows") ? "WinPatch" : "ThirdPartyPatch")';
-        const DOMAIN_IDS = '@domainids'.split(',').filter(s => !!s);
+        const DOMAIN_IDS = '@domainids'.split(',').map(s => s.trim()).filter(s => !!s);
         let activeActions = {};
 
         const DEPLOY_STORAGE_KEY = `BranchPatch_Deployments_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
@@ -285,15 +285,26 @@
                 const upperComp = (computerName || '').trim().toUpperCase();
                 const upperSoft = (softwareName || '').trim().toUpperCase();
                 
-                // Find matching active deployment key
-                const key = `${upperComp}_${upperSoft}`;
-                if (activeDeployments[key]) {
-                    const entry = activeDeployments[key];
+                // Find matching active deployment key by checking exact match or prefix/domain split match
+                let matchedKey = null;
+                for (const key in activeDeployments) {
+                    const [devPart, softPart] = key.split('_');
+                    if (softPart === upperSoft) {
+                        const devNameOnly = devPart.split('.')[0];
+                        if (devPart === upperComp || devNameOnly === upperComp || upperComp.split('.')[0] === devNameOnly) {
+                            matchedKey = key;
+                            break;
+                        }
+                    }
+                }
+                
+                if (matchedKey) {
+                    const entry = activeDeployments[matchedKey];
                     entry.status = isSuccess ? 'Success' : 'Failed';
                     saveDeploymentsToStorage();
                     
                     // Update console panel item
-                    const consoleElId = `console_${key.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    const consoleElId = `console_${matchedKey.replace(/[^a-zA-Z0-9]/g, '_')}`;
                     const consoleEl = document.getElementById(consoleElId);
                     if (consoleEl) {
                         const statusBadge = consoleEl.querySelector('.status-badge');
@@ -467,6 +478,24 @@
                 }
             }
 
+            // Prune stuck deployments (older than 15 minutes or missing timestamp)
+            const now = Date.now();
+            let dirty = false;
+            for (const key in activeDeployments) {
+                const entry = activeDeployments[key];
+                if (!entry.timestamp || (now - entry.timestamp > 900000)) {
+                    delete activeDeployments[key];
+                    dirty = true;
+                }
+            }
+            if (dirty) {
+                if (Object.keys(activeDeployments).length === 0) {
+                    activeDeployments = {};
+                    activeActions = {};
+                }
+                saveDeploymentsToStorage();
+            }
+
             const keys = Object.keys(activeDeployments);
             if (keys.length > 0) {
                 const panel = document.getElementById('activeDeploymentsPanel');
@@ -594,7 +623,8 @@
                     activeDeployments[key] = {
                         device: device.trim(),
                         patchName: patchName.trim(),
-                        status: 'In Progress'
+                        status: 'In Progress',
+                        timestamp: Date.now()
                     };
 
                     const itemEl = document.createElement('div');

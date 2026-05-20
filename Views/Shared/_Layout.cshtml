@@ -1311,12 +1311,7 @@
             };
 
             $(document).on('keydown', '#chatInput', function(e) { if (e.which===13&&!e.shiftKey){e.preventDefault();sendChatMessage();} });
-
-            var _ctrl = '@currentController';
-            var _act  = '@currentAction';
-            if (_ctrl === 'ComputerSummary' && _act === 'Deshboad') {
-                $(document).ready(function() { window.setupChatSignalR(); });
-            }
+            $(document).ready(function() { window.setupChatSignalR(); });
 
         })();
     </script>
