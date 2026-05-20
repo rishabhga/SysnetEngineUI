@@ -257,8 +257,14 @@
                                                 <option value="@location.LocationId" 
                                                         data-name="@location.LocationName"
                                                         data-cpu="@location.CpuThreshold"
+                                                        data-cpu-warn="@location.CpuWarningThreshold"
+                                                        data-cpu-info="@location.CpuInfoThreshold"
                                                         data-ram="@location.RamThreshold"
+                                                        data-ram-warn="@location.RamWarningThreshold"
+                                                        data-ram-info="@location.RamInfoThreshold"
                                                         data-disk="@location.DiskThreshold"
+                                                        data-disk-warn="@location.DiskWarningThreshold"
+                                                        data-disk-info="@location.DiskInfoThreshold"
                                                         data-critical="@location.IsCritical.ToString().ToLower()">
                                                     @location.LocationName
                                                 </option>
@@ -425,22 +431,26 @@
                 <label class="block text-xs font-medium text-gray-700 mb-1.5">
                     Resource Thresholds (%)
                 </label>
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <p class="text-[9px] text-gray-500 mb-1 uppercase font-bold">CPU</p>
-                        <input type="number" id="editLocationCpu" step="0.1"
-                               class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 outline-none" />
-                    </div>
-                    <div>
-                        <p class="text-[9px] text-gray-500 mb-1 uppercase font-bold">RAM</p>
-                        <input type="number" id="editLocationRam" step="0.1"
-                               class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 outline-none" />
-                    </div>
-                    <div>
-                        <p class="text-[9px] text-gray-500 mb-1 uppercase font-bold">Disk</p>
-                        <input type="number" id="editLocationDisk" step="0.1"
-                               class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 outline-none" />
-                    </div>
+                <div class="grid grid-cols-4 gap-2 text-center items-center">
+                    <div></div>
+                    <div class="text-[9px] text-gray-500 uppercase font-bold">Critical</div>
+                    <div class="text-[9px] text-gray-500 uppercase font-bold">Warning</div>
+                    <div class="text-[9px] text-gray-500 uppercase font-bold">Info</div>
+
+                    <div class="text-[9px] text-gray-500 uppercase font-bold text-left">CPU</div>
+                    <input type="number" id="editLocationCpu" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationCpuWarn" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationCpuInfo" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+
+                    <div class="text-[9px] text-gray-500 uppercase font-bold text-left">RAM</div>
+                    <input type="number" id="editLocationRam" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationRamWarn" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationRamInfo" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+
+                    <div class="text-[9px] text-gray-500 uppercase font-bold text-left">Disk</div>
+                    <input type="number" id="editLocationDisk" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationDiskWarn" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationDiskInfo" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
                 </div>
                 <p class="text-[9px] text-gray-400 mt-1 italic">Leave empty for defaults</p>
             </div>
@@ -559,23 +569,35 @@
             const locationId = selectedOption.value;
             const locationName = selectedOption.getAttribute('data-name');
             const cpu = selectedOption.getAttribute('data-cpu');
+            const cpuWarn = selectedOption.getAttribute('data-cpu-warn');
+            const cpuInfo = selectedOption.getAttribute('data-cpu-info');
             const ram = selectedOption.getAttribute('data-ram');
+            const ramWarn = selectedOption.getAttribute('data-ram-warn');
+            const ramInfo = selectedOption.getAttribute('data-ram-info');
             const disk = selectedOption.getAttribute('data-disk');
+            const diskWarn = selectedOption.getAttribute('data-disk-warn');
+            const diskInfo = selectedOption.getAttribute('data-disk-info');
             const critical = selectedOption.getAttribute('data-critical');
 
             if (locationId) {
-                openEditLocationModal(locationId, locationName, groupId, companyId, cpu, ram, disk, critical);
+                openEditLocationModal(locationId, locationName, groupId, companyId, cpu, cpuWarn, cpuInfo, ram, ramWarn, ramInfo, disk, diskWarn, diskInfo, critical);
                 selectElement.selectedIndex = 0;
             }
         }
-        function openEditLocationModal(locationId, locationName, groupId, companyId, cpu, ram, disk, critical) {
+        function openEditLocationModal(locationId, locationName, groupId, companyId, cpu, cpuWarn, cpuInfo, ram, ramWarn, ramInfo, disk, diskWarn, diskInfo, critical) {
             document.getElementById('editLocationId').value = locationId;
             document.getElementById('editLocationGroupId').value = groupId;
             document.getElementById('editLocationCompanyId').value = companyId;
             document.getElementById('editLocationName').value = locationName;
             document.getElementById('editLocationCpu').value = cpu || '';
+            document.getElementById('editLocationCpuWarn').value = cpuWarn || '';
+            document.getElementById('editLocationCpuInfo').value = cpuInfo || '';
             document.getElementById('editLocationRam').value = ram || '';
+            document.getElementById('editLocationRamWarn').value = ramWarn || '';
+            document.getElementById('editLocationRamInfo').value = ramInfo || '';
             document.getElementById('editLocationDisk').value = disk || '';
+            document.getElementById('editLocationDiskWarn').value = diskWarn || '';
+            document.getElementById('editLocationDiskInfo').value = diskInfo || '';
             document.getElementById('editLocationCritical').checked = (critical === 'true');
             document.getElementById('editLocationModal').classList.add('active');
         }
@@ -594,8 +616,14 @@
             const companyId = document.getElementById('editLocationCompanyId').value;
 
             const cpu = document.getElementById('editLocationCpu').value;
+            const cpuWarn = document.getElementById('editLocationCpuWarn').value;
+            const cpuInfo = document.getElementById('editLocationCpuInfo').value;
             const ram = document.getElementById('editLocationRam').value;
+            const ramWarn = document.getElementById('editLocationRamWarn').value;
+            const ramInfo = document.getElementById('editLocationRamInfo').value;
             const disk = document.getElementById('editLocationDisk').value;
+            const diskWarn = document.getElementById('editLocationDiskWarn').value;
+            const diskInfo = document.getElementById('editLocationDiskInfo').value;
             const isCritical = document.getElementById('editLocationCritical').checked;
 
             if (!locationName) {
@@ -618,8 +646,14 @@
                     GroupsID: parseInt(groupId),
                     CompanyID: parseInt(companyId),
                     CpuThreshold: cpu ? parseFloat(cpu) : null,
+                    CpuWarningThreshold: cpuWarn ? parseFloat(cpuWarn) : null,
+                    CpuInfoThreshold: cpuInfo ? parseFloat(cpuInfo) : null,
                     RamThreshold: ram ? parseFloat(ram) : null,
+                    RamWarningThreshold: ramWarn ? parseFloat(ramWarn) : null,
+                    RamInfoThreshold: ramInfo ? parseFloat(ramInfo) : null,
                     DiskThreshold: disk ? parseFloat(disk) : null,
+                    DiskWarningThreshold: diskWarn ? parseFloat(diskWarn) : null,
+                    DiskInfoThreshold: diskInfo ? parseFloat(diskInfo) : null,
                     IsCritical: isCritical
                 }),
                 success: function() {

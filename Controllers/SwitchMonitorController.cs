@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Net.Http.Json;         
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 using ManageEngineWebApp.Datacontext;
@@ -12,15 +12,21 @@ using ManageEngineWebApp.Attributes;
 namespace ManageEngineWebApp.Controllers
 {
     [AuthFilter]
-    public class SwitchMonitorController : BaseController
+    public class SwitchMonitorController : Controller
     {
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly string _baseUrl;
+
         public SwitchMonitorController(IHttpClientFactory httpClientFactory, IConfiguration config)
-            : base(httpClientFactory, config)
         {
+            _httpClientFactory = httpClientFactory;
+            _baseUrl = config["ApiSettings:BaseUrl"];
         }
 
+        private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
+
         [DynamicPermission("SwitchMonitor.View", "View Switch Monitor")]
-        public async Task<IActionResult> Index(int? companyid = null, int? groupid = null, int? locationid = null)
+        public async Task<IActionResult> Index()
         {
             var switches = new List<SwitchMaster>();
             var deviceStatuses = new Dictionary<int, DeviceStatus>();
@@ -56,80 +62,7 @@ namespace ManageEngineWebApp.Controllers
                             deviceStatuses[ds.SwitchMasterId] = ds;
                 }
             }
-            catch {  }
-
-            // Apply Hierarchy Scoping
-            var allowedLocationIds = new HashSet<int>();
-            bool hasFilter = false;
-
-            if (locationid.HasValue && locationid.Value > 0)
-            {
-                allowedLocationIds.Add(locationid.Value);
-                hasFilter = true;
-            }
-            else if (groupid.HasValue && groupid.Value > 0)
-            {
-                var hierarchy = await LoadHierarchyAsync();
-                var grp = hierarchy.SelectMany(c => c.Groups).FirstOrDefault(g => g.GroupId == groupid.Value);
-                if (grp != null)
-                {
-                    foreach (var loc in grp.Locations)
-                    {
-                        allowedLocationIds.Add(loc.LocationId);
-                    }
-                }
-                hasFilter = true;
-            }
-            else if (companyid.HasValue && companyid.Value > 0)
-            {
-                var hierarchy = await LoadHierarchyAsync();
-                var com = hierarchy.FirstOrDefault(c => c.CompanyId == companyid.Value);
-                if (com != null)
-                {
-                    foreach (var grp in com.Groups)
-                    {
-                        foreach (var loc in grp.Locations)
-                        {
-                            allowedLocationIds.Add(loc.LocationId);
-                        }
-                    }
-                }
-                hasFilter = true;
-            }
-            else
-            {
-                // Fallback to the user's allowed scope if not a super admin
-                var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
-                if (userCompanyIds.Any() || userGroupIds.Any() || userLocationIds.Any())
-                {
-                    var hierarchy = await LoadHierarchyAsync();
-                    var allowedComs = hierarchy;
-                    if (userCompanyIds.Any())
-                    {
-                        allowedComs = allowedComs.Where(c => userCompanyIds.Contains(c.CompanyId)).ToList();
-                    }
-                    var allowedGroups = allowedComs.SelectMany(c => c.Groups);
-                    if (userGroupIds.Any())
-                    {
-                        allowedGroups = allowedGroups.Where(g => userGroupIds.Contains(g.GroupId));
-                    }
-                    var allowedLocs = allowedGroups.SelectMany(g => g.Locations);
-                    if (userLocationIds.Any())
-                    {
-                        allowedLocs = allowedLocs.Where(l => userLocationIds.Contains(l.LocationId));
-                    }
-                    foreach (var loc in allowedLocs)
-                    {
-                        allowedLocationIds.Add(loc.LocationId);
-                    }
-                    hasFilter = true;
-                }
-            }
-
-            if (hasFilter)
-            {
-                switches = switches.Where(s => s.LocationId.HasValue && allowedLocationIds.Contains(s.LocationId.Value)).ToList();
-            }
+            catch { }
 
             ViewBag.DeviceStatuses = deviceStatuses;
             return View(switches);
@@ -194,44 +127,21 @@ namespace ManageEngineWebApp.Controllers
             });
         }
 
-       
+
         [DynamicPermission("SwitchMonitor.Create", "Create Switch")]
-        public async Task<IActionResult> Create()
+        public IActionResult Create()
         {
-            using var client = GetClient();
-            var locations = new List<Locations>();
-            try
-            {
-                var locResponse = await client.GetAsync($"{_baseUrl}/api/Location/get-all-location");
-                if (locResponse.IsSuccessStatusCode)
-                {
-                    var json = await locResponse.Content.ReadAsStringAsync();
-                    locations = JsonSerializer.Deserialize<List<Locations>>(json,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                        ?? new List<Locations>();
-                }
-            }
-            catch { }
-
-            var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
-            if (userLocationIds.Any())
-            {
-                locations = locations.Where(l => userLocationIds.Contains(l.Id)).ToList();
-            }
-
-            ViewBag.Locations = locations;
             return PartialView("_SwitchForm", new SwitchMaster
             {
                 IsActive = true,
                 DeviceType = "Switch",
-                Community = "public",
-                PollingMode = "Auto"
+                Community = "public"
             });
         }
 
-       
+
         [HttpPost]
-        [IgnoreAntiforgeryToken] 
+        [IgnoreAntiforgeryToken]
         [DynamicPermission("SwitchMonitor.Create", "Create Switch")]
         public async Task<IActionResult> Create([FromBody] SwitchMaster model)
         {
@@ -262,32 +172,10 @@ namespace ManageEngineWebApp.Controllers
             catch { }
 
             if (sw == null) return NotFound();
-
-            var locations = new List<Locations>();
-            try
-            {
-                var locResponse = await client.GetAsync($"{_baseUrl}/api/Location/get-all-location");
-                if (locResponse.IsSuccessStatusCode)
-                {
-                    var json = await locResponse.Content.ReadAsStringAsync();
-                    locations = JsonSerializer.Deserialize<List<Locations>>(json,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                        ?? new List<Locations>();
-                }
-            }
-            catch { }
-
-            var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
-            if (userLocationIds.Any())
-            {
-                locations = locations.Where(l => userLocationIds.Contains(l.Id)).ToList();
-            }
-
-            ViewBag.Locations = locations;
             return PartialView("_SwitchForm", sw);
         }
 
- 
+
         [HttpPost]
         [IgnoreAntiforgeryToken]
         [DynamicPermission("SwitchMonitor.Edit", "Edit Switch")]
@@ -296,7 +184,7 @@ namespace ManageEngineWebApp.Controllers
             if (model == null)
                 return Json(new { success = false, message = "Invalid data." });
 
-            model.Id = id; 
+            model.Id = id;
             using var client = GetClient();
             try
             {
@@ -333,7 +221,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]   
+        [ValidateAntiForgeryToken]
         [DynamicPermission("SwitchMonitor.Action", "Trigger Poll")]
         public async Task<IActionResult> TriggerPoll()
         {
@@ -352,22 +240,6 @@ namespace ManageEngineWebApp.Controllers
             }
 
             return RedirectToAction(nameof(Index));
-        }
-
-        [HttpPost]
-        [DynamicPermission("SwitchMonitor.Poll", "Poll Switches")]
-        public async Task<IActionResult> TriggerSitePoll(int locationId)
-        {
-            using var client = GetClient();
-            var response = await client.GetAsync($"{_baseUrl}/api/Zabbix/PollByLocation?locationId={locationId}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                TempData["Message"] = $"Site polling triggered for location {locationId}.";
-                return Json(new { success = true });
-            }
-
-            return Json(new { success = false, message = "Failed to trigger site poll." });
         }
     }
 }

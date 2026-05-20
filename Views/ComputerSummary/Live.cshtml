@@ -508,9 +508,26 @@
     const img = document.getElementById("remoteImage");
     img.addEventListener("mousemove", function(e) {
         if (currentState !== 'connected') return;
+        
         const rect = img.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        const nw = img.naturalWidth, nh = img.naturalHeight;
+        if (!nw || !nh) return;
+        
+        const scale = Math.min(rect.width / nw, rect.height / nh);
+        const renderedWidth = nw * scale;
+        const renderedHeight = nh * scale;
+        
+        const offsetX = (rect.width - renderedWidth) / 2;
+        const offsetY = (rect.height - renderedHeight) / 2;
+        
+        const imgX = e.clientX - rect.left - offsetX;
+        const imgY = e.clientY - rect.top - offsetY;
+        
+        if (imgX < 0 || imgX > renderedWidth || imgY < 0 || imgY > renderedHeight) return;
+        
+        const x = (imgX / renderedWidth) * 100;
+        const y = (imgY / renderedHeight) * 100;
+        
         pendingMouseMove = { x, y };
         if (!mouseThrottleTimer) {
             mouseThrottleTimer = setTimeout(() => {

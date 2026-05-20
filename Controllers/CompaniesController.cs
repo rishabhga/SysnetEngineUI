@@ -350,7 +350,7 @@ namespace ManageEngineWebApp.Controllers
                     return File(bytes, contentType);
                 }
 
-                Console.WriteLine($"[Logo] Failed to fetch: {targetUrl} — Status: {response.StatusCode}");
+                Console.WriteLine($"[Logo] Failed to fetch: {targetUrl} ï¿½ Status: {response.StatusCode}");
             }
             catch (Exception ex)
             {
@@ -594,13 +594,15 @@ namespace ManageEngineWebApp.Controllers
 
                 if (jsonResponse != null && jsonResponse.success == true && jsonResponse.downloadUrl != null)
                 {
-                    var physicalPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "installersoftware", "Output", "setup.exe");
-                    if (System.IO.File.Exists(physicalPath))
+                    string downloadUrl = jsonResponse.downloadUrl.ToString();
+                    var fileResponse = await client.GetAsync($"{_baseUrl}{downloadUrl}");
+                    
+                    if (fileResponse.IsSuccessStatusCode)
                     {
-                        byte[] fileBytes = System.IO.File.ReadAllBytes(physicalPath);
-                        return File(fileBytes, "application/octet-stream", "setup.exe");
+                        var stream = await fileResponse.Content.ReadAsStreamAsync();
+                        return File(stream, "application/octet-stream", "setup.exe");
                     }
-                    return NotFound("File not found.");
+                    return NotFound("File not found on backend server.");
                 }
                 return Json(jsonResponse);
             }

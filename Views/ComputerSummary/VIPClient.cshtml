@@ -838,21 +838,51 @@
                 </div>
                 <div class="form-group" style="margin-top: 10px;">
                     <label class="form-label" style="display:flex; justify-content:space-between;">
-                        <span>Custom Thresholds (%)</span>
+                        <span>Custom Thresholds (%) - Critical, Warning, Info</span>
                         <span style="font-weight:normal; text-transform:none; opacity:0.7;">Optional</span>
                     </label>
                     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
-                        <div class="form-field-wrap">
-                            <i class="fas fa-microchip"></i>
-                            <input type="number" id="vipCpu" step="0.1" min="0" max="100" class="form-input" placeholder="CPU">
+                        <div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-microchip"></i>
+                                <input type="number" id="vipCpu" step="0.1" min="0" max="100" class="form-input" placeholder="CPU Crit">
+                            </div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-microchip" style="color: #cbd5e1;"></i>
+                                <input type="number" id="vipCpuWarn" step="0.1" min="0" max="100" class="form-input" placeholder="CPU Warn">
+                            </div>
+                            <div class="form-field-wrap">
+                                <i class="fas fa-microchip" style="color: #cbd5e1;"></i>
+                                <input type="number" id="vipCpuInfo" step="0.1" min="0" max="100" class="form-input" placeholder="CPU Info">
+                            </div>
                         </div>
-                        <div class="form-field-wrap">
-                            <i class="fas fa-memory" style="color: #cbd5e1;"></i>
-                            <input type="number" id="vipRam" step="0.1" min="0" max="100" class="form-input" placeholder="RAM">
+                        <div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-memory"></i>
+                                <input type="number" id="vipRam" step="0.1" min="0" max="100" class="form-input" placeholder="RAM Crit">
+                            </div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-memory" style="color: #cbd5e1;"></i>
+                                <input type="number" id="vipRamWarn" step="0.1" min="0" max="100" class="form-input" placeholder="RAM Warn">
+                            </div>
+                            <div class="form-field-wrap">
+                                <i class="fas fa-memory" style="color: #cbd5e1;"></i>
+                                <input type="number" id="vipRamInfo" step="0.1" min="0" max="100" class="form-input" placeholder="RAM Info">
+                            </div>
                         </div>
-                        <div class="form-field-wrap">
-                            <i class="fas fa-hdd" style="color: #cbd5e1;"></i>
-                            <input type="number" id="vipDisk" step="0.1" min="0" max="100" class="form-input" placeholder="Disk">
+                        <div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-hdd"></i>
+                                <input type="number" id="vipDisk" step="0.1" min="0" max="100" class="form-input" placeholder="Disk Crit">
+                            </div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-hdd" style="color: #cbd5e1;"></i>
+                                <input type="number" id="vipDiskWarn" step="0.1" min="0" max="100" class="form-input" placeholder="Disk Warn">
+                            </div>
+                            <div class="form-field-wrap">
+                                <i class="fas fa-hdd" style="color: #cbd5e1;"></i>
+                                <input type="number" id="vipDiskInfo" step="0.1" min="0" max="100" class="form-input" placeholder="Disk Info">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -889,17 +919,47 @@
                         <span style="font-weight:normal; text-transform:none; opacity:0.7;">Optional</span>
                     </label>
                     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
-                        <div class="form-field-wrap">
-                            <i class="fas fa-microchip"></i>
-                            <input type="number" id="locCpu" step="0.1" min="0" max="100" class="form-input" placeholder="CPU">
+                        <div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-microchip"></i>
+                                <input type="number" id="locCpu" step="0.1" min="0" max="100" class="form-input" placeholder="CPU Crit">
+                            </div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-microchip" style="color: #cbd5e1;"></i>
+                                <input type="number" id="locCpuWarn" step="0.1" min="0" max="100" class="form-input" placeholder="CPU Warn">
+                            </div>
+                            <div class="form-field-wrap">
+                                <i class="fas fa-microchip" style="color: #cbd5e1;"></i>
+                                <input type="number" id="locCpuInfo" step="0.1" min="0" max="100" class="form-input" placeholder="CPU Info">
+                            </div>
                         </div>
-                        <div class="form-field-wrap">
-                            <i class="fas fa-memory" style="color: #cbd5e1;"></i>
-                            <input type="number" id="locRam" step="0.1" min="0" max="100" class="form-input" placeholder="RAM">
+                        <div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-memory"></i>
+                                <input type="number" id="locRam" step="0.1" min="0" max="100" class="form-input" placeholder="RAM Crit">
+                            </div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-memory" style="color: #cbd5e1;"></i>
+                                <input type="number" id="locRamWarn" step="0.1" min="0" max="100" class="form-input" placeholder="RAM Warn">
+                            </div>
+                            <div class="form-field-wrap">
+                                <i class="fas fa-memory" style="color: #cbd5e1;"></i>
+                                <input type="number" id="locRamInfo" step="0.1" min="0" max="100" class="form-input" placeholder="RAM Info">
+                            </div>
                         </div>
-                        <div class="form-field-wrap">
-                            <i class="fas fa-hdd" style="color: #cbd5e1;"></i>
-                            <input type="number" id="locDisk" step="0.1" min="0" max="100" class="form-input" placeholder="Disk">
+                        <div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-hdd"></i>
+                                <input type="number" id="locDisk" step="0.1" min="0" max="100" class="form-input" placeholder="Disk Crit">
+                            </div>
+                            <div class="form-field-wrap mb-1">
+                                <i class="fas fa-hdd" style="color: #cbd5e1;"></i>
+                                <input type="number" id="locDiskWarn" step="0.1" min="0" max="100" class="form-input" placeholder="Disk Warn">
+                            </div>
+                            <div class="form-field-wrap">
+                                <i class="fas fa-hdd" style="color: #cbd5e1;"></i>
+                                <input type="number" id="locDiskInfo" step="0.1" min="0" max="100" class="form-input" placeholder="Disk Info">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -966,27 +1026,28 @@
             modal.removeClass('shown');
             setTimeout(() => {
                 modal.removeClass('visible');
-                $('#locCpu').val('');
-                $('#locRam').val('');
-                $('#locDisk').val('');
+                $('#locCpu, #locCpuWarn, #locCpuInfo').val('');
+                $('#locRam, #locRamWarn, #locRamInfo').val('');
+                $('#locDisk, #locDiskWarn, #locDiskInfo').val('');
             }, 280);
         }
 
         function confirmLocationCriticality() {
             const cpu = $('#locCpu').val();
+            const cpuWarn = $('#locCpuWarn').val();
+            const cpuInfo = $('#locCpuInfo').val();
             const ram = $('#locRam').val();
+            const ramWarn = $('#locRamWarn').val();
+            const ramInfo = $('#locRamInfo').val();
             const disk = $('#locDisk').val();
+            const diskWarn = $('#locDiskWarn').val();
+            const diskInfo = $('#locDiskInfo').val();
             
-            if ((cpu && (cpu < 0 || cpu > 100)) || (ram && (ram < 0 || ram > 100)) || (disk && (disk < 0 || disk > 100))) {
-                sysAlert('Thresholds must be between 0 and 100', 'error');
-                return;
-            }
-            
-            submitLocationCriticality(true, cpu, ram, disk);
+            submitLocationCriticality(true, cpu, cpuWarn, cpuInfo, ram, ramWarn, ramInfo, disk, diskWarn, diskInfo);
             closeLocationModal();
         }
 
-        function submitLocationCriticality(isCritical, cpu, ram, disk) {
+        function submitLocationCriticality(isCritical, cpu, cpuWarn, cpuInfo, ram, ramWarn, ramInfo, disk, diskWarn, diskInfo) {
             const icon = $('#locationCrownIcon');
             icon.addClass('fa-spin');
 
@@ -1001,8 +1062,14 @@
                     CompanyID: companyId,
                     LocationName: '@Html.Raw(ViewBag.LocationName)',
                     CpuThreshold: cpu ? parseFloat(cpu) : null,
+                    CpuWarningThreshold: cpuWarn ? parseFloat(cpuWarn) : null,
+                    CpuInfoThreshold: cpuInfo ? parseFloat(cpuInfo) : null,
                     RamThreshold: ram ? parseFloat(ram) : null,
-                    DiskThreshold: disk ? parseFloat(disk) : null
+                    RamWarningThreshold: ramWarn ? parseFloat(ramWarn) : null,
+                    RamInfoThreshold: ramInfo ? parseFloat(ramInfo) : null,
+                    DiskThreshold: disk ? parseFloat(disk) : null,
+                    DiskWarningThreshold: diskWarn ? parseFloat(diskWarn) : null,
+                    DiskInfoThreshold: diskInfo ? parseFloat(diskInfo) : null
                 }),
                 success: function() {
                     isLocationCritical = isCritical;
@@ -1142,9 +1209,9 @@
                 modal.removeClass('visible');
                 $('#clientId').val('');
                 $('#clientName').val('');
-                $('#vipCpu').val('');
-                $('#vipRam').val('');
-                $('#vipDisk').val('');
+                $('#vipCpu, #vipCpuWarn, #vipCpuInfo').val('');
+                $('#vipRam, #vipRamWarn, #vipRamInfo').val('');
+                $('#vipDisk, #vipDiskWarn, #vipDiskInfo').val('');
             }, 280);
         }
 
@@ -1160,13 +1227,14 @@
             }
 
             const vipCpu = $('#vipCpu').val();
+            const vipCpuWarn = $('#vipCpuWarn').val();
+            const vipCpuInfo = $('#vipCpuInfo').val();
             const vipRam = $('#vipRam').val();
+            const vipRamWarn = $('#vipRamWarn').val();
+            const vipRamInfo = $('#vipRamInfo').val();
             const vipDisk = $('#vipDisk').val();
-
-            if ((vipCpu && (vipCpu < 0 || vipCpu > 100)) || (vipRam && (vipRam < 0 || vipRam > 100)) || (vipDisk && (vipDisk < 0 || vipDisk > 100))) {
-                showToast('Thresholds must be between 0 and 100', 'error');
-                return;
-            }
+            const vipDiskWarn = $('#vipDiskWarn').val();
+            const vipDiskInfo = $('#vipDiskInfo').val();
 
             $.ajax({
                 url: '@Url.Action("AddCriticalClient", "ComputerSummary")',
@@ -1179,8 +1247,14 @@
                     GroupsID: groupId,
                     LocationID: locationId,
                     CpuThreshold: vipCpu ? parseFloat(vipCpu) : null,
+                    CpuWarningThreshold: vipCpuWarn ? parseFloat(vipCpuWarn) : null,
+                    CpuInfoThreshold: vipCpuInfo ? parseFloat(vipCpuInfo) : null,
                     RamThreshold: vipRam ? parseFloat(vipRam) : null,
-                    DiskThreshold: vipDisk ? parseFloat(vipDisk) : null
+                    RamWarningThreshold: vipRamWarn ? parseFloat(vipRamWarn) : null,
+                    RamInfoThreshold: vipRamInfo ? parseFloat(vipRamInfo) : null,
+                    DiskThreshold: vipDisk ? parseFloat(vipDisk) : null,
+                    DiskWarningThreshold: vipDiskWarn ? parseFloat(vipDiskWarn) : null,
+                    DiskInfoThreshold: vipDiskInfo ? parseFloat(vipDiskInfo) : null
                 }),
                 success: function(response) {
                     if (response && response.success) {

@@ -417,12 +417,30 @@ const RemoteSession = (function () {
         const now = Date.now();
         if (now - lastMouseSend < CONFIG.MOUSE_THROTTLE) return;
         lastMouseSend = now;
+        
         const rect = elements.remoteImage.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / elements.remoteImage.clientWidth) * 100;
-        const y = ((e.clientY - rect.top) / elements.remoteImage.clientHeight) * 100;
+        const img = elements.remoteImage;
+        const nw = img.naturalWidth, nh = img.naturalHeight;
+        if (!nw || !nh) return;
+        
+        const scale = Math.min(rect.width / nw, rect.height / nh);
+        const renderedWidth = nw * scale;
+        const renderedHeight = nh * scale;
+        
+        const offsetX = (rect.width - renderedWidth) / 2;
+        const offsetY = (rect.height - renderedHeight) / 2;
+        
+        const imgX = e.clientX - rect.left - offsetX;
+        const imgY = e.clientY - rect.top - offsetY;
+        
+        if (imgX < 0 || imgX > renderedWidth || imgY < 0 || imgY > renderedHeight) return;
+        
+        const x = (imgX / renderedWidth) * 100;
+        const y = (imgY / renderedHeight) * 100;
+        
         fetch(`${apiBase}/SendMouseMove?domain=${domain}&x=${x}&y=${y}`).catch(() => { });
     }
-    function handleLeftClick() {
+    function handleLeftClick(e) {
         if (currentState === 'connected') {
             fetch(`${apiBase}/SendLeftClick?domain=${domain}`).catch(() => { });
         }

@@ -11,7 +11,15 @@ namespace ManageEngineWebApp.Models
         public int? LocationID { get; set; }
         public string Source { get; set; }
         public double? CpuThreshold { get; set; }
+        public double? CpuWarningThreshold { get; set; }
+        public double? CpuInfoThreshold { get; set; }
+
         public double? RamThreshold { get; set; }
+        public double? RamWarningThreshold { get; set; }
+        public double? RamInfoThreshold { get; set; }
+
         public double? DiskThreshold { get; set; }
+        public double? DiskWarningThreshold { get; set; }
+        public double? DiskInfoThreshold { get; set; }
     }
 }

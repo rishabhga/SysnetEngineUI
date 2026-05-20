@@ -285,7 +285,16 @@ namespace ManageEngineWebApp.Controllers
                     ClientName = criticalClient.ClientName,
                     CompanyID = criticalClient.CompanyID,
                     GroupsID = criticalClient.GroupsID,
-                    LocationID = criticalClient.LocationID
+                    LocationID = criticalClient.LocationID,
+                    CpuThreshold = criticalClient.CpuThreshold,
+                    CpuWarningThreshold = criticalClient.CpuWarningThreshold,
+                    CpuInfoThreshold = criticalClient.CpuInfoThreshold,
+                    RamThreshold = criticalClient.RamThreshold,
+                    RamWarningThreshold = criticalClient.RamWarningThreshold,
+                    RamInfoThreshold = criticalClient.RamInfoThreshold,
+                    DiskThreshold = criticalClient.DiskThreshold,
+                    DiskWarningThreshold = criticalClient.DiskWarningThreshold,
+                    DiskInfoThreshold = criticalClient.DiskInfoThreshold
                 };
                 string jsonData = JsonConvert.SerializeObject(dto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
