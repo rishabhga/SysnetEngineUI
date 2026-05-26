@@ -670,7 +670,7 @@
                     clearTimeout(safetyTimer);
                     if (res.success) {
                         var targetComp = DOMAIN_IDS.length > 0 ? DOMAIN_IDS.join(', ') : 'the selected device(s)';
-                        var msg = `Deployment command sent successfully! 🚀 The installation has started in the background on ${targetComp}. You will receive a final confirmation notification here shortly when the update completes.`;
+                        var msg = `Deployment command sent successfully!  The installation has started in the background on ${targetComp}. You will receive a final confirmation notification here shortly when the update completes.`;
                         if (res.offlineClients && res.offlineClients.length > 0) {
                             msg += ` (Note: ${res.offlineClients.length} device(s) are offline and did not receive the command).`;
                             
