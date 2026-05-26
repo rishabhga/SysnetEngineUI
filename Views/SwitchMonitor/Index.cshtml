@@ -3,8 +3,28 @@
     ViewData["Title"] = "Switch Monitor";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var statuses = ViewBag.DeviceStatuses as Dictionary<int, ManageEngineWebApp.Models.DeviceStatus>;
+    var dbUsers = ViewBag.DashboardUsers as Dictionary<string, ManageEngineWebApp.Models.WindowsUserDetails>;
     int totalUp = statuses?.Values.Count(s => s.Status == "Up") ?? 0;
     int totalDown = statuses?.Values.Count(s => s.Status != "Up" && s.Status != null) ?? 0;
+
+    // Pre-compute header title and breadcrumb
+    string headerTitle = "Switch Monitor";
+    string breadcrumbText = "";
+    bool hasScope = ViewBag.CompanyId != null || ViewBag.GroupId != null || ViewBag.LocationId != null;
+    string locName = ViewBag.LocationName as string;
+    string grpName = ViewBag.GroupName as string;
+    string comName = ViewBag.CompanyName as string;
+    if (!string.IsNullOrEmpty(locName)) { headerTitle = locName; }
+    else if (!string.IsNullOrEmpty(grpName)) { headerTitle = grpName; }
+    else if (!string.IsNullOrEmpty(comName)) { headerTitle = comName; }
+    if (hasScope)
+    {
+        var bParts = new System.Collections.Generic.List<string>();
+        if (!string.IsNullOrEmpty(comName)) bParts.Add(comName);
+        if (!string.IsNullOrEmpty(grpName)) bParts.Add(grpName);
+        if (!string.IsNullOrEmpty(locName)) bParts.Add(locName);
+        breadcrumbText = string.Join(" › ", bParts);
+    }
 }
 
 <style>
@@ -52,28 +72,64 @@
 
 <div class="max-w-full mx-auto px-4 py-3">
 
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-        <div>
-            <h1 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <i class="fas fa-network-wired text-[#00BCEB]"></i> Switch Monitor
-            </h1>
-            <p class="text-[11px] text-gray-400 mt-0.5 uppercase font-bold tracking-wider">SNMP INFRASTRUCTURE</p>
+    <!-- Compact Header -->
+    <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center space-x-2">
+            @if (ViewBag.CompanyId != null || ViewBag.GroupId != null || ViewBag.LocationId != null)
+            {
+                string backUrl = "/Companies/Companies";
+                string backTitle = "Back to Companies";
+
+                if (ViewBag.LocationId != null && ViewBag.LocationId > 0)
+                {
+                    backUrl = $"/ComputerSummary/Deshboad?locationId={ViewBag.LocationId}&locationName={Uri.EscapeDataString(ViewBag.LocationName ?? string.Empty)}&groupid={ViewBag.GroupId}&groupName={Uri.EscapeDataString(ViewBag.GroupName ?? string.Empty)}&comId={ViewBag.CompanyId}&companyName={Uri.EscapeDataString(ViewBag.CompanyName ?? string.Empty)}";
+                    backTitle = "Back to Dashboard";
+                }
+                else if (ViewBag.GroupId != null && ViewBag.GroupId > 0)
+                {
+                    backUrl = $"/Companies/GroupsDetails?id={ViewBag.CompanyId}&companyName={Uri.EscapeDataString(ViewBag.CompanyName ?? string.Empty)}";
+                    backTitle = "Back to Groups";
+                }
+
+                <a href="@backUrl"
+                   class="w-6 h-6 bg-white border border-gray-200 hover:bg-gray-50 rounded-md flex items-center justify-center transition shadow-sm"
+                   title="@backTitle">
+                    <i class="fas fa-arrow-left text-gray-600 text-[10px]"></i>
+                </a>
+            }
+
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm bg-gradient-to-r from-[#00BCEB] to-[#0096BE]">
+                    <i class="fas fa-network-wired text-white text-xs"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold text-gray-900 leading-tight">@headerTitle</h1>
+                    @if (hasScope)
+                    {
+                        <p class="text-[9px] text-gray-500 font-medium">@breadcrumbText</p>
+                    }
+                    else
+                    {
+                        <p class="text-[9px] text-gray-400 uppercase font-bold tracking-wider leading-none">SNMP INFRASTRUCTURE</p>
+                    }
+                </div>
+            </div>
         </div>
-        <div class="flex gap-3 flex-wrap">
+
+        <div class="flex gap-2 flex-wrap items-center">
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Create"))
             {
                 <button onclick="openAddSwitchModal()"
-                        class="px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-2 text-sm font-medium">
+                        class="px-3 py-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-1.5 text-xs font-semibold">
                     <i class="fas fa-plus"></i> Add Switch
                 </button>
             }
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Poll"))
             {
-                <form asp-action="TriggerPoll" method="post" id="pollForm">
+                <form asp-action="TriggerPoll" method="post" id="pollForm" class="m-0">
                     @Html.AntiForgeryToken()
                     <button type="submit" id="pollBtn"
-                            class="px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-2 text-sm font-medium">
+                            class="px-3 py-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-1.5 text-xs font-semibold">
                         <i class="fas fa-sync-alt" id="pollIcon"></i>
                         <span id="pollText">Poll Now</span>
                     </button>
@@ -126,6 +182,7 @@
             var uptime = status?.UpTime ?? "—";
             var portCount = status?.Ports?.Count ?? 0;
             var portsUp = status?.Ports?.Count(p => p.PortState == "Up") ?? 0;
+            var dbUser = dbUsers != null && !string.IsNullOrEmpty(sw.DeviceName) && dbUsers.ContainsKey(sw.DeviceName) ? dbUsers[sw.DeviceName] : null;
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden card-hover flex flex-col">
                 <!-- Card Header -->
@@ -147,6 +204,23 @@
 
                 <!-- Card Body -->
                 <div class="px-4 py-3 space-y-2 text-sm flex-1">
+                    @if (dbUser != null)
+                    {
+                        <div class="flex items-center gap-2 p-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg mb-2">
+                            <div class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-user-shield text-blue-600 text-xs"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs font-bold text-gray-900 truncate">
+                                    @(string.IsNullOrEmpty(dbUser.UserName) ? "System User" : dbUser.UserName)
+                                </p>
+                                <p class="text-[9px] text-gray-500 truncate">
+                                    @dbUser.AccountType @(!string.IsNullOrEmpty(dbUser.FullName) ? $"({dbUser.FullName})" : "")
+                                </p>
+                            </div>
+                        </div>
+                    }
+
                     <div class="flex justify-between text-gray-600">
                         <span>Community</span>
                         <span class="font-mono text-gray-800 bg-gray-50 px-1.5 rounded text-xs">@(sw.Community ?? "public")</span>
@@ -234,7 +308,7 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="p-6">
+        <div class="p-4">
             <div id="modalBody">
                 <div class="flex justify-center py-8">
                     <i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i>
@@ -309,7 +383,7 @@
         document.getElementById('modalBody').innerHTML =
             '<div class="flex justify-center py-8"><i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i></div>';
         openModal('switchModal');
-        fetch('/SwitchMonitor/Create')
+        fetch(`/SwitchMonitor/Create?comId=@ViewBag.CompanyId&groupId=@ViewBag.GroupId&locationId=@ViewBag.LocationId`)
             .then(res => {
                 if (!res.ok) throw new Error('Failed to load form');
                 return res.text();
@@ -327,17 +401,42 @@
         document.getElementById('modalBody').innerHTML =
             '<div class="flex justify-center py-8"><i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i></div>';
         openModal('switchModal');
-        fetch(`/SwitchMonitor/Edit/${id}`)
+        fetch(`/SwitchMonitor/Edit/${id}?comId=@ViewBag.CompanyId&groupId=@ViewBag.GroupId&locationId=@ViewBag.LocationId`)
             .then(res => {
                 if (!res.ok) throw new Error('Failed to load form');
                 return res.text();
             })
-            .then(html => { document.getElementById('modalBody').innerHTML = html; })
+            .then(html => { 
+                document.getElementById('modalBody').innerHTML = html; 
+                const selectEl = document.getElementById('DeviceNameSelect');
+                if (selectEl && selectEl.value) {
+                    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            })
             .catch(err => {
                 document.getElementById('modalBody').innerHTML =
                     `<p class="text-red-500 text-sm"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;
             });
     }
+
+    document.getElementById('modalBody').addEventListener('change', function(e) {
+        if (e.target && e.target.id === 'DeviceNameSelect') {
+            const selectEl = e.target;
+            const inputEl = document.getElementById('DeviceNameInput');
+            const locEl = document.getElementById('LocationId');
+            
+            const selected = selectEl.options[selectEl.selectedIndex];
+            if (selected && selected.value) {
+                if (inputEl) inputEl.value = selected.value;
+                const locId = selected.getAttribute('data-location-id');
+                if (locEl && locId) {
+                    locEl.value = locId;
+                }
+            } else {
+                if (inputEl) inputEl.value = '';
+            }
+        }
+    });
 
     document.getElementById('modalSaveBtn').addEventListener('click', function () {
         const btn = this;
