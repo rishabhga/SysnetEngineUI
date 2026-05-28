@@ -50,8 +50,13 @@ namespace ManageEngineWebApp.Controllers
         // Removed datalist global property for thread safety. Use local variables.
 
         [HttpGet]
-        public async Task<IActionResult> AllDatapage(string domain)
+        public async Task<IActionResult> AllDatapage(string q = null, string domain = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                domain = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
+            }
+
             var localDatalist = new List<WindowsUserDetails>();
             try
             {

@@ -199,7 +199,7 @@
                                     }
 
                                     <div class="flex items-center justify-between p-1.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-1.5">
-                                        <a href="/ComputerSummary/Deshboad?locationId=@location.LocationId&locationName=@location.LocationName&groupid=@group.GroupId&groupName=@group.GroupName&comId=@Model.CompanyId&companyName=@Model.CompanyName"
+                                        <a href="/ComputerSummary/Deshboad?q=@ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(Newtonsoft.Json.JsonConvert.SerializeObject(new { locationId = location.LocationId, locationName = location.LocationName, groupid = group.GroupId, groupName = group.GroupName, comId = Model.CompanyId, companyName = Model.CompanyName }))"
                                            class="flex items-center space-x-1.5 flex-1 min-w-0">
                                             <div class="w-6 h-6 bg-orange-100 rounded flex items-center justify-center">
                                                 <i class="fas fa-map-marker-alt text-orange-600 text-[10px]"></i>

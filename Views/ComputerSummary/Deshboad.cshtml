@@ -149,6 +149,7 @@
 
                 <div class="device-card bg-white rounded-md shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-all duration-200 @(isActive ? "js-is-online" : "js-is-offline")"
                      data-domain="@item.DomainName"
+                     data-enc-domain="@ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(item.DomainName)"
                      data-status="@(isActive ? "online" : "offline")"
                      data-device-id="@item.Id">
 
@@ -168,7 +169,7 @@
                                      data-company-id="@item.CompanyId" data-group-id="@item.GroupId" data-location-id="@item.LocationId">
                                     <div class="display-name-section">
                                         <div class="flex items-center space-x-1">
-                                            <a href="/ComputerSummary/Index?domain=@item.UserCode"
+                                            <a href="/ComputerSummary/Index?q=@ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(item.UserCode)"
                                                class="text-[10px] font-bold text-gray-900 transition-colors truncate" style="text-decoration:none;"
                                                title="@item.UserName">
                                                 @(string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName)
@@ -1498,7 +1499,8 @@
 
         $('.remote-link').on('click', function() {
             if (!$(this).prop('disabled')) {
-                window.location.href = '@Url.Action("Live", "ComputerSummary")?domain=' + $(this).data('domain');
+                var encDomain = $(this).closest('.device-card').data('enc-domain');
+                window.location.href = '@Url.Action("Live", "ComputerSummary")?q=' + encDomain;
             }
         });
 

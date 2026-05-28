@@ -59,9 +59,14 @@ namespace ManageEngineWebApp.Controllers
             return false;
         }
 
-        [AuthFilter]
-        public async Task<IActionResult> Index(string domain)
+        [AuthFilter(AllowedHierarchyLevel = 10, VerifyCompanyAccess = true)]
+        public async Task<IActionResult> Index(string q = null, string domain = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                domain = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
+            }
+
             if (!await IsDeviceAuthorized(domain)) return RedirectToAction("Index", "Home");
 
             using var client = GetClient();

@@ -265,7 +265,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = $"Connection error: {ex.Message}" });
+                return Json(new { success = false, message = $"Connection error: {"An internal server error occurred."}" });
             }
         }
 
@@ -307,7 +307,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = $"Connection error: {ex.Message}" });
+                return Json(new { success = false, message = $"Connection error: {"An internal server error occurred."}" });
             }
         }
 
@@ -327,7 +327,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = $"Connection error: {ex.Message}" });
+                return Json(new { success = false, message = $"Connection error: {"An internal server error occurred."}" });
             }
         }
 

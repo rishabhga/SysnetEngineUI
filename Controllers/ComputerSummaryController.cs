@@ -29,8 +29,27 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [DynamicPermission("ComputerSummary.View", "View Dashboard")]
-        public async Task<IActionResult> Deshboad(int locationId, string locationName, int groupid, string groupName, int comId, string companyName)
+        public async Task<IActionResult> Deshboad(string q = null, int locationId = 0, string locationName = null, int groupid = 0, string groupName = null, int comId = 0, string companyName = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                try
+                {
+                    var decrypted = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
+                    var payload = JsonConvert.DeserializeObject<dynamic>(decrypted);
+                    if (payload != null)
+                    {
+                        locationId = (int?)payload.locationId ?? locationId;
+                        locationName = (string)payload.locationName ?? locationName;
+                        groupid = (int?)payload.groupid ?? groupid;
+                        groupName = (string)payload.groupName ?? groupName;
+                        comId = (int?)payload.comId ?? comId;
+                        companyName = (string)payload.companyName ?? companyName;
+                    }
+                }
+                catch { return RedirectToAction("AccessDenied", "Auth"); }
+            }
+
             if (!IsAuthorized(comId, groupid, locationId)) return RedirectToAction("Index", "Home");
 
             ViewBag.CompanyName = companyName;
@@ -1135,7 +1154,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                return Json(new { success = false, error = "An internal server error occurred." });
             }
         }
 
@@ -1374,8 +1393,13 @@ namespace ManageEngineWebApp.Controllers
 
         public List<UserDetails> datalist { get; set; }
         [AuthFilter(AllowedHierarchyLevel = 10, VerifyCompanyAccess = true)]
-        public async Task<IActionResult> Index(string domain)
+        public async Task<IActionResult> Index(string q = null, string domain = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                domain = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
+            }
+
             if (string.IsNullOrEmpty(domain))
             {
                 return RedirectToAction("Companies", "Companies");
@@ -2749,7 +2773,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error uninstalling software: {ex.Message}");
+                return BadRequest($"Error uninstalling software: {"An internal server error occurred."}");
             }
         }
 
@@ -3831,7 +3855,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                return Json(new { success = false, error = "An internal server error occurred." });
             }
         }
 
@@ -3867,7 +3891,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                return Json(new { success = false, error = "An internal server error occurred." });
             }
         }
 
@@ -3902,7 +3926,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                return Json(new { success = false, error = "An internal server error occurred." });
             }
         }
 

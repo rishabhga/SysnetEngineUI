@@ -99,7 +99,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, errors = new[] { $"Connection error: {ex.Message}" } });
+                return Json(new { success = false, errors = new[] { $"Connection error: {"An internal server error occurred."}" } });
             }
         }
     }

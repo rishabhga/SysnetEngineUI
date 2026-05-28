@@ -34,7 +34,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { error = ex.Message });
+                return Json(new { error = "An internal server error occurred." });
             }
         }
     }

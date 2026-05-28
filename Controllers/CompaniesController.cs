@@ -398,8 +398,23 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [DynamicPermission("Companies.View", "View Groups")]
-        public async Task<IActionResult> GroupsDetails(int id, string companyName)
+        public async Task<IActionResult> GroupsDetails(string q = null, int id = 0, string companyName = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                try
+                {
+                    var decrypted = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
+                    var payload = JsonConvert.DeserializeObject<dynamic>(decrypted);
+                    if (payload != null)
+                    {
+                        id = (int?)payload.id ?? id;
+                        companyName = (string)payload.companyName ?? companyName;
+                    }
+                }
+                catch { return RedirectToAction("AccessDenied", "Auth"); }
+            }
+
             if (!RoleHelper.ValidateScope(HttpContext, id))
                 return RedirectToAction("AccessDenied", "Auth");
 
@@ -486,8 +501,25 @@ namespace ManageEngineWebApp.Controllers
 
 
         [DynamicPermission("Companies.View", "View Locations")]
-        public async Task<IActionResult> LocationDetails(int id, int ComId, string Groupname, string companyname)
+        public async Task<IActionResult> LocationDetails(string q = null, int id = 0, int ComId = 0, string Groupname = null, string companyname = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                try
+                {
+                    var decrypted = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
+                    var payload = JsonConvert.DeserializeObject<dynamic>(decrypted);
+                    if (payload != null)
+                    {
+                        id = (int?)payload.id ?? id;
+                        ComId = (int?)payload.ComId ?? ComId;
+                        Groupname = (string)payload.Groupname ?? Groupname;
+                        companyname = (string)payload.companyname ?? companyname;
+                    }
+                }
+                catch { return RedirectToAction("AccessDenied", "Auth"); }
+            }
+
             if (!RoleHelper.ValidateScope(HttpContext, ComId, id))
                 return RedirectToAction("AccessDenied", "Auth");
 

@@ -895,7 +895,26 @@
             <nav class="sidebar-nav" aria-label="Sidebar navigation">
                 @{
                     var menuTree = await ManageEngineWebApp.Datacontext.RoleHelper.GetMenuTree(Context);
-                    var currentQuery = Context.Request.QueryString.HasValue ? Context.Request.QueryString.Value : "";
+                    var rawQuery = Context.Request.QueryString.HasValue ? Context.Request.QueryString.Value : "";
+                    var currentQuery = rawQuery;
+
+                    // Encrypt domain parameter to prevent exposing raw domain IDs
+                    if (!string.IsNullOrEmpty(rawQuery))
+                    {
+                        var qs = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(rawQuery);
+                        if (qs.ContainsKey("domain"))
+                        {
+                            var domainValue = qs["domain"].ToString();
+                            var encrypted = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(domainValue);
+                            currentQuery = "?q=" + System.Net.WebUtility.UrlEncode(encrypted);
+                        }
+                        else if (qs.ContainsKey("q"))
+                        {
+                            // Already encrypted, keep as-is
+                            currentQuery = rawQuery;
+                        }
+                    }
+
 
                     var filteredMenuTree = menuTree.Where(m =>
                     {
@@ -1030,7 +1049,10 @@
             </nav>
 
             <div class="sidebar-footer">
-
+                <a asp-controller="Auth" asp-action="ChangePassword" class="logout-link" style="color: #64748b; margin-bottom: 5px;">
+                    <i class="fas fa-key"></i>
+                    <span>Change Password</span>
+                </a>
                 <a asp-controller="Auth" asp-action="Logout" class="logout-link">
                     <i class="fas fa-arrow-right-from-bracket"></i>
                     <span>Sign Out</span>
