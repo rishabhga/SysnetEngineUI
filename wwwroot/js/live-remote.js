@@ -1,4 +1,4 @@
-﻿const RemoteSession = (function () {
+const RemoteSession = (function () {
     'use strict';
 
     const CONFIG = {
@@ -14,10 +14,8 @@
     let apiBase = '';
     let storageKey = '';
     let currentState = 'idle';  
-    let pollingInterval = null;
-    let countdownInterval = null;
-    let denialCheckInterval = null;
-    let remainingSeconds = CONFIG.REQUEST_TIMEOUT;
+    let isPolling = false;
+    let isCheckingDenial = false;
     let noImageCount = 0;
     let freshImageCount = 0;
     let lastImageHash = '';
@@ -101,7 +99,6 @@
                             remainingSeconds = timeLeft;
                             showWaitingUI();
                             startPolling();
-                            startCountdown();
                             startDenialCheck();
                             return;
                         }
@@ -110,7 +107,6 @@
                         remainingSeconds = 30;
                         showReconnectingUI();
                         startPolling();
-                        startCountdown();
                         return;
                     }
                 }
@@ -152,7 +148,6 @@
 
                 elements.mainText.textContent = 'Waiting...';
                 startPolling();
-                startCountdown();
                 startDenialCheck();
             })
             .catch(error => {
@@ -160,7 +155,8 @@
                 updateWaitingState('Request Failed', 'Could not contact device.', 'fa-times-circle text-red-400');
                 updateStatus('red', 'Failed');
                 clearSessionState();
-                setTimeout(() => resetToIdleState(), 3000);
+                resetToIdleState();
+
             });
     }
     function confirmRemoteStop() {
@@ -182,14 +178,33 @@
     }
 
     function startPolling() {
-        if (pollingInterval) return;
-        pollingInterval = setInterval(() => {
-            fetch(`${apiBase}/Remotemonitoring?domain=${domain}&_t=${Date.now()}`)
-                .then(r => r.json())
-                .then(handlePollingResponse)
-                .catch(handlePollingError);
-        }, CONFIG.POLL_INTERVAL);
+        if (isPolling) return;
+        isPolling = true;
+        pollNext();
     }
+
+    function pollNext() {
+        if (!isPolling || currentState === 'idle') {
+            isPolling = false;
+            return;
+        }
+
+        fetch(`${apiBase}/Remotemonitoring?domain=${domain}&_t=${Date.now()}`)
+            .then(r => r.json())
+            .then(data => {
+                handlePollingResponse(data);
+                if (isPolling) pollNext();
+            })
+            .catch(err => {
+                handlePollingError(err);
+                if (isPolling) pollNext();
+            });
+    }
+
+    function stopPolling() {
+        isPolling = false;
+    }
+
     function handlePollingResponse(data) {
         const imageData = data.image || data.ImageBase64 || data.imageBase64;
         if (imageData && imageData.length > 100) {
@@ -232,75 +247,40 @@
         if (!base64Data || base64Data.length < 200) return '';
         return base64Data.substring(0, 100) + base64Data.substring(base64Data.length - 100);
     }
-    function stopPolling() {
-        if (pollingInterval) {
-            clearInterval(pollingInterval);
-            pollingInterval = null;
-        }
-    }
+
  
-    function startCountdown() {
-        if (countdownInterval) clearInterval(countdownInterval);
 
-        elements.countdownContainer.classList.remove('hidden');
-        updateCountdownDisplay();
-
-        countdownInterval = setInterval(() => {
-            remainingSeconds--;
-            updateCountdownDisplay();
-            saveSessionState();
-
-            if (remainingSeconds <= 0) {
-                handleTimeout();
-            }
-        }, 1000);
-    }
-    function stopCountdown() {
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-        }
-        elements.countdownContainer.classList.add('hidden');
-    }
-    function updateCountdownDisplay() {
-        elements.countdownTimer.textContent = remainingSeconds;
-
-        if (remainingSeconds <= 10) {
-            elements.countdownTimer.classList.add('text-red-500');
-            elements.countdownTimer.classList.remove('text-yellow-400');
-        } else {
-            elements.countdownTimer.classList.add('text-yellow-400');
-            elements.countdownTimer.classList.remove('text-red-500');
-        }
-    }
-    function handleTimeout() {
-        stopAllIntervals();
-        clearSessionState();
-        showTimeoutModal('Request Timeout', 'The remote user did not respond within 60 seconds.', 'fa-clock', 'bg-yellow-500');
-        resetToIdleState();
-    }
 
     function startDenialCheck() {
-        if (denialCheckInterval) clearInterval(denialCheckInterval);
+        if (isCheckingDenial) return;
+        isCheckingDenial = true;
+        checkNextDenial();
+    }
 
-        denialCheckInterval = setInterval(() => {
-            fetch(`${apiBase}/CheckAccessStatus?domain=${domain}&_t=${Date.now()}`)
-                .then(r => r.json())
-                .then(res => {
-                    if (res.denied === true) {
-                        handleDenial();
-                    }
-                })
-                .catch(() => {
-                });
-        }, CONFIG.DENIAL_CHECK_INTERVAL);
-    }
-    function stopDenialCheck() {
-        if (denialCheckInterval) {
-            clearInterval(denialCheckInterval);
-            denialCheckInterval = null;
+    function checkNextDenial() {
+        if (!isCheckingDenial || currentState !== 'waiting') {
+            isCheckingDenial = false;
+            return;
         }
+
+        fetch(`${apiBase}/CheckAccessStatus?domain=${domain}&_t=${Date.now()}`)
+            .then(r => r.json())
+            .then(res => {
+                if (res.denied === true) {
+                    handleDenial();
+                } else if (isCheckingDenial) {
+                    checkNextDenial();
+                }
+            })
+            .catch(() => {
+                if (isCheckingDenial) checkNextDenial();
+            });
     }
+
+    function stopDenialCheck() {
+        isCheckingDenial = false;
+    }
+
     function handleDenial() {
         stopAllIntervals();
         clearSessionState();
@@ -437,12 +417,30 @@
         const now = Date.now();
         if (now - lastMouseSend < CONFIG.MOUSE_THROTTLE) return;
         lastMouseSend = now;
+        
         const rect = elements.remoteImage.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / elements.remoteImage.clientWidth) * 100;
-        const y = ((e.clientY - rect.top) / elements.remoteImage.clientHeight) * 100;
+        const img = elements.remoteImage;
+        const nw = img.naturalWidth, nh = img.naturalHeight;
+        if (!nw || !nh) return;
+        
+        const scale = Math.min(rect.width / nw, rect.height / nh);
+        const renderedWidth = nw * scale;
+        const renderedHeight = nh * scale;
+        
+        const offsetX = (rect.width - renderedWidth) / 2;
+        const offsetY = (rect.height - renderedHeight) / 2;
+        
+        const imgX = e.clientX - rect.left - offsetX;
+        const imgY = e.clientY - rect.top - offsetY;
+        
+        if (imgX < 0 || imgX > renderedWidth || imgY < 0 || imgY > renderedHeight) return;
+        
+        const x = (imgX / renderedWidth) * 100;
+        const y = (imgY / renderedHeight) * 100;
+        
         fetch(`${apiBase}/SendMouseMove?domain=${domain}&x=${x}&y=${y}`).catch(() => { });
     }
-    function handleLeftClick() {
+    function handleLeftClick(e) {
         if (currentState === 'connected') {
             fetch(`${apiBase}/SendLeftClick?domain=${domain}`).catch(() => { });
         }
@@ -484,7 +482,6 @@
 
     function stopAllIntervals() {
         stopPolling();
-        stopCountdown();
         stopDenialCheck();
     }
     function cleanup() {

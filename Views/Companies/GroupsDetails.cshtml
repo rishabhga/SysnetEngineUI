@@ -207,11 +207,13 @@
                                             <div class="min-w-0 flex-1">
                                                 <div class="flex items-center space-x-2">
                                                     <p class="text-xs font-semibold text-gray-900 truncate">@location.LocationName</p>
-                                                    <button onclick="event.preventDefault(); event.stopPropagation(); toggleLocationCritical(@location.LocationId, @location.IsCritical.ToString().ToLower(), @group.GroupId, @Model.CompanyId)"
-                                                            class="critical-toggle-btn transition-colors duration-200"
-                                                            title="@(location.IsCritical ? "Marked as Critical" : "Mark as Critical")">
-                                                        <i class="fas fa-crown text-[10px] @(location.IsCritical ? "text-amber-500 shadow-amber-200" : "text-gray-300 hover:text-amber-300") shadow-sm"></i>
-                                                    </button>
+                                                    <span class="critical-indicator transition-colors duration-200"
+                                                          title="@(location.IsCritical ? "Critical Location" : "")">
+                                                        @if (location.IsCritical)
+                                                        {
+                                                            <i class="fas fa-crown text-[10px] text-amber-500 shadow-amber-200 shadow-sm"></i>
+                                                        }
+                                                    </span>
                                                 </div>
                                                 <p class="text-[10px] text-gray-500">@locationOnline/@locationUsers Online</p>
                                             </div>
@@ -252,7 +254,18 @@
                                         {
                                             @foreach (var location in group.Locations)
                                             {
-                                                <option value="@location.LocationId" data-name="@location.LocationName">
+                                                <option value="@location.LocationId" 
+                                                        data-name="@location.LocationName"
+                                                        data-cpu="@location.CpuThreshold"
+                                                        data-cpu-warn="@location.CpuWarningThreshold"
+                                                        data-cpu-info="@location.CpuInfoThreshold"
+                                                        data-ram="@location.RamThreshold"
+                                                        data-ram-warn="@location.RamWarningThreshold"
+                                                        data-ram-info="@location.RamInfoThreshold"
+                                                        data-disk="@location.DiskThreshold"
+                                                        data-disk-warn="@location.DiskWarningThreshold"
+                                                        data-disk-info="@location.DiskInfoThreshold"
+                                                        data-critical="@location.IsCritical.ToString().ToLower()">
                                                     @location.LocationName
                                                 </option>
                                             }
@@ -408,6 +421,39 @@
                        placeholder="Enter location name" />
                 <p id="editLocationNameError" class="hidden text-red-600 text-[10px] mt-1"></p>
             </div>
+            <div class="mb-4">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="editLocationCritical" class="w-4 h-4 text-orange-500 rounded border-gray-300 focus:ring-orange-500">
+                    <span class="text-xs font-medium text-gray-700">Mark as Critical Location</span>
+                </label>
+            </div>
+            <div class="mb-3">
+                <label class="block text-xs font-medium text-gray-700 mb-1.5">
+                    Resource Thresholds (%)
+                </label>
+                <div class="grid grid-cols-4 gap-2 text-center items-center">
+                    <div></div>
+                    <div class="text-[9px] text-gray-500 uppercase font-bold">Critical</div>
+                    <div class="text-[9px] text-gray-500 uppercase font-bold">Warning</div>
+                    <div class="text-[9px] text-gray-500 uppercase font-bold">Info</div>
+
+                    <div class="text-[9px] text-gray-500 uppercase font-bold text-left">CPU</div>
+                    <input type="number" id="editLocationCpu" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationCpuWarn" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationCpuInfo" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+
+                    <div class="text-[9px] text-gray-500 uppercase font-bold text-left">RAM</div>
+                    <input type="number" id="editLocationRam" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationRamWarn" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationRamInfo" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+
+                    <div class="text-[9px] text-gray-500 uppercase font-bold text-left">Disk</div>
+                    <input type="number" id="editLocationDisk" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationDiskWarn" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                    <input type="number" id="editLocationDiskInfo" step="0.1" class="w-full px-1 py-1 text-[10px] border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 outline-none" />
+                </div>
+                <p class="text-[9px] text-gray-400 mt-1 italic">Leave empty for defaults</p>
+            </div>
             <div class="flex space-x-2 mt-4">
                 <button onclick="closeEditLocationModal()"
                         class="flex-1 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
@@ -522,16 +568,37 @@
             const selectedOption = selectElement.options[selectElement.selectedIndex];
             const locationId = selectedOption.value;
             const locationName = selectedOption.getAttribute('data-name');
+            const cpu = selectedOption.getAttribute('data-cpu');
+            const cpuWarn = selectedOption.getAttribute('data-cpu-warn');
+            const cpuInfo = selectedOption.getAttribute('data-cpu-info');
+            const ram = selectedOption.getAttribute('data-ram');
+            const ramWarn = selectedOption.getAttribute('data-ram-warn');
+            const ramInfo = selectedOption.getAttribute('data-ram-info');
+            const disk = selectedOption.getAttribute('data-disk');
+            const diskWarn = selectedOption.getAttribute('data-disk-warn');
+            const diskInfo = selectedOption.getAttribute('data-disk-info');
+            const critical = selectedOption.getAttribute('data-critical');
+
             if (locationId) {
-                openEditLocationModal(locationId, locationName, groupId, companyId);
+                openEditLocationModal(locationId, locationName, groupId, companyId, cpu, cpuWarn, cpuInfo, ram, ramWarn, ramInfo, disk, diskWarn, diskInfo, critical);
                 selectElement.selectedIndex = 0;
             }
         }
-        function openEditLocationModal(locationId, locationName, groupId, companyId) {
+        function openEditLocationModal(locationId, locationName, groupId, companyId, cpu, cpuWarn, cpuInfo, ram, ramWarn, ramInfo, disk, diskWarn, diskInfo, critical) {
             document.getElementById('editLocationId').value = locationId;
             document.getElementById('editLocationGroupId').value = groupId;
             document.getElementById('editLocationCompanyId').value = companyId;
             document.getElementById('editLocationName').value = locationName;
+            document.getElementById('editLocationCpu').value = cpu || '';
+            document.getElementById('editLocationCpuWarn').value = cpuWarn || '';
+            document.getElementById('editLocationCpuInfo').value = cpuInfo || '';
+            document.getElementById('editLocationRam').value = ram || '';
+            document.getElementById('editLocationRamWarn').value = ramWarn || '';
+            document.getElementById('editLocationRamInfo').value = ramInfo || '';
+            document.getElementById('editLocationDisk').value = disk || '';
+            document.getElementById('editLocationDiskWarn').value = diskWarn || '';
+            document.getElementById('editLocationDiskInfo').value = diskInfo || '';
+            document.getElementById('editLocationCritical').checked = (critical === 'true');
             document.getElementById('editLocationModal').classList.add('active');
         }
         function closeEditLocationModal() {
@@ -547,6 +614,17 @@
             const locationName = document.getElementById('editLocationName').value.trim();
             const groupId = document.getElementById('editLocationGroupId').value;
             const companyId = document.getElementById('editLocationCompanyId').value;
+
+            const cpu = document.getElementById('editLocationCpu').value;
+            const cpuWarn = document.getElementById('editLocationCpuWarn').value;
+            const cpuInfo = document.getElementById('editLocationCpuInfo').value;
+            const ram = document.getElementById('editLocationRam').value;
+            const ramWarn = document.getElementById('editLocationRamWarn').value;
+            const ramInfo = document.getElementById('editLocationRamInfo').value;
+            const disk = document.getElementById('editLocationDisk').value;
+            const diskWarn = document.getElementById('editLocationDiskWarn').value;
+            const diskInfo = document.getElementById('editLocationDiskInfo').value;
+            const isCritical = document.getElementById('editLocationCritical').checked;
 
             if (!locationName) {
                 document.getElementById('editLocationNameError').textContent = 'Location name is required';
@@ -566,7 +644,17 @@
                     Id: parseInt(locationId),
                     LocationName: locationName,
                     GroupsID: parseInt(groupId),
-                    CompanyID: parseInt(companyId)
+                    CompanyID: parseInt(companyId),
+                    CpuThreshold: cpu ? parseFloat(cpu) : null,
+                    CpuWarningThreshold: cpuWarn ? parseFloat(cpuWarn) : null,
+                    CpuInfoThreshold: cpuInfo ? parseFloat(cpuInfo) : null,
+                    RamThreshold: ram ? parseFloat(ram) : null,
+                    RamWarningThreshold: ramWarn ? parseFloat(ramWarn) : null,
+                    RamInfoThreshold: ramInfo ? parseFloat(ramInfo) : null,
+                    DiskThreshold: disk ? parseFloat(disk) : null,
+                    DiskWarningThreshold: diskWarn ? parseFloat(diskWarn) : null,
+                    DiskInfoThreshold: diskInfo ? parseFloat(diskInfo) : null,
+                    IsCritical: isCritical
                 }),
                 success: function() {
                     closeEditLocationModal();

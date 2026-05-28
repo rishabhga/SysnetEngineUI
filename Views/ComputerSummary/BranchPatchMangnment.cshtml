@@ -198,23 +198,23 @@
     {
         <div class="bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
             <div class="overflow-x-auto" style="max-height:calc(100vh - 280px); overflow-y:auto;">
-                <table class="pm-table w-full text-xs">
+                <table class="pm-table w-full text-xs" style="table-layout: fixed;">
                     <thead>
                         <tr class="border-b border-gray-200 text-[10px] text-gray-500 uppercase tracking-wide">
-                            <th class="pl-3 pr-2 py-2 w-8 text-left">
-                            </th>
-                            <th class="px-3 py-2 text-left font-semibold">Status</th>
-                            <th class="px-3 py-2 text-left font-semibold">Domain / Device</th>
-                            <th class="px-3 py-2 text-left font-semibold">Employee</th>
-                            <th class="px-3 py-2 text-left font-semibold">Full Name</th>
+                            <th class="pl-3 pr-2 py-2 text-left" style="width: 40px;"></th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 100px;">Status</th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 160px;">Domain / Device</th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 120px;">Employee</th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 160px;">Full Name</th>
                             <th class="px-3 py-2 text-left font-semibold">Department</th>
-                            <th class="px-3 py-2 text-left font-semibold">Device ID</th>
+                            <th class="px-3 py-2 text-left font-semibold" style="width: 100px;">Device ID</th>
                         </tr>
                     </thead>
                     <tbody id="deviceTableBody" class="divide-y divide-gray-100">
                         @foreach (var item in Model)
                         {
-                            bool isOnline = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase));
+                            bool isOnline = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase) || string.Equals(d, item.UserCode, StringComparison.OrdinalIgnoreCase));
+                            var statusClass = isOnline ? "text-green-500" : "text-gray-400";
                             <tr class="device-row transition-colors"
                                 data-id="@item.Id"
                                 data-domain="@item.DomainName"
@@ -245,11 +245,11 @@
                                         </span>
                                     }
                                 </td>
-                                <td class="px-3 py-2 font-medium text-gray-900 max-w-[160px] truncate">@item.DomainName</td>
-                                <td class="px-3 py-2 text-gray-700 max-w-[120px] truncate">@item.UserName</td>
-                                <td class="px-3 py-2 text-gray-600 max-w-[140px] truncate">@item.FullName</td>
-                                <td class="px-3 py-2 text-gray-500 max-w-[120px] truncate">@item.AccountType</td>
-                                <td class="px-3 py-2 text-gray-400 font-mono">#@item.Id</td>
+                                <td class="px-3 py-2 font-medium text-gray-900 truncate">@item.DomainName</td>
+                                <td class="px-3 py-2 text-gray-700 truncate">@item.UserName</td>
+                                <td class="px-3 py-2 text-gray-600 truncate">@item.FullName</td>
+                                <td class="px-3 py-2 text-gray-500 truncate">@item.AccountType</td>
+                                <td class="px-3 py-2 text-gray-400 font-mono truncate">#@item.Id</td>
                             </tr>
                         }
                     </tbody>
@@ -289,9 +289,42 @@
         let currentPage  = 1;
         let pageSize     = 50;
 
-        let selectedIds     = new Set();
-        let selectedDomains = new Map();
-        let selectedNames   = new Map();
+        const STORAGE_KEY = `BranchPatch_Selection_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
+        
+        // Clear selection unless referrer is the patch selection page
+        const ref = document.referrer || '';
+        const cameFromDeployment = ref.includes('BranchWinPatchselection') || ref.includes('BranchPatchselection');
+        if (!cameFromDeployment) {
+            localStorage.removeItem(STORAGE_KEY + '_Ids');
+            localStorage.removeItem(STORAGE_KEY + '_Domains');
+            localStorage.removeItem(STORAGE_KEY + '_Names');
+        }
+
+        let selectedIds     = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY + '_Ids') || '[]'));
+        let selectedDomains = new Map(JSON.parse(localStorage.getItem(STORAGE_KEY + '_Domains') || '[]'));
+        let selectedNames   = new Map(JSON.parse(localStorage.getItem(STORAGE_KEY + '_Names') || '[]'));
+
+        // Sanitize selection: remove any IDs that do not exist in the current ALL_ROWS to prevent ghost selections
+        const existingIds = new Set(ALL_ROWS.map(r => r.dataset.id));
+        let changed = false;
+        for (const id of selectedIds) {
+            if (!existingIds.has(id)) {
+                selectedIds.delete(id);
+                selectedDomains.delete(id);
+                selectedNames.delete(id);
+                changed = true;
+            }
+        }
+
+        function saveSelection() {
+            localStorage.setItem(STORAGE_KEY + '_Ids', JSON.stringify([...selectedIds]));
+            localStorage.setItem(STORAGE_KEY + '_Domains', JSON.stringify([...selectedDomains]));
+            localStorage.setItem(STORAGE_KEY + '_Names', JSON.stringify([...selectedNames]));
+        }
+
+        if (changed) {
+            saveSelection();
+        }
         const syncDot   = document.getElementById('liveSyncDot');
         const syncLabel = document.getElementById('liveSyncLabel');
 
@@ -551,6 +584,7 @@
             }
             updateSelection();
             updateSelectAllState();
+            saveSelection();
         }
 
         function syncRowHighlights() {
@@ -588,6 +622,7 @@
             });
             updateSelection();
             updateSelectAllState();
+            saveSelection();
         }
 
         function updateSelectAllState() {
@@ -602,7 +637,7 @@
 
         function getVisibleCheckboxes() {
             return Array.from(document.querySelectorAll('.device-checkbox')).filter(cb => {
-                return cb.closest('tr').style.display !== 'none';
+                return cb.closest('tr').style.display !== 'none' && !cb.disabled;
             });
         }
 
@@ -627,6 +662,8 @@
         function navigate(action) {
             const ids     = [...selectedIds].join(',');
             const domains = [...selectedDomains.values()].join(',');
+            // Clear selection when navigating to deployment? 
+            // Actually, keep it in case they hit back. 
             window.location.href = `/ComputerSummary/${action}?companyid=@companyid&groupid=@groupid&locationid=@locationid&selectedIds=${ids}&domainids=${domains}`;
         }
 
@@ -642,6 +679,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             applyFilters();
             renderPage();
+            updateHeader(); // Ensure button state reflects persisted selection
         });
     </script>
 }

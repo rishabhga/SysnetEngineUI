@@ -761,7 +761,68 @@
                 display: none;
             }
         }
+        /* Premium Design System */
+        .critical-indicator {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            color: #f59e0b;
+            filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.4));
+            animation: crown-float 3s ease-in-out infinite;
+        }
+
+        @@keyframes crown-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
+        }
+
+        .device-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .device-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.15);
+            border-color: rgba(0, 188, 235, 0.3);
+        }
+
+        .active-task-pulse {
+            position: relative;
+        }
+
+        .active-task-pulse::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            border: 2px solid #00BCEB;
+            animation: task-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @@keyframes task-pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.05); opacity: 0; }
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transition: background-color 0.5s ease;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
     </style>
+
     @RenderSection("Styles", required: false)
 </head>
 <body>
@@ -1250,12 +1311,7 @@
             };
 
             $(document).on('keydown', '#chatInput', function(e) { if (e.which===13&&!e.shiftKey){e.preventDefault();sendChatMessage();} });
-
-            var _ctrl = '@currentController';
-            var _act  = '@currentAction';
-            if (_ctrl === 'ComputerSummary' && _act === 'Deshboad') {
-                $(document).ready(function() { window.setupChatSignalR(); });
-            }
+            $(document).ready(function() { window.setupChatSignalR(); });
 
         })();
     </script>

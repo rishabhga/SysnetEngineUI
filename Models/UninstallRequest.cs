@@ -1,7 +1,8 @@
-﻿namespace ManageEngineWebApp.Models
+namespace ManageEngineWebApp.Models
 {
     public class UninstallRequest
     {
         public string SoftwareName { get; set; }
+        public string FilePath { get; set; }
     }
 }

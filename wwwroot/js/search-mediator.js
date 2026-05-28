@@ -3,19 +3,14 @@ window.SearchMediator = (function() {
         const $searchInput = $('#globalSearchInput');
         if (!$searchInput.length) return;
 
-        let debounceTimer;
         $searchInput.on('input', function() {
-            clearTimeout(debounceTimer);
             const term = $(this).val();
-            
-            debounceTimer = setTimeout(() => {
-                $(document).trigger('searchEvent', [term]);
-                                if (typeof window.onGlobalSearch === 'function') {
-                    window.onGlobalSearch(term);
-                }
-                
-            }, 250);
+            $(document).trigger('searchEvent', [term]);
+            if (typeof window.onGlobalSearch === 'function') {
+                window.onGlobalSearch(term);
+            }
         });
+
 
         $searchInput.on('keydown', function(e) {
             if (e.key === 'Escape') {

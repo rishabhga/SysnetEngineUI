@@ -53,11 +53,13 @@ namespace ManageEngineWebApp.Controllers
                 string userUrl = $"api/WindowsUserDetails/allUser{query}";
                 string connectedUrl = $"api/Command/GetConnectedDevices";
                 string companyUrl = $"api/CompaniesDetails/CompanyById?id={comId}";
+                string vipUrl = "api/RamCpuDiskData/GetAllVIPs";
                 var userTask = httpClient.GetAsync(userUrl);
                 var connectedTask = httpClient.GetAsync(connectedUrl);
                 var companyTask = httpClient.GetAsync(companyUrl);
+                var vipTask = httpClient.GetAsync(vipUrl);
 
-                await Task.WhenAll(userTask, connectedTask, companyTask);
+                await Task.WhenAll(userTask, connectedTask, companyTask, vipTask);
 
                 var response = await userTask;
                 if (response.IsSuccessStatusCode)
@@ -99,6 +101,20 @@ namespace ManageEngineWebApp.Controllers
                         ViewBag.CompanyLogoUrl = logoUrl;
                     }
                 }
+
+                var vipResponse = await vipTask;
+                if (vipResponse.IsSuccessStatusCode)
+                {
+                    var vipContent = await vipResponse.Content.ReadAsStringAsync();
+                    var vipData = !string.IsNullOrEmpty(vipContent) 
+                        ? JsonConvert.DeserializeObject<List<VIPClient>>(vipContent) 
+                        : new List<VIPClient>();
+                    ViewBag.VipClients = vipData;
+                }
+                else
+                {
+                    ViewBag.VipClients = new List<VIPClient>();
+                }
                 string locationUrl = $"api/CompaniesDetails/Locationdata";
                 var locationResponse = await httpClient.GetAsync(locationUrl);
                 if (locationResponse.IsSuccessStatusCode)
@@ -109,8 +125,9 @@ namespace ManageEngineWebApp.Controllers
                     ViewBag.IsLocationCritical = currentLoc?.IsCritical ?? false;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"Deshboad Error: {ex.Message}");
             }
 
             if (contectlist != null)
@@ -268,7 +285,16 @@ namespace ManageEngineWebApp.Controllers
                     ClientName = criticalClient.ClientName,
                     CompanyID = criticalClient.CompanyID,
                     GroupsID = criticalClient.GroupsID,
-                    LocationID = criticalClient.LocationID
+                    LocationID = criticalClient.LocationID,
+                    CpuThreshold = criticalClient.CpuThreshold,
+                    CpuWarningThreshold = criticalClient.CpuWarningThreshold,
+                    CpuInfoThreshold = criticalClient.CpuInfoThreshold,
+                    RamThreshold = criticalClient.RamThreshold,
+                    RamWarningThreshold = criticalClient.RamWarningThreshold,
+                    RamInfoThreshold = criticalClient.RamInfoThreshold,
+                    DiskThreshold = criticalClient.DiskThreshold,
+                    DiskWarningThreshold = criticalClient.DiskWarningThreshold,
+                    DiskInfoThreshold = criticalClient.DiskInfoThreshold
                 };
                 string jsonData = JsonConvert.SerializeObject(dto);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
@@ -324,12 +350,11 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> GetNotifications(string machineId)
         {
-            if (!await IsDeviceAuthorized(machineId)) return Json(new { success = false, error = "Unauthorized" });
-
             if (string.IsNullOrEmpty(machineId))
-            {
-                return Json(new { success = false, error = "MachineId is Required" });
-            }
+                return Json(new { success = false, error = "MachineId is required" });
+
+            if (!await IsDeviceAuthorized(machineId))
+                return Json(new { success = false, error = "Unauthorized" });
 
             try
             {
@@ -378,7 +403,7 @@ namespace ManageEngineWebApp.Controllers
                 string queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
                 string apiUrl = $"api/RamCpuDiskData/notifications/location{queryString}";
 
-                var response = await client.GetAsync(apiUrl);
+                var response = await client.GetAsync($"{_baseUrl}/{apiUrl}");
                 if (response != null && response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -428,8 +453,8 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var client = _httpClientFactory.CreateClient("ManageEngineApi");
-                string url = $"api/RamCpuDiskData/notification/read/{id}";
+                var client = GetClient();
+                string url = $"{_baseUrl}/api/RamCpuDiskData/notification/read/{id}";
 
                 var response = await client.PostAsync(url, null);
                 if (response != null && response.IsSuccessStatusCode)
@@ -904,7 +929,10 @@ namespace ManageEngineWebApp.Controllers
                         }
                     }
                 }
-                catch (Exception) { }
+                catch (Exception ex) 
+                { 
+                    Console.WriteLine($"BranchPatchMangnment Error: {ex.Message}");
+                }
 
                 ViewBag.ActiveComputers = activeComputers;
                 return View(localDatalist);
@@ -955,8 +983,9 @@ namespace ManageEngineWebApp.Controllers
                         s.SoftwareName.Equals(item.PatchName, StringComparison.OrdinalIgnoreCase));
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"BranchPatchselection Error: {ex.Message}");
             }
 
             return View(datalist);
@@ -992,7 +1021,11 @@ namespace ManageEngineWebApp.Controllers
 
             return View(datalist);
         }
-
+        [HttpPost]
+        public async Task<IActionResult> UpdatePatch([FromBody] InstallRequest req, string domain)
+        {
+            return await PatchUpdate(req, domain);
+        }
         [HttpPost]
         public async Task<IActionResult> UpdatePatchselection([FromBody] UpdatePatchselectiondto updatePatchselectiondto)
         {
@@ -1020,8 +1053,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     try
                     {
-                        var jsonResponse = JsonConvert.DeserializeObject<object>(result);
-                        return Json(jsonResponse);
+                        return Content(result, "application/json");
                     }
                     catch
                     {
@@ -1066,8 +1098,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     try
                     {
-                        var jsonResponse = JsonConvert.DeserializeObject<object>(result);
-                        return Json(jsonResponse);
+                        return Content(result, "application/json");
                     }
                     catch
                     {
@@ -1100,8 +1131,7 @@ namespace ManageEngineWebApp.Controllers
 
                 HttpResponseMessage response = await client.PostAsync("api/WindowsUserDetails/dashboardupdate", content);
                 string result = await response.Content.ReadAsStringAsync();
-                var jsonResponse = JsonConvert.DeserializeObject<object>(result);
-                return Json(jsonResponse);
+                return Content(result, "application/json");
             }
             catch (Exception ex)
             {
@@ -1370,8 +1400,8 @@ namespace ManageEngineWebApp.Controllers
                                 ViewBag.DisplayDomain = winUser?.DomainName ?? domain;
                 ViewBag.UserCode = winUser?.UserCode ?? "N/A";
                 ViewBag.LastLogUser = winUser?.UserName ?? "N/A";
-                ViewBag.UserName = winUser?.DomainName ?? domain; // ID for scripts
-                
+                ViewBag.UserName = winUser?.UserCode ?? domain;
+                ViewBag.DomainNameForCommand = winUser?.DomainName ?? domain;
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -1386,8 +1416,8 @@ namespace ManageEngineWebApp.Controllers
                         if (datalist.Any())
                         {
                             var details = datalist[0];
-                            ViewBag.UserName = winUser?.DomainName ?? details.domainName; 
-                            ViewBag.DisplayDomain = winUser?.DomainName ?? details.domainName;
+                            ViewBag.UserName = winUser?.UserCode ?? details.domainName; 
+                            ViewBag.DomainNameForCommand = winUser?.DomainName ?? details.domainName;                            ViewBag.DisplayDomain = winUser?.DomainName ?? details.domainName;
                             ViewBag.windowdetails = details.WindowName;
                             ViewBag.ip = details.IpAddress;
                             ViewBag.LastLogUser = !string.IsNullOrEmpty(winUser?.UserName) ? winUser.UserName : details.UserName;
@@ -1484,40 +1514,53 @@ namespace ManageEngineWebApp.Controllers
                     localDatalist = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ClientConnection>>(content) : new List<ClientConnection>();
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex) 
+            { 
+                Console.WriteLine($"ConnectedClient Error: {ex.Message}");
+            }
             return View(localDatalist);
         }
         [DynamicPermission("ComputerSummary.RemoteAccess", "Execute Remote Command")]
+        [HttpPost]
         public async Task<IActionResult> Comanddata(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
+            using (var client = GetClient())
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-            using (HttpClient client = new HttpClient(handler))
-            {
-                client.BaseAddress = new Uri($"{_baseUrl}/api/Command/" + domain + "");
-
-                var content = new StringContent($"\"{"Scan"}\"", Encoding.UTF8, "application/json");
-
+                client.BaseAddress = new Uri($"{_baseUrl}/api/Command/" + domain);
+                var content = new StringContent($"\"Scan\"", Encoding.UTF8, "application/json");
                 HttpResponseMessage response = await client.PostAsync("", content);
-
                 string result = await response.Content.ReadAsStringAsync();
                 return Json(new { success = response.IsSuccessStatusCode, message = result });
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> BlockUsb(string domain)
+        {
+            using var httpClient = GetClient();
+            var response = await httpClient.PostAsync($"{_baseUrl}/api/USbBlockingAndUnBlocking/block-usb/{domain}", null);
+            if (response.IsSuccessStatusCode)
+            {
+                return Json(new { success = true });
+            }
+            return Json(new { success = false, message = await response.Content.ReadAsStringAsync() });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UnblockUsb(string domain)
+        {
+            using var httpClient = GetClient();
+            var response = await httpClient.PostAsync($"{_baseUrl}/api/USbBlockingAndUnBlocking/unblock-usb/{domain}", null);
+            if (response.IsSuccessStatusCode)
+            {
+                return Json(new { success = true });
+            }
+            return Json(new { success = false, message = await response.Content.ReadAsStringAsync() });
+        }
+
         public async Task<IActionResult> CheckScanResult(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-
-
-            var datalist = new List<MSGRequest>();
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
                 var response = await httpClient.GetAsync("");
@@ -1526,7 +1569,6 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
-                    data.SoftwareName = "Notepad++";
                     return Json(data);
                 }
                 return Json(new { status = "failed" });
@@ -1537,11 +1579,7 @@ namespace ManageEngineWebApp.Controllers
         [DynamicPermission("ComputerSummary.RemoteAccess", "Remote Control")]
         public async Task<IActionResult> RemoteAccess(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            using (HttpClient client = new HttpClient(handler))
+            using (var client = GetClient())
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/" + domain + "");
                 var content = new StringContent($"\"{"Remote"}\"", Encoding.UTF8, "application/json");
@@ -1555,12 +1593,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> Remotestatus(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<MSGRequest>();
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
                 var response = await httpClient.GetAsync("");
@@ -1568,19 +1601,15 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
-                    data.SoftwareName = "Notepad++";
                     return Json(data);
                 }
                 return Json(new { status = "failed" });
+
             }
         }
         public async Task<IActionResult> CheckAccessStatus(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 string url = $"{_baseUrl}/api/RemoteAccess/CheckStatus?domain={domain}";
                 try
@@ -1600,11 +1629,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Live(string domain)
         {
             ViewBag.Domain = domain;
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            using (var httpClient = new HttpClient(handler))
+            using (var httpClient = GetClient())
             {
                 string url = $"{_baseUrl}/api/RemoteAccess/monitor?domain={domain}";
                 var response = await httpClient.GetAsync(url);
@@ -1623,17 +1648,13 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> SendMouseMove(string domain, double x, double y)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (msg, cert, chain, ssl) => true
-            };
             var Mousedata = new MouseResponse
             {
                 X = x,
                 Y = y,
                 Time = DateTime.Now,
             };
-            using var client = new HttpClient(handler);
+            using var client = GetClient();
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseEvent/" + domain + "");
                 string jsonData = JsonConvert.SerializeObject(Mousedata);
@@ -1654,11 +1675,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> SendLeftClick(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (msg, cert, chain, ssl) => true
-            };
-            using var client = new HttpClient(handler);
+            using var client = GetClient();
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseLeftClick/" + domain + "");
                 string jsonData = JsonConvert.SerializeObject("");
@@ -1678,11 +1695,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> SendRightClick(string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (msg, cert, chain, ssl) => true
-            };
-            using var client = new HttpClient(handler);
+            using var client = GetClient();
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseRightClick/" + domain + "");
                 string jsonData = JsonConvert.SerializeObject("");
@@ -1704,11 +1717,7 @@ namespace ManageEngineWebApp.Controllers
 
         public async Task<IActionResult> SendKeyPress(string domain, string key)
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (msg, cert, chain, ssl) => true
-            };
-            using var client = new HttpClient(handler);
+            using var client = GetClient();
             {
 
 
@@ -1730,15 +1739,6 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
-
-        private HttpClient CreateClient()
-        {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (msg, cert, chain, ssl) => true
-            };
-            return new HttpClient(handler);
-        }
 
 
         [DynamicPermission("ComputerSummary.RemoteAccess", "Stop Remote Session")]
@@ -1783,82 +1783,78 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
-        // single instation software ke liye 
-
+        [HttpPost]
+        [DynamicPermission("ComputerSummary.DeployPatch", "Install/Update Software")]
         public async Task<IActionResult> PatchUpdate([FromBody] InstallRequest req, string domain)
         {
             if (string.IsNullOrEmpty(domain) || req == null || string.IsNullOrEmpty(req.SoftwareName))
             {
                 return Json(new { status = "failed", message = "Invalid request data" });
             }
+            if (!await IsDeviceAuthorized(domain))
+                return Json(new { status = "failed", message = "Unauthorized" });
 
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
+                var patchUpdateRequest = new PatchUpdateRequest
+                {
+                    SoftwareName = req.SoftwareName,
+                    DownloadUrl = $"{Request.Scheme}://{Request.Host}/SoftwareUpdates/{Uri.EscapeDataString(req.SoftwareName)}"
+                };
 
-            var patchUpdateRequest = new PatchUpdateRequest
-            {
-                SoftwareName = req.SoftwareName,
-                DownloadUrl = $"{_baseUrl}/installers/{req.SoftwareName}"
-            };
-
-            using (HttpClient client = new HttpClient(handler))
-            {
-
-                client.BaseAddress = new Uri($"{_baseUrl}/api/Command/update/" + domain + "");
-
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(30);
                 string jsonData = JsonConvert.SerializeObject(patchUpdateRequest);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
 
-                HttpResponseMessage response = await client.PostAsync("", content);
+                HttpResponseMessage response = await client.PostAsync($"{_baseUrl}/api/Command/update/{Uri.EscapeDataString(domain)}", content);
                 string result = await response.Content.ReadAsStringAsync();
+
                 if (response.IsSuccessStatusCode)
                 {
-                    return Json(new { status = "success" });
+                    return Json(new { status = "success", message = "Install command sent successfully" });
                 }
-                else
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    return Json(new { status = "failed", message = result });
+                    return Json(new { status = "failed", message = "Device is not online. Command could not be delivered." });
                 }
-
+                return Json(new { status = "failed", message = result });
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine($"PatchUpdate Error: {ex.Message}");
+                return Json(new { status = "failed", message = "Failed to send install command: " + ex.Message });
+            }
         }
 
         [HttpPost]
-        public IActionResult UploadSoftware(IFormFile file)
+        [DynamicPermission("ComputerSummary.Software", "Upload Software")]
+        public async Task<IActionResult> UploadSoftware(IFormFile file)
         {
             if (file == null || file.Length == 0)
-                return Json("No file selected");
-
-            string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Softwares");
+                return Json(new { status = "failed", message = "No file selected" });
+            string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "SoftwareUpdates");
 
             if (!Directory.Exists(folderPath))
                 Directory.CreateDirectory(folderPath);
 
-            string filePath = Path.Combine(folderPath, file.FileName);
+            var safeName = Path.GetFileName(file.FileName);
+            string filePath = Path.Combine(folderPath, safeName);
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            await using (var stream = new FileStream(filePath, FileMode.Create))
             {
-                file.CopyTo(stream);
+                await file.CopyToAsync(stream);
             }
 
-            return Json("Software uploaded successfully");
+            return Json(new { status = "success", message = "Software uploaded successfully", fileName = safeName });
         }
-
         [HttpPost]
         public async Task<IActionResult> Delete(string fileName)
         {
             if (string.IsNullOrEmpty(fileName))
                 return Json(new { status = "failed", message = "fileName missing" });
 
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, ssl) => true
-            };
-
-            using (HttpClient client = new HttpClient(handler))
+            using (HttpClient client = GetClient())
             {
                 string apiUrl = $"{_baseUrl}/api/PatchDetails/DeleteSoftware/{fileName}";
 
@@ -1879,102 +1875,111 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
+        [HttpPost]
+        [DynamicPermission("ComputerSummary.Software", "Uninstall Software")]
         public async Task<IActionResult> Uninstallsoftware([FromBody] UninstallRequest request, string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
+            if (string.IsNullOrEmpty(domain) || request == null || string.IsNullOrEmpty(request.SoftwareName))
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var patchUpdateRequest = new PatchUpdateRequest
+                return Json(new { status = "failed", message = "Invalid request data" });
+            }
+            if (!await IsDeviceAuthorized(domain))
+                return Json(new { status = "failed", message = "Unauthorized" });
+
+            try
             {
-                SoftwareName = request.SoftwareName,
-                DownloadUrl = "https://chrome.com/latest-update.exe"
-            };
-            using (HttpClient client = new HttpClient(handler))
-            {
-                client.BaseAddress = new Uri($"{_baseUrl}/api/Command/softwareName/" + domain + "");
-                //var content = new StringContent($"\"{"Update"}\"", Encoding.UTF8, "application/json");
-                //HttpResponseMessage response = await client.PostAsync("", content);
-                //string result = await response.Content.ReadAsStringAsync();
-                //Console.WriteLine(response.IsSuccessStatusCode ? $"? Success: {result}" : $"? Error: {result}");
+                var patchUpdateRequest = new PatchUpdateRequest
+                {
+                    SoftwareName = request.SoftwareName,
+                    DownloadUrl = ""
+                };
+
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(30);
                 string jsonData = JsonConvert.SerializeObject(patchUpdateRequest);
                 var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-                HttpResponseMessage response = await client.PostAsync("", content);
+
+                HttpResponseMessage response = await client.PostAsync(
+                    $"{_baseUrl}/api/Command/softwareName/{Uri.EscapeDataString(domain)}", content);
                 string result = await response.Content.ReadAsStringAsync();
+
                 if (response.IsSuccessStatusCode)
                 {
                     return Json(new { status = "success", message = "Uninstall command sent" });
                 }
-                else
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    return Json(new { status = "failed", message = result });
+                    return Json(new { status = "failed", message = "Device is not online. Command could not be delivered." });
                 }
+                return Json(new { status = "failed", message = result });
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Uninstallsoftware Error: {ex.Message}");
+                return Json(new { status = "failed", message = "Failed to send uninstall command: " + ex.Message });
+            }
         }
         public async Task<IActionResult> Uninstallsoftwarestatus(string softwareName, string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<MSGRequest>();
-            using (var httpClient = new HttpClient(handler))
-            {
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/uninstallstatus?softwareName={softwareName}&domain={domain}");
-                var response = await httpClient.GetAsync("");
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/Command/uninstallstatus?softwareName={Uri.EscapeDataString(softwareName)}&domain={Uri.EscapeDataString(domain)}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
-                    data.SoftwareName = "Notepad++";
+                    if (data != null) data.SoftwareName = softwareName;
                     return Json(data);
                 }
-                return Json(new { status = "failed" });
+                return Json(new { status = "failed", message = "API returned " + response.StatusCode });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Uninstallsoftwarestatus Error: {ex.Message}");
+                return Json(new { status = "failed", message = ex.Message });
             }
         }
         public async Task<IActionResult> installsoftwarestatus(string softwareName, string domain)
         {
-            HttpClientHandler handler = new HttpClientHandler
+            try
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
-            var datalist = new List<MSGRequest>();
-            using (var httpClient = new HttpClient(handler))
-            {
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/installstatus?softwareName={softwareName}&domain={domain}");
-                var response = await httpClient.GetAsync("");
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/Command/installstatus?softwareName={Uri.EscapeDataString(softwareName)}&domain={Uri.EscapeDataString(domain)}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<MSGRequest>(content);
-                    data.SoftwareName = "Notepad++";
+                    if (data != null) data.SoftwareName = softwareName;
                     return Json(data);
                 }
-                return Json(new { status = "failed" });
+                return Json(new { status = "failed", message = "API returned " + response.StatusCode });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"installsoftwarestatus Error: {ex.Message}");
+                return Json(new { status = "failed", message = ex.Message });
             }
         }
 
         public async Task<IActionResult> SoftwareInstaller()
         {
-            HttpClientHandler handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
-            };
             var datalist = new List<InstallerInfo>();
-            using (var httpClient = new HttpClient(handler))
+            try
             {
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/installers/");
-                var response = await httpClient.GetAsync("");
-
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/Command/installers/");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     datalist = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<InstallerInfo>>(content) : null;
-                    return View(datalist);
                 }
-                return View(datalist);
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SoftwareInstaller Error: {ex.Message}");
+            }
+            return View(datalist ?? new List<InstallerInfo>());
         }
 
 
@@ -2977,6 +2982,7 @@ namespace ManageEngineWebApp.Controllers
 
 
 
+
         [DynamicPermission("ComputerSummary.View", "Device Restrictions")]
         public async Task<IActionResult> RestrictionOnDevice(string domain)
         {
@@ -2991,27 +2997,42 @@ namespace ManageEngineWebApp.Controllers
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<DeviceRestrictionDetails>>(content) : null;
-                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                    var data = !string.IsNullOrEmpty(content)
+                        ? JsonConvert.DeserializeObject<List<DeviceRestrictionDetails>>(content)
+                        : null;
+                    if (data != null)
+                        localDatalist = data.Where(x => x.UserCode == UCode).ToList();
                 }
 
                 if (!localDatalist.Any())
                 {
-                    return Json(new { IsCameraEnabled = "N/A", IsTelemetryEnabled = "N/A", CanModifyDateTime = "N/A", IsBluetoothEnabled = "N/A" });
+                    return Json(new
+                    {
+                        IsCameraEnabled = "N/A",
+                        IsTelemetryEnabled = "N/A",
+                        CanModifyDateTime = "N/A",
+                        IsBluetoothEnabled = "N/A"
+                    });
                 }
 
-                var Restricationdeetailsfist = new
+                var result = new
                 {
                     IsCameraEnabled = localDatalist[0].IsCameraEnabled,
                     IsTelemetryEnabled = localDatalist[0].IsTelemetryEnabled,
-                    CanModifyDateTime = localDatalist[0].IsCameraEnabled,
+                    CanModifyDateTime = localDatalist[0].CanModifyDateTime,
                     IsBluetoothEnabled = localDatalist[0].IsBluetoothEnabled
                 };
-                return Json(Restricationdeetailsfist);
+                return Json(result);
             }
             catch (Exception)
             {
-                return Json(new { IsCameraEnabled = "N/A", IsTelemetryEnabled = "N/A", CanModifyDateTime = "N/A", IsBluetoothEnabled = "N/A" });
+                return Json(new
+                {
+                    IsCameraEnabled = "N/A",
+                    IsTelemetryEnabled = "N/A",
+                    CanModifyDateTime = "N/A",
+                    IsBluetoothEnabled = "N/A"
+                });
             }
         }
 
@@ -3986,6 +4007,20 @@ namespace ManageEngineWebApp.Controllers
             {
                 return Json(new { items = new List<object>(), count = 0 });
             }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateCriticalSettings([FromBody] VIPClient settings)
+        {
+            using var client = GetClient();
+            var response = await client.PostAsJsonAsync($"{_baseUrl}/api/RamCpuDiskData/UpdateCriticalSettings", settings);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return Json(new { success = true });
+            }
+
+            return Json(new { success = false, message = "Failed to update VIP settings." });
         }
     }
 }
