@@ -25,7 +25,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 var httpClient = GetClient();
                 var query = BuildScopedQuery();
-                var response = await httpClient.GetAsync($"api/WindowsUserDetails/allUser{query}"); 
+                var response = await httpClient.GetAsync($"api/WindowsUserDetails/allUser{query}");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -34,7 +34,7 @@ namespace ManageEngineWebApp.Controllers
                     var localDatalist = data != null ? data.Where(x => x.Status == "Enabled").ToList() : new List<WindowsUserDetails>();
                     return View(localDatalist);
                 }
-                
+
                 ViewBag.ErrorMessage = $"Unable to fetch data from the API (Status: {response.StatusCode}).";
                 return View(new List<WindowsUserDetails>());
             }
@@ -68,7 +68,7 @@ namespace ManageEngineWebApp.Controllers
                         var machine = localDatalist[0];
                         if (!RoleHelper.ValidateScope(HttpContext, machine.CompanyId, machine.GroupId, machine.LocationId))
                         {
-                            return RedirectToAction("Index", "Home"); 
+                            return RedirectToAction("Index", "Home");
                         }
 
                         ViewBag.lastScan = localDatalist[0].DateTime;
@@ -436,7 +436,7 @@ namespace ManageEngineWebApp.Controllers
         //    throw new Exception("Unable to fetch data from the API.");
         //}
 
-       
+
 
         //Processors
 

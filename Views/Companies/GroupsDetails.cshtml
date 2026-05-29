@@ -254,7 +254,7 @@
                                         {
                                             @foreach (var location in group.Locations)
                                             {
-                                                <option value="@location.LocationId" 
+                                                <option value="@location.LocationId"
                                                         data-name="@location.LocationName"
                                                         data-cpu="@location.CpuThreshold"
                                                         data-cpu-warn="@location.CpuWarningThreshold"
@@ -273,7 +273,7 @@
                                     </select>
                                     <i class="fas fa-chevron-down absolute right-2 top-1/2 transform -translate-y-1/2 text-white text-[8px] pointer-events-none"></i>
                                 </div>
-                                
+
                                 <button onclick="openAddLocationModal(@group.GroupId, '@Html.Raw(group.GroupName?.Replace("'", "\\'"))', @Model.CompanyId)"
                                         class="w-full h-8 text-white rounded-lg text-[10px] font-bold transition-colors flex items-center justify-center space-x-1 shadow-sm uppercase"
                                         style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">

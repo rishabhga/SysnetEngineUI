@@ -26,8 +26,8 @@ namespace ManageEngineWebApp.Controllers
         private (List<int> companyIds, List<int> groupIds, List<int> locationIds) GetUserScope()
         {
             if (RoleHelper.IsTopLevelAdmin(HttpContext)) return (new List<int>(), new List<int>(), new List<int>());
-            return (RoleHelper.GetCompanyIds(HttpContext), 
-                    RoleHelper.GetGroupIds(HttpContext), 
+            return (RoleHelper.GetCompanyIds(HttpContext),
+                    RoleHelper.GetGroupIds(HttpContext),
                     RoleHelper.GetLocationIds(HttpContext));
         }
 

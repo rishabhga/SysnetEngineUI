@@ -50,7 +50,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = "An internal server error occurred." });
             }
         }
 
@@ -76,7 +76,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = "An internal server error occurred." });
             }
         }
     }

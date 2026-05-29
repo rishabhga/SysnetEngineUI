@@ -735,7 +735,7 @@
             const status = $('#statusFilter').val();
 
             const filtered = allTickets.filter(t => {
-                const matchesTerm = !term || 
+                const matchesTerm = !term ||
                                     (t.ticketNo && t.ticketNo.toLowerCase().includes(term)) ||
                                     (t.subject && t.subject.toLowerCase().includes(term)) ||
                                     (t.requesterName && t.requesterName.toLowerCase().includes(term));

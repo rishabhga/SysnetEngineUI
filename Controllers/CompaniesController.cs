@@ -596,7 +596,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     string downloadUrl = jsonResponse.downloadUrl.ToString();
                     var fileResponse = await client.GetAsync($"{_baseUrl}{downloadUrl}");
-                    
+
                     if (fileResponse.IsSuccessStatusCode)
                     {
                         var stream = await fileResponse.Content.ReadAsStreamAsync();

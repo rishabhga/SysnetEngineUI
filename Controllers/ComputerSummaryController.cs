@@ -106,8 +106,8 @@ namespace ManageEngineWebApp.Controllers
                 if (vipResponse.IsSuccessStatusCode)
                 {
                     var vipContent = await vipResponse.Content.ReadAsStringAsync();
-                    var vipData = !string.IsNullOrEmpty(vipContent) 
-                        ? JsonConvert.DeserializeObject<List<VIPClient>>(vipContent) 
+                    var vipData = !string.IsNullOrEmpty(vipContent)
+                        ? JsonConvert.DeserializeObject<List<VIPClient>>(vipContent)
                         : new List<VIPClient>();
                     ViewBag.VipClients = vipData;
                 }
@@ -936,8 +936,44 @@ namespace ManageEngineWebApp.Controllers
 
                 ViewBag.ActiveComputers = activeComputers;
                 return View(localDatalist);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ReScanPatches([FromBody] ReScanRequestDto dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.ClientId))
+                return Json(new { success = false, error = "No clientId Provided." });
+
+            try
+            {
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(100);
+
+                var content = new System.Net.Http.StringContent(
+                    "\"ReScanWindowPatchUpdate\"",
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+                var response = await client.PostAsync(
+                    $"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/ReScanPatchUpdate/{Uri.EscapeDataString(dto.ClientId)}",
+                    content);
+
+                var result = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                    return Json(new { success = true, message = result });
+                else
+                    return Json(new { success = false, error = result });
+
             }
-        
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ReScanPatches Error: {ex.Message}");
+                return Json(new { success = false, error = "Failed to send rescan command. Device may be offline." });
+            }
+        }
+
+
+
         public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
         {
             if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
@@ -1135,7 +1171,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                return Json(new { success = false, error = "An internal server error occurred." });
             }
         }
 
@@ -1374,8 +1410,13 @@ namespace ManageEngineWebApp.Controllers
 
         public List<UserDetails> datalist { get; set; }
         [AuthFilter(AllowedHierarchyLevel = 10, VerifyCompanyAccess = true)]
-        public async Task<IActionResult> Index(string domain)
+        public async Task<IActionResult> Index(string q = null, string domain = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                domain = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
+            }
+
             if (string.IsNullOrEmpty(domain))
             {
                 return RedirectToAction("Companies", "Companies");
@@ -2749,7 +2790,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error uninstalling software: {ex.Message}");
+                return BadRequest($"Error uninstalling software: {"An internal server error occurred."}");
             }
         }
 
@@ -3831,7 +3872,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                return Json(new { success = false, error = "An internal server error occurred." });
             }
         }
 
@@ -3867,7 +3908,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                return Json(new { success = false, error = "An internal server error occurred." });
             }
         }
 
@@ -3902,7 +3943,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, error = ex.Message });
+                return Json(new { success = false, error = "An internal server error occurred." });
             }
         }
 

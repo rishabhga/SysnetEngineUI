@@ -1,4 +1,4 @@
-﻿using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Datacontext;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using ManageEngineWebApp.Attributes;
@@ -63,7 +63,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Stats{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { error = ex.Message }); }
+            catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }
 
         [HttpGet]
@@ -89,7 +89,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { items = new List<object>(), totalItems = 0, totalPages = 0, currentPage = 1, error = ex.Message });
+                return Json(new { items = new List<object>(), totalItems = 0, totalPages = 0, currentPage = 1, error = "An internal server error occurred." });
             }
         }
 
@@ -137,7 +137,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpGet]
@@ -276,7 +276,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/Assign", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -291,7 +291,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/UpdateDetails", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -306,7 +306,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/UpdateStatus", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -321,7 +321,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/Approve", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -336,7 +336,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/Reject", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -360,7 +360,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/AddPart", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpGet]
@@ -385,7 +385,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/DeletePart/{id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
         [HttpGet]
         [AuthFilter]
@@ -399,8 +399,6 @@ namespace ManageEngineWebApp.Controllers
                 var content = await response.Content.ReadAsStringAsync();
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var ticket = System.Text.Json.JsonSerializer.Deserialize<ManageEngineWebApp.Models.HelpdeskTicket>(content, options);
-
-                // Fetch approved status sort order
                 var statusResponse = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Statuses");
                 if (statusResponse.IsSuccessStatusCode)
                 {
@@ -610,7 +608,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/Comments", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpGet]
@@ -652,7 +650,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/Attachments", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpGet]
@@ -703,7 +701,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/DeleteTicket/{id}?username={username}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -718,7 +716,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/StartWork", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -733,7 +731,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Tickets/Resolve", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
 
@@ -781,7 +779,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/MasterParts", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
 
@@ -806,7 +804,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/UpdateMasterPart", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
 
@@ -838,7 +836,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/DeleteMasterPart?id={id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
 
@@ -866,7 +864,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/SLABreaches{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { error = ex.Message }); }
+            catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }
 
         [HttpGet]
@@ -880,7 +878,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/SLABreaches/Stats{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { error = ex.Message }); }
+            catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }
 
         [HttpGet]
@@ -892,7 +890,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{ticketId}/SLADetails");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { error = ex.Message }); }
+            catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -907,7 +905,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/SLAConfigs", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -920,7 +918,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/DeleteSLAConfig/{id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpGet]
@@ -932,7 +930,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/SLAConfigs/All");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { error = ex.Message }); }
+            catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }
 
 
@@ -946,7 +944,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Engineers/Detailed{query}");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { error = ex.Message }); }
+            catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -958,7 +956,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/CheckSLABreaches", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -970,7 +968,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/SeedServiceDeskPermissions", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
 
@@ -993,7 +991,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Categories/All");
                 return Content(response, "application/json");
             }
-            catch (Exception ex) { return Json(new { error = ex.Message }); }
+            catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -1008,7 +1006,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Categories", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -1023,7 +1021,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Categories/Update", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -1036,7 +1034,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Categories/Delete?id={id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
 
@@ -1050,7 +1048,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Priorities/All");
                 return Content(response, "application/json");
             }
-            catch (Exception ex) { return Json(new { error = ex.Message }); }
+            catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -1065,7 +1063,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Priorities", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -1080,7 +1078,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Priorities/Update", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -1093,7 +1091,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Priorities/Delete?id={id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
 
@@ -1107,7 +1105,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Statuses/All");
                 return Content(response, "application/json");
             }
-            catch (Exception ex) { return Json(new { error = ex.Message }); }
+            catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -1122,7 +1120,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Statuses", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -1137,7 +1135,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Statuses/Update", content);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
         [HttpPost]
@@ -1150,7 +1148,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/ServiceDesk/Statuses/Delete?id={id}", null);
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
-            catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+            catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
 

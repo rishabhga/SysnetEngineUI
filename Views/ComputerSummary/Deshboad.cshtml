@@ -69,7 +69,6 @@
         </script>
 
         <div class="flex items-center gap-1.5">
-
         </div>
     </div>
 
@@ -137,10 +136,10 @@
             @foreach (var item in Model)
             {
                 var currentLocId = ViewBag.LocationId as int?;
-                var isVip = vipClients.Any(v => 
-                    (v.LocationID == currentLocId) && (v.IsVIP == true) && 
-                    ((!string.IsNullOrEmpty(v.ClientId) && string.Equals(v.ClientId, item.DomainName, StringComparison.OrdinalIgnoreCase)) || 
-                     (!string.IsNullOrEmpty(v.ClientId) && string.Equals(v.ClientId, item.UserCode, StringComparison.OrdinalIgnoreCase))));
+                var isVip = vipClients.Any(v =>
+                (v.LocationID == currentLocId) && (v.IsVIP == true) &&
+                ((!string.IsNullOrEmpty(v.ClientId) && string.Equals(v.ClientId, item.DomainName, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(v.ClientId) && string.Equals(v.ClientId, item.UserCode, StringComparison.OrdinalIgnoreCase))));
 
 
                 bool isActive = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase) || string.Equals(d, item.UserCode, StringComparison.OrdinalIgnoreCase));
@@ -358,8 +357,8 @@
 
 
 
-    <div id="tempProtectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3" style="display:none; align-items:center; justify-content:center;">
-        <div class="bg-white rounded-lg shadow-2xl w-full max-w-xs overflow-hidden">
+<div id="tempProtectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3" style="display:none; align-items:center; justify-content:center;">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-xs overflow-hidden">
         <div class="px-3 py-2 bg-gradient-to-r from-orange-500 to-red-500">
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
@@ -436,12 +435,12 @@
         var domainUserMap = {
         @foreach (var item in Model)
         {
-                            var domainKey = item.DomainName?.Trim().ToUpper() ?? "";
-                            var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
-                            if (!string.IsNullOrEmpty(domainKey))
-                            {
-                                                @: "@domainKey": "@name",
-                            }
+                                var domainKey = item.DomainName?.Trim().ToUpper() ?? "";
+                                var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
+                                if (!string.IsNullOrEmpty(domainKey))
+                                {
+                                                        @: "@domainKey": "@name",
+                                }
         }
         };
 
@@ -459,7 +458,7 @@
 
         $(document).ready(function () {
             // updateLocationBadgeUI(isLocationCurrentlyCritical); // Removed undefined call
-            loadLocationCriticalStatus(); 
+            loadLocationCriticalStatus();
             checkOtpStatusOnLoad();
 
             $('.device-card').each(function() {
@@ -550,7 +549,7 @@
                 if (card && card.length) {
                     const link = card.find('.rescan-link');
                     const domainName = card.attr('data-domain');
-                    
+
                     if (link.length) {
                         unregisterActiveRescan(domainName);
                         link.find('.rescan-text').html(
@@ -607,7 +606,7 @@
 
         function updateDeviceStatuses(connectedDevices) {
             if (!Array.isArray(connectedDevices)) return;
-            
+
             if (connectedDevices.length === 0 && !hasReceivedInitialStatusSync) return;
 
             let onlineCount = 0;
@@ -633,7 +632,7 @@
                     var rescanText = card.find('.rescan-text').text() || "";
                     if (rescanText.includes('Scanning')) {
                         console.log("Skipping offline status for " + domain + " because scan is in progress.");
-                        return; 
+                        return;
                     }
 
                     let misses = (card.data('miss-count') || 0) + 1;
@@ -1164,7 +1163,7 @@
 
         function checkThreshold(domain, type, value, barElement) {
             const vip = (window.VIP_CLIENTS || []).find(v => (v.ClientId || '').toUpperCase() === domain.toUpperCase());
-            
+
             let threshold = null;
             if (vip) {
                 if (type === 'CPU') threshold = vip.CpuThreshold;
@@ -1388,7 +1387,7 @@
             link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin mr-0.5"></i>Scanning…');
             link.prop('disabled', true);
             card.addClass('opacity-75'); // Visual cue
-            
+
             registerActiveRescan(domain);
 
             // Stale scan safety timeout (3 minutes)
@@ -1452,7 +1451,7 @@
 
                     Object.keys(activeScans).forEach(domain => {
                         const registeredTime = activeScans[domain];
-                        
+
                         // If it has been more than 3 minutes, or is old format (boolean true)
                         if (typeof registeredTime !== 'number' || (now - registeredTime > timeoutMs)) {
                             delete activeScans[domain];

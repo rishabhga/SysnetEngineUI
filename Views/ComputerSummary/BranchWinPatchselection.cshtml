@@ -52,6 +52,20 @@
             max-height: 0 !important;
             opacity: 0
         }
+
+    #rescanBtn.scanning i {
+        animation: rescanSpin 1s linear infinite;
+    }
+
+    @@keyframes rescanSpin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>
 
 <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3">
@@ -70,13 +84,25 @@
                 </p>
             </div>
         </div>
-        <button id="submitPatchBtn" onclick="deployPatches()" disabled
-                class="px-3 py-1.5 text-white rounded-md text-xs font-semibold flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
-            <i class="fas fa-paper-plane text-[10px]"></i>
-            <span>Deploy</span>
-            <span id="selectedBadge" class="hidden px-1.5 py-0.5 bg-white/25 rounded-full text-[9px] font-bold">0</span>
-        </button>
+
+        <div class="flex items-center gap-2">
+            <!-- Rescan Button -->
+            <button id="rescanBtn" onclick="rescanDevices()"
+                    class="px-3 py-1.5 bg-amber-50 border border-amber-300 text-amber-700 rounded-md text-xs font-semibold flex items-center gap-1.5 hover:bg-amber-100 transition-colors"
+                    title="Re-scan all selected devices for missing Windows updates">
+                <i class="fas fa-sync-alt text-[10px]"></i>
+                <span>Rescan</span>
+            </button>
+
+            <!-- Deploy Button -->
+            <button id="submitPatchBtn" onclick="deployPatches()" disabled
+                    class="px-3 py-1.5 text-white rounded-md text-xs font-semibold flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                    style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
+                <i class="fas fa-paper-plane text-[10px]"></i>
+                <span>Deploy</span>
+                <span id="selectedBadge" class="hidden px-1.5 py-0.5 bg-white/25 rounded-full text-[9px] font-bold">0</span>
+            </button>
+        </div>
     </div>
 
     <!-- Target Devices Accordion -->
@@ -100,6 +126,16 @@
             </div>
         </div>
     }
+
+    <!-- Rescan result notification -->
+    <div id="rescanNotice" class="hidden mb-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
+        <i class="fas fa-info-circle text-amber-500"></i>
+        <span id="rescanNoticeText"></span>
+        <button onclick="document.getElementById('rescanNotice').classList.add('hidden')"
+                class="ml-auto text-amber-400 hover:text-amber-600">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
 
     <!-- Stats -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
@@ -219,6 +255,11 @@
         <div class="text-center py-16 bg-white rounded-md border border-gray-200 shadow-sm">
             <i class="fab fa-windows text-4xl text-gray-200 mb-3"></i>
             <p class="text-gray-500 text-sm font-medium">No Windows updates found</p>
+            <p class="text-[10px] text-gray-400 mt-1">Try rescanning the selected devices to refresh the update list.</p>
+            <button onclick="rescanDevices()"
+                    class="mt-3 px-4 py-2 bg-amber-50 border border-amber-300 text-amber-700 rounded-md text-xs font-semibold inline-flex items-center gap-2 hover:bg-amber-100 transition-colors">
+                <i class="fas fa-sync-alt"></i> Rescan Devices
+            </button>
         </div>
     }
 </div>
@@ -229,7 +270,7 @@
         const DOMAIN_IDS = '@domainids'.split(',').map(s => s.trim()).filter(s => !!s);
         let activeActions = {};
 
-        const DEPLOY_STORAGE_KEY = `BranchPatch_Deployments_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
+        const DEPLOY_STORAGE_KEY  = `BranchPatch_Deployments_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
         const ACTIONS_STORAGE_KEY = `BranchPatch_Actions_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
 
         function saveDeploymentsToStorage() {
@@ -237,17 +278,8 @@
             localStorage.setItem(ACTIONS_STORAGE_KEY, JSON.stringify(activeActions));
         }
 
-        function registerAction(ids) {
-            activeActions[ids] = true;
-            saveDeploymentsToStorage();
-            updateButtonState();
-        }
-
-        function unregisterAction(ids) {
-            delete activeActions[ids];
-            saveDeploymentsToStorage();
-            updateButtonState();
-        }
+        function registerAction(ids) { activeActions[ids] = true; saveDeploymentsToStorage(); updateButtonState(); }
+        function unregisterAction(ids) { delete activeActions[ids]; saveDeploymentsToStorage(); updateButtonState(); }
 
         function updateButtonState() {
             const btn = document.getElementById('submitPatchBtn');
@@ -261,17 +293,54 @@
             }
         }
 
-        // SignalR Connection
-        let hubConnection = null;
-        let machineNames = {}; // Map domain -> machineName
-        let activeDeployments = {}; // Key: "DEVICE_PATCHNAME" -> { device, patchName, status }
+        // ── Rescan ────────────────────────────────────────────────
+        function rescanDevices() {
+            if (DOMAIN_IDS.length === 0) {
+                sysAlert('No devices to rescan.', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('rescanBtn');
+            btn.classList.add('scanning');
+            btn.disabled = true;
+            const origHtml = btn.innerHTML;
+
+            let succeeded = 0;
+
+            Promise.all(DOMAIN_IDS.map(domain =>
+                fetch('@Url.Action("ReScanPatches", "ComputerSummary")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ClientId: domain })
+                })
+                .then(r => r.json())
+                .then(res => { if (res.success) succeeded++; })
+                .catch(() => {})
+            )).then(() => {
+                btn.classList.remove('scanning');
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+
+                const notice = document.getElementById('rescanNotice');
+                const noticeText = document.getElementById('rescanNoticeText');
+                noticeText.textContent = succeeded > 0
+                    ? `Rescan command sent to ${succeeded}/${DOMAIN_IDS.length} device(s). The update list will refresh after the scan completes.`
+                    : 'Rescan command could not be delivered — devices may be offline.';
+                notice.classList.remove('hidden');
+                notice.classList.add('flex');
+            });
+        }
+
+        // ── SignalR Hub ───────────────────────────────────────────
+        let hubConnection    = null;
+        let machineNames     = {};
+        let activeDeployments = {};
 
         function updateProgressPercent() {
             const keys = Object.keys(activeDeployments);
             if (!keys.length) return;
             const completed = keys.filter(k => activeDeployments[k].status !== 'In Progress').length;
-            const pct = Math.round((completed / keys.length) * 100);
-            document.getElementById('activeProgressPct').textContent = `${pct}%`;
+            document.getElementById('activeProgressPct').textContent = `${Math.round((completed / keys.length) * 100)}%`;
         }
 
         async function initHub() {
@@ -284,44 +353,30 @@
             hubConnection.on('SendinstallReasultUpdate', (computerName, softwareName, isSuccess) => {
                 const upperComp = (computerName || '').trim().toUpperCase();
                 const upperSoft = (softwareName || '').trim().toUpperCase();
-                
-                // Find matching active deployment key by checking exact match or prefix/domain split match
+
                 let matchedKey = null;
                 for (const key in activeDeployments) {
                     const [devPart, softPart] = key.split('_');
                     if (softPart === upperSoft) {
                         const devNameOnly = devPart.split('.')[0];
                         if (devPart === upperComp || devNameOnly === upperComp || upperComp.split('.')[0] === devNameOnly) {
-                            matchedKey = key;
-                            break;
+                            matchedKey = key; break;
                         }
                     }
                 }
-                
+
                 if (matchedKey) {
-                    const entry = activeDeployments[matchedKey];
-                    entry.status = isSuccess ? 'Success' : 'Failed';
+                    activeDeployments[matchedKey].status = isSuccess ? 'Success' : 'Failed';
                     saveDeploymentsToStorage();
-                    
-                    // Update console panel item
-                    const consoleElId = `console_${matchedKey.replace(/[^a-zA-Z0-9]/g, '_')}`;
-                    const consoleEl = document.getElementById(consoleElId);
+
+                    const consoleEl = document.getElementById(`console_${matchedKey.replace(/[^a-zA-Z0-9]/g, '_')}`);
                     if (consoleEl) {
-                        const statusBadge = consoleEl.querySelector('.status-badge');
-                        if (isSuccess) {
-                            consoleEl.classList.remove('text-slate-300');
-                            consoleEl.classList.add('text-emerald-400');
-                            statusBadge.className = 'status-badge flex items-center gap-1 text-emerald-400 font-bold';
-                            statusBadge.innerHTML = '<i class="fas fa-check text-[8px]"></i> COMPLETED';
-                        } else {
-                            consoleEl.classList.remove('text-slate-300');
-                            consoleEl.classList.add('text-rose-400');
-                            statusBadge.className = 'status-badge flex items-center gap-1 text-rose-400 font-bold';
-                            statusBadge.innerHTML = '<i class="fas fa-times text-[8px]"></i> FAILED';
-                        }
+                        const sb = consoleEl.querySelector('.status-badge');
+                        consoleEl.className = `py-1 flex items-center justify-between ${isSuccess ? 'text-emerald-400' : 'text-rose-400'}`;
+                        sb.className = `status-badge flex items-center gap-1 ${isSuccess ? 'text-emerald-400' : 'text-rose-400'} font-bold`;
+                        sb.innerHTML = isSuccess ? '<i class="fas fa-check text-[8px]"></i> COMPLETED' : '<i class="fas fa-times text-[8px]"></i> FAILED';
                     }
 
-                    // Update inline row status badge in table using class selector
                     document.querySelectorAll(`.patch-row[data-patchname="${softwareName}"]`).forEach(row => {
                         const tdName = row.querySelector('.patch-name-cell');
                         if (tdName) {
@@ -330,15 +385,9 @@
                                 if (isSuccess) {
                                     badge.className = 'deployment-row-status inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-medium bg-green-50 text-green-700 border border-green-200';
                                     badge.innerHTML = '<i class="fas fa-check"></i> Completed';
-                                    
-                                    // Smoothly fade and remove the row
                                     setTimeout(() => {
-                                        row.style.transition = 'all 0.5s ease';
-                                        row.style.opacity = '0';
-                                        setTimeout(() => {
-                                            row.remove();
-                                            updateCounts();
-                                        }, 500);
+                                        row.style.transition = 'all 0.5s ease'; row.style.opacity = '0';
+                                        setTimeout(() => { row.remove(); updateCounts(); }, 500);
                                     }, 2000);
                                 } else {
                                     badge.className = 'deployment-row-status inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-medium bg-red-50 text-red-700 border border-red-200';
@@ -349,63 +398,41 @@
                     });
 
                     updateProgressPercent();
-
-                    // Check if all are finished
                     const keys = Object.keys(activeDeployments);
                     const completedCount = keys.filter(k => activeDeployments[k].status !== 'In Progress').length;
                     if (completedCount === keys.length) {
                         const successes = keys.filter(k => activeDeployments[k].status === 'Success').length;
-                        sysAlert(`Deployment Completed! Successfully installed ${successes}/${keys.length} updates.`, successes === keys.length ? 'success' : 'warning');
-                        
-                        // Wait 5 seconds, then hide the progress console
+                        sysAlert(`Deployment Completed! ${successes}/${keys.length} updates installed.`, successes === keys.length ? 'success' : 'warning');
                         setTimeout(() => {
                             document.getElementById('activeDeploymentsPanel').classList.add('hidden');
                             localStorage.removeItem(DEPLOY_STORAGE_KEY);
                             localStorage.removeItem(ACTIONS_STORAGE_KEY);
                         }, 5000);
-
-                        // Clear active actions to re-enable button
-                        Object.keys(activeActions).forEach(actKey => {
-                            unregisterAction(actKey);
-                        });
+                        Object.keys(activeActions).forEach(k => unregisterAction(k));
                     }
                 } else {
-                    // Fallback for general signalr alerts if it wasn't triggered by this user's tab session
                     const isMatch = DOMAIN_IDS.some(d => {
                         const cleanD = (d || '').trim().toUpperCase();
-                        const cleanMachine = (machineNames[d] || '').trim().toUpperCase();
-                        return cleanD === upperComp || (cleanMachine && cleanMachine === upperComp);
+                        const cleanM = (machineNames[d] || '').trim().toUpperCase();
+                        return cleanD === upperComp || (cleanM && cleanM === upperComp);
                     });
-                    
                     if (isMatch) {
-                        const status = isSuccess ? 'success' : 'error';
-                        sysAlert(`Deployment to ${computerName} ${isSuccess ? 'Successful' : 'Failed'}: ${softwareName}`, status);
-                        
+                        sysAlert(`Deployment to ${computerName} ${isSuccess ? 'Successful' : 'Failed'}: ${softwareName}`, isSuccess ? 'success' : 'error');
                         if (isSuccess) {
                             document.querySelectorAll(`.patch-row[data-patchname="${softwareName}"]`).forEach(row => {
-                                row.style.transition = 'all 0.5s ease';
-                                row.style.opacity = '0';
-                                setTimeout(() => {
-                                    row.remove();
-                                    updateCounts();
-                                }, 500);
+                                row.style.transition = 'all 0.5s ease'; row.style.opacity = '0';
+                                setTimeout(() => { row.remove(); updateCounts(); }, 500);
                             });
                         }
-                        Object.keys(activeActions).forEach(actKey => {
-                            unregisterAction(actKey);
-                        });
+                        Object.keys(activeActions).forEach(k => unregisterAction(k));
                     }
                 }
             });
 
-            try {
-                await hubConnection.start();
-            } catch (err) {
-                console.error("SignalR Hub Error:", err);
-            }
+            try { await hubConnection.start(); }
+            catch (err) { console.error("SignalR Hub Error:", err); }
         }
 
-        // Resolve machine names for all domains
         async function resolveMachineNames() {
             for (const domain of DOMAIN_IDS) {
                 try {
@@ -423,20 +450,16 @@
         }
 
         function updateSel() {
-            if (Object.keys(activeActions).length > 0) return; // Don't change during active deployment
+            if (Object.keys(activeActions).length > 0) return;
             const n = document.querySelectorAll('.rowCheck:checked').length;
             const btn = document.getElementById('submitPatchBtn');
             if (btn) btn.disabled = n === 0;
             const b = document.getElementById('selectedBadge');
             if (b) { b.textContent = n; b.classList.toggle('hidden', n === 0); }
-            
             const all = Array.from(document.querySelectorAll('.rowCheck')).filter(c => c.closest('tr').style.display !== 'none');
             const ca = document.getElementById('checkAll');
             const cn = all.filter(c => c.checked).length;
-            if (ca) {
-                ca.checked = cn > 0 && cn === all.length; 
-                ca.indeterminate = cn > 0 && cn < all.length;
-            }
+            if (ca) { ca.checked = cn > 0 && cn === all.length; ca.indeterminate = cn > 0 && cn < all.length; }
         }
 
         function toggleSelectAll() {
@@ -460,72 +483,44 @@
         }
 
         function restoreActiveDeployments() {
-            const savedDeploy = localStorage.getItem(DEPLOY_STORAGE_KEY);
+            const savedDeploy  = localStorage.getItem(DEPLOY_STORAGE_KEY);
             const savedActions = localStorage.getItem(ACTIONS_STORAGE_KEY);
-            
-            if (savedDeploy) {
-                try {
-                    activeDeployments = JSON.parse(savedDeploy);
-                } catch(e) {
-                    activeDeployments = {};
-                }
-            }
-            if (savedActions) {
-                try {
-                    activeActions = JSON.parse(savedActions);
-                } catch(e) {
-                    activeActions = {};
-                }
-            }
+            if (savedDeploy) { try { activeDeployments = JSON.parse(savedDeploy); } catch(e) { activeDeployments = {}; } }
+            if (savedActions) { try { activeActions = JSON.parse(savedActions); } catch(e) { activeActions = {}; } }
 
-            // Prune stuck deployments (older than 15 minutes or missing timestamp)
             const now = Date.now();
             let dirty = false;
             for (const key in activeDeployments) {
                 const entry = activeDeployments[key];
-                if (!entry.timestamp || (now - entry.timestamp > 900000)) {
-                    delete activeDeployments[key];
-                    dirty = true;
-                }
+                if (!entry.timestamp || (now - entry.timestamp > 900000)) { delete activeDeployments[key]; dirty = true; }
             }
             if (dirty) {
-                if (Object.keys(activeDeployments).length === 0) {
-                    activeDeployments = {};
-                    activeActions = {};
-                }
+                if (Object.keys(activeDeployments).length === 0) { activeDeployments = {}; activeActions = {}; }
                 saveDeploymentsToStorage();
             }
 
             const keys = Object.keys(activeDeployments);
             if (keys.length > 0) {
-                const panel = document.getElementById('activeDeploymentsPanel');
-                if (panel) panel.classList.remove('hidden');
-                
+                const panel  = document.getElementById('activeDeploymentsPanel');
                 const listEl = document.getElementById('activeDeploymentsList');
+                if (panel)  panel.classList.remove('hidden');
                 if (listEl) listEl.innerHTML = '';
-                
+
                 keys.forEach(k => {
-                    const entry = activeDeployments[k];
-                    
+                    const entry  = activeDeployments[k];
                     const itemEl = document.createElement('div');
                     itemEl.id = `console_${k.replace(/[^a-zA-Z0-9]/g, '_')}`;
-                    
                     let badgeHtml = '';
+
                     if (entry.status === 'In Progress') {
                         itemEl.className = 'py-1 flex items-center justify-between text-slate-300';
-                        badgeHtml = `
-                            <span class="status-badge flex items-center gap-1 text-cyan-400 font-semibold animate-pulse">
-                                <i class="fas fa-circle-notch fa-spin text-[8px]"></i> IN PROCESS
-                            </span>
-                        `;
-                        
-                        // Add inline badge to row using class selector
+                        badgeHtml = `<span class="status-badge flex items-center gap-1 text-cyan-400 font-semibold animate-pulse">
+                            <i class="fas fa-circle-notch fa-spin text-[8px]"></i> IN PROCESS</span>`;
                         document.querySelectorAll(`.patch-row[data-patchname="${entry.patchName}"]`).forEach(row => {
                             const tdName = row.querySelector('.patch-name-cell');
                             if (tdName) {
                                 const existing = tdName.querySelector('.deployment-row-status');
                                 if (existing) existing.remove();
-
                                 const badge = document.createElement('span');
                                 badge.className = 'deployment-row-status inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse';
                                 badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Installing';
@@ -534,41 +529,28 @@
                         });
                     } else if (entry.status === 'Success') {
                         itemEl.className = 'py-1 flex items-center justify-between text-emerald-400';
-                        badgeHtml = `
-                            <span class="status-badge flex items-center gap-1 text-emerald-400 font-bold">
-                                <i class="fas fa-check text-[8px]"></i> COMPLETED
-                            </span>
-                        `;
+                        badgeHtml = `<span class="status-badge flex items-center gap-1 text-emerald-400 font-bold">
+                            <i class="fas fa-check text-[8px]"></i> COMPLETED</span>`;
                     } else if (entry.status === 'Failed') {
                         itemEl.className = 'py-1 flex items-center justify-between text-rose-400';
-                        badgeHtml = `
-                            <span class="status-badge flex items-center gap-1 text-rose-400 font-bold">
-                                <i class="fas fa-times text-[8px]"></i> FAILED
-                            </span>
-                        `;
+                        badgeHtml = `<span class="status-badge flex items-center gap-1 text-rose-400 font-bold">
+                            <i class="fas fa-times text-[8px]"></i> FAILED</span>`;
                     } else {
                         itemEl.className = 'py-1 flex items-center justify-between text-slate-500';
-                        badgeHtml = `
-                            <span class="status-badge flex items-center gap-1 text-slate-500 font-bold">
-                                <i class="fas fa-ban text-[8px]"></i> OFFLINE
-                            </span>
-                        `;
+                        badgeHtml = `<span class="status-badge flex items-center gap-1 text-slate-500 font-bold">
+                            <i class="fas fa-ban text-[8px]"></i> OFFLINE</span>`;
                     }
-                    
-                    itemEl.innerHTML = `
-                        <div class="flex items-center gap-2 truncate">
-                            <span class="text-cyan-400 font-bold">[${entry.device}]</span>
-                            <span class="text-slate-400 truncate max-w-sm" title="${entry.patchName}">${entry.patchName}</span>
-                        </div>
-                        ${badgeHtml}
-                    `;
+
+                    itemEl.innerHTML = `<div class="flex items-center gap-2 truncate">
+                        <span class="text-cyan-400 font-bold">[${entry.device}]</span>
+                        <span class="text-slate-400 truncate max-w-sm" title="${entry.patchName}">${entry.patchName}</span>
+                    </div>${badgeHtml}`;
                     if (listEl) listEl.appendChild(itemEl);
                 });
-                
+
                 updateProgressPercent();
                 updateButtonState();
 
-                // If everything is already finished, hide the panel after 5 seconds
                 const completedCount = keys.filter(k => activeDeployments[k].status !== 'In Progress').length;
                 if (completedCount === keys.length) {
                     setTimeout(() => {
@@ -584,17 +566,15 @@
             const selectedChecks = Array.from(document.querySelectorAll('.rowCheck:checked'));
             if (!selectedChecks.length) { sysAlert('Please select at least one patch!', 'warning'); return; }
 
-            const ids = selectedChecks.map(c => c.value);
+            const ids   = selectedChecks.map(c => c.value);
             const idStr = ids.join(',');
             registerAction(idStr);
 
-            // Clear selection keys on computer management selection page immediately
             const selStorageKey = `BranchPatch_Selection_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
             localStorage.removeItem(selStorageKey + '_Ids');
             localStorage.removeItem(selStorageKey + '_Domains');
             localStorage.removeItem(selStorageKey + '_Names');
 
-            // Initialize active deployments progress panel
             activeDeployments = {};
             const listEl = document.getElementById('activeDeploymentsList');
             listEl.innerHTML = '';
@@ -603,42 +583,31 @@
             selectedChecks.forEach(c => {
                 const row = c.closest('tr');
                 const patchName = row.dataset.patchname;
-                
-                // Add inline row loading badge to name cell using class selector
+
                 const tdName = row.querySelector('.patch-name-cell');
                 if (tdName) {
                     const existing = tdName.querySelector('.deployment-row-status');
                     if (existing) existing.remove();
-
                     const badge = document.createElement('span');
                     badge.className = 'deployment-row-status inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-[8px] font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse';
                     badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Installing';
                     tdName.appendChild(badge);
                 }
 
-                // Register tracking entries
                 DOMAIN_IDS.forEach(device => {
                     const cleanDev = device.trim().toUpperCase();
                     const key = `${cleanDev}_${patchName.trim().toUpperCase()}`;
-                    activeDeployments[key] = {
-                        device: device.trim(),
-                        patchName: patchName.trim(),
-                        status: 'In Progress',
-                        timestamp: Date.now()
-                    };
+                    activeDeployments[key] = { device: device.trim(), patchName: patchName.trim(), status: 'In Progress', timestamp: Date.now() };
 
                     const itemEl = document.createElement('div');
                     itemEl.id = `console_${key.replace(/[^a-zA-Z0-9]/g, '_')}`;
                     itemEl.className = 'py-1 flex items-center justify-between text-slate-300';
-                    itemEl.innerHTML = `
-                        <div class="flex items-center gap-2 truncate">
-                            <span class="text-cyan-400 font-bold">[${device.trim()}]</span>
-                            <span class="text-slate-400 truncate max-w-sm" title="${patchName}">${patchName}</span>
-                        </div>
-                        <span class="status-badge flex items-center gap-1 text-cyan-400 font-semibold animate-pulse">
-                            <i class="fas fa-circle-notch fa-spin text-[8px]"></i> IN PROCESS
-                        </span>
-                    `;
+                    itemEl.innerHTML = `<div class="flex items-center gap-2 truncate">
+                        <span class="text-cyan-400 font-bold">[${device.trim()}]</span>
+                        <span class="text-slate-400 truncate max-w-sm" title="${patchName}">${patchName}</span>
+                    </div>
+                    <span class="status-badge flex items-center gap-1 text-cyan-400 font-semibold animate-pulse">
+                        <i class="fas fa-circle-notch fa-spin text-[8px]"></i> IN PROCESS</span>`;
                     listEl.appendChild(itemEl);
                 });
             });
@@ -670,10 +639,9 @@
                     clearTimeout(safetyTimer);
                     if (res.success) {
                         var targetComp = DOMAIN_IDS.length > 0 ? DOMAIN_IDS.join(', ') : 'the selected device(s)';
-                        var msg = `Deployment command sent successfully!  The installation has started in the background on ${targetComp}. You will receive a final confirmation notification here shortly when the update completes.`;
+                        var msg = `Deployment command sent! Installation started on ${targetComp}.`;
                         if (res.offlineClients && res.offlineClients.length > 0) {
-                            msg += ` (Note: ${res.offlineClients.length} device(s) are offline and did not receive the command).`;
-                            
+                            msg += ` (${res.offlineClients.length} device(s) offline.)`;
                             res.offlineClients.forEach(offDev => {
                                 const cleanOff = offDev.trim().toUpperCase();
                                 selectedChecks.forEach(c => {
@@ -682,15 +650,12 @@
                                     const key = `${cleanOff}_${patchName.trim().toUpperCase()}`;
                                     if (activeDeployments[key]) {
                                         activeDeployments[key].status = 'Failed';
-                                        
-                                        const consoleElId = `console_${key.replace(/[^a-zA-Z0-9]/g, '_')}`;
-                                        const consoleEl = document.getElementById(consoleElId);
+                                        const consoleEl = document.getElementById(`console_${key.replace(/[^a-zA-Z0-9]/g, '_')}`);
                                         if (consoleEl) {
-                                            consoleEl.classList.remove('text-slate-300');
-                                            consoleEl.classList.add('text-slate-500');
-                                            const statusBadge = consoleEl.querySelector('.status-badge');
-                                            statusBadge.className = 'status-badge flex items-center gap-1 text-slate-500 font-bold';
-                                            statusBadge.innerHTML = '<i class="fas fa-ban text-[8px]"></i> OFFLINE';
+                                            consoleEl.classList.replace('text-slate-300', 'text-slate-500');
+                                            const sb = consoleEl.querySelector('.status-badge');
+                                            sb.className = 'status-badge flex items-center gap-1 text-slate-500 font-bold';
+                                            sb.innerHTML = '<i class="fas fa-ban text-[8px]"></i> OFFLINE';
                                         }
                                     }
                                 });
@@ -699,8 +664,8 @@
                             saveDeploymentsToStorage();
                         }
                         sysAlert(msg, 'success');
-                    } else { 
-                        sysAlert(res.message || res.error || 'Deployment failed. Devices may be offline.', 'error');
+                    } else {
+                        sysAlert(res.message || res.error || 'Deployment failed.', 'error');
                         document.getElementById('activeDeploymentsPanel').classList.add('hidden');
                         unregisterAction(idStr);
                         localStorage.removeItem(DEPLOY_STORAGE_KEY);
@@ -709,9 +674,9 @@
                 },
                 error: function(xhr) {
                     clearTimeout(safetyTimer);
-                    var errMsg = xhr.status === 0 ? 'Connection lost — check your network.' :
-                                 xhr.status === 408 ? 'Request timed out — API may be busy.' :
-                                 'Server error (' + xhr.status + '): ' + (xhr.statusText || 'Unknown');
+                    const errMsg = xhr.status === 0 ? 'Connection lost.' :
+                                   xhr.status === 408 ? 'Request timed out.' :
+                                   `Server error (${xhr.status})`;
                     sysAlert(errMsg, 'error');
                     document.getElementById('activeDeploymentsPanel').classList.add('hidden');
                     unregisterAction(idStr);
@@ -722,39 +687,25 @@
         }
 
         function updateCounts() {
-            const rows = Array.from(document.querySelectorAll('.patch-row'));
-            const total = rows.length;
-            
+            const rows     = Array.from(document.querySelectorAll('.patch-row'));
+            const total    = rows.length;
             const critical = rows.filter(r => r.dataset.severity === 'Critical').length;
             const important = rows.filter(r => r.dataset.severity === 'Important').length;
-            const other = total - critical - important;
+            const other    = total - critical - important;
 
-            const tEl = document.getElementById('totalCount');
-            if (tEl) tEl.textContent = total;
-
-            const cEl = document.getElementById('criticalCount');
-            if (cEl) cEl.textContent = critical;
-
-            const iEl = document.getElementById('importantCount');
-            if (iEl) iEl.textContent = important;
-
-            const oEl = document.getElementById('otherCount');
-            if (oEl) oEl.textContent = other;
-
-            const visCount = document.getElementById('visCount');
-            if (visCount) visCount.textContent = total;
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+            set('totalCount', total);
+            set('criticalCount', critical);
+            set('importantCount', important);
+            set('otherCount', other);
+            set('visCount', total);
 
             updateButtonState();
-
-            if (total === 0) {
-                setTimeout(() => { location.reload(); }, 1000);
-            }
+            // NOTE: Intentionally NOT auto-reloading on 0 to avoid infinite loop
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            initHub().then(() => {
-                restoreActiveDeployments();
-            });
+            initHub().then(() => restoreActiveDeployments());
             resolveMachineNames();
             updateButtonState();
             filterTable();

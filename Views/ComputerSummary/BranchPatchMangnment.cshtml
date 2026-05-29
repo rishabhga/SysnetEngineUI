@@ -118,7 +118,71 @@
         #liveSyncDot.error {
             background: #ef4444;
         }
+
+    /* ── Rescan toast ── */
+    #rescanToast {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        animation: toastIn .25s ease;
+    }
+
+    @@keyframes toastIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    #rescanToast.success {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #6ee7b7;
+    }
+
+    #rescanToast.error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+    }
+
+    #rescanToast.info {
+        background: #e0f5fc;
+        color: #0369a1;
+        border: 1px solid #7dd3fc;
+    }
+
+    /* ── Rescan spinner ── */
+    .rescan-btn.scanning i,
+    #bulkRescanBtn.scanning i {
+        animation: rescanSpin 1s linear infinite;
+    }
+
+    @@keyframes rescanSpin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>
+
+<!-- Rescan Toast -->
+<div id="rescanToast"></div>
 
 <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3">
 
@@ -140,6 +204,12 @@
                 <i class="fas fa-check-circle text-[9px]"></i>
                 <span id="selCountPill">0</span> selected
             </span>
+
+            <!-- Bulk Rescan (visible when ≥1 online device selected) -->
+            <button id="bulkRescanBtn" onclick="bulkRescan()" title="Re-scan selected devices for missing patches"
+                    class="hidden items-center gap-1 px-2.5 py-1.5 bg-amber-50 border border-amber-300 text-amber-700 rounded-md font-semibold text-xs hover:bg-amber-100 transition-colors">
+                <i class="fas fa-sync-alt text-[10px]"></i> Rescan Selected
+            </button>
 
             <div class="relative">
                 <button id="patchDropdownBtn" onclick="toggleDropdown()" disabled
@@ -208,6 +278,7 @@
                             <th class="px-3 py-2 text-left font-semibold" style="width: 160px;">Full Name</th>
                             <th class="px-3 py-2 text-left font-semibold">Department</th>
                             <th class="px-3 py-2 text-left font-semibold" style="width: 100px;">Device ID</th>
+                            <th class="px-3 py-2 text-center font-semibold" style="width: 80px;">Rescan</th>
                         </tr>
                     </thead>
                     <tbody id="deviceTableBody" class="divide-y divide-gray-100">
@@ -250,6 +321,20 @@
                                 <td class="px-3 py-2 text-gray-600 truncate">@item.FullName</td>
                                 <td class="px-3 py-2 text-gray-500 truncate">@item.AccountType</td>
                                 <td class="px-3 py-2 text-gray-400 font-mono truncate">#@item.Id</td>
+                                <td class="px-3 py-2 text-center rescan-cell">
+                                    @if (isOnline)
+                                    {
+                                        <button class="rescan-btn inline-flex items-center justify-center gap-1 px-2 py-1 rounded text-[9px] font-semibold bg-amber-50 border border-amber-300 text-amber-700 hover:bg-amber-100 transition-colors"
+                                                onclick="singleRescan(this, '@item.DomainName')"
+                                                title="Re-scan this device for missing patches">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-gray-300 text-[9px]" title="Device offline">—</span>
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -290,7 +375,7 @@
         let pageSize     = 50;
 
         const STORAGE_KEY = `BranchPatch_Selection_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
-        
+
         // Clear selection unless referrer is the patch selection page
         const ref = document.referrer || '';
         const cameFromDeployment = ref.includes('BranchWinPatchselection') || ref.includes('BranchPatchselection');
@@ -372,6 +457,7 @@
 
             function updateRowUI(row, isOnline) {
                 row.dataset.status = isOnline ? 'online' : 'offline';
+                const domain = row.dataset.domain || '';
 
                 const badgeCell = row.querySelector('.status-badge-cell');
                 if (badgeCell) {
@@ -382,6 +468,17 @@
                         : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold pm-badge-offline">
                                <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Offline
                            </span>`;
+                }
+
+                // Refresh rescan button cell
+                const rescanCell = row.querySelector('.rescan-cell');
+                if (rescanCell) {
+                    rescanCell.innerHTML = isOnline
+                        ? `<button class="rescan-btn inline-flex items-center justify-center gap-1 px-2 py-1 rounded text-[9px] font-semibold bg-amber-50 border border-amber-300 text-amber-700 hover:bg-amber-100 transition-colors"
+                               onclick="singleRescan(this, '${domain.replace(/'/g, "\\'")}')" title="Re-scan this device for missing patches">
+                               <i class="fas fa-sync-alt"></i>
+                           </button>`
+                        : `<span class="text-gray-300 text-[9px]" title="Device offline">—</span>`;
                 }
 
                 const cb = row.querySelector('.device-checkbox');
@@ -405,10 +502,10 @@
         function fallbackPoll() {
             fetch('@Url.Action("GetConnectedDevices", "ComputerSummary")')
                 .then(r => r.ok ? r.json() : [])
-                .then(devices => { 
+                .then(devices => {
                     if (Array.isArray(devices)) {
                         const ids = devices.map(d => d.clientId || d);
-                        applyDeviceStatuses(ids); 
+                        applyDeviceStatuses(ids);
                     }
                 })
                 .catch(() => {});
@@ -642,13 +739,91 @@
         }
 
         function updateHeader() {
-            const count = selectedIds.size;
-            const pill  = document.getElementById('selectedPill');
-            const btn   = document.getElementById('patchDropdownBtn');
+            const count      = selectedIds.size;
+            const pill       = document.getElementById('selectedPill');
+            const btn        = document.getElementById('patchDropdownBtn');
+            const bulkRescan = document.getElementById('bulkRescanBtn');
+
             document.getElementById('selCountPill').textContent = count;
             pill.classList.toggle('hidden', count === 0);
             pill.classList.toggle('inline-flex', count > 0);
             btn.disabled = count === 0;
+
+            // Show bulk rescan only when ≥1 selected device is online
+            const hasOnlineSelected = [...selectedIds].some(id => {
+                const row = document.querySelector(`.device-row[data-id="${id}"]`);
+                return row && row.dataset.status === 'online';
+            });
+            bulkRescan.classList.toggle('hidden', !hasOnlineSelected);
+            bulkRescan.classList.toggle('inline-flex', hasOnlineSelected);
+        }
+
+        // ── Toast ─────────────────────────────────────────────────
+        function showToast(msg, type = 'info', ms = 4000) {
+            const t = document.getElementById('rescanToast');
+            t.textContent = msg;
+            t.className = type;
+            t.style.display = 'block';
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => { t.style.display = 'none'; }, ms);
+        }
+
+        // ── Single-device rescan ──────────────────────────────────
+        function singleRescan(btn, domain) {
+            if (!domain) return;
+            btn.classList.add('scanning');
+            btn.disabled = true;
+            fetch('@Url.Action("ReScanPatches", "ComputerSummary")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ClientId: domain })
+            })
+            .then(r => r.json())
+            .then(res => {
+                showToast(
+                    res.success ? `Rescan sent to ${domain}` : `Rescan failed for ${domain}: ${res.error || res.message || 'Unknown'}`,
+                    res.success ? 'success' : 'error'
+                );
+            })
+            .catch(() => showToast(`Network error rescanning ${domain}`, 'error'))
+            .finally(() => { btn.classList.remove('scanning'); btn.disabled = false; });
+        }
+
+        // ── Bulk rescan (all selected online devices) ─────────────
+        function bulkRescan() {
+            const domains = [...selectedIds]
+                .map(id => {
+                    const row = document.querySelector(`.device-row[data-id="${id}"]`);
+                    return (row && row.dataset.status === 'online') ? selectedDomains.get(id) : null;
+                })
+                .filter(Boolean);
+
+            if (!domains.length) { showToast('No online devices selected.', 'info'); return; }
+
+            const btn = document.getElementById('bulkRescanBtn');
+            btn.disabled = true;
+            btn.classList.add('scanning');
+            const orig = btn.innerHTML;
+
+            let succeeded = 0;
+            Promise.all(domains.map(domain =>
+                fetch('@Url.Action("ReScanPatches", "ComputerSummary")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ClientId: domain })
+                })
+                .then(r => r.json())
+                .then(res => { if (res.success) succeeded++; })
+                .catch(() => {})
+            )).then(() => {
+                showToast(
+                    `Rescan sent to ${succeeded}/${domains.length} device(s).`,
+                    succeeded > 0 ? 'success' : 'error'
+                );
+                btn.disabled = false;
+                btn.classList.remove('scanning');
+                btn.innerHTML = orig;
+            });
         }
 
         function goWinPatch() {
@@ -662,8 +837,8 @@
         function navigate(action) {
             const ids     = [...selectedIds].join(',');
             const domains = [...selectedDomains.values()].join(',');
-            // Clear selection when navigating to deployment? 
-            // Actually, keep it in case they hit back. 
+            // Clear selection when navigating to deployment?
+            // Actually, keep it in case they hit back.
             window.location.href = `/ComputerSummary/${action}?companyid=@companyid&groupid=@groupid&locationid=@locationid&selectedIds=${ids}&domainids=${domains}`;
         }
 

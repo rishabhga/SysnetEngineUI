@@ -54,7 +54,7 @@ var app = builder.Build();
 var httpClientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
 ManageEngineWebApp.Datacontext.RoleHelper.Configure(app.Configuration, httpClientFactory);
 
-if (app.Environment.IsProduction())
+if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 }

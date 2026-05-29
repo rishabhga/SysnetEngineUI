@@ -177,14 +177,14 @@
                                     <p class="text-[10px] text-gray-500">@companyOnline/@companyTotalUsers Online</p>
                                 </div>
                             </div>
-                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Create"))
-                                {
-                                    <button onclick="openEditCompanyModal(@company.CompanyId, '@company.CompanyName')"
-                                            class="w-7 h-7 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors"
-                                            title="Edit Company">
-                                        <i class="fas fa-edit text-xs"></i>
-                                    </button>
-                                }
+                            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Create"))
+                            {
+                                <button onclick="openEditCompanyModal(@company.CompanyId, '@company.CompanyName')"
+                                        class="w-7 h-7 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors"
+                                        title="Edit Company">
+                                    <i class="fas fa-edit text-xs"></i>
+                                </button>
+                            }
                         </div>
                     </div>
                     <!-- Groups -->
@@ -457,7 +457,7 @@
                                 var formData = new FormData();
                                 formData.append('logo', fileInput.files[0]);
                                 formData.append('companyId', newCompanyId);
-                                
+
                                 $.ajax({
                                     url: '/Companies/UploadLogo',
                                     type: 'POST',
@@ -537,7 +537,7 @@
                     var formData = new FormData();
                     formData.append('logo', fileInput.files[0]);
                     formData.append('companyId', currentCompanyId);
-                    
+
                     $.ajax({
                         url: '/Companies/UploadLogo',
                         type: 'POST',

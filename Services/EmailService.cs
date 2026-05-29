@@ -1,57 +1,62 @@
+using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
+using System.ComponentModel.Design;
 using System.Net;
 using System.Net.Mail;
-using Microsoft.Extensions.Configuration;
+using System.Text;
 
 namespace ManageEngineWebApp.Services
 {
     public class EmailService : IEmailService
     {
-        private readonly IConfiguration _configuration;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _config;
+        private readonly string _apiBase;
 
-        public EmailService(IConfiguration configuration)
+        public EmailService(IHttpClientFactory httpClientFactory, IConfiguration config)
         {
-            _configuration = configuration;
+            _httpClientFactory = httpClientFactory;
+            _config = config;
+            _apiBase = _config["ApiSettings:BaseUrl"];
         }
+        public async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
+           => await SendViaApiAsync(companyId: null, toEmail, subject, htmlBody);
 
-        public async Task SendEmailAsync(string email, string subject, string message)
+        public async Task SendEmailForCompanyAsync(int? companyId, string toEmail, string subject, string htmlBody)
+            => await SendViaApiAsync(companyId, toEmail, subject, htmlBody);
+        
+        public async Task SendViaApiAsync(int? companyId, string toEmail, string subject, string htmlBody)
         {
-            var smtpHost = _configuration["EmailSettings:SmtpHost"];
-            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
-            int smtpPort = int.TryParse(smtpPortStr, out int port) ? port : 587;
-            var smtpUser = _configuration["EmailSettings:SmtpUser"];
-            var smtpPass = _configuration["EmailSettings:SmtpPass"];
-
-            if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpUser))
-            {
-                // In development, just log it
-                System.Diagnostics.Debug.WriteLine($"EMAIL TO {email}: {subject}\n{message}");
-                return;
-            }
-
             try
             {
-                using var client = new SmtpClient(smtpHost, smtpPort)
-                {
-                    Credentials = new NetworkCredential(smtpUser, smtpPass),
-                    EnableSsl = true
-                };
+                var client = _httpClientFactory.CreateClient("ManageEngineApi");
 
-                var mailMessage = new MailMessage
+                var endpoint = companyId.HasValue
+                    ? $"{_apiBase}/api/Email/Send/{companyId}"
+                    : $"{_apiBase}/api/Email/Send";
+
+                var payload = JsonConvert.SerializeObject(new
                 {
-                    From = new MailAddress(smtpUser),
+                    ToEmail = toEmail,
                     Subject = subject,
-                    Body = message,
-                    IsBodyHtml = true
-                };
-                mailMessage.To.Add(email);
+                    HtmlBody = htmlBody
+                });
 
-                await client.SendMailAsync(mailMessage);
+                var content = new StringContent(payload, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(endpoint, content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var err = await response.Content.ReadAsStringAsync();
+                    throw new InvalidOperationException($"Email API returned {response.StatusCode}: {err}");
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to send email: {ex.Message}");
-                // In development / fallback, we don't want to crash the app if email fails
+                System.Diagnostics.Debug.WriteLine($"[EmailService] Send failed: {ex.Message}");
+                throw;
             }
         }
+    
     }
 }
