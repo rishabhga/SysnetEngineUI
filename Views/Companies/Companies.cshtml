@@ -177,14 +177,14 @@
                                     <p class="text-[10px] text-gray-500">@companyOnline/@companyTotalUsers Online</p>
                                 </div>
                             </div>
-                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Create"))
-                                {
-                                    <button onclick="openEditCompanyModal(@company.CompanyId, '@company.CompanyName')"
-                                            class="w-7 h-7 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors"
-                                            title="Edit Company">
-                                        <i class="fas fa-edit text-xs"></i>
-                                    </button>
-                                }
+                            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "Companies.Create"))
+                            {
+                                <button onclick="openEditCompanyModal(@company.CompanyId, '@company.CompanyName')"
+                                        class="w-7 h-7 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors"
+                                        title="Edit Company">
+                                    <i class="fas fa-edit text-xs"></i>
+                                </button>
+                            }
                         </div>
                     </div>
                     <!-- Groups -->
@@ -245,7 +245,7 @@
                         }
                     </div>
                     <div class="p-2.5 bg-white border-t border-gray-200 flex-shrink-0">
-                        <a href="/Companies/GroupsDetails?q=@ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(Newtonsoft.Json.JsonConvert.SerializeObject(new { id = company.CompanyId, companyName = company.CompanyName }))"
+                        <a href="/Companies/GroupsDetails?id=@company.CompanyId&companyName=@Uri.EscapeDataString(company.CompanyName)"
                            class="w-full h-8 text-white rounded-lg text-[10px] font-bold transition-colors flex items-center justify-center space-x-1 uppercase shadow-sm"
                            style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
                             <i class="fas fa-eye text-[10px]"></i>
@@ -457,7 +457,7 @@
                                 var formData = new FormData();
                                 formData.append('logo', fileInput.files[0]);
                                 formData.append('companyId', newCompanyId);
-                                
+
                                 $.ajax({
                                     url: '/Companies/UploadLogo',
                                     type: 'POST',
@@ -537,7 +537,7 @@
                     var formData = new FormData();
                     formData.append('logo', fileInput.files[0]);
                     formData.append('companyId', currentCompanyId);
-                    
+
                     $.ajax({
                         url: '/Companies/UploadLogo',
                         type: 'POST',

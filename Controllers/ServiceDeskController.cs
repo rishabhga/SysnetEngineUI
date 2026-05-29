@@ -85,25 +85,7 @@ namespace ManageEngineWebApp.Controllers
 
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets{fullQuery}");
                 var content = await response.Content.ReadAsStringAsync();
-                
-                try 
-                {
-                    var parsed = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(content);
-                    var items = parsed?.items != null ? parsed.items : parsed;
-                    if (items != null)
-                    {
-                        foreach(var t in items)
-                        {
-                            var id = (int?)t.id ?? (int?)t.Id;
-                            if (id.HasValue)
-                            {
-                                t.encryptedId = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(Newtonsoft.Json.JsonConvert.SerializeObject(new { id = id.Value }));
-                            }
-                        }
-                    }
-                    return Content(Newtonsoft.Json.JsonConvert.SerializeObject(parsed), "application/json");
-                }
-                catch { return Content(content, "application/json"); }
+                return Content(content, "application/json");
             }
             catch (Exception ex)
             {
@@ -407,22 +389,8 @@ namespace ManageEngineWebApp.Controllers
         }
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> Details(string q = null, int id = 0)
+        public async Task<IActionResult> Details(int id)
         {
-            if (!string.IsNullOrEmpty(q))
-            {
-                try
-                {
-                    var decrypted = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
-                    var payload = JsonConvert.DeserializeObject<dynamic>(decrypted);
-                    if (payload != null)
-                    {
-                        id = (int?)payload.id ?? id;
-                    }
-                }
-                catch { return RedirectToAction("AccessDenied", "Auth"); }
-            }
-
             try
             {
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{id}");
@@ -431,8 +399,6 @@ namespace ManageEngineWebApp.Controllers
                 var content = await response.Content.ReadAsStringAsync();
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var ticket = System.Text.Json.JsonSerializer.Deserialize<ManageEngineWebApp.Models.HelpdeskTicket>(content, options);
-
-                // Fetch approved status sort order
                 var statusResponse = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Statuses");
                 if (statusResponse.IsSuccessStatusCode)
                 {
@@ -896,25 +862,7 @@ namespace ManageEngineWebApp.Controllers
                 if (!string.IsNullOrEmpty(breachType)) query += $"&breachType={breachType}";
 
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/SLABreaches{query}");
-                var content = await response.Content.ReadAsStringAsync();
-                try 
-                {
-                    var parsed = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(content);
-                    var items = parsed?.items != null ? parsed.items : parsed;
-                    if (items != null)
-                    {
-                        foreach(var t in items)
-                        {
-                            var id = (int?)t.ticketId ?? (int?)t.TicketId;
-                            if (id.HasValue)
-                            {
-                                t.encryptedId = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(Newtonsoft.Json.JsonConvert.SerializeObject(new { id = id.Value }));
-                            }
-                        }
-                    }
-                    return Content(Newtonsoft.Json.JsonConvert.SerializeObject(parsed), "application/json");
-                }
-                catch { return Content(content, "application/json"); }
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
             }
             catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }

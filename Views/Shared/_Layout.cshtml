@@ -775,8 +775,13 @@
         }
 
         @@keyframes crown-float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-2px); }
+            0%, 100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-2px);
+            }
         }
 
         .device-card {
@@ -784,28 +789,35 @@
             border: 1px solid rgba(0,0,0,0.05);
         }
 
-        .device-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.15);
-            border-color: rgba(0, 188, 235, 0.3);
-        }
+            .device-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 12px 24px -8px rgba(0,0,0,0.15);
+                border-color: rgba(0, 188, 235, 0.3);
+            }
 
         .active-task-pulse {
             position: relative;
         }
 
-        .active-task-pulse::after {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            border-radius: inherit;
-            border: 2px solid #00BCEB;
-            animation: task-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
+            .active-task-pulse::after {
+                content: '';
+                position: absolute;
+                inset: -2px;
+                border-radius: inherit;
+                border: 2px solid #00BCEB;
+                animation: task-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
 
         @@keyframes task-pulse {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(1.05); opacity: 0; }
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(1.05);
+                opacity: 0;
+            }
         }
 
         .status-dot {
@@ -895,26 +907,7 @@
             <nav class="sidebar-nav" aria-label="Sidebar navigation">
                 @{
                     var menuTree = await ManageEngineWebApp.Datacontext.RoleHelper.GetMenuTree(Context);
-                    var rawQuery = Context.Request.QueryString.HasValue ? Context.Request.QueryString.Value : "";
-                    var currentQuery = rawQuery;
-
-                    // Encrypt domain parameter to prevent exposing raw domain IDs
-                    if (!string.IsNullOrEmpty(rawQuery))
-                    {
-                        var qs = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(rawQuery);
-                        if (qs.ContainsKey("domain"))
-                        {
-                            var domainValue = qs["domain"].ToString();
-                            var encrypted = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(domainValue);
-                            currentQuery = "?q=" + System.Net.WebUtility.UrlEncode(encrypted);
-                        }
-                        else if (qs.ContainsKey("q"))
-                        {
-                            // Already encrypted, keep as-is
-                            currentQuery = rawQuery;
-                        }
-                    }
-
+                    var currentQuery = Context.Request.QueryString.HasValue ? Context.Request.QueryString.Value : "";
 
                     var filteredMenuTree = menuTree.Where(m =>
                     {
@@ -1049,10 +1042,7 @@
             </nav>
 
             <div class="sidebar-footer">
-                <a asp-controller="Auth" asp-action="ChangePassword" class="logout-link" style="color: #64748b; margin-bottom: 5px;">
-                    <i class="fas fa-key"></i>
-                    <span>Change Password</span>
-                </a>
+
                 <a asp-controller="Auth" asp-action="Logout" class="logout-link">
                     <i class="fas fa-arrow-right-from-bracket"></i>
                     <span>Sign Out</span>

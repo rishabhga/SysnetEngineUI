@@ -26,8 +26,8 @@ namespace ManageEngineWebApp.Controllers
         private (List<int> companyIds, List<int> groupIds, List<int> locationIds) GetUserScope()
         {
             if (RoleHelper.IsTopLevelAdmin(HttpContext)) return (new List<int>(), new List<int>(), new List<int>());
-            return (RoleHelper.GetCompanyIds(HttpContext), 
-                    RoleHelper.GetGroupIds(HttpContext), 
+            return (RoleHelper.GetCompanyIds(HttpContext),
+                    RoleHelper.GetGroupIds(HttpContext),
                     RoleHelper.GetLocationIds(HttpContext));
         }
 
@@ -59,14 +59,9 @@ namespace ManageEngineWebApp.Controllers
             return false;
         }
 
-        [AuthFilter(AllowedHierarchyLevel = 10, VerifyCompanyAccess = true)]
-        public async Task<IActionResult> Index(string q = null, string domain = null)
+        [AuthFilter]
+        public async Task<IActionResult> Index(string domain)
         {
-            if (!string.IsNullOrEmpty(q))
-            {
-                domain = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
-            }
-
             if (!await IsDeviceAuthorized(domain)) return RedirectToAction("Index", "Home");
 
             using var client = GetClient();

@@ -199,7 +199,7 @@
                                     }
 
                                     <div class="flex items-center justify-between p-1.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-1.5">
-                                        <a href="/ComputerSummary/Deshboad?q=@ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(Newtonsoft.Json.JsonConvert.SerializeObject(new { locationId = location.LocationId, locationName = location.LocationName, groupid = group.GroupId, groupName = group.GroupName, comId = Model.CompanyId, companyName = Model.CompanyName }))"
+                                        <a href="/ComputerSummary/Deshboad?locationId=@location.LocationId&locationName=@location.LocationName&groupid=@group.GroupId&groupName=@group.GroupName&comId=@Model.CompanyId&companyName=@Model.CompanyName"
                                            class="flex items-center space-x-1.5 flex-1 min-w-0">
                                             <div class="w-6 h-6 bg-orange-100 rounded flex items-center justify-center">
                                                 <i class="fas fa-map-marker-alt text-orange-600 text-[10px]"></i>
@@ -254,7 +254,7 @@
                                         {
                                             @foreach (var location in group.Locations)
                                             {
-                                                <option value="@location.LocationId" 
+                                                <option value="@location.LocationId"
                                                         data-name="@location.LocationName"
                                                         data-cpu="@location.CpuThreshold"
                                                         data-cpu-warn="@location.CpuWarningThreshold"
@@ -273,7 +273,7 @@
                                     </select>
                                     <i class="fas fa-chevron-down absolute right-2 top-1/2 transform -translate-y-1/2 text-white text-[8px] pointer-events-none"></i>
                                 </div>
-                                
+
                                 <button onclick="openAddLocationModal(@group.GroupId, '@Html.Raw(group.GroupName?.Replace("'", "\\'"))', @Model.CompanyId)"
                                         class="w-full h-8 text-white rounded-lg text-[10px] font-bold transition-colors flex items-center justify-center space-x-1 shadow-sm uppercase"
                                         style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">

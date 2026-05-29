@@ -29,27 +29,8 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [DynamicPermission("ComputerSummary.View", "View Dashboard")]
-        public async Task<IActionResult> Deshboad(string q = null, int locationId = 0, string locationName = null, int groupid = 0, string groupName = null, int comId = 0, string companyName = null)
+        public async Task<IActionResult> Deshboad(int locationId, string locationName, int groupid, string groupName, int comId, string companyName)
         {
-            if (!string.IsNullOrEmpty(q))
-            {
-                try
-                {
-                    var decrypted = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
-                    var payload = JsonConvert.DeserializeObject<dynamic>(decrypted);
-                    if (payload != null)
-                    {
-                        locationId = (int?)payload.locationId ?? locationId;
-                        locationName = (string)payload.locationName ?? locationName;
-                        groupid = (int?)payload.groupid ?? groupid;
-                        groupName = (string)payload.groupName ?? groupName;
-                        comId = (int?)payload.comId ?? comId;
-                        companyName = (string)payload.companyName ?? companyName;
-                    }
-                }
-                catch { return RedirectToAction("AccessDenied", "Auth"); }
-            }
-
             if (!IsAuthorized(comId, groupid, locationId)) return RedirectToAction("Index", "Home");
 
             ViewBag.CompanyName = companyName;
@@ -125,8 +106,8 @@ namespace ManageEngineWebApp.Controllers
                 if (vipResponse.IsSuccessStatusCode)
                 {
                     var vipContent = await vipResponse.Content.ReadAsStringAsync();
-                    var vipData = !string.IsNullOrEmpty(vipContent) 
-                        ? JsonConvert.DeserializeObject<List<VIPClient>>(vipContent) 
+                    var vipData = !string.IsNullOrEmpty(vipContent)
+                        ? JsonConvert.DeserializeObject<List<VIPClient>>(vipContent)
                         : new List<VIPClient>();
                     ViewBag.VipClients = vipData;
                 }
