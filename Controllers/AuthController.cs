@@ -241,7 +241,7 @@ namespace ManageEngineWebApp.Controllers
                 var response = await client.PostAsJsonAsync($"{apiBaseUrl}/forgot-password", new { model.Email });
                 var body = await response.Content.ReadAsStringAsync();
                 var result = JsonConvert.DeserializeObject<dynamic>(body);
-                ViewBag.Message = (string)(result?.message ?? "If this email exists, a reset link was sent.");
+                TempData["SuccessMsg"] = (string)(result?.message ?? "If this email exists, a reset link was sent.");
                 return View(new ForgotPasswordViewModel());
             }
             catch (Exception ex)
@@ -280,8 +280,8 @@ namespace ManageEngineWebApp.Controllers
 
                 if (response.IsSuccessStatusCode)
                 {
-                    TempData["msg"] = "Password reset successfully. You can now log in.";
-                    return RedirectToAction("Login");
+                    TempData["SuccessMsg"] = "Password reset successfully. You can now log in.";
+                    return View(new ResetPasswordViewModel());
                 }
                 
                 var body = await response.Content.ReadAsStringAsync();
@@ -373,7 +373,7 @@ namespace ManageEngineWebApp.Controllers
 
 
         [HttpGet]
-        [AuthFilter(AllowedRoles = "SuperAdmin")]
+        [AuthFilter(AllowedRoles = "SuperAdmin,CompanyAdmin")]
         [DynamicPermission("Auth.EmailConfig", "Manage Email Configuration")]
         public async Task<IActionResult> EmailConfig()
         {
@@ -382,15 +382,26 @@ namespace ManageEngineWebApp.Controllers
                 using var client = GetClient();
                 var resp = await client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Companiesdata");
                 if (resp.IsSuccessStatusCode)
-                    ViewBag.Companies = JsonConvert.DeserializeObject<List<dynamic>>(
-                        await resp.Content.ReadAsStringAsync()) ?? new List<dynamic>();
+                {
+                    var companies = JsonConvert.DeserializeObject<List<dynamic>>(await resp.Content.ReadAsStringAsync()) ?? new List<dynamic>();
+                    if (!RoleHelper.IsTopLevelAdmin(HttpContext))
+                    {
+                        var userCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
+                        companies = companies.Where(c => userCompanyIds.Contains((int)c.id)).ToList();
+                    }
+                    ViewBag.Companies = companies;
+                }
+                else
+                {
+                    ViewBag.Companies = new List<dynamic>();
+                }
             }
             catch { ViewBag.Companies = new List<dynamic>(); }
             return View();
         }
 
         [HttpGet("Auth/api/CompanyEmailConfig")]
-        [AuthFilter(AllowedRoles = "SuperAdmin")]
+        [AuthFilter(AllowedRoles = "SuperAdmin,CompanyAdmin")]
         public async Task<IActionResult> GetAllConfig()
         {
             try
@@ -399,8 +410,14 @@ namespace ManageEngineWebApp.Controllers
                 var response = await client.GetAsync($"{_baseUrl}/api/CompanyEmailConfig");
                 if (response.IsSuccessStatusCode)
                 {
-                    var data = await response.Content.ReadAsStringAsync();
-                    return Content(data, "application/json");
+                    var dataStr = await response.Content.ReadAsStringAsync();
+                    var data = JsonConvert.DeserializeObject<List<dynamic>>(dataStr);
+                    if (data != null && !RoleHelper.IsTopLevelAdmin(HttpContext))
+                    {
+                        var userCompanyIds = RoleHelper.GetCompanyIds(HttpContext);
+                        data = data.Where(c => userCompanyIds.Contains((int)c.companyId)).ToList();
+                    }
+                    return Content(JsonConvert.SerializeObject(data ?? new List<dynamic>()), "application/json");
                 }
                 return BadRequest(new { success = false, message = "Failed to load configurations." });
             }
@@ -423,7 +440,7 @@ namespace ManageEngineWebApp.Controllers
                     var data = await response.Content.ReadAsStringAsync();
                     return Content(data, "application/json");
                 }
-                return NotFound(new { success = false, message = "Configuration not found." });
+                return Ok(new { }); // Return empty object instead of 404 to avoid console errors
             }
             catch (Exception ex)
             {
@@ -433,13 +450,13 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost("Auth/api/CompanyEmailConfig")]
         [AuthFilter(AllowedRoles = "SuperAdmin,CompanyAdmin")]
-        public async Task<IActionResult> SaveConfig([FromBody] dynamic req)
+        public async Task<IActionResult> SaveConfig()
         {
             try
             {
                 using var client = GetClient();
-                var json = JsonConvert.SerializeObject(req);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var bodyString = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(bodyString, Encoding.UTF8, "application/json");
                 
                 var response = await client.PostAsync($"{_baseUrl}/api/CompanyEmailConfig", content);
                 var body = await response.Content.ReadAsStringAsync();
@@ -448,7 +465,9 @@ namespace ManageEngineWebApp.Controllers
                 {
                     return Content(body, "application/json");
                 }
-                return BadRequest(body);
+                var errorResult = Content(body, "application/json");
+                errorResult.StatusCode = (int)response.StatusCode;
+                return errorResult;
             }
             catch (Exception ex)
             {
@@ -458,13 +477,13 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost("Auth/api/CompanyEmailConfig/test/{id}")]
         [AuthFilter(AllowedRoles = "SuperAdmin,CompanyAdmin")]
-        public async Task<IActionResult> TestConfig(int id, [FromBody] dynamic req)
+        public async Task<IActionResult> TestConfig(int id)
         {
             try
             {
                 using var client = GetClient();
-                var json = JsonConvert.SerializeObject(req);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var bodyString = await new StreamReader(Request.Body).ReadToEndAsync();
+                var content = new StringContent(bodyString, Encoding.UTF8, "application/json");
                 
                 var response = await client.PostAsync($"{_baseUrl}/api/CompanyEmailConfig/test/{id}", content);
                 var body = await response.Content.ReadAsStringAsync();
@@ -473,7 +492,9 @@ namespace ManageEngineWebApp.Controllers
                 {
                     return Content(body, "application/json");
                 }
-                return BadRequest(body);
+                var errorResult = Content(body, "application/json");
+                errorResult.StatusCode = (int)response.StatusCode;
+                return errorResult;
             }
             catch (Exception ex)
             {
