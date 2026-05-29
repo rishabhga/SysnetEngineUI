@@ -936,8 +936,44 @@ namespace ManageEngineWebApp.Controllers
 
                 ViewBag.ActiveComputers = activeComputers;
                 return View(localDatalist);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ReScanPatches([FromBody] ReScanRequestDto dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.ClientId))
+                return Json(new { success = false, error = "No clientId Provided." });
+
+            try
+            {
+                using var client = GetClient();
+                client.Timeout = TimeSpan.FromSeconds(100);
+
+                var content = new System.Net.Http.StringContent(
+                    "\"ReScanWindowPatchUpdate\"",
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+                var response = await client.PostAsync(
+                    $"{_baseUrl}/api/MultipleWindowThirdPartyPatchUpdate/ReScanPatchUpdate/{Uri.EscapeDataString(dto.ClientId)}",
+                    content);
+
+                var result = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                    return Json(new { success = true, message = result });
+                else
+                    return Json(new { success = false, error = result });
+
             }
-        
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ReScanPatches Error: {ex.Message}");
+                return Json(new { success = false, error = "Failed to send rescan command. Device may be offline." });
+            }
+        }
+
+
+
         public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
         {
             if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
