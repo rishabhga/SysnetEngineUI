@@ -1,4 +1,4 @@
-using ManageEngineWebApp.Datacontext;
+﻿using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Services;
 using ManageEngineWebApp.Attributes;
@@ -109,10 +109,10 @@ namespace ManageEngineWebApp.Controllers
             }
 
             var rememberedUser = Request.Cookies["RememberMe_User"];
-            var model = new LoginDto 
-            { 
-                Username = rememberedUser, 
-                RememberMe = !string.IsNullOrEmpty(rememberedUser) 
+            var model = new LoginDto
+            {
+                Username = rememberedUser,
+                RememberMe = !string.IsNullOrEmpty(rememberedUser)
             };
             return View(model);
         }
@@ -238,18 +238,57 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 using var client = GetClient();
-                var response = await client.PostAsJsonAsync($"{apiBaseUrl}/forgot-password", new { model.Email });
+                var response = await client.PostAsJsonAsync(
+                                         $"{apiBaseUrl}/forgot-password",
+                                         new { model.Email });
+
                 var body = await response.Content.ReadAsStringAsync();
-                var result = JsonConvert.DeserializeObject<dynamic>(body);
-                TempData["SuccessMsg"] = (string)(result?.message ?? "If this email exists, a reset link was sent.");
+
+                if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.OK)
+                {
+                    string httpErrMsg = TryExtractMessage(body)
+                        ?? "The server encountered an error. Please try again later.";
+                    ModelState.AddModelError("", httpErrMsg);
+                    return View(model);
+                }
+
+                if (!TryParseApiResult(body, out bool success, out string message))
+                {
+                    ModelState.AddModelError("",
+                        "The server returned an unexpected response. Please try again later.");
+                    return View(model);
+                }
+
+                if (!success)
+                {
+
+                    ModelState.AddModelError("", message);
+                    return View(model);
+                }
+
+                TempData["SuccessMsg"] = message;
                 return View(new ForgotPasswordViewModel());
             }
-            catch (Exception ex)
+            catch (HttpRequestException)
             {
-                ModelState.AddModelError("", "An error occurred: " + ex.Message);
+                ModelState.AddModelError("",
+                    "Cannot connect to the authentication service. Please try again later.");
+                return View(model);
+            }
+            catch (TaskCanceledException)
+            {
+                ModelState.AddModelError("",
+                    "The request timed out. Please try again later.");
+                return View(model);
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError("",
+                    "Unable to process your request. Please try again later.");
                 return View(model);
             }
         }
+
 
         [HttpGet]
         [AllowAnonymous]
@@ -270,11 +309,11 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 using var client = GetClient();
-                var response = await client.PostAsJsonAsync($"{apiBaseUrl}/reset-password", new 
-                { 
-                    model.Email, 
-                    model.Token, 
-                    model.Password ,
+                var response = await client.PostAsJsonAsync($"{apiBaseUrl}/reset-password", new
+                {
+                    model.Email,
+                    model.Token,
+                    model.Password,
                     model.ConfirmPassword
                 });
 
@@ -283,7 +322,7 @@ namespace ManageEngineWebApp.Controllers
                     TempData["SuccessMsg"] = "Password reset successfully. You can now log in.";
                     return View(new ResetPasswordViewModel());
                 }
-                
+
                 var body = await response.Content.ReadAsStringAsync();
                 var result = JsonConvert.DeserializeObject<dynamic>(body);
 
@@ -448,19 +487,32 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
+        public class CompanyEmailProxyPayload
+        {
+            public int? CompanyId { get; set; }
+            public string? SmtpHost { get; set; }
+            public int? SmtpPort { get; set; }
+            public bool? EnableSsl { get; set; }
+            public string? SenderEmail { get; set; }
+            public string? SenderName { get; set; }
+            public string? SmtpUsername { get; set; }
+            public string? SmtpPassword { get; set; }
+            public string? ToEmail { get; set; }
+        }
+
         [HttpPost("Auth/api/CompanyEmailConfig")]
         [AuthFilter(AllowedRoles = "SuperAdmin,CompanyAdmin")]
-        public async Task<IActionResult> SaveConfig()
+        public async Task<IActionResult> SaveConfig([FromBody] CompanyEmailProxyPayload payload)
         {
             try
             {
                 using var client = GetClient();
-                var bodyString = await new StreamReader(Request.Body).ReadToEndAsync();
-                var content = new StringContent(bodyString, Encoding.UTF8, "application/json");
-                
+                var json = JsonConvert.SerializeObject(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
                 var response = await client.PostAsync($"{_baseUrl}/api/CompanyEmailConfig", content);
                 var body = await response.Content.ReadAsStringAsync();
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     return Content(body, "application/json");
@@ -471,23 +523,47 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "An internal server error occurred." });
+                return StatusCode(500, new { success = false, message = "An internal server error occurred.", details = ex.Message });
             }
         }
 
         [HttpPost("Auth/api/CompanyEmailConfig/test/{id}")]
         [AuthFilter(AllowedRoles = "SuperAdmin,CompanyAdmin")]
-        public async Task<IActionResult> TestConfig(int id)
+        public async Task<IActionResult> TestConfig(int id, [FromBody] CompanyEmailProxyPayload payload)
         {
             try
             {
                 using var client = GetClient();
-                var bodyString = await new StreamReader(Request.Body).ReadToEndAsync();
-                var content = new StringContent(bodyString, Encoding.UTF8, "application/json");
-                
+                var json = JsonConvert.SerializeObject(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
                 var response = await client.PostAsync($"{_baseUrl}/api/CompanyEmailConfig/test/{id}", content);
                 var body = await response.Content.ReadAsStringAsync();
-                
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorResult = Content(body, "application/json");
+                    errorResult.StatusCode = (int)response.StatusCode;
+                    return errorResult;
+                }
+                return Content(body, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "An internal server error occurred.", details = ex.Message });
+            }
+        }
+
+        [HttpPost("Auth/api/CompanyEmailConfig/delete/{id}")]
+        [AuthFilter(AllowedRoles = "SuperAdmin")]
+        public async Task<IActionResult> DeleteConfig(int id)
+        {
+            try
+            {
+                using var client = GetClient();
+                var response = await client.DeleteAsync($"{_baseUrl}/api/CompanyEmailConfig/{id}");
+                var body = await response.Content.ReadAsStringAsync();
+
                 if (response.IsSuccessStatusCode)
                 {
                     return Content(body, "application/json");
@@ -498,7 +574,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "An internal server error occurred." });
+                return StatusCode(500, new { success = false, message = "An internal server error occurred.", details = ex.Message });
             }
         }
 
@@ -536,7 +612,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     return Json(new { success = false, message = "Unauthorized: Missing Auth.ManageRoles permission" });
                 }
-            
+
 
                 if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Role))
                 {
@@ -752,43 +828,55 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetStats() {
-            try {
+        public async Task<IActionResult> GetStats()
+        {
+            try
+            {
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/Permission/Stats");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
+            }
+            catch (Exception ex) { return Json(new { error = "An internal server error occurred." }); }
         }
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetMenus() {
-            try {
+        public async Task<IActionResult> GetMenus()
+        {
+            try
+            {
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/Permission/Menus");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return StatusCode(500, "Failed to fetch menus: " + "An internal server error occurred."); }
+            }
+            catch (Exception ex) { return StatusCode(500, "Failed to fetch menus: " + "An internal server error occurred."); }
         }
 
         [HttpPost]
         [AuthFilter]
-        public async Task<IActionResult> SaveMenu() {
-            try {
+        public async Task<IActionResult> SaveMenu()
+        {
+            try
+            {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/Permission/Menus", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                try {
+                try
+                {
                     var result = JsonConvert.DeserializeObject<dynamic>(responseContent);
                     if (result?.success != null) return Content(responseContent, "application/json");
                     if (response.IsSuccessStatusCode)
                         return Json(new { success = true, message = "Menu saved successfully", data = result });
                     return Json(new { success = false, message = (string)(result?.message ?? result?.Message ?? $"API Error: {response.StatusCode}") });
-                } catch {
+                }
+                catch
+                {
                     if (response.IsSuccessStatusCode)
                         return Json(new { success = true, message = "Menu saved successfully" });
                     return Json(new { success = false, message = $"API Error {(int)response.StatusCode}: {responseContent}" });
                 }
-            } catch (TaskCanceledException) { return Json(new { success = false, message = "API Server not responding. Is ManageEngineSoftware running?" }); }
+            }
+            catch (TaskCanceledException) { return Json(new { success = false, message = "API Server not responding. Is ManageEngineSoftware running?" }); }
             catch (HttpRequestException) { return Json(new { success = false, message = "Cannot connect to API Server at " + _baseUrl }); }
             catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + "An internal server error occurred." }); }
         }
@@ -816,40 +904,54 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetModules() {
-            try {
+        public async Task<IActionResult> GetModules()
+        {
+            try
+            {
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/Permission/Modules");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (TaskCanceledException) {
+            }
+            catch (TaskCanceledException)
+            {
                 return StatusCode(500, "API Server not responding. Please ensure ManageEngineSoftware is running on " + _baseUrl);
-            } catch (HttpRequestException) {
+            }
+            catch (HttpRequestException)
+            {
                 return StatusCode(500, "Cannot connect to API Server at " + _baseUrl + ". Please start the backend API.");
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 return StatusCode(500, "Failed to fetch modules: " + "An internal server error occurred.");
             }
         }
 
         [HttpPost]
         [AuthFilter]
-        public async Task<IActionResult> SaveModule() {
-            try {
+        public async Task<IActionResult> SaveModule()
+        {
+            try
+            {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/Permission/Modules", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                try {
+                try
+                {
                     var result = JsonConvert.DeserializeObject<dynamic>(responseContent);
                     if (result?.success != null) return Content(responseContent, "application/json");
                     if (response.IsSuccessStatusCode)
                         return Json(new { success = true, message = "Module saved successfully", data = result });
                     return Json(new { success = false, message = (string)(result?.message ?? result?.Message ?? $"API Error: {response.StatusCode}") });
-                } catch {
+                }
+                catch
+                {
                     if (response.IsSuccessStatusCode)
                         return Json(new { success = true, message = "Module saved successfully" });
                     return Json(new { success = false, message = $"API Error {(int)response.StatusCode}: {responseContent}" });
                 }
-            } catch (TaskCanceledException) { return Json(new { success = false, message = "API Server not responding. Is ManageEngineSoftware running?" }); }
+            }
+            catch (TaskCanceledException) { return Json(new { success = false, message = "API Server not responding. Is ManageEngineSoftware running?" }); }
             catch (HttpRequestException) { return Json(new { success = false, message = "Cannot connect to API Server at " + _baseUrl }); }
             catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + "An internal server error occurred." }); }
         }
@@ -877,11 +979,14 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> GetPermissions() {
-            try {
+        public async Task<IActionResult> GetPermissions()
+        {
+            try
+            {
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/Permission/List");
                 return Content(await response.Content.ReadAsStringAsync(), "application/json");
-            } catch (Exception ex) { return StatusCode(500, "Failed to fetch permissions: " + "An internal server error occurred."); }
+            }
+            catch (Exception ex) { return StatusCode(500, "Failed to fetch permissions: " + "An internal server error occurred."); }
         }
 
         [HttpGet]
@@ -1004,25 +1109,31 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
-        public async Task<IActionResult> SavePermission() {
-            try {
+        public async Task<IActionResult> SavePermission()
+        {
+            try
+            {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
                 var content = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await GetClient().PostAsync($"{_baseUrl}/api/Permission/SavePermission", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
-                try {
+                try
+                {
                     var result = JsonConvert.DeserializeObject<dynamic>(responseContent);
                     if (result?.success != null) return Content(responseContent, "application/json");
                     if (response.IsSuccessStatusCode)
                         return Json(new { success = true, message = "Permission saved successfully", data = result });
                     return Json(new { success = false, message = (string)(result?.message ?? result?.Message ?? $"API Error: {response.StatusCode}") });
-                } catch {
+                }
+                catch
+                {
                     if (response.IsSuccessStatusCode)
                         return Json(new { success = true, message = "Permission saved successfully" });
                     return Json(new { success = false, message = $"API Error {(int)response.StatusCode}: {responseContent}" });
                 }
-            } catch (TaskCanceledException) { return Json(new { success = false, message = "API Server not responding. Is ManageEngineSoftware running?" }); }
+            }
+            catch (TaskCanceledException) { return Json(new { success = false, message = "API Server not responding. Is ManageEngineSoftware running?" }); }
             catch (HttpRequestException) { return Json(new { success = false, message = "Cannot connect to API Server at " + _baseUrl }); }
             catch (Exception ex) { return Json(new { success = false, message = "WebApp error: " + "An internal server error occurred." }); }
         }
@@ -1065,8 +1176,10 @@ namespace ManageEngineWebApp.Controllers
                 var uniqueModules = discoveredPermissions.Select(p => p.Module).Distinct().Where(m => !string.IsNullOrEmpty(m));
                 foreach (var modName in uniqueModules)
                 {
-                    try {
-                        var modContent = new StringContent(JsonConvert.SerializeObject(new {
+                    try
+                    {
+                        var modContent = new StringContent(JsonConvert.SerializeObject(new
+                        {
                             ModuleName = modName,
                             DisplayName = modName,
                             Description = $"Module for {modName}",
@@ -1077,13 +1190,16 @@ namespace ManageEngineWebApp.Controllers
                         var res = await GetClient().PostAsync($"{_baseUrl}/api/Permission/Modules", modContent);
                         if (res.IsSuccessStatusCode) moduleCount++;
                         else errors.Add($"Module {modName}: {await res.Content.ReadAsStringAsync()}");
-                    } catch (Exception ex) { errors.Add($"Module {modName}: {ex.Message}"); }
+                    }
+                    catch (Exception ex) { errors.Add($"Module {modName}: {ex.Message}"); }
                 }
 
                 foreach (var p in discoveredPermissions)
                 {
-                    try {
-                        var content = new StringContent(JsonConvert.SerializeObject(new {
+                    try
+                    {
+                        var content = new StringContent(JsonConvert.SerializeObject(new
+                        {
                             Module = p.Module,
                             PermissionCode = p.PermissionCode,
                             PermissionName = p.PermissionName,
@@ -1099,7 +1215,8 @@ namespace ManageEngineWebApp.Controllers
 
                         var res = await GetClient().PostAsync($"{_baseUrl}/api/Permission/SavePermission", content);
                         if (res.IsSuccessStatusCode) permCount++;
-                    } catch (Exception ex) { errors.Add($"Perm {p.PermissionCode}: {ex.Message}"); }
+                    }
+                    catch (Exception ex) { errors.Add($"Perm {p.PermissionCode}: {ex.Message}"); }
                 }
 
                 var allCodes = discoveredPermissions.Select(p => p.PermissionCode).ToList();
@@ -1125,7 +1242,8 @@ namespace ManageEngineWebApp.Controllers
 
                 await RoleHelper.RefreshSessionPermissionsAsync(HttpContext);
 
-                return Json(new {
+                return Json(new
+                {
                     success = true,
                     message = $"Seeded {moduleCount} modules and {permCount} permissions. SuperAdmin now has full access to all permissions{menuMsg}.",
                     details = errors
@@ -1292,7 +1410,7 @@ namespace ManageEngineWebApp.Controllers
                 return BadRequest("An internal server error occurred.");
             }
         }
-    
+
 
         [HttpPost]
         [AuthFilter]
@@ -1311,7 +1429,8 @@ namespace ManageEngineWebApp.Controllers
                 }
 
                 using var client = GetClient();
-                var roleUpdatePayload = new {
+                var roleUpdatePayload = new
+                {
                     RoleName = model.RoleName,
                     Description = model.Description,
                     RequiresCompany = model.RequiresCompany,
@@ -1320,7 +1439,7 @@ namespace ManageEngineWebApp.Controllers
                     RequiresLocation = model.RequiresLocation,
                     HierarchyLevel = (model.RoleName == "SuperAdmin") ? 0 : 10
                 };
-                
+
                 var roleResult = await RoleHelper.CreateRoleAsync(
                     model.RoleName,
                     model.Description,
@@ -1337,7 +1456,8 @@ namespace ManageEngineWebApp.Controllers
 
                 if (model.Permissions != null)
                 {
-                    var permPayload = new {
+                    var permPayload = new
+                    {
                         roleName = model.RoleName,
                         permissionCodes = model.Permissions,
                         assignedBy = HttpContext.Session.GetString("username") ?? "System"
@@ -1348,7 +1468,8 @@ namespace ManageEngineWebApp.Controllers
 
                 if (model.MenuIds != null)
                 {
-                    var menuPayload = new {
+                    var menuPayload = new
+                    {
                         roleName = model.RoleName,
                         menuIds = model.MenuIds,
                         assignedBy = HttpContext.Session.GetString("username") ?? "System"
@@ -1359,7 +1480,8 @@ namespace ManageEngineWebApp.Controllers
 
                 if (model.PolicyIds != null)
                 {
-                    var policyPayload = new {
+                    var policyPayload = new
+                    {
                         roleName = model.RoleName,
                         policyIds = model.PolicyIds,
                         assignedBy = HttpContext.Session.GetString("username") ?? "System"
@@ -1373,6 +1495,38 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "An internal server error occurred." });
+            }
+        }
+        private static bool TryParseApiResult(string body, out bool success, out string message)
+        {
+            success = false;
+            message = "An unexpected error occurred. Please try again.";
+
+            try
+            {
+                var result = JsonConvert.DeserializeObject<dynamic>(body);
+                if (result == null) return false;
+
+                success = result.success == true;
+                message = (string)(result.message
+                    ?? "If this email is registered, a reset link has been sent.");
+                return true;
+            }
+            catch (JsonReaderException)
+            {
+                return false;
+            }
+        }
+        private static string? TryExtractMessage(string body)
+        {
+            try
+            {
+                var result = JsonConvert.DeserializeObject<dynamic>(body);
+                return (string?)result?.message ?? (string?)result?.Message;
+            }
+            catch
+            {
+                return null;
             }
         }
     }

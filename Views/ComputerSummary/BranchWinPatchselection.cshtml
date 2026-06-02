@@ -127,15 +127,7 @@
         </div>
     }
 
-    <!-- Rescan result notification -->
-    <div id="rescanNotice" class="hidden mb-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
-        <i class="fas fa-info-circle text-amber-500"></i>
-        <span id="rescanNoticeText"></span>
-        <button onclick="document.getElementById('rescanNotice').classList.add('hidden')"
-                class="ml-auto text-amber-400 hover:text-amber-600">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
+    <!-- Rescan result notification (Removed) -->
 
     <!-- Stats -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
@@ -197,7 +189,11 @@
     <!-- Table -->
     @if (Model != null && Model.Any())
     {
-        <div class="bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden relative">
+            <div id="tableLoaderOverlay" class="hidden absolute inset-0 bg-white/70 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center">
+                <i class="fas fa-circle-notch fa-spin text-3xl text-cyan-500 mb-2"></i>
+                <span class="text-[11px] font-semibold text-gray-700 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100">Waiting for data...</span>
+            </div>
             <div class="overflow-x-auto" style="max-height:calc(100vh - 360px);overflow-y:auto">
                 <table class="pm-table w-full text-xs" style="table-layout: fixed;">
                     <thead>
@@ -293,7 +289,6 @@
             }
         }
 
-        // ── Rescan ────────────────────────────────────────────────
         function rescanDevices() {
             if (DOMAIN_IDS.length === 0) {
                 sysAlert('No devices to rescan.', 'warning');
@@ -303,7 +298,9 @@
             const btn = document.getElementById('rescanBtn');
             btn.classList.add('scanning');
             btn.disabled = true;
-            const origHtml = btn.innerHTML;
+            
+            const overlay = document.getElementById('tableLoaderOverlay');
+            if (overlay) overlay.classList.remove('hidden');
 
             let succeeded = 0;
 
@@ -317,17 +314,14 @@
                 .then(res => { if (res.success) succeeded++; })
                 .catch(() => {})
             )).then(() => {
-                btn.classList.remove('scanning');
-                btn.disabled = false;
-                btn.innerHTML = origHtml;
-
-                const notice = document.getElementById('rescanNotice');
-                const noticeText = document.getElementById('rescanNoticeText');
-                noticeText.textContent = succeeded > 0
-                    ? `Rescan command sent to ${succeeded}/${DOMAIN_IDS.length} device(s). The update list will refresh after the scan completes.`
-                    : 'Rescan command could not be delivered — devices may be offline.';
-                notice.classList.remove('hidden');
-                notice.classList.add('flex');
+                if (succeeded === 0) {
+                    btn.classList.remove('scanning');
+                    btn.disabled = false;
+                    if (overlay) overlay.classList.add('hidden');
+                    sysAlert('Rescan command could not be delivered — devices may be offline.', 'error');
+                } else {
+                    sysAlert(`Rescan sent to ${succeeded}/${DOMAIN_IDS.length} device(s). Waiting for data...`, 'success');
+                }
             });
         }
 
@@ -425,6 +419,22 @@
                             });
                         }
                         Object.keys(activeActions).forEach(k => unregisterAction(k));
+                    }
+                }
+            });
+
+            hubConnection.on('PatchDataUpdated', function(domain, success, message) {
+                if (DOMAIN_IDS.some(d => d.trim().toUpperCase() === (domain || '').trim().toUpperCase())) {
+                    if(success) {
+                        sysAlert(`Data updated successfully for ${domain}. Refreshing list...`, 'success');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        sysAlert(`Failed to update data for ${domain}: ${message}`, 'error');
+                        const overlay = document.getElementById('tableLoaderOverlay');
+                        if(overlay) overlay.classList.add('hidden');
+                        const btn = document.getElementById('rescanBtn');
+                        btn.classList.remove('scanning');
+                        btn.disabled = false;
                     }
                 }
             });

@@ -20,14 +20,26 @@
             <option value="">-- Select Machine --</option>
             @if (ViewBag.Devices != null)
             {
+                var userIps = ViewBag.UserIps as Dictionary<string, string> ?? new Dictionary<string, string>();
+                <!-- DEBUG KEYS: @string.Join(", ", userIps.Keys) -->
                 foreach (var dev in ViewBag.Devices as List<ManageEngineWebApp.Models.WindowsUserDetails>)
                 {
-                    <option value="@dev.DomainName" data-location-id="@dev.LocationId" selected="@(dev.DomainName == Model.DeviceName)">
+                    var checkDomain = dev.DomainName?.Trim() ?? "";
+                    var checkUserCode = dev.UserCode?.Trim() ?? "";
+                    var checkSID = dev.SID?.Trim() ?? "";
+
+                    var devIp = "";
+                    if (checkDomain != "" && userIps.ContainsKey(checkDomain)) devIp = userIps[checkDomain];
+                    else if (checkUserCode != "" && userIps.ContainsKey(checkUserCode)) devIp = userIps[checkUserCode];
+                    else if (checkSID != "" && userIps.ContainsKey(checkSID)) devIp = userIps[checkSID];
+                    
+                    <option value="@dev.DomainName" data-location-id="@dev.LocationId" data-ip-address="@devIp" selected="@(dev.DomainName == Model.DeviceName)">
                         @dev.DomainName (@(string.IsNullOrEmpty(dev.UserName) ? "System" : dev.UserName))
                     </option>
                 }
             }
         </select>
+        <input type="hidden" asp-for="PollingMode" value="SNMP" />
     </div>
 
     <div>
@@ -122,6 +134,7 @@
             const selectEl = document.getElementById('DeviceNameSelect');
             const inputEl = document.getElementById('DeviceNameInput');
             const locEl = document.getElementById('LocationId');
+            const ipEl = document.getElementById('IpAddress');
             
             // Store original options for filtering
             let originalOptions = [];
@@ -130,6 +143,7 @@
                     value: opt.value,
                     text: opt.text,
                     locId: opt.getAttribute('data-location-id') || '',
+                    ipAddr: opt.getAttribute('data-ip-address') || '',
                     selected: opt.selected
                 }));
             }
@@ -157,6 +171,7 @@
                         newOpt.value = opt.value;
                         newOpt.text = opt.text;
                         newOpt.setAttribute('data-location-id', opt.locId);
+                        newOpt.setAttribute('data-ip-address', opt.ipAddr);
                         if (opt.value === currentSelection || opt.selected) {
                             newOpt.selected = true;
                         }
@@ -173,6 +188,10 @@
                         const locId = selected.getAttribute('data-location-id');
                         if (locEl && locId && locId !== '0') {
                             locEl.value = locId;
+                        }
+                        const ipAddr = selected.getAttribute('data-ip-address');
+                        if (ipEl && ipAddr) {
+                            ipEl.value = ipAddr;
                         }
                     } else {
                         inputEl.value = '';
