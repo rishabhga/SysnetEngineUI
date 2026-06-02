@@ -1,11 +1,11 @@
-using ManageEngineWebApp.Datacontext;
+﻿using ManageEngineWebApp.Datacontext;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestHeadersTotalSize = 64 * 1024; 
+    options.Limits.MaxRequestHeadersTotalSize = 64 * 1024;
     options.Limits.MaxRequestBodySize = long.MaxValue;
 });
 
@@ -21,14 +21,15 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add<ManageEngineWebApp.Filters.DynamicAuthorizationFilter>();
 });
 builder.Services.AddScoped<ManageEngineWebApp.Services.PermissionDiscoveryService>();
-builder.Services.AddScoped<ManageEngineWebApp.Services.IEmailService, ManageEngineWebApp.Services.EmailService>();
-builder.Services.AddScoped<ManageEngineWebApp.Filters.DynamicAuthorizationFilter>();
+builder.Services.AddScoped<ManageEngineWebApp.Services.IEmailService,
+                           ManageEngineWebApp.Services.EmailService>();
+
 builder.Services.AddRazorPages();
+
 builder.Services.AddHttpClient("ManageEngineApi", client =>
 {
     var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"];
     client.BaseAddress = new Uri(apiBaseUrl);
-    // client.DefaultRequestHeaders.Add("X-Api-Key", builder.Configuration["Authentication:ApiKey"]);
     client.Timeout = TimeSpan.FromSeconds(120);
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
@@ -41,7 +42,8 @@ builder.Services.AddHttpContextAccessor();
 // Add Session
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromHours(4); // Increased timeout
+
+    options.IdleTimeout = TimeSpan.FromMinutes(480);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.Name = ".ManageEngine.Session";

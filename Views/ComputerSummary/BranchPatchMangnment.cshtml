@@ -530,6 +530,11 @@
                 setSyncState('live');
             });
 
+            patchHubConnection.on('PatchDataUpdated', function(domain, success, message) {
+                setRowRescanning(domain, false);
+                showToast(success ? `Data updated for ${domain}` : `Failed to update data for ${domain}: ${message}`, success ? 'success' : 'error');
+            });
+
             patchHubConnection.on('ReceiveConnectedDevices', function(connectedDevices) {
                 applyDeviceStatuses(connectedDevices);
                 setSyncState('live');
@@ -768,11 +773,33 @@
             t._timer = setTimeout(() => { t.style.display = 'none'; }, ms);
         }
 
+        function setRowRescanning(domain, isRescanning) {
+            ALL_ROWS.forEach(row => {
+                if ((row.dataset.domain || '').toUpperCase() === (domain || '').toUpperCase() || (row.dataset.username || '').toUpperCase() === (domain || '').toUpperCase()) {
+                    if (isRescanning) {
+                        row.classList.add('opacity-60', 'pointer-events-none');
+                        const badgeCell = row.querySelector('.status-badge-cell');
+                        if (badgeCell) {
+                            badgeCell.innerHTML = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-700"><i class="fas fa-spinner fa-spin"></i> Loading Data...</span>`;
+                        }
+                    } else {
+                        row.classList.remove('opacity-60', 'pointer-events-none');
+                        if (patchHubConnection && patchHubConnection.state === signalR.HubConnectionState.Connected) {
+                            patchHubConnection.invoke('RequestConnectedDevices').catch(() => fallbackPoll());
+                        } else {
+                            fallbackPoll();
+                        }
+                    }
+                }
+            });
+        }
+
         // ── Single-device rescan ──────────────────────────────────
         function singleRescan(btn, domain) {
             if (!domain) return;
             btn.classList.add('scanning');
             btn.disabled = true;
+            setRowRescanning(domain, true);
             fetch('@Url.Action("ReScanPatches", "ComputerSummary")', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -780,13 +807,21 @@
             })
             .then(r => r.json())
             .then(res => {
-                showToast(
-                    res.success ? `Rescan sent to ${domain}` : `Rescan failed for ${domain}: ${res.error || res.message || 'Unknown'}`,
-                    res.success ? 'success' : 'error'
-                );
+                if(res.success) {
+                    showToast(`Rescan sent to ${domain}. Waiting for data...`, 'success');
+                } else {
+                    showToast(`Rescan failed for ${domain}: ${res.error || res.message || 'Unknown'}`, 'error');
+                    setRowRescanning(domain, false);
+                    btn.classList.remove('scanning');
+                    btn.disabled = false;
+                }
             })
-            .catch(() => showToast(`Network error rescanning ${domain}`, 'error'))
-            .finally(() => { btn.classList.remove('scanning'); btn.disabled = false; });
+            .catch(() => {
+                showToast(`Network error rescanning ${domain}`, 'error');
+                setRowRescanning(domain, false);
+                btn.classList.remove('scanning');
+                btn.disabled = false;
+            });
         }
 
         // ── Bulk rescan (all selected online devices) ─────────────
@@ -805,6 +840,8 @@
             btn.classList.add('scanning');
             const orig = btn.innerHTML;
 
+            domains.forEach(domain => setRowRescanning(domain, true));
+
             let succeeded = 0;
             Promise.all(domains.map(domain =>
                 fetch('@Url.Action("ReScanPatches", "ComputerSummary")', {
@@ -813,11 +850,19 @@
                     body: JSON.stringify({ ClientId: domain })
                 })
                 .then(r => r.json())
-                .then(res => { if (res.success) succeeded++; })
-                .catch(() => {})
+                .then(res => {
+                    if (res.success) {
+                        succeeded++;
+                    } else {
+                        setRowRescanning(domain, false);
+                    }
+                })
+                .catch(() => {
+                    setRowRescanning(domain, false);
+                })
             )).then(() => {
                 showToast(
-                    `Rescan sent to ${succeeded}/${domains.length} device(s).`,
+                    `Rescan sent to ${succeeded}/${domains.length} device(s). Waiting for data...`,
                     succeeded > 0 ? 'success' : 'error'
                 );
                 btn.disabled = false;

@@ -159,6 +159,27 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.DeviceStatuses = deviceStatuses;
             ViewBag.DashboardUsers = dbUsers;
 
+            var userIps = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var response = await client.GetAsync($"{_baseUrl}/api/UserDetails");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var allUserDetails = JsonConvert.DeserializeObject<List<UserDetails>>(json);
+                    if (allUserDetails != null)
+                    {
+                        foreach (var u in allUserDetails)
+                        {
+                            if (!string.IsNullOrEmpty(u.domainName) && !string.IsNullOrEmpty(u.IpAddress))
+                                userIps[u.domainName] = u.IpAddress;
+                        }
+                    }
+                }
+            }
+            catch { }
+            ViewBag.UserIps = userIps;
+
             ViewBag.CompanyId = activeComId;
             ViewBag.GroupId = activeGroupId;
             ViewBag.LocationId = activeLocationId;
@@ -261,7 +282,18 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = true });
 
                 var body = await response.Content.ReadAsStringAsync();
-                return Json(new { success = false, message = $"API error: {response.StatusCode}" });
+                var apiErrorMsg = $"API error: {response.StatusCode}";
+                try
+                {
+                    var errorObj = JObject.Parse(body);
+                    if (errorObj["error"] != null)
+                        apiErrorMsg += " - " + errorObj["error"].ToString();
+                    else if (errorObj["message"] != null)
+                        apiErrorMsg += " - " + errorObj["message"].ToString();
+                }
+                catch { }
+
+                return Json(new { success = false, message = apiErrorMsg });
             }
             catch (Exception ex)
             {
@@ -405,6 +437,40 @@ namespace ManageEngineWebApp.Controllers
                 }
             }
             catch { }
+
+            // Fetch IP addresses from UserDetails api
+            var userIps = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var response = await client.GetAsync($"{_baseUrl}/api/UserDetails");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var allUserDetails = JsonConvert.DeserializeObject<List<UserDetails>>(json);
+                    if (allUserDetails != null)
+                    {
+                        foreach (var u in allUserDetails)
+                        {
+                            if (!string.IsNullOrEmpty(u.IpAddress))
+                            {
+                                var ip = u.IpAddress.Trim();
+                                if (!string.IsNullOrEmpty(u.domainName)) userIps[u.domainName.Trim()] = ip;
+                                if (!string.IsNullOrEmpty(u.WindowName)) userIps[u.WindowName.Trim()] = ip;
+                                if (!string.IsNullOrEmpty(u.UserName)) userIps[u.UserName.Trim()] = ip;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    userIps["ERROR_API"] = $"Status: {response.StatusCode}";
+                }
+            }
+            catch (Exception ex)
+            {
+                userIps["ERROR_EX"] = ex.Message;
+            }
+            ViewBag.UserIps = userIps;
 
             // Strict Filter: select user only from inside that location (if locationId is active/specified)
             if (locationId.HasValue && locationId.Value > 0)

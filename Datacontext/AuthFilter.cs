@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+
 namespace ManageEngineWebApp.Datacontext
 {
-
     public class AuthFilter : ActionFilterAttribute
     {
         public string? AllowedRoles { get; set; }
@@ -14,22 +14,25 @@ namespace ManageEngineWebApp.Datacontext
         {
             var session = context.HttpContext.Session;
             var username = session.GetString("username");
-            var role = session.GetString("role");
+
             if (string.IsNullOrEmpty(username))
             {
                 context.Result = new RedirectToActionResult("Login", "Auth", null);
                 return;
             }
-            if (string.IsNullOrEmpty(role))
+            var rolesStr = session.GetString("roles") ?? session.GetString("role") ?? "";
+            var userRoles = rolesStr
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(r => r.Trim())
+                .ToList();
+
+            if (!userRoles.Any())
             {
                 context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
                 return;
             }
 
-            if (RoleHelper.IsTopLevelAdmin(context.HttpContext))
-            {
-            }
-            else
+            if (!RoleHelper.IsTopLevelAdmin(context.HttpContext))
             {
                 if (AllowedHierarchyLevel > -1)
                 {
@@ -43,8 +46,12 @@ namespace ManageEngineWebApp.Datacontext
 
                 if (!string.IsNullOrEmpty(AllowedRoles))
                 {
-                    var allowedRolesList = AllowedRoles.Split(',').Select(r => r.Trim()).ToList();
-                    if (!allowedRolesList.Contains(role))
+                    var allowedRolesList = AllowedRoles
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(r => r.Trim())
+                        .ToList();
+
+                    if (!allowedRolesList.Any(r => userRoles.Contains(r)))
                     {
                         context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
                         return;
@@ -55,7 +62,8 @@ namespace ManageEngineWebApp.Datacontext
                 {
                     if (!RoleHelper.HasPermission(context.HttpContext, RequiredPermission))
                     {
-                        context.Result = new RedirectToActionResult("AccessDenied", "Auth", new { requiredPermission = RequiredPermission });
+                        context.Result = new RedirectToActionResult("AccessDenied", "Auth",
+                            new { requiredPermission = RequiredPermission });
                         return;
                     }
                 }
@@ -64,19 +72,18 @@ namespace ManageEngineWebApp.Datacontext
             if (VerifyCompanyAccess && !RoleHelper.IsTopLevelAdmin(context.HttpContext))
             {
                 var sessionCompanyId = session.GetString("companyId");
-
                 if (string.IsNullOrEmpty(sessionCompanyId))
                 {
                     context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
                     return;
                 }
+
                 var routeCompanyId = GetCompanyIdFromRoute(context);
                 if (routeCompanyId.HasValue)
                 {
                     var allowedCompanyIds = sessionCompanyId
-                        .Split(',')
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
                         .Select(s => s.Trim())
-                        .Where(s => !string.IsNullOrEmpty(s))
                         .ToHashSet();
 
                     if (!allowedCompanyIds.Contains(routeCompanyId.Value.ToString()))
@@ -86,20 +93,20 @@ namespace ManageEngineWebApp.Datacontext
                     }
                 }
             }
+
             base.OnActionExecuting(context);
         }
+
         private static int? GetCompanyIdFromRoute(ActionExecutingContext context)
         {
             var parameters = new[] { "id", "ComId", "companyId" };
             foreach (var param in parameters)
             {
-                if (context.ActionArguments.ContainsKey(param))
+                if (context.ActionArguments.TryGetValue(param, out var value) &&
+                    value != null &&
+                    int.TryParse(value.ToString(), out int companyId))
                 {
-                    var value = context.ActionArguments[param];
-                    if (value != null && int.TryParse(value.ToString(), out int companyId))
-                    {
-                        return companyId;
-                    }
+                    return companyId;
                 }
             }
             return null;

@@ -87,7 +87,7 @@ namespace ManageEngineWebApp.Datacontext
 
         public static bool HasPermission(Microsoft.AspNetCore.Http.HttpContext context, string permissionCode)
         {
-            if (IsTopLevelAdmin(context)) return true; 
+            if (IsTopLevelAdmin(context)) return true;
 
             if (string.IsNullOrEmpty(permissionCode)) return true;
 
@@ -104,16 +104,26 @@ namespace ManageEngineWebApp.Datacontext
                 return true;
 
             var parts = permissionCode.Split('.');
-            if (parts.Length == 2)
+            if (parts.Length >= 2)
             {
                 string module = parts[0];
-                string action = parts[1];
+                string action = string.Join(".", parts.Skip(1));
                 string viewPerm = $"{module}.View";
+                string managePerm = $"{module}.Manage";
+
+                if (permList.Any(p => p.Equals(managePerm, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+
                 if (permList.Any(p => p.Equals(viewPerm, StringComparison.OrdinalIgnoreCase)))
                 {
-                    var writeActions = new[] { "Edit", "Delete", "Create", "Update", "Remove", "Add", "Assign" };
-                    if (!writeActions.Any(w => action.Contains(w, StringComparison.OrdinalIgnoreCase)))
+                    var readOnlyActions = new[] { "Index", "List", "Details", "View", "Get", "Export", "Download", "Summary", "Report" };
+
+                    if (readOnlyActions.Any(r => action.Equals(r, StringComparison.OrdinalIgnoreCase)))
+                    {
                         return true;
+                    }
                 }
             }
 
@@ -183,7 +193,7 @@ namespace ManageEngineWebApp.Datacontext
 
             var userCompanyIds = GetCompanyIds(context);
             var reqCompany = context.Session.GetString("requiresCompany") == "true";
-            
+
             // If Company is required, MUST have at least one or match the requested one
             if (reqCompany)
             {
@@ -245,7 +255,7 @@ namespace ManageEngineWebApp.Datacontext
             if (roleData.CompanyId.HasValue) companyIds.Add(roleData.CompanyId.Value);
             if (roleData.Mappings != null) companyIds.AddRange(roleData.Mappings.Where(m => m.CompanyId.HasValue).Select(m => m.CompanyId.Value));
             if (companyIds.Any()) context.Session.SetString("companyId", string.Join(",", companyIds.Distinct()));
-                
+
             var groupIds = new List<int>();
             if (roleData.GroupId.HasValue) groupIds.Add(roleData.GroupId.Value);
             if (roleData.Mappings != null) groupIds.AddRange(roleData.Mappings.Where(m => m.GroupId.HasValue).Select(m => m.GroupId.Value));
@@ -282,7 +292,7 @@ namespace ManageEngineWebApp.Datacontext
                 string primaryRole = "No Role";
                 if (roleData.Roles != null && roleData.Roles.Any())
                 {
-                    primaryRole = roleData.Roles.First(); 
+                    primaryRole = roleData.Roles.First();
                 }
 
                 SetSessionFromRoleData(context, roleData, primaryRole);
@@ -403,7 +413,7 @@ namespace ManageEngineWebApp.Datacontext
             }
         }
 
-        public static async Task<(bool Success, string Message)> CreateRoleAsync(string? roleName, string? description, 
+        public static async Task<(bool Success, string Message)> CreateRoleAsync(string? roleName, string? description,
             bool requiresCompany, bool requiresDevice, bool requiresLocation, bool requiresGroup = false, HttpClient? client = null)
         {
             if (string.IsNullOrEmpty(roleName)) return (false, "Role name is required");
@@ -427,20 +437,20 @@ namespace ManageEngineWebApp.Datacontext
                 var json = JsonConvert.SerializeObject(payload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await activeClient.PostAsync($"{ApiBaseUrl}/role/create", content);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     return (true, "Role created successfully");
                 }
                 var errorContent = await response.Content.ReadAsStringAsync();
-                try 
+                try
                 {
-                   var errorObj = JsonConvert.DeserializeObject<dynamic>(errorContent);
-                   return (false, (string)errorObj?.message ?? "Failed to create role");
+                    var errorObj = JsonConvert.DeserializeObject<dynamic>(errorContent);
+                    return (false, (string)errorObj?.message ?? "Failed to create role");
                 }
-                catch 
+                catch
                 {
-                   return (false, "Failed to create role: " + response.ReasonPhrase);
+                    return (false, "Failed to create role: " + response.ReasonPhrase);
                 }
             }
             catch (Exception)
@@ -478,7 +488,7 @@ namespace ManageEngineWebApp.Datacontext
                     {
                         allMenus = JsonConvert.DeserializeObject<List<MenuDefinitionDto>>(cached) ?? new List<MenuDefinitionDto>();
                     }
-                    catch {  }
+                    catch { }
                 }
             }
 
@@ -493,7 +503,7 @@ namespace ManageEngineWebApp.Datacontext
                     {
                         var json = await response.Content.ReadAsStringAsync();
                         allMenus = JsonConvert.DeserializeObject<List<MenuDefinitionDto>>(json) ?? new List<MenuDefinitionDto>();
-                        
+
                         if (context != null)
                         {
                             context.Session.SetString("cachedMenus", json);
