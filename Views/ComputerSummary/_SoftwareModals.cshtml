@@ -1,21 +1,34 @@
 ﻿<div class="modal fade" id="uploadSoftwareModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-cloud-upload-alt" style="color:#22c55e;margin-right:8px;"></i> Upload Software Installer</h5>
-                <button type="button" class="close" data-dismiss="modal" style="background:none;border:none;font-size:22px;color:#64748b;cursor:pointer;">&times;</button>
+        <div class="modal-content" style="border-radius:10px;border:1px solid var(--slate-200);box-shadow:0 8px 32px rgba(0,0,0,.12);">
+            <div class="modal-header" style="padding:12px 18px;border-bottom:1px solid var(--slate-100);">
+                <h5 class="modal-title" style="font-size:.9rem;font-weight:700;color:var(--slate-900);display:flex;align-items:center;gap:7px;">
+                    <i class="fas fa-cloud-upload-alt" style="color:#22c55e;"></i> Upload Software Installer
+                </h5>
+                <button type="button" class="close" data-dismiss="modal"
+                        style="background:none;border:none;font-size:1.2rem;color:var(--slate-500);cursor:pointer;line-height:1;">
+                    &times;
+                </button>
             </div>
-            <div class="modal-body">
-                <div class="cs-dropzone" id="uploadDropzone" onclick="$('#softwareFileInput').click()">
-                    <i class="fas fa-file-archive" style="font-size:40px;color:#94a3b8;display:block;margin-bottom:12px;"></i>
+            <div class="modal-body" style="padding:16px 18px;">
+                <div id="uploadDropzone" onclick="$('#softwareFileInput').click()"
+                     style="border:2px dashed var(--slate-200);border-radius:8px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--slate-50);"
+                     onmouseover="this.style.borderColor='var(--cyan)';this.style.background='var(--cyan-soft)'"
+                     onmouseout="this.style.borderColor='var(--slate-200)';this.style.background='var(--slate-50)'">
+                    <i class="fas fa-file-archive" style="font-size:2rem;color:var(--slate-400);display:block;margin-bottom:10px;"></i>
                     <input type="file" name="file" id="softwareFileInput" style="display:none;" onchange="updateFileName(this)" />
-                    <p id="fileNameDisplay" style="font-size:13.5px;color:#64748b;font-weight:500;">Click to browse or drag & drop a file</p>
-                    <p style="font-size:11.5px;color:#94a3b8;margin-top:6px;">Supported: .exe, .msi, .zip</p>
+                    <p id="fileNameDisplay" style="font-size:.82rem;color:var(--text-faint);font-weight:500;">Click to browse or drag &amp; drop a file</p>
+                    <p style="font-size:.72rem;color:var(--slate-400);margin-top:4px;">Supported: .exe, .msi, .zip</p>
                 </div>
             </div>
-            <div class="modal-footer" style="justify-content:flex-end;display:flex;gap:10px;">
-                <button type="button" class="cs-btn cs-btn-secondary" data-dismiss="modal">Cancel</button>
-                <button id="uploadBtn" class="cs-btn cs-btn-success">
+            <div class="modal-footer" style="padding:10px 18px;border-top:1px solid var(--slate-100);display:flex;justify-content:flex-end;gap:8px;">
+                <button type="button" data-dismiss="modal"
+                        style="padding:6px 14px;background:#fff;border:1px solid var(--slate-200);border-radius:6px;font-size:.78rem;font-weight:600;color:var(--text-muted);cursor:pointer;">
+                    Cancel
+                </button>
+                <button id="uploadBtn"
+                        style="padding:6px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:background .15s;"
+                        onmouseover="this.style.background='#16a34a'" onmouseout="this.style.background='#22c55e'">
                     <i class="fas fa-upload"></i> Upload File
                 </button>
             </div>
@@ -26,7 +39,7 @@
 <script>
     function openUploadModal() {
         $('#softwareFileInput').val('');
-        $('#fileNameDisplay').text('Click to browse or drag & drop a file').css('color', '#64748b');
+        $('#fileNameDisplay').text('Click to browse or drag & drop a file').css('color', 'var(--text-faint)');
         $('#uploadSoftwareModal').modal('show');
     }
 
@@ -37,18 +50,18 @@
             display.style.color = '#2563eb';
         } else {
             display.innerText = 'Click to browse or drag & drop a file';
-            display.style.color = '#64748b';
+            display.style.color = 'var(--text-faint)';
         }
     }
 
     (function () {
         var dz = document.getElementById('uploadDropzone');
         if (!dz) return;
-        dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.classList.add('active'); });
-        dz.addEventListener('dragleave', function () { dz.classList.remove('active'); });
+        dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.style.borderColor = 'var(--cyan)'; dz.style.background = 'var(--cyan-soft)'; });
+        dz.addEventListener('dragleave', function () { dz.style.borderColor = 'var(--slate-200)'; dz.style.background = 'var(--slate-50)'; });
         dz.addEventListener('drop', function (e) {
             e.preventDefault();
-            dz.classList.remove('active');
+            dz.style.borderColor = 'var(--slate-200)'; dz.style.background = 'var(--slate-50)';
             var fi = document.getElementById('softwareFileInput');
             fi.files = e.dataTransfer.files;
             updateFileName(fi);
@@ -89,4 +102,3 @@
         });
     });
 </script>
-

@@ -1,64 +1,57 @@
 <div id="System" class="tab-pane">
-    <div class="flex flex-col lg:flex-row gap-4">
-        <div class="w-full lg:w-52 flex-shrink-0">
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden sticky top-4">
-                <div class="px-4 py-3.5 bg-gray-50/50 border-b border-gray-200 text-[11px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2.5">
-                    <div class="w-6 h-6 rounded-lg bg-cyan-soft flex items-center justify-center">
-                        <i class="fas fa-cogs text-[11px] text-cyan-dark"></i>
-                    </div>
-                    System
-                </div>
-                <ul class="py-2 space-y-1" role="tablist">
-                    <li class="system-tab active"><a href="#ServicesSys" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-server text-center w-5"></i><span>Services</span></a></li>
-                    <li class="system-tab"><a href="#UsersSys" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-users text-center w-5"></i><span>Users</span></a></li>
-                    <li class="system-tab"><a href="#GroupsSys" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-users-cog text-center w-5"></i><span>Groups</span></a></li>
-                    <li class="system-tab"><a href="#DriversSys" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-microchip text-center w-5"></i><span>Drivers</span></a></li>
-                    <li class="system-tab"><a href="#SharesSys" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-folder-open text-center w-5"></i><span>Shares</span></a></li>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;" class="lg-flex">
+
+            <!-- Side nav -->
+            <div class="cs-subnav flex-shrink-0 lg-w-52" style="width:100%;max-width:200px;">
+                <div class="cs-subnav-header"><i class="fas fa-cogs"></i> System</div>
+                <ul role="tablist">
+                    <li class="system-tab active"><a href="#ServicesSys" data-toggle="tab"><i class="fas fa-server"></i> Services</a></li>
+                    <li class="system-tab"><a href="#UsersSys" data-toggle="tab"><i class="fas fa-users"></i> Users</a></li>
+                    <li class="system-tab"><a href="#GroupsSys" data-toggle="tab"><i class="fas fa-users-cog"></i> Groups</a></li>
+                    <li class="system-tab"><a href="#DriversSys" data-toggle="tab"><i class="fas fa-microchip"></i> Drivers</a></li>
+                    <li class="system-tab"><a href="#SharesSys" data-toggle="tab"><i class="fas fa-folder-open"></i> Shares</a></li>
                 </ul>
             </div>
-        </div>
 
-        <div class="flex-1 min-w-0">
-            <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                <div class="tab-content p-3">
-
-                    <div id="ServicesSys" class="tab-pane active">
-                        <table id="servicesTable" class="w-full">
-                            <thead><tr><th>Display Name</th><th>Startup Type</th><th>Status</th><th>Logon Name</th><th>Date</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
-                    <div id="UsersSys" class="tab-pane">
-                        <table id="usersTable" class="w-full">
-                            <thead><tr><th>Username</th><th>Domain</th><th>Full Name</th><th>Account Type</th><th>Status</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
-                    <div id="GroupsSys" class="tab-pane">
-                        <table id="groupsTable" class="w-full">
-                            <thead><tr><th>Group Name</th><th>Description</th><th>SID</th><th>Status</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
-                    <div id="DriversSys" class="tab-pane">
-                        <table id="driversTable" class="w-full">
-                            <thead><tr><th>Driver Name</th><th>Description</th><th>Status</th><th>Date</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
-                    <div id="SharesSys" class="tab-pane">
-                        <div class="text-center py-12 text-gray-400">
-                            <i class="fas fa-folder-open text-3xl mb-3 block"></i>
-                            <p class="text-[11px] font-medium">No shared folders found on this device.</p>
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+                <div class="cs-card">
+                    <div class="tab-content p-3">
+                        <div id="ServicesSys" class="tab-pane active">
+                            <table id="servicesTable" class="w-full">
+                                <thead><tr><th>Display Name</th><th>Startup Type</th><th>Status</th><th>Logon Name</th><th>Date</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div id="UsersSys" class="tab-pane">
+                            <table id="usersTable" class="w-full">
+                                <thead><tr><th>Username</th><th>Domain</th><th>Full Name</th><th>Account Type</th><th>Status</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div id="GroupsSys" class="tab-pane">
+                            <table id="groupsTable" class="w-full">
+                                <thead><tr><th>Group Name</th><th>Description</th><th>SID</th><th>Status</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div id="DriversSys" class="tab-pane">
+                            <table id="driversTable" class="w-full">
+                                <thead><tr><th>Driver Name</th><th>Description</th><th>Status</th><th>Date</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div id="SharesSys" class="tab-pane">
+                            <div style="text-align:center;padding:40px 20px;color:var(--slate-400);">
+                                <i class="fas fa-folder-open" style="font-size:2rem;margin-bottom:10px;display:block;"></i>
+                                <p style="font-size:.8rem;font-weight:500;">No shared folders found on this device.</p>
+                            </div>
                         </div>
                     </div>
-
                 </div>
             </div>
+
         </div>
     </div>
 </div>

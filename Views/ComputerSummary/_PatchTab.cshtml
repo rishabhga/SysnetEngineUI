@@ -1,24 +1,29 @@
 <div id="PatchManagment" class="tab-pane">
-    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-band-aid" style="color:#00BCEB;"></i> Patch Management</h3>
-        </div>
-        <div class="p-1.5 bg-gray-50 border-b border-gray-200">
-            <ul class="flex gap-0.5" id="patchSubTabs" role="tablist">
-                <li class="patch-sub-tab active"><a href="#WindowsListTab" data-toggle="tab" class="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all">Windows Updates</a></li>
-                <li class="patch-sub-tab"><a href="#ThirdPartyTab" data-toggle="tab" class="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all">Third Party</a></li>
-                <li class="patch-sub-tab"><a href="#HotfixTab" data-toggle="tab" class="px-3 py-1.5 rounded-md text-[11px] font-medium transition-all">Windows History</a></li>
-            </ul>
-        </div>
+    <div class="cs-card">
+        <div class="cs-card-header"><i class="fas fa-band-aid" style="color:var(--cyan);"></i> Patch Management</div>
+        <ul class="cs-patch-subtabs" id="patchSubTabs" role="tablist">
+            <li class="patch-sub-tab active"><a href="#WindowsListTab" data-toggle="tab">Windows Updates</a></li>
+            <li class="patch-sub-tab"><a href="#ThirdPartyTab" data-toggle="tab">Third Party</a></li>
+            <li class="patch-sub-tab"><a href="#HotfixTab" data-toggle="tab">Windows History</a></li>
+        </ul>
         <div class="tab-content p-3">
             <div id="WindowsListTab" class="tab-pane active">
-                <table id="windowUpdateTable" class="w-full"><thead><tr><th>Patch ID</th><th>Bulletin</th><th>Patch Name</th><th>Description</th><th>Severity</th><th>Date</th></tr></thead><tbody></tbody></table>
+                <table id="windowUpdateTable" class="w-full">
+                    <thead><tr><th>Patch ID</th><th>Bulletin</th><th>Patch Name</th><th>Description</th><th>Severity</th><th>Date</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
             <div id="ThirdPartyTab" class="tab-pane">
-                <table id="thirdPartyTable" class="w-full"><thead><tr><th>Patch Name</th><th>Vendor</th><th>Current Version</th><th>Available Version</th><th>Severity</th><th>Action</th></tr></thead><tbody></tbody></table>
+                <table id="thirdPartyTable" class="w-full">
+                    <thead><tr><th>Patch Name</th><th>Vendor</th><th>Current Version</th><th>Available Version</th><th>Severity</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
             <div id="HotfixTab" class="tab-pane">
-                <table id="hotfixTable" class="w-full"><thead><tr><th>Hotfix ID</th><th>Title</th><th>Description</th><th>Installed On</th></tr></thead><tbody></tbody></table>
+                <table id="hotfixTable" class="w-full">
+                    <thead><tr><th>Hotfix ID</th><th>Title</th><th>Installed On</th><th>Installed By</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>

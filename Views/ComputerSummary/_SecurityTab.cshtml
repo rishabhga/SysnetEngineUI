@@ -1,32 +1,40 @@
 <div id="security" class="tab-pane">
-    <div class="flex flex-col lg:flex-row gap-4">
-        <div class="w-full lg:w-52 flex-shrink-0">
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden sticky top-4">
-                <div class="px-4 py-3.5 bg-gray-50/50 border-b border-gray-200 text-[11px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2.5">
-                    <div class="w-6 h-6 rounded-lg bg-cyan-soft flex items-center justify-center">
-                        <i class="fas fa-shield-alt text-[11px] text-cyan-dark"></i>
-                    </div>
-                    Security
-                </div>
-                <ul class="py-2 space-y-1" role="tablist">
-                    <li class="security-tab active"><a href="#AntivirusSec" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-virus-slash text-center w-5"></i><span>Antivirus</span></a></li>
-                    <li class="security-tab"><a href="#FirewallSec" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-fire-extinguisher text-center w-5"></i><span>Firewall</span></a></li>
-                </ul>
-            </div>
+    <div style="display:flex;gap:10px;align-items:flex-start;" class="lg-flex">
+
+        <!-- Side nav -->
+        <div class="cs-subnav flex-shrink-0 lg-w-52" style="width:100%;max-width:200px;">
+            <div class="cs-subnav-header"><i class="fas fa-shield-alt"></i> Security</div>
+            <ul role="tablist">
+                <li class="security-tab active"><a href="#AntivirusSec" data-toggle="tab"><i class="fas fa-virus-slash"></i> Antivirus</a></li>
+                <li class="security-tab"><a href="#FirewallSec" data-toggle="tab"><i class="fas fa-fire-extinguisher"></i> Firewall</a></li>
+            </ul>
         </div>
+
+        <!-- Content -->
         <div class="flex-1 min-w-0">
-            <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="cs-card">
                 <div class="tab-content p-3">
                     <div id="AntivirusSec" class="tab-pane active">
-                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-virus-slash text-red-500"></i> Antivirus Status</h4>
-                        <table id="antivirusTable" class="w-full"><thead><tr><th>Name</th><th>Protection Status</th><th>License Status</th><th>Version</th><th>Manufacturer</th></tr></thead><tbody></tbody></table>
+                        <div class="cs-card-header" style="background:transparent;border:none;padding:0 0 10px;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-virus-slash" style="color:#ef4444;"></i> Antivirus Status
+                        </div>
+                        <table id="antivirusTable" class="w-full">
+                            <thead><tr><th>Name</th><th>Protection Status</th><th>License Status</th><th>Version</th><th>Manufacturer</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
                     <div id="FirewallSec" class="tab-pane">
-                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fas fa-fire-extinguisher text-red-500"></i> Firewall Status</h4>
-                        <table id="firewallTable" class="w-full"><thead><tr><th>Name</th><th>Protection Status</th><th>Version</th><th>Manufacturer</th></tr></thead><tbody></tbody></table>
+                        <div class="cs-card-header" style="background:transparent;border:none;padding:0 0 10px;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-fire-extinguisher" style="color:#ef4444;"></i> Firewall Status
+                        </div>
+                        <table id="firewallTable" class="w-full">
+                            <thead><tr><th>Name</th><th>Protection Status</th><th>Version</th><th>Manufacturer</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </div>

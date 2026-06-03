@@ -1,46 +1,66 @@
 <div id="Software" class="tab-pane">
-    <div class="flex flex-col lg:flex-row gap-4">
-        <div class="w-full lg:w-52 flex-shrink-0">
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden sticky top-4">
-                <div class="px-4 py-3.5 bg-gray-50/50 border-b border-gray-200 text-[11px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2.5">
-                    <div class="w-6 h-6 rounded-lg bg-cyan-soft flex items-center justify-center">
-                        <i class="fas fa-laptop-code text-[11px] text-cyan-dark"></i>
-                    </div>
-                    Software
-                </div>
-                <ul class="py-2 space-y-1" role="tablist">
-                    <li class="software-tab active"><a href="#DesktopAppsSw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-window-maximize text-center w-5"></i><span>Desktop Apps</span></a></li>
-                    <li class="software-tab"><a href="#StoreAppsSw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fab fa-microsoft text-center w-5"></i><span>Store Apps</span></a></li>
-                    <li class="software-tab"><a href="#InstallersSw" data-toggle="tab" class="flex items-center gap-3 px-4 py-2 text-[12px] font-medium transition-all"><i class="fas fa-download text-center w-5"></i><span>Installers</span></a></li>
-                </ul>
-            </div>
+    <div style="display:flex;gap:10px;align-items:flex-start;" class="lg-flex">
+
+        <!-- Side nav -->
+        <div class="cs-subnav flex-shrink-0 lg-w-52" style="width:100%;max-width:200px;">
+            <div class="cs-subnav-header"><i class="fas fa-laptop-code"></i> Software</div>
+            <ul role="tablist">
+                <li class="software-tab active"><a href="#DesktopAppsSw" data-toggle="tab"><i class="fas fa-window-maximize"></i> Desktop Apps</a></li>
+                <li class="software-tab"><a href="#StoreAppsSw" data-toggle="tab"><i class="fab fa-microsoft"></i> Store Apps</a></li>
+                <li class="software-tab"><a href="#InstallersSw" data-toggle="tab"><i class="fas fa-download"></i> Installers</a></li>
+            </ul>
         </div>
+
+        <!-- Content -->
         <div class="flex-1 min-w-0">
-            <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="cs-card">
                 <div class="tab-content p-3">
+
                     <div id="DesktopAppsSw" class="tab-pane active">
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-window-maximize" style="color:#00BCEB;"></i> Installed Desktop Apps</h4>
-                            <div class="flex gap-2 items-center">
-                                <select id="filterSoftwareType" class="px-2.5 py-1.5 border border-gray-200 rounded-lg text-[11px] font-medium bg-white text-gray-600 focus:ring-2 focus:ring-[#00BCEB]/30" onchange="refreshSoftwareTable()">
-                                    <option value="all">All Software</option><option value="thirdparty">Third-Party</option><option value="windows">Windows</option>
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                            <span class="cs-card-header" style="background:transparent;border:none;padding:0;display:flex;align-items:center;gap:6px;">
+                                <i class="fas fa-window-maximize" style="color:var(--cyan);"></i> Installed Desktop Apps
+                            </span>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <select id="filterSoftwareType"
+                                        style="padding:5px 8px;border:1px solid var(--slate-200);border-radius:6px;font-size:.76rem;font-weight:600;background:#fff;color:var(--text-muted);"
+                                        onchange="refreshSoftwareTable()">
+                                    <option value="all">All Software</option>
+                                    <option value="thirdparty">Third-Party</option>
+                                    <option value="windows">Windows</option>
                                 </select>
-                                <button onclick="refreshSoftwareTable()" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-[11px] font-medium text-gray-600 transition-colors"><i class="fas fa-sync-alt text-[9px]"></i> Refresh</button>
+                                <button onclick="refreshSoftwareTable()"
+                                        style="padding:5px 10px;background:var(--slate-100);border:1px solid var(--slate-200);border-radius:6px;font-size:.76rem;font-weight:600;color:var(--text-muted);cursor:pointer;">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
                             </div>
                         </div>
-                        <table id="desktopAppsTable" class="w-full"><thead><tr><th>Software Name</th><th>Version</th><th>Publisher</th><th>Install Date</th><th>Action</th></tr></thead><tbody></tbody></table>
+                        <table id="desktopAppsTable" class="w-full">
+                            <thead><tr><th>Software Name</th><th>Version</th><th>Publisher</th><th>Install Date</th><th>Action</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
+
                     <div id="StoreAppsSw" class="tab-pane">
-                        <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-2"><i class="fab fa-microsoft" style="color:#00BCEB;"></i> Microsoft Store Apps</h4>
-                        <table id="storeAppsTable" class="w-full"><thead><tr><th>App Name</th><th>Package Name</th><th>Version</th><th>Publisher</th></tr></thead><tbody></tbody></table>
-                    </div>
-                    <div id="InstallersSw" class="tab-pane">
-                        <div class="flex items-center justify-between mb-3">
-                            <h4 class="text-[11px] font-bold text-gray-600 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-download" style="color:#B4D334;"></i> Software Installers</h4>
-                            
+                        <div class="cs-card-header" style="background:transparent;border:none;padding:0 0 10px;display:flex;align-items:center;gap:6px;">
+                            <i class="fab fa-microsoft" style="color:var(--cyan);"></i> Microsoft Store Apps
                         </div>
-                        <table id="installersTable" class="w-full"><thead><tr><th>File Name</th><th>Version</th><th>Action</th></tr></thead><tbody></tbody></table>
+                        <table id="storeAppsTable" class="w-full">
+                            <thead><tr><th>App Name</th><th>Package Name</th><th>Version</th><th>Publisher</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
+
+                    <div id="InstallersSw" class="tab-pane">
+                        <div class="cs-card-header" style="background:transparent;border:none;padding:0 0 10px;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-download" style="color:var(--green);"></i> Software Installers
+                        </div>
+                        <table id="installersTable" class="w-full">
+                            <thead><tr><th>File Name</th><th>Version</th><th>Action</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
                 </div>
             </div>
         </div>
