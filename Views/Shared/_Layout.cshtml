@@ -65,7 +65,7 @@
             --nav-from: #00BCEB;
             --nav-mid: #00A9D4;
             --nav-to: #0096BE;
-            --nav-h: 60px;
+            --nav-h: 52px;
             --accent: #0ea5e9;
             --side-bg: #ffffff;
         }
@@ -96,7 +96,7 @@
             display: flex;
             flex-direction: column;
             background: #f8fafc;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         #main-nav {
@@ -145,7 +145,7 @@
         }
 
         .nav-title {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: rgba(255,255,255,.8);
             white-space: nowrap;
@@ -158,16 +158,16 @@
         .nav-right {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             flex-shrink: 0;
         }
 
         /* Global Search Styles */
         .nav-search-container {
             flex: 1;
-            max-width: 500px;
+            max-width: 400px;
             position: relative;
-            margin: 0 20px;
+            margin: 0 12px;
         }
 
         .nav-search-input {
@@ -550,13 +550,13 @@
         }
 
         table.dataTable thead th, table.dataTable thead td {
-            padding: 10px 12px;
+            padding: 8px 10px;
         }
 
         #chatToastContainer {
             position: fixed;
-            top: 16px;
-            right: 16px;
+            top: calc(var(--nav-h) + 8px);
+            right: 14px;
             z-index: 100000;
             display: flex;
             flex-direction: column;
@@ -566,7 +566,7 @@
 
         .chat-toast {
             pointer-events: all;
-            width: 320px;
+            width: 280px;
             background: #fff;
             border-radius: 14px;
             box-shadow: 0 8px 30px -8px rgba(0,0,0,.18);
@@ -841,7 +841,7 @@
 
     <nav id="main-nav">
         <div class="nav-inner">
-            <button id="sidebarToggle" type="button" title="Toggle sidebar" aria-label="Toggle sidebar" style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; background:rgba(255,255,255,0.1); border:none; border-radius:8px; color:#fff; cursor:pointer; transition:background 0.2s; z-index:9999; position:relative;">
+            <button id="sidebarToggle" type="button" title="Toggle sidebar" aria-label="Toggle sidebar" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; background:rgba(255,255,255,0.1); border:none; border-radius:7px; color:#fff; cursor:pointer; transition:background 0.2s; z-index:9999; position:relative; flex-shrink:0;">
                 <i class="fas fa-bars"></i>
             </button>
 
@@ -1064,7 +1064,7 @@
     <div id="chatToastContainer"></div>
 
     <div id="chatModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100000] hidden items-center justify-center p-4 transition-all duration-300">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-[400px] flex flex-col h-[480px] overflow-hidden border border-white/20">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[360px] flex flex-col h-[420px] overflow-hidden border border-white/20">
             <!-- Header -->
             <div class="px-5 py-4 text-white flex justify-between items-center relative overflow-hidden" style="background:linear-gradient(135deg, #0ea5e9, #3b82f6);">
                 <div class="absolute inset-0 bg-white/10 opacity-50 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')]"></div>
