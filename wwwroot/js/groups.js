@@ -26,7 +26,7 @@ function validateGroupName(name) {
         errors.push('Must be at least 3 characters');
     } else if (name.trim().length > 100) {
         errors.push('Must not exceed 100 characters');
-    } else if (!/^[a-zA-Z0-9\s\-&.()]+$/.test(name)) {
+    } else if (!/^[a-zA-Z0-9\s\-&.()_]+$/.test(name)) {
         errors.push('Invalid characters');
     }
     return errors;

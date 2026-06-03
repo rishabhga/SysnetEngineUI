@@ -176,6 +176,28 @@ namespace ManageEngineWebApp.Controllers
                         }
                     }
                 }
+                
+                var netResponse = await client.GetAsync($"{_baseUrl}/api/NetworkAdapterDetails");
+                if (netResponse.IsSuccessStatusCode)
+                {
+                    var jsonNet = await netResponse.Content.ReadAsStringAsync();
+                    var allNetDetails = JsonConvert.DeserializeObject<List<dynamic>>(jsonNet);
+                    if (allNetDetails != null)
+                    {
+                        foreach (var n in allNetDetails)
+                        {
+                            string ip = n.ipAddress ?? n.IPAddress;
+                            string userCode = n.userCode ?? n.UserCode;
+                            string hostName = n.dnsHostName ?? n.DNSHostName;
+                            if (!string.IsNullOrEmpty(ip))
+                            {
+                                ip = ip.Trim();
+                                if (!string.IsNullOrEmpty(userCode)) userIps[userCode.Trim()] = ip;
+                                if (!string.IsNullOrEmpty(hostName)) userIps[hostName.Trim()] = ip;
+                            }
+                        }
+                    }
+                }
             }
             catch { }
             ViewBag.UserIps = userIps;
@@ -464,6 +486,28 @@ namespace ManageEngineWebApp.Controllers
                 else
                 {
                     userIps["ERROR_API"] = $"Status: {response.StatusCode}";
+                }
+
+                var netResponse = await client.GetAsync($"{_baseUrl}/api/NetworkAdapterDetails");
+                if (netResponse.IsSuccessStatusCode)
+                {
+                    var jsonNet = await netResponse.Content.ReadAsStringAsync();
+                    var allNetDetails = JsonConvert.DeserializeObject<List<dynamic>>(jsonNet);
+                    if (allNetDetails != null)
+                    {
+                        foreach (var n in allNetDetails)
+                        {
+                            string ip = n.ipAddress ?? n.IPAddress;
+                            string userCode = n.userCode ?? n.UserCode;
+                            string hostName = n.dnsHostName ?? n.DNSHostName;
+                            if (!string.IsNullOrEmpty(ip))
+                            {
+                                ip = ip.Trim();
+                                if (!string.IsNullOrEmpty(userCode)) userIps[userCode.Trim()] = ip;
+                                if (!string.IsNullOrEmpty(hostName)) userIps[hostName.Trim()] = ip;
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)

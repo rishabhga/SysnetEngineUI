@@ -531,8 +531,9 @@
             const groupId = $btn.data('group-id');
             const companyId = $btn.data('company-id');
             const newName = $('#editGroupNameInput').val().trim();
-            if (newName === "") {
-                $('#editGroupError').text('Group name cannot be empty').removeClass('hidden');
+            const errors = validateGroupName(newName);
+            if (errors.length > 0) {
+                $('#editGroupError').text(errors[0]).removeClass('hidden');
                 return;
             }
 
