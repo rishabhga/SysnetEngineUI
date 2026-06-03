@@ -1390,14 +1390,14 @@
 
             registerActiveRescan(domain);
 
-            // Stale scan safety timeout (3 minutes)
+            // Stale scan safety timeout (10 minutes)
             setTimeout(() => {
                 if (activeScans[domain.toUpperCase()]) {
                     unregisterActiveRescan(domain);
                     resetRescanButton(link, card);
                     sysAlert('Scan timed out for ' + domain, 'warning');
                 }
-            }, 3 * 60 * 1000);
+            }, 10 * 60 * 1000);
 
             $.post('@Url.Action("Comanddata", "ComputerSummary")?domain=' + domain, function(res) {
                 if (res.success) {
@@ -1447,12 +1447,12 @@
                 try {
                     activeScans = JSON.parse(saved);
                     const now = Date.now();
-                    const timeoutMs = 3 * 60 * 1000; // 3 minutes timeout
+                    const timeoutMs = 10 * 60 * 1000; // 10 minutes timeout
 
                     Object.keys(activeScans).forEach(domain => {
                         const registeredTime = activeScans[domain];
 
-                        // If it has been more than 3 minutes, or is old format (boolean true)
+                        // If it has been more than 10 minutes, or is old format (boolean true)
                         if (typeof registeredTime !== 'number' || (now - registeredTime > timeoutMs)) {
                             delete activeScans[domain];
                             return;

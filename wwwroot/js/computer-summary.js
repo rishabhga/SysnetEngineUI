@@ -709,8 +709,8 @@ function uninstallSoftware(softwareName) {
 }
 
 function pollUninstallStatus(softwareName, attempt) {
-    if (attempt > 60) {
-        sysAlert('Uninstall status unknown  check the device manually.', 'warning');
+    if (attempt > 200) {
+        sysAlert('Uninstall status unknown - check the device manually.', 'warning');
         reloadTable('#desktopAppsTable');
         return;
     }
@@ -771,8 +771,8 @@ function installSoftware(fileName) {
 }
 
 function pollInstallStatus(fileName, attempt) {
-    if (attempt > 60) {
-        sysAlert('Install status unknown ? check the device manually.', 'warning');
+    if (attempt > 150) {
+        sysAlert('Install status unknown - check the device manually.', 'warning');
         reloadTable('#installersTable');
         reloadTable('#desktopAppsTable');
         return;

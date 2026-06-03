@@ -689,7 +689,7 @@
                     unregisterAction(idStr);
                     sysAlert('Deploy request safety timeout reached. Check device connectivity.', 'warning');
                 }
-            }, 90 * 1000);
+            }, 10 * 60 * 1000);
 
             $.ajax({
                 url: '@Url.Action("UpdatePatchselection", "ComputerSummary")',
