@@ -34,11 +34,15 @@ namespace ManageEngineWebApp.Datacontext
             return _httpClientFactory.CreateClient("ManageEngineApi");
         }
 
-        public static async Task<(UserRoleDto? Result, string? Error)> GetUserRoleFromApiAsync(string username)
+        public static async Task<(UserRoleDto? Result, string? Error)> GetUserRoleFromApiAsync(string username, string? token = null)
         {
             try
             {
                 using var client = CreateClient();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
                 var response = await client.GetAsync($"{ApiBaseUrl}/user/roles/{username}");
                 if (response.IsSuccessStatusCode)
                 {
@@ -285,7 +289,8 @@ namespace ManageEngineWebApp.Datacontext
             var username = context.Session.GetString("username");
             if (string.IsNullOrEmpty(username)) return;
 
-            var roleResponse = await GetUserRoleFromApiAsync(username);
+            var token = context.Session.GetString("JwtToken");
+            var roleResponse = await GetUserRoleFromApiAsync(username, token);
             if (roleResponse.Result != null)
             {
                 var roleData = roleResponse.Result;
@@ -497,6 +502,14 @@ namespace ManageEngineWebApp.Datacontext
                 try
                 {
                     using var client = CreateClient();
+                    if (context != null)
+                    {
+                        var token = context.Session.GetString("JwtToken");
+                        if (!string.IsNullOrEmpty(token))
+                        {
+                            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                        }
+                    }
                     var baseUrl = ApiBaseUrl.Replace("/Auth", "/Permission");
                     var response = await client.GetAsync($"{baseUrl}/Menus");
                     if (response.IsSuccessStatusCode)

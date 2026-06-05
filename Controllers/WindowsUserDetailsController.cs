@@ -21,7 +21,13 @@ namespace ManageEngineWebApp.Controllers
             _baseUrl = configuration["ApiSettings:BaseUrl"];
         }
 
-        private HttpClient GetClient() => _httpClientFactory.CreateClient("ManageEngineApi");
+                private HttpClient GetClient() 
+        {
+            var client = _httpClientFactory.CreateClient("ManageEngineApi");
+            var token = HttpContext.Session.GetString("JwtToken");
+            if (!string.IsNullOrEmpty(token)) { client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token); }
+            return client;
+        }
 
         private (List<int> companyIds, List<int> groupIds, List<int> locationIds) GetUserScope()
         {

@@ -9,6 +9,15 @@
     var portsUp = Model?.Ports?.Count(p => p.PortState == "Up") ?? 0;
     var portsDown = Model?.Ports?.Count(p => p.PortState != "Up") ?? 0;
     var totalPorts = (portsUp + portsDown);
+
+    // Scope params — passed via query string from Index Details link
+    var _q = Context.Request.Query;
+    int? scopeComId = ViewBag.ComId as int? ?? (_q.ContainsKey("comId") && int.TryParse(_q["comId"], out var _cid) ? (int?)_cid : null);
+    int? scopeGroupId = ViewBag.GroupId as int? ?? (_q.ContainsKey("groupId") && int.TryParse(_q["groupId"], out var _gid) ? (int?)_gid : null);
+    int? scopeLocationId = ViewBag.LocationId as int? ?? (_q.ContainsKey("locationId") && int.TryParse(_q["locationId"], out var _lid) ? (int?)_lid : null);
+    string scopeComName = ViewBag.CompanyName as string ?? _q["companyName"].ToString();
+    string scopeGroupName = ViewBag.GroupName as string ?? _q["groupName"].ToString();
+    string scopeLocName = ViewBag.LocationName as string ?? _q["locationName"].ToString();
 }
 
 <style>
@@ -40,7 +49,17 @@
 
     <!-- Breadcrumb + Title -->
     <div class="flex items-center gap-3 mb-6 flex-wrap">
-        <a href="@Url.Action("Index")"
+        @{
+            // Preserve scope so Back returns to the same filtered view
+            var backParams = new System.Collections.Generic.Dictionary<string, object>();
+            if (scopeComId != null) backParams["comId"] = scopeComId;
+            if (scopeGroupId != null) backParams["groupId"] = scopeGroupId;
+            if (scopeLocationId != null) backParams["locationId"] = scopeLocationId;
+            if (!string.IsNullOrEmpty(scopeComName)) backParams["companyName"] = scopeComName;
+            if (!string.IsNullOrEmpty(scopeGroupName)) backParams["groupName"] = scopeGroupName;
+            if (!string.IsNullOrEmpty(scopeLocName)) backParams["locationName"] = scopeLocName;
+        }
+        <a href="@Url.Action("Index", backParams)"
            class="text-gray-400 hover:text-gray-600 transition flex items-center gap-1 text-sm">
             <i class="fas fa-arrow-left"></i> Back
         </a>
@@ -58,6 +77,12 @@
         {
             <form asp-action="TriggerPoll" method="post" class="ml-auto">
                 @Html.AntiForgeryToken()
+                <input type="hidden" name="comId" value="@scopeComId" />
+                <input type="hidden" name="groupId" value="@scopeGroupId" />
+                <input type="hidden" name="locationId" value="@scopeLocationId" />
+                <input type="hidden" name="companyName" value="@scopeComName" />
+                <input type="hidden" name="groupName" value="@scopeGroupName" />
+                <input type="hidden" name="locationName" value="@scopeLocName" />
                 <button type="submit"
                         class="px-3 py-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg text-sm font-medium shadow hover:shadow-md transition flex items-center gap-1.5">
                     <i class="fas fa-sync-alt"></i> Poll Now
@@ -181,7 +206,7 @@
                                 <td class="px-4 py-2.5 font-mono text-xs text-gray-800">@port.PortName</td>
                                 <td class="px-4 py-2.5">
                                     <span class="inline-flex items-center gap-1.5 text-xs font-medium
-                                                @(portUp ? "text-green-700" : "text-red-600")">
+                                                        @(portUp ? "text-green-700" : "text-red-600")">
                                         <span class="w-1.5 h-1.5 rounded-full @(portUp ? "bg-green-500" : "bg-red-500")"></span>
                                         @port.PortState
                                     </span>
@@ -232,7 +257,7 @@
                                 <td class="px-3 py-2 font-mono text-gray-600">@h.PollTime.ToString("MM-dd HH:mm:ss")</td>
                                 <td class="px-3 py-2">
                                     <span class="inline-flex items-center gap-1 font-medium
-                                                @(h.Status == "Up" ? "text-green-700" : "text-red-600")">
+                                                        @(h.Status == "Up" ? "text-green-700" : "text-red-600")">
                                         <span class="w-1.5 h-1.5 rounded-full @(h.Status == "Up" ? "bg-green-500" : "bg-red-500")"></span>
                                         @h.Status
                                     </span>

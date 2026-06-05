@@ -22,7 +22,7 @@
     <!-- Compact Header -->
     <div class="mb-2 flex items-center justify-between">
         <div class="flex items-center space-x-1.5">
-            <a href="/Companies/GroupsDetails?id=@ViewBag.companyid&companyName=@ViewBag.CompanyName"
+            <a href="#" onclick="navigateToEncrypted('/Companies/GroupsDetails', {id: '@ViewBag.companyid', companyName: '@ViewBag.CompanyName'}); return false;"
                class="w-6 h-6 bg-white border border-gray-200 hover:bg-gray-50 rounded-md flex items-center justify-center transition shadow-sm">
                 <i class="fas fa-arrow-left text-gray-600 text-[10px]"></i>
             </a>
@@ -167,7 +167,10 @@
                                      data-company-id="@item.CompanyId" data-group-id="@item.GroupId" data-location-id="@item.LocationId">
                                     <div class="display-name-section">
                                         <div class="flex items-center space-x-1">
-                                            <a href="/ComputerSummary/Index?domain=@item.UserCode"
+                                            @{
+                                                string qToken = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(item.UserCode);
+                                            }
+                                            <a href="/ComputerSummary/Index?q=@Uri.EscapeDataString(qToken)"
                                                class="text-[10px] font-bold text-gray-900 transition-colors truncate" style="text-decoration:none;"
                                                title="@item.UserName">
                                                 @(string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName)
@@ -1557,3 +1560,4 @@
         }
     </style>
 }
+

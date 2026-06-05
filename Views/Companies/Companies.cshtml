@@ -245,7 +245,8 @@
                         }
                     </div>
                     <div class="p-2.5 bg-white border-t border-gray-200 flex-shrink-0">
-                        <a href="/Companies/GroupsDetails?id=@company.CompanyId&companyName=@Uri.EscapeDataString(company.CompanyName)"
+                        <a href="javascript:void(0)"
+                           onclick="navigateToEncrypted('/Companies/GroupsDetails', { id: '@company.CompanyId', companyName: '@company.CompanyName' })"
                            class="w-full h-8 text-white rounded-lg text-[10px] font-bold transition-colors flex items-center justify-center space-x-1 uppercase shadow-sm"
                            style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
                             <i class="fas fa-eye text-[10px]"></i>

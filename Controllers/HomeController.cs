@@ -12,6 +12,7 @@ using System.Linq;
 
 namespace ManageEngineWebApp.Controllers
 {
+    [AuthFilter]
     public class HomeController : BaseController
     {
         private readonly ILogger<HomeController> _logger;
@@ -311,6 +312,45 @@ namespace ManageEngineWebApp.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+        public class NavigationContext
+        {
+            public int? CompanyId { get; set; }
+            public string CompanyName { get; set; }
+            public int? GroupId { get; set; }
+            public string GroupName { get; set; }
+            public int? LocationId { get; set; }
+            public string LocationName { get; set; }
+        }
+        [HttpPost]
+        [AllowAnonymous]
+        public IActionResult EncryptContext([FromBody] NavigationContext context)
+        {
+            try
+            {
+                string json = JsonConvert.SerializeObject(context);
+                string token = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(json);
+                return Json(new { success = true, token });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Failed to encrypt context" });
+            }
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public IActionResult EncryptDict([FromBody] Dictionary<string, string> data)
+        {
+            try
+            {
+                var q = ManageEngineWebApp.Helpers.EncryptionHelper.EncryptParams(data);
+                return Json(new { success = true, q });
+            }
+            catch
+            {
+                return Json(new { success = false });
+            }
         }
     }
 }

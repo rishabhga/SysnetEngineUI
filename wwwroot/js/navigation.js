@@ -2,6 +2,48 @@
     "use strict";
     if (window.__SYSNET_NAV_INIT) return;
     window.__SYSNET_NAV_INIT = true;
+    
+    window.navigateToEncryptedDashboard = async function(comId, companyName, groupId, groupName, locationId, locationName) {
+        const payload = {
+            CompanyId: comId || 0, CompanyName: companyName || '',
+            GroupId: groupId || 0, GroupName: groupName || '',
+            LocationId: locationId || 0, LocationName: locationName || ''
+        };
+        try {
+            const response = await fetch('/Home/EncryptContext', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (data.success && data.token) {
+                window.location.href = '/ComputerSummary/Deshboad?token=' + encodeURIComponent(data.token);
+            } else {
+                console.error('Failed to encrypt context');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    window.navigateToEncrypted = async function(urlPath, params) {
+        try {
+            const response = await fetch('/Home/EncryptDict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(params)
+            });
+            const data = await response.json();
+            if (data.success && data.q) {
+                window.location.href = urlPath + '?q=' + encodeURIComponent(data.q);
+            } else {
+                console.error('Failed to encrypt dictionary params');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     var STORAGE_KEY = "sysnet.sidebar.collapsed";
     var SCROLL_KEY  = "sysnet.scroll.";
     var FILTER_KEY  = "sysnet.filters.";

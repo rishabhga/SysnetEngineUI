@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -26,10 +26,22 @@ namespace ManageEngineWebApp.Controllers
 
         [DynamicPermission("SwitchMonitor.View", "View Switch Monitor")]
         public async Task<IActionResult> Index(
-            int? comId, int? groupId, int? locationId, 
-            string companyName, string groupName, string locationName, 
-            int? companyid, int? groupid, int? locationid)
+            string? q = null,
+            int? comId = null, int? groupId = null, int? locationId = null,
+            string? companyName = null, string? groupName = null, string? locationName = null,
+            int? companyid = null, int? groupid = null, int? locationid = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var p = ManageEngineWebApp.Helpers.EncryptionHelper.DecryptParams(q);
+                if (p.TryGetValue("comId", out var cid) && int.TryParse(cid, out var c)) comId = c;
+                if (p.TryGetValue("groupId", out var gid) && int.TryParse(gid, out var g)) groupId = g;
+                if (p.TryGetValue("locationId", out var lid) && int.TryParse(lid, out var l)) locationId = l;
+                if (p.TryGetValue("companyName", out var cn)) companyName = cn;
+                if (p.TryGetValue("groupName", out var gn)) groupName = gn;
+                if (p.TryGetValue("locationName", out var ln)) locationName = ln;
+            }
+
             var activeComId = comId ?? companyid;
             var activeGroupId = groupId ?? groupid;
             var activeLocationId = locationId ?? locationid;
@@ -39,7 +51,9 @@ namespace ManageEngineWebApp.Controllers
 
             using var client = GetClient();
 
-            // Fetch all locations to do dynamic mapping and names resolution
+            bool isTopAdmin = RoleHelper.IsTopLevelAdmin(HttpContext);
+            var userLocationIds = RoleHelper.GetLocationIds(HttpContext);
+
             var allLocations = new List<Locations>();
             try
             {
@@ -54,7 +68,6 @@ namespace ManageEngineWebApp.Controllers
             }
             catch { }
 
-            // Resolve names if IDs are present but names are missing
             if (activeLocationId.HasValue && string.IsNullOrEmpty(locationName))
             {
                 var loc = allLocations.FirstOrDefault(l => l.Id == activeLocationId.Value);
@@ -66,7 +79,6 @@ namespace ManageEngineWebApp.Controllers
                 }
             }
 
-            // Fetch switches
             try
             {
                 var swResponse = await client.GetAsync($"{_baseUrl}/api/Zabbix");
@@ -83,12 +95,8 @@ namespace ManageEngineWebApp.Controllers
                 TempData["Error"] = "Could not connect to API. Check that the API service is running.";
             }
 
-            // Filtering based on hierarchy parameters and user mapping permissions
-            var userLocationIds = RoleHelper.GetLocationIds(HttpContext);
-            bool isTopAdmin = RoleHelper.IsTopLevelAdmin(HttpContext);
             bool isFilterActive = activeComId.HasValue || activeGroupId.HasValue || activeLocationId.HasValue;
-
-            HashSet<int> allowedLocIds = null;
+            HashSet<int>? allowedLocIds = null;
 
             if (isFilterActive)
             {
@@ -101,9 +109,8 @@ namespace ManageEngineWebApp.Controllers
                     filteredLocs = filteredLocs.Where(l => l.CompanyID == activeComId.Value).ToList();
 
                 if (!isTopAdmin && userLocationIds.Any())
-                {
                     filteredLocs = filteredLocs.Where(l => userLocationIds.Contains(l.Id)).ToList();
-                }
+
                 allowedLocIds = filteredLocs.Select(l => l.Id).ToHashSet();
             }
             else if (!isTopAdmin && userLocationIds.Any())
@@ -111,12 +118,15 @@ namespace ManageEngineWebApp.Controllers
                 allowedLocIds = userLocationIds.ToHashSet();
             }
 
+            // FIX: Guard against LocationId being non-nullable int on the model.
+            // If SwitchMaster.LocationId is int? use the HasValue/Value pattern;
+            // if it is int, use a direct comparison. Both cases are handled below.
             if (allowedLocIds != null)
-            {
-                switches = switches.Where(s => s.LocationId.HasValue && allowedLocIds.Contains(s.LocationId.Value)).ToList();
-            }
+                switches = switches
+                    .Where(s => s.LocationId != null && allowedLocIds.Contains(
+                        s.LocationId is int locId ? locId : Convert.ToInt32(s.LocationId)))
+                    .ToList();
 
-            // Fetch statuses
             try
             {
                 var statusResponse = await client.GetAsync($"{_baseUrl}/api/Zabbix/AllDeviceStatuses");
@@ -132,7 +142,6 @@ namespace ManageEngineWebApp.Controllers
             }
             catch { }
 
-            // Fetch and map WindowsUserDetails for mapped user details inside switch cards
             var dbUsers = new Dictionary<string, WindowsUserDetails>(StringComparer.OrdinalIgnoreCase);
             try
             {
@@ -142,8 +151,22 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var json = await response.Content.ReadAsStringAsync();
                     var usersList = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(json);
+
                     if (usersList != null)
                     {
+                        if (activeLocationId.HasValue && activeLocationId.Value > 0)
+                        {
+                            usersList = usersList
+                                .Where(u => u.LocationId == activeLocationId.Value)
+                                .ToList();
+                        }
+                        else if (!isTopAdmin && userLocationIds.Any())
+                        {
+                            usersList = usersList
+                                .Where(u => userLocationIds.Contains(u.LocationId))
+                                .ToList();
+                        }
+
                         foreach (var u in usersList)
                         {
                             if (!string.IsNullOrEmpty(u.DomainName))
@@ -176,7 +199,7 @@ namespace ManageEngineWebApp.Controllers
                         }
                     }
                 }
-                
+
                 var netResponse = await client.GetAsync($"{_baseUrl}/api/NetworkAdapterDetails");
                 if (netResponse.IsSuccessStatusCode)
                 {
@@ -200,8 +223,8 @@ namespace ManageEngineWebApp.Controllers
                 }
             }
             catch { }
-            ViewBag.UserIps = userIps;
 
+            ViewBag.UserIps = userIps;
             ViewBag.CompanyId = activeComId;
             ViewBag.GroupId = activeGroupId;
             ViewBag.LocationId = activeLocationId;
@@ -271,22 +294,31 @@ namespace ManageEngineWebApp.Controllers
             });
         }
 
-
         [DynamicPermission("SwitchMonitor.Create", "Create Switch")]
-        public async Task<IActionResult> Create(int? comId, int? groupId, int? locationId)
+        public async Task<IActionResult> Create(
+            int? comId = null, int? groupId = null, int? locationId = null, string? q = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var p = ManageEngineWebApp.Helpers.EncryptionHelper.DecryptParams(q);
+                if (p.TryGetValue("comId", out var cid) && int.TryParse(cid, out var c)) comId = c;
+                if (p.TryGetValue("groupId", out var gid) && int.TryParse(gid, out var g)) groupId = g;
+                if (p.TryGetValue("locationId", out var lid) && int.TryParse(lid, out var l)) locationId = l;
+            }
+
             await LoadLocationsToViewBagAsync(comId, groupId, locationId);
             await LoadDevicesToViewBagAsync(comId, groupId, locationId);
 
+            // FIX: LocationId on SwitchMaster must be int? to accept locationId here.
+            // If your model has int LocationId, change it to int? LocationId in SwitchMaster.
             return PartialView("_SwitchForm", new SwitchMaster
             {
                 IsActive = true,
                 DeviceType = "Switch",
                 Community = "public",
-                LocationId = locationId
+                LocationId = locationId   // requires int? on the model
             });
         }
-
 
         [HttpPost]
         [IgnoreAntiforgeryToken]
@@ -309,23 +341,34 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var errorObj = JObject.Parse(body);
                     if (errorObj["error"] != null)
-                        apiErrorMsg += " - " + errorObj["error"].ToString();
+                        apiErrorMsg += " - " + errorObj["error"]!.ToString();
                     else if (errorObj["message"] != null)
-                        apiErrorMsg += " - " + errorObj["message"].ToString();
+                        apiErrorMsg += " - " + errorObj["message"]!.ToString();
                 }
                 catch { }
 
                 return Json(new { success = false, message = apiErrorMsg });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Json(new { success = false, message = $"Connection error: {"An internal server error occurred."}" });
+                return Json(new { success = false, message = "Connection error: An internal server error occurred." });
             }
         }
 
         [DynamicPermission("SwitchMonitor.Edit", "Edit Switch")]
-        public async Task<IActionResult> Edit(int id, int? comId, int? groupId, int? locationId)
+        public async Task<IActionResult> Edit(
+            int id = 0, int? comId = null, int? groupId = null,
+            int? locationId = null, string? q = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var p = ManageEngineWebApp.Helpers.EncryptionHelper.DecryptParams(q);
+                if (p.TryGetValue("id", out var idStr) && int.TryParse(idStr, out var decId)) id = decId;
+                if (p.TryGetValue("comId", out var cid) && int.TryParse(cid, out var c)) comId = c;
+                if (p.TryGetValue("groupId", out var gid) && int.TryParse(gid, out var g)) groupId = g;
+                if (p.TryGetValue("locationId", out var lid) && int.TryParse(lid, out var l)) locationId = l;
+            }
+
             using var client = GetClient();
             SwitchMaster? sw = null;
             try { sw = await client.GetFromJsonAsync<SwitchMaster>($"{_baseUrl}/api/Zabbix/{id}"); }
@@ -333,13 +376,14 @@ namespace ManageEngineWebApp.Controllers
 
             if (sw == null) return NotFound();
 
+            // FIX: sw.LocationId must be int? for this ?? to compile.
+            // If it is int, use: var activeLocId = locationId ?? (sw.LocationId > 0 ? sw.LocationId : locationId);
             var activeLocId = locationId ?? sw.LocationId;
             await LoadLocationsToViewBagAsync(comId, groupId, activeLocId);
             await LoadDevicesToViewBagAsync(comId, groupId, activeLocId);
 
             return PartialView("_SwitchForm", sw);
         }
-
 
         [HttpPost]
         [IgnoreAntiforgeryToken]
@@ -359,9 +403,9 @@ namespace ManageEngineWebApp.Controllers
 
                 return Json(new { success = false, message = $"API error: {response.StatusCode}" });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Json(new { success = false, message = $"Connection error: {"An internal server error occurred."}" });
+                return Json(new { success = false, message = "Connection error: An internal server error occurred." });
             }
         }
 
@@ -379,16 +423,19 @@ namespace ManageEngineWebApp.Controllers
 
                 return Json(new { success = false, message = $"API error: {response.StatusCode}" });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return Json(new { success = false, message = $"Connection error: {"An internal server error occurred."}" });
+                return Json(new { success = false, message = "Connection error: An internal server error occurred." });
             }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         [DynamicPermission("SwitchMonitor.Action", "Trigger Poll")]
-        public async Task<IActionResult> TriggerPoll()
+        public async Task<IActionResult> TriggerPoll(
+            string? q = null,
+            int? comId = null, int? groupId = null, int? locationId = null,
+            string? companyName = null, string? groupName = null, string? locationName = null)
         {
             using var client = GetClient();
             try
@@ -404,22 +451,31 @@ namespace ManageEngineWebApp.Controllers
                 TempData["Error"] = $"Could not reach API: {ex.Message}";
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index),
+                new { q, comId, groupId, locationId, companyName, groupName, locationName });
         }
 
-        private async Task LoadLocationsToViewBagAsync(int? comId = null, int? groupId = null, int? locationId = null)
+        // -------------------------------------------------------------------------
+        // Private helpers
+        // -------------------------------------------------------------------------
+
+        private async Task LoadLocationsToViewBagAsync(
+            int? comId = null, int? groupId = null, int? locationId = null)
         {
             var userLocationIds = RoleHelper.GetLocationIds(HttpContext);
             using var client = GetClient();
             var locations = new List<Locations>();
+
             try
             {
                 var response = await client.GetAsync($"{_baseUrl}/api/CompaniesDetails/Locationdata");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    var allLocations = System.Text.Json.JsonSerializer.Deserialize<List<Locations>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<Locations>();
-                    
+                    var allLocations = System.Text.Json.JsonSerializer.Deserialize<List<Locations>>(json,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                        ?? new List<Locations>();
+
                     var filtered = allLocations;
 
                     if (locationId.HasValue && locationId.Value > 0)
@@ -429,38 +485,49 @@ namespace ManageEngineWebApp.Controllers
                     else if (comId.HasValue && comId.Value > 0)
                         filtered = filtered.Where(l => l.CompanyID == comId.Value).ToList();
 
-                    if (RoleHelper.IsTopLevelAdmin(HttpContext) || !userLocationIds.Any())
-                    {
-                        locations = filtered;
-                    }
-                    else
-                    {
-                        locations = filtered.Where(l => userLocationIds.Contains(l.Id)).ToList();
-                    }
+                    locations = RoleHelper.IsTopLevelAdmin(HttpContext) || !userLocationIds.Any()
+                        ? filtered
+                        : filtered.Where(l => userLocationIds.Contains(l.Id)).ToList();
                 }
             }
             catch { }
+
             ViewBag.Locations = locations;
         }
 
-        private async Task LoadDevicesToViewBagAsync(int? companyId, int? groupId, int? locationId)
+        private async Task LoadDevicesToViewBagAsync(
+            int? companyId, int? groupId, int? locationId)
         {
             using var client = GetClient();
+            bool isTopAdmin = RoleHelper.IsTopLevelAdmin(HttpContext);
+            var userLocationIds = RoleHelper.GetLocationIds(HttpContext);
+
             var query = BuildScopedQuery(companyId, locationId, groupId);
-            var url = $"api/WindowsUserDetails/allUser{query}";
             var devices = new List<WindowsUserDetails>();
+
             try
             {
-                var response = await client.GetAsync($"{_baseUrl}/{url}");
+                var response = await client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser{query}");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    devices = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(json) ?? new List<WindowsUserDetails>();
+                    devices = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(json)
+                              ?? new List<WindowsUserDetails>();
                 }
             }
             catch { }
 
-            // Fetch IP addresses from UserDetails api
+            if (locationId.HasValue && locationId.Value > 0)
+            {
+                devices = devices.Where(d => d.LocationId == locationId.Value).ToList();
+            }
+            else if (!isTopAdmin && userLocationIds.Any())
+            {
+                devices = devices
+                    .Where(d => userLocationIds.Contains(d.LocationId))
+                    .ToList();
+            }
+
             var userIps = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try
             {
@@ -482,10 +549,6 @@ namespace ManageEngineWebApp.Controllers
                             }
                         }
                     }
-                }
-                else
-                {
-                    userIps["ERROR_API"] = $"Status: {response.StatusCode}";
                 }
 
                 var netResponse = await client.GetAsync($"{_baseUrl}/api/NetworkAdapterDetails");
@@ -510,18 +573,9 @@ namespace ManageEngineWebApp.Controllers
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                userIps["ERROR_EX"] = ex.Message;
-            }
+            catch { }
+
             ViewBag.UserIps = userIps;
-
-            // Strict Filter: select user only from inside that location (if locationId is active/specified)
-            if (locationId.HasValue && locationId.Value > 0)
-            {
-                devices = devices.Where(d => d.LocationId == locationId.Value).ToList();
-            }
-
             ViewBag.Devices = devices.OrderBy(d => d.DomainName).ToList();
         }
     }

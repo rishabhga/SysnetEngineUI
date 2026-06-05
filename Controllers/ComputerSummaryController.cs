@@ -23,22 +23,59 @@ namespace ManageEngineWebApp.Controllers
     [AuthFilter]
     public class ComputerSummaryController : BaseController
     {
-        public ComputerSummaryController(IHttpClientFactory httpClientFactory, IConfiguration configuration) 
+        public ComputerSummaryController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
             : base(httpClientFactory, configuration)
         {
         }
 
         [DynamicPermission("ComputerSummary.View", "View Dashboard")]
-        public async Task<IActionResult> Deshboad(int locationId, string locationName, int groupid, string groupName, int comId, string companyName)
+        public async Task<IActionResult> Deshboad(string? token = null, string? q = null, int locationId = 0, string? locationName = null, int groupid = 0, string? groupName = null, int comId = 0, string? companyName = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var p = ManageEngineWebApp.Helpers.EncryptionHelper.DecryptParams(q);
+                if (p.TryGetValue("locationId", out var lid) && int.TryParse(lid, out var locId)) locationId = locId;
+                if (p.TryGetValue("locationName", out var ln)) locationName = ln;
+                if (p.TryGetValue("groupid", out var gid) && int.TryParse(gid, out var grpId)) groupid = grpId;
+                if (p.TryGetValue("groupName", out var gn)) groupName = gn;
+                if (p.TryGetValue("comId", out var cid) && int.TryParse(cid, out var compId)) comId = compId;
+                if (p.TryGetValue("companyName", out var cn)) companyName = cn;
+            }
+            else if (!string.IsNullOrEmpty(token))
+            {
+                var decrypted = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(token);
+                if (!string.IsNullOrEmpty(decrypted))
+                {
+                    try
+                    {
+                        var ctx = JsonConvert.DeserializeObject<ManageEngineWebApp.Controllers.HomeController.NavigationContext>(decrypted);
+                        if (ctx != null)
+                        {
+                            locationId = ctx.LocationId ?? 0;
+                            locationName = ctx.LocationName;
+                            groupid = ctx.GroupId ?? 0;
+                            groupName = ctx.GroupName;
+                            comId = ctx.CompanyId ?? 0;
+                            companyName = ctx.CompanyName;
+                        }
+                    }
+                    catch {  }
+                }
+            }
+
             if (!IsAuthorized(comId, groupid, locationId)) return RedirectToAction("Index", "Home");
 
+            ViewBag.CompanyId = comId > 0 ? comId : (int?)null;
+            ViewBag.GroupId = groupid > 0 ? groupid : (int?)null;
+            ViewBag.LocationId = locationId > 0 ? locationId : (int?)null;
             ViewBag.CompanyName = companyName;
-            ViewBag.groupName = groupName;
-            ViewBag.locationName = locationName;
+            ViewBag.GroupName = groupName;
+            ViewBag.LocationName = locationName;
             ViewBag.companyid = comId;
             ViewBag.groupid = groupid;
             ViewBag.locationid = locationId;
+            ViewBag.groupName = groupName;
+            ViewBag.locationName = locationName;
             ViewBag.ApiBaseUrl = _baseUrl;
 
             var dalalist = new List<WindowsUserDetails>();
@@ -139,13 +176,21 @@ namespace ManageEngineWebApp.Controllers
         }
         [AuthFilter]
         [DynamicPermission("ComputerSummary.VIP", "View VIP Clients")]
-        public IActionResult VIPClient(int comId, int? groupId, int? locationId, string companyName)
+        public IActionResult VIPClient(string? q = null, int comId = 0, int? groupId = null, int? locationId = null, string companyName = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var p = ManageEngineWebApp.Helpers.EncryptionHelper.DecryptParams(q);
+                if (p.TryGetValue("comId", out var cid) && int.TryParse(cid, out var c)) comId = c;
+                if (p.TryGetValue("groupId", out var gid) && int.TryParse(gid, out var g)) groupId = g;
+                if (p.TryGetValue("locationId", out var lid) && int.TryParse(lid, out var l)) locationId = l;
+                if (p.TryGetValue("companyName", out var cn)) companyName = cn;
+            }
             ViewBag.CompanyId = comId;
             ViewBag.GroupId = groupId;
             ViewBag.LocationId = locationId;
             ViewBag.CompanyName = companyName ?? "Unknown Company";
-            
+
             return View();
         }
 
@@ -382,13 +427,13 @@ namespace ManageEngineWebApp.Controllers
             // If locationId is 0 or null, we might want to fall back to general notifications
             if (locationId == null || locationId <= 0)
             {
-                return RedirectToAction("GetRecentActivity"); 
+                return RedirectToAction("GetRecentActivity");
             }
 
-            if (!IsAuthorized(companyId, groupId, locationId)) 
+            if (!IsAuthorized(companyId, groupId, locationId))
             {
                 // Return empty instead of error to avoid breaking the UI, but log it
-                return Json(new List<object>()); 
+                return Json(new List<object>());
             }
 
             try
@@ -399,7 +444,7 @@ namespace ManageEngineWebApp.Controllers
                 if (companyId > 0) queryParams.Add($"companyId={companyId}");
                 if (groupId.HasValue && groupId > 0) queryParams.Add($"groupId={groupId}");
                 if (locationId.HasValue && locationId > 0) queryParams.Add($"locationId={locationId}");
-                
+
                 string queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
                 string apiUrl = $"api/RamCpuDiskData/notifications/location{queryString}";
 
@@ -428,7 +473,7 @@ namespace ManageEngineWebApp.Controllers
             {
                 var client = GetClient();
                 string url = $"api/CompaniesDetails/Locationdata";
-                
+
                 var response = await client.GetAsync(url);
                 if (response != null && response.IsSuccessStatusCode)
                 {
@@ -880,62 +925,82 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
-        public async Task<IActionResult> BranchPatchMangnment(int companyid, int groupid, int locationid)
+        public async Task<IActionResult> BranchPatchMangnment(string? q = null, int companyid = 0, int groupid = 0, int locationid = 0,
+            string? companyName = null, string? groupName = null, string? locationName = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var p = ManageEngineWebApp.Helpers.EncryptionHelper.DecryptParams(q);
+                if (p.TryGetValue("companyid", out var cid) && int.TryParse(cid, out var c)) companyid = c;
+                if (p.TryGetValue("comId", out var cid2) && int.TryParse(cid2, out var c2)) companyid = c2;
+                if (p.TryGetValue("groupid", out var gid) && int.TryParse(gid, out var g)) groupid = g;
+                if (p.TryGetValue("locationid", out var lid) && int.TryParse(lid, out var l)) locationid = l;
+                if (p.TryGetValue("locationId", out var lid2) && int.TryParse(lid2, out var l2)) locationid = l2;
+                if (p.TryGetValue("companyName", out var cn)) companyName = cn;
+                if (p.TryGetValue("groupName", out var gn)) groupName = gn;
+                if (p.TryGetValue("locationName", out var ln)) locationName = ln;
+            }
             if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
-
+            ViewBag.CompanyId = companyid > 0 ? companyid : (int?)null;
+            ViewBag.GroupId = groupid > 0 ? groupid : (int?)null;
+            ViewBag.LocationId = locationid > 0 ? locationid : (int?)null;
+            ViewBag.CompanyName = companyName;
+            ViewBag.GroupName = groupName;
+            ViewBag.LocationName = locationName;
             ViewBag.companyid = companyid;
             ViewBag.groupid = groupid;
             ViewBag.locationid = locationid;
+            ViewBag.groupName = groupName;
+            ViewBag.locationName = locationName;
 
             var localDatalist = new List<WindowsUserDetails>();
             var contectlist = new List<ConnectedClientDto>();
             List<string> activeComputers = new List<string>();
-                try
+            try
+            {
+                var httpClient = GetClient();
+                var query = BuildScopedQuery(companyid, locationid, groupid);
+                string userUrl = $"api/WindowsUserDetails/allUser{query}";
+
+                var userTask = httpClient.GetAsync($"{_baseUrl}/{userUrl}");
+                var connectedTask = httpClient.GetAsync($"{_baseUrl}/api/Command/GetConnectedDevices");
+
+                await Task.WhenAll(userTask, connectedTask);
+
+                var response = await userTask;
+                if (response.IsSuccessStatusCode)
                 {
-                    var httpClient = GetClient();
-                    var query = BuildScopedQuery(companyid, locationid, groupid);
-                    string userUrl = $"api/WindowsUserDetails/allUser{query}";
-
-                    var userTask = httpClient.GetAsync($"{_baseUrl}/{userUrl}");
-                    var connectedTask = httpClient.GetAsync($"{_baseUrl}/api/Command/GetConnectedDevices");
-
-                    await Task.WhenAll(userTask, connectedTask);
-
-                    var response = await userTask;
-                    if (response.IsSuccessStatusCode)
+                    var content = await response.Content.ReadAsStringAsync();
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
+                    if (data != null)
                     {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
-                        if (data != null)
-                        {
-                            localDatalist = data.Where(x => x.Status == "Enabled").ToList();
-                        }
-                    }
-
-                    var response2 = await connectedTask;
-                    if (response2.IsSuccessStatusCode)
-                    {
-                        var content2 = await response2.Content.ReadAsStringAsync();
-                        contectlist = !string.IsNullOrEmpty(content2) ? JsonConvert.DeserializeObject<List<ConnectedClientDto>>(content2) : null;
-                        if (contectlist != null)
-                        {
-                            var authorizedComputerIds = localDatalist.Where(d => !string.IsNullOrEmpty(d.DomainName)).Select(d => d.DomainName.ToUpper().Trim()).ToHashSet();
-                            activeComputers = contectlist
-                                .Where(d => d != null && !string.IsNullOrEmpty(d.UserName))
-                                .Where(d => IsTopLevelAdmin() || authorizedComputerIds.Contains(d.UserName.ToUpper().Trim()))
-                                .Select(d => d.UserName)
-                                .ToList();
-                        }
+                        localDatalist = data.Where(x => x.Status == "Enabled").ToList();
                     }
                 }
-                catch (Exception ex) 
-                { 
-                    Console.WriteLine($"BranchPatchMangnment Error: {ex.Message}");
-                }
 
-                ViewBag.ActiveComputers = activeComputers;
-                return View(localDatalist);
+                var response2 = await connectedTask;
+                if (response2.IsSuccessStatusCode)
+                {
+                    var content2 = await response2.Content.ReadAsStringAsync();
+                    contectlist = !string.IsNullOrEmpty(content2) ? JsonConvert.DeserializeObject<List<ConnectedClientDto>>(content2) : null;
+                    if (contectlist != null)
+                    {
+                        var authorizedComputerIds = localDatalist.Where(d => !string.IsNullOrEmpty(d.DomainName)).Select(d => d.DomainName.ToUpper().Trim()).ToHashSet();
+                        activeComputers = contectlist
+                            .Where(d => d != null && !string.IsNullOrEmpty(d.UserName))
+                            .Where(d => IsTopLevelAdmin() || authorizedComputerIds.Contains(d.UserName.ToUpper().Trim()))
+                            .Select(d => d.UserName)
+                            .ToList();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"BranchPatchMangnment Error: {ex.Message}");
+            }
+
+            ViewBag.ActiveComputers = activeComputers;
+            return View(localDatalist);
         }
 
         [HttpPost]
@@ -974,13 +1039,22 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-        public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
+        public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids,
+            string? companyName = null, string? groupName = null, string? locationName = null)
         {
             if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
 
+            ViewBag.CompanyId = companyid > 0 ? companyid : (int?)null;
+            ViewBag.GroupId = groupid > 0 ? groupid : (int?)null;
+            ViewBag.LocationId = locationid > 0 ? locationid : (int?)null;
+            ViewBag.CompanyName = companyName;
+            ViewBag.GroupName = groupName;
+            ViewBag.LocationName = locationName;
             ViewBag.companyid = companyid;
             ViewBag.groupid = groupid;
             ViewBag.locationid = locationid;
+            ViewBag.groupName = groupName;
+            ViewBag.locationName = locationName;
             ViewBag.selectedIds = selectedIds;
             ViewBag.domainids = domainids;
 
@@ -1026,13 +1100,22 @@ namespace ManageEngineWebApp.Controllers
 
             return View(datalist);
         }
-        public async Task<IActionResult> BranchWinPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids)
+        public async Task<IActionResult> BranchWinPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids,
+            string? companyName = null, string? groupName = null, string? locationName = null)
         {
             if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
 
+            ViewBag.CompanyId = companyid > 0 ? companyid : (int?)null;
+            ViewBag.GroupId = groupid > 0 ? groupid : (int?)null;
+            ViewBag.LocationId = locationid > 0 ? locationid : (int?)null;
+            ViewBag.CompanyName = companyName;
+            ViewBag.GroupName = groupName;
+            ViewBag.LocationName = locationName;
             ViewBag.companyid = companyid;
             ViewBag.groupid = groupid;
             ViewBag.locationid = locationid;
+            ViewBag.groupName = groupName;
+            ViewBag.locationName = locationName;
             ViewBag.selectedIds = selectedIds;
             ViewBag.domainids = domainids;
 
@@ -1431,14 +1514,14 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var winContent = await winUserResponse.Content.ReadAsStringAsync();
                     var winUsers = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(winContent);
-                    winUser = winUsers?.FirstOrDefault(x => 
-                        (x.DomainName?.Equals(domain, StringComparison.OrdinalIgnoreCase) == true) || 
+                    winUser = winUsers?.FirstOrDefault(x =>
+                        (x.DomainName?.Equals(domain, StringComparison.OrdinalIgnoreCase) == true) ||
                         (x.UserCode?.Equals(domain, StringComparison.OrdinalIgnoreCase) == true));
                 }
                 using var detailsClient = GetClient();
                 detailsClient.BaseAddress = new Uri($"{_baseUrl}/api/UserDetails");
                 var response = await detailsClient.GetAsync("");
-                                ViewBag.DisplayDomain = winUser?.DomainName ?? domain;
+                ViewBag.DisplayDomain = winUser?.DomainName ?? domain;
                 ViewBag.UserCode = winUser?.UserCode ?? "N/A";
                 ViewBag.LastLogUser = winUser?.UserName ?? "N/A";
                 ViewBag.UserName = winUser?.UserCode ?? domain;
@@ -1450,15 +1533,15 @@ namespace ManageEngineWebApp.Controllers
 
                     if (data != null)
                     {
-                        datalist = data.Where(x => 
-                            (x.domainName?.Equals(domain, StringComparison.OrdinalIgnoreCase) == true) || 
+                        datalist = data.Where(x =>
+                            (x.domainName?.Equals(domain, StringComparison.OrdinalIgnoreCase) == true) ||
                             (winUser != null && x.domainName?.Equals(winUser.DomainName, StringComparison.OrdinalIgnoreCase) == true)).ToList();
 
                         if (datalist.Any())
                         {
                             var details = datalist[0];
-                            ViewBag.UserName = winUser?.UserCode ?? details.domainName; 
-                            ViewBag.DomainNameForCommand = winUser?.DomainName ?? details.domainName;                            ViewBag.DisplayDomain = winUser?.DomainName ?? details.domainName;
+                            ViewBag.UserName = winUser?.UserCode ?? details.domainName;
+                            ViewBag.DomainNameForCommand = winUser?.DomainName ?? details.domainName; ViewBag.DisplayDomain = winUser?.DomainName ?? details.domainName;
                             ViewBag.windowdetails = details.WindowName;
                             ViewBag.ip = details.IpAddress;
                             ViewBag.LastLogUser = !string.IsNullOrEmpty(winUser?.UserName) ? winUser.UserName : details.UserName;
@@ -1555,8 +1638,8 @@ namespace ManageEngineWebApp.Controllers
                     localDatalist = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ClientConnection>>(content) : new List<ClientConnection>();
                 }
             }
-            catch (Exception ex) 
-            { 
+            catch (Exception ex)
+            {
                 Console.WriteLine($"ConnectedClient Error: {ex.Message}");
             }
             return View(localDatalist);
@@ -4021,9 +4104,9 @@ namespace ManageEngineWebApp.Controllers
                 var companyId = RoleHelper.GetCompanyId(HttpContext) ?? 0;
                 var groupId = RoleHelper.GetGroupId(HttpContext);
                 var locationId = RoleHelper.GetLocationId(HttpContext);
-                
+
                 var client = GetClient();
-                
+
                 var queryParams = new List<string>();
                 if (companyId > 0) queryParams.Add($"companyId={companyId}");
                 if (groupId != null && groupId > 0) queryParams.Add($"groupId={groupId}");

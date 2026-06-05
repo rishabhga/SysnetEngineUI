@@ -7,7 +7,6 @@
     int totalUp = statuses?.Values.Count(s => s.Status == "Up") ?? 0;
     int totalDown = statuses?.Values.Count(s => s.Status != "Up" && s.Status != null) ?? 0;
 
-    // Pre-compute header title and breadcrumb
     string headerTitle = "Switch Monitor";
     string breadcrumbText = "";
     bool hasScope = ViewBag.CompanyId != null || ViewBag.GroupId != null || ViewBag.LocationId != null;
@@ -82,7 +81,18 @@
 
                 if (ViewBag.LocationId != null && ViewBag.LocationId > 0)
                 {
-                    backUrl = $"/ComputerSummary/Deshboad?locationId={ViewBag.LocationId}&locationName={Uri.EscapeDataString(ViewBag.LocationName ?? string.Empty)}&groupid={ViewBag.GroupId}&groupName={Uri.EscapeDataString(ViewBag.GroupName ?? string.Empty)}&comId={ViewBag.CompanyId}&companyName={Uri.EscapeDataString(ViewBag.CompanyName ?? string.Empty)}";
+                    var ctx = new ManageEngineWebApp.Controllers.HomeController.NavigationContext
+                    {
+                        CompanyId = ViewBag.CompanyId,
+                        CompanyName = ViewBag.CompanyName,
+                        GroupId = ViewBag.GroupId,
+                        GroupName = ViewBag.GroupName,
+                        LocationId = ViewBag.LocationId,
+                        LocationName = ViewBag.LocationName
+                    };
+                    string json = Newtonsoft.Json.JsonConvert.SerializeObject(ctx);
+                    string token = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(json);
+                    backUrl = $"/ComputerSummary/Deshboad?token={Uri.EscapeDataString(token)}";
                     backTitle = "Back to Dashboard";
                 }
                 else if (ViewBag.GroupId != null && ViewBag.GroupId > 0)
@@ -128,6 +138,13 @@
             {
                 <form asp-action="TriggerPoll" method="post" id="pollForm" class="m-0">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" name="q" value="@Context.Request.Query["q"]" />
+                    <input type="hidden" name="comId" value="@ViewBag.CompanyId" />
+                    <input type="hidden" name="groupId" value="@ViewBag.GroupId" />
+                    <input type="hidden" name="locationId" value="@ViewBag.LocationId" />
+                    <input type="hidden" name="companyName" value="@ViewBag.CompanyName" />
+                    <input type="hidden" name="groupName" value="@ViewBag.GroupName" />
+                    <input type="hidden" name="locationName" value="@ViewBag.LocationName" />
                     <button type="submit" id="pollBtn"
                             class="px-3 py-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-1.5 text-xs font-semibold">
                         <i class="fas fa-sync-alt" id="pollIcon"></i>
@@ -282,7 +299,7 @@
                                 <i class="fas fa-clock"></i> Auto
                             </button>
                         </div>
-                        <a href="@Url.Action("Details", new { id = sw.Id })"
+                        <a href="@Url.Action("Details", new { id = sw.Id, comId = ViewBag.CompanyId, groupId = ViewBag.GroupId, locationId = ViewBag.LocationId, companyName = ViewBag.CompanyName, groupName = ViewBag.GroupName, locationName = ViewBag.LocationName })"
                            class="text-xs text-[#00BCEB] hover:text-[#0096BE] font-medium flex items-center gap-1">
                             Details <i class="fas fa-arrow-right"></i>
                         </a>
@@ -421,6 +438,37 @@
     let currentSwitchId = 0;
     let pendingDeleteId = 0;
 
+    // Rebuilds Index URL preserving all scope/filter params so reload never loses location context
+    function currentScopeUrl() {
+        const params = new URLSearchParams();
+        @if (ViewBag.CompanyId != null)
+        {
+            <text>params.set('comId',        '@ViewBag.CompanyId');</text>
+        }
+        @if (ViewBag.GroupId != null)
+        {
+            <text>params.set('groupId',      '@ViewBag.GroupId');</text>
+        }
+        @if (ViewBag.LocationId != null)
+        {
+            <text>params.set('locationId',   '@ViewBag.LocationId');</text>
+        }
+        @if (!string.IsNullOrEmpty(ViewBag.CompanyName as string))
+        {
+            <text>params.set('companyName',  '@Html.Raw((ViewBag.CompanyName as string ?? "").Replace("'", "\\'"))');</text>
+        }
+        @if (!string.IsNullOrEmpty(ViewBag.GroupName as string))
+        {
+            <text>params.set('groupName',    '@Html.Raw((ViewBag.GroupName as string ?? "").Replace("'", "\\'"))');</text>
+        }
+        @if (!string.IsNullOrEmpty(ViewBag.LocationName as string))
+        {
+            <text>params.set('locationName', '@Html.Raw((ViewBag.LocationName as string ?? "").Replace("'", "\\'"))');</text>
+        }
+        const qs = params.toString();
+        return '/SwitchMonitor/Index' + (qs ? '?' + qs : '');
+    }
+
     document.getElementById('pollForm').addEventListener('submit', function () {
         document.getElementById('pollIcon').className = 'fas fa-sync-alt spin';
         document.getElementById('pollText').textContent = 'Polling...';
@@ -449,7 +497,9 @@
         document.getElementById('modalBody').innerHTML =
             '<div class="flex justify-center py-8"><i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i></div>';
         openModal('switchModal');
-        fetch(`/SwitchMonitor/Create?comId=@ViewBag.CompanyId&groupId=@ViewBag.GroupId&locationId=@ViewBag.LocationId`)
+        fetch('/Home/EncryptDict', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ comId: '@ViewBag.CompanyId', groupId: '@ViewBag.GroupId', locationId: '@ViewBag.LocationId' }) })
+            .then(res => res.json())
+            .then(data => fetch('/SwitchMonitor/Create?q=' + encodeURIComponent(data.q)))
             .then(res => {
                 if (!res.ok) throw new Error('Failed to load form');
                 return res.text();
@@ -467,13 +517,15 @@
         document.getElementById('modalBody').innerHTML =
             '<div class="flex justify-center py-8"><i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i></div>';
         openModal('switchModal');
-        fetch(`/SwitchMonitor/Edit/${id}?comId=@ViewBag.CompanyId&groupId=@ViewBag.GroupId&locationId=@ViewBag.LocationId`)
+        fetch('/Home/EncryptDict', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ id: id.toString(), comId: '@ViewBag.CompanyId', groupId: '@ViewBag.GroupId', locationId: '@ViewBag.LocationId' }) })
+            .then(res => res.json())
+            .then(data => fetch('/SwitchMonitor/Edit?q=' + encodeURIComponent(data.q)))
             .then(res => {
                 if (!res.ok) throw new Error('Failed to load form');
                 return res.text();
             })
-            .then(html => { 
-                document.getElementById('modalBody').innerHTML = html; 
+            .then(html => {
+                document.getElementById('modalBody').innerHTML = html;
                 const selectEl = document.getElementById('DeviceNameSelect');
                 if (selectEl && selectEl.value) {
                     selectEl.dispatchEvent(new Event('change', { bubbles: true }));
@@ -490,7 +542,7 @@
             const selectEl = e.target;
             const inputEl = document.getElementById('DeviceNameInput');
             const locEl = document.getElementById('LocationId');
-            
+
             const selected = selectEl.options[selectEl.selectedIndex];
             if (selected && selected.value) {
                 if (inputEl) inputEl.value = selected.value;
@@ -508,12 +560,11 @@
         const btn = this;
         const formData = {};
 
-        // Collect all inputs (skip the ASP.NET hidden checkbox "false" — take only real values)
         const seen = new Set();
         document.querySelectorAll('#modalBody input, #modalBody select').forEach(el => {
             if (!el.name) return;
             if (el.type === 'checkbox') {
-                formData[el.name] = el.checked;   // ← FIX: always use checkbox.checked (not hidden false)
+                formData[el.name] = el.checked; 
                 seen.add(el.name);
             } else if (!seen.has(el.name)) {
                 formData[el.name] = el.value;
@@ -521,7 +572,6 @@
             }
         });
 
-        // Parse Id properly
         if (formData['Id'] !== undefined) formData['Id'] = parseInt(formData['Id']) || 0;
 
         const url = currentSwitchId === 0
@@ -540,7 +590,7 @@
         .then(data => {
             if (data.success) {
                 closeSwitchModal();
-                location.reload();
+                window.location.href = currentScopeUrl();
             } else {
                 showModalError(data.message || 'Operation failed');
                 btn.disabled = false;
@@ -580,7 +630,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    location.reload();
+                    window.location.href = currentScopeUrl();
                 } else {
                     window.sysAlert(data.message || 'Delete failed', 'error');
                     closeDeleteModal();
@@ -596,7 +646,6 @@
             });
     });
 
-    // ── Per-Switch Auto Poll ──
     const SWITCH_AUTOPOLL_KEY = 'switchMonitor_perSwitchAutoPoll';
     let switchTimers = {};
 
@@ -706,7 +755,6 @@
         }
     }
 
-    // Countdown updater for the modal
     setInterval(function() {
         const el = document.getElementById('autoPollCountdown');
         if (!el) return;
@@ -719,7 +767,6 @@
         }
     }, 1000);
 
-    // Initialize per-switch timers on page load
     (function initPerSwitchAutoPoll() {
         const settings = getSwitchAutoPollSettings();
         for (const id in settings) {

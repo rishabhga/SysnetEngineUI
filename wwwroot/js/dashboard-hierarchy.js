@@ -301,10 +301,10 @@ window.DashboardHierarchy = (function () {
                                 </td>
                                 <td class="text-slate-500 font-medium text-xs">${u.domainName || '--'}</td>
                                 <td class="text-right">
-                                    <a href="/ComputerSummary/Deshboad?comId=${state.company.id}&companyName=${encodeURIComponent(state.company.name)}&groupid=${state.group.id}&groupName=${encodeURIComponent(state.group.name)}&locationId=${state.location.id}&locationName=${encodeURIComponent(state.location.name)}" 
+                                    <button onclick="window.navigateToEncryptedDashboard(${state.company.id}, '${(state.company.name || '').replace(/'/g, "\\'")}', ${state.group.id}, '${(state.group.name || '').replace(/'/g, "\\'")}', ${state.location.id}, '${(state.location.name || '').replace(/'/g, "\\'")}')" 
                                        class="text-blue-500 hover:text-blue-700 text-xs font-bold uppercase transition">
                                         Monitor <i class="fas fa-chevron-right ml-1"></i>
-                                    </a>
+                                    </button>
                                 </td>
                             </tr>
                         `).join('')}

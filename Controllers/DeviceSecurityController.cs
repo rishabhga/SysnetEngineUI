@@ -5,6 +5,7 @@ using System.Text;
 
 namespace ManageEngineWebApp.Controllers
 {
+    [AuthFilter]
     public class DeviceSecurityController : BaseController
     {
         private readonly IHttpClientFactory _httpClientFactory;

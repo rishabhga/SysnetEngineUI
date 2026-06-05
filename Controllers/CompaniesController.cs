@@ -398,8 +398,14 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [DynamicPermission("Companies.View", "View Groups")]
-        public async Task<IActionResult> GroupsDetails(int id, string companyName)
+        public async Task<IActionResult> GroupsDetails(string? q = null, int id = 0, string companyName = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var p = ManageEngineWebApp.Helpers.EncryptionHelper.DecryptParams(q);
+                if (p.TryGetValue("id", out var idStr) && int.TryParse(idStr, out var decId)) id = decId;
+                if (p.TryGetValue("companyName", out var cn)) companyName = cn;
+            }
             if (!RoleHelper.ValidateScope(HttpContext, id))
                 return RedirectToAction("AccessDenied", "Auth");
 

@@ -389,8 +389,13 @@ namespace ManageEngineWebApp.Controllers
         }
         [HttpGet]
         [AuthFilter]
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(int id = 0, string? q = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var p = ManageEngineWebApp.Helpers.EncryptionHelper.DecryptParams(q);
+                if (p.TryGetValue("id", out var idStr) && int.TryParse(idStr, out var decId)) id = decId;
+            }
             try
             {
                 var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets/{id}");

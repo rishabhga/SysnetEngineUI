@@ -882,9 +882,14 @@
         function navigate(action) {
             const ids     = [...selectedIds].join(',');
             const domains = [...selectedDomains.values()].join(',');
-            // Clear selection when navigating to deployment?
-            // Actually, keep it in case they hit back.
-            window.location.href = `/ComputerSummary/${action}?companyid=@companyid&groupid=@groupid&locationid=@locationid&selectedIds=${ids}&domainids=${domains}`;
+            // Encrypt sensitive params, pass selectedIds/domainids as payload too
+            navigateToEncrypted(`/ComputerSummary/${action}`, {
+                companyid: '@companyid',
+                groupid: '@groupid',
+                locationid: '@locationid',
+                selectedIds: ids,
+                domainids: domains
+            });
         }
 
         function toggleDropdown() {

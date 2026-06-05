@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -5,75 +9,66 @@ namespace ManageEngineWebApp.Helpers
 {
     public static class EncryptionHelper
     {
-
-        private static readonly string EncryptionKey = "M@n@g3Eng1n3S3cur3K3y2026!@#$";
+        private static readonly byte[] Key = Encoding.UTF8.GetBytes("S3cur3S3cr3tK3y1234567890123456!"); 
+        private static readonly byte[] IV = Encoding.UTF8.GetBytes("1234567890123456")
 
         public static string Encrypt(string plainText)
         {
-            if (string.IsNullOrEmpty(plainText))
-                return plainText;
+            if (string.IsNullOrEmpty(plainText)) return plainText;
 
-            byte[] clearBytes = Encoding.Unicode.GetBytes(plainText);
-            using (Aes encryptor = Aes.Create())
+            using (Aes aesAlg = Aes.Create())
             {
-                byte[] pdb = Encoding.UTF8.GetBytes(EncryptionKey);
-                using (SHA256 sha256 = SHA256.Create())
-                {
-                    encryptor.Key = sha256.ComputeHash(pdb);
-                }
-                byte[] iv = new byte[16]; // Default 0s
-                Array.Copy(Encoding.UTF8.GetBytes(EncryptionKey), iv, 16);
-                encryptor.IV = iv;
+                aesAlg.Key = Key;
+                aesAlg.IV = IV;
 
-                using (MemoryStream ms = new MemoryStream())
+                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
+
+                using (MemoryStream msEncrypt = new MemoryStream())
                 {
-                    using (CryptoStream cs = new CryptoStream(ms, encryptor.CreateEncryptor(), CryptoStreamMode.Write))
+                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
                     {
-                        cs.Write(clearBytes, 0, clearBytes.Length);
-                        cs.Close();
+                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
+                        {
+                            swEncrypt.Write(plainText);
+                        }
+                        var encrypted = msEncrypt.ToArray();
+                        return Convert.ToBase64String(encrypted).Replace('+', '-').Replace('/', '_').TrimEnd('=');
                     }
-                    plainText = Convert.ToBase64String(ms.ToArray());
                 }
             }
-            plainText = plainText.Replace("+", "-").Replace("/", "_").Replace("=", "");
-            return plainText;
         }
 
         public static string Decrypt(string cipherText)
         {
-            if (string.IsNullOrEmpty(cipherText))
-                return cipherText;
+            if (string.IsNullOrEmpty(cipherText)) return cipherText;
+
+            cipherText = cipherText.Replace('-', '+').Replace('_', '/');
+            switch (cipherText.Length % 4)
+            {
+                case 2: cipherText += "=="; break;
+                case 3: cipherText += "="; break;
+            }
 
             try
             {
-                cipherText = cipherText.Replace("-", "+").Replace("_", "/");
-                int mod4 = cipherText.Length % 4;
-                if (mod4 > 0)
-                {
-                    cipherText += new string('=', 4 - mod4);
-                }
-
                 byte[] cipherBytes = Convert.FromBase64String(cipherText);
-                using (Aes encryptor = Aes.Create())
-                {
-                    byte[] pdb = Encoding.UTF8.GetBytes(EncryptionKey);
-                    using (SHA256 sha256 = SHA256.Create())
-                    {
-                        encryptor.Key = sha256.ComputeHash(pdb);
-                    }
-                    
-                    byte[] iv = new byte[16];
-                    Array.Copy(Encoding.UTF8.GetBytes(EncryptionKey), iv, 16);
-                    encryptor.IV = iv;
 
-                    using (MemoryStream ms = new MemoryStream())
+                using (Aes aesAlg = Aes.Create())
+                {
+                    aesAlg.Key = Key;
+                    aesAlg.IV = IV;
+
+                    ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+
+                    using (MemoryStream msDecrypt = new MemoryStream(cipherBytes))
                     {
-                        using (CryptoStream cs = new CryptoStream(ms, encryptor.CreateDecryptor(), CryptoStreamMode.Write))
+                        using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
                         {
-                            cs.Write(cipherBytes, 0, cipherBytes.Length);
-                            cs.Close();
+                            using (StreamReader srDecrypt = new StreamReader(csDecrypt))
+                            {
+                                return srDecrypt.ReadToEnd();
+                            }
                         }
-                        cipherText = Encoding.Unicode.GetString(ms.ToArray());
                     }
                 }
             }
@@ -81,7 +76,27 @@ namespace ManageEngineWebApp.Helpers
             {
                 return null;
             }
-            return cipherText;
+        }
+        public static string EncryptParams(Dictionary<string, string> parameters)
+        {
+            var payload = string.Join("|", parameters.Select(p => $"{p.Key}={p.Value}"));
+            return Encrypt(payload);
+        }
+
+        public static Dictionary<string, string> DecryptParams(string token)
+        {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var decrypted = Decrypt(token);
+            if (string.IsNullOrEmpty(decrypted)) return result;
+            foreach (var part in decrypted.Split('|', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var idx = part.IndexOf('=');
+                if (idx > 0)
+                {
+                    result[part.Substring(0, idx)] = part.Substring(idx + 1);
+                }
+            }
+            return result;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Services;
 using ManageEngineWebApp.Attributes;
@@ -170,7 +170,8 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                var roleResponse = await RoleHelper.GetUserRoleFromApiAsync(model.Username);
+                string token = HttpContext.Session.GetString("JwtToken");
+                var roleResponse = await RoleHelper.GetUserRoleFromApiAsync(model.Username, token);
 
                 if (roleResponse.Result == null)
                 {
@@ -244,7 +245,7 @@ namespace ManageEngineWebApp.Controllers
 
                 var body = await response.Content.ReadAsStringAsync();
 
-                if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.OK)
+                if (!response.IsSuccessStatusCode)
                 {
                     string httpErrMsg = TryExtractMessage(body)
                         ?? "The server encountered an error. Please try again later.";
@@ -320,7 +321,7 @@ namespace ManageEngineWebApp.Controllers
                 if (response.IsSuccessStatusCode)
                 {
                     TempData["SuccessMsg"] = "Password reset successfully. You can now log in.";
-                    return View(new ResetPasswordViewModel());
+                    return RedirectToAction("Login");
                 }
 
                 var body = await response.Content.ReadAsStringAsync();
