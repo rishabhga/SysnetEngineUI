@@ -9,8 +9,8 @@ namespace ManageEngineWebApp.Helpers
 {
     public static class EncryptionHelper
     {
-        private static readonly byte[] Key = Encoding.UTF8.GetBytes("S3cur3S3cr3tK3y1234567890123456!"); 
-        private static readonly byte[] IV = Encoding.UTF8.GetBytes("1234567890123456")
+        private static readonly byte[] Key = Encoding.UTF8.GetBytes("S3cur3S3cr3tK3y1234567890123456!");
+        private static readonly byte[] IV = Encoding.UTF8.GetBytes("1234567890123456");
 
         public static string Encrypt(string plainText)
         {
