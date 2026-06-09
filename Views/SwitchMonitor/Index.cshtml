@@ -3,353 +3,485 @@
     ViewData["Title"] = "Switch Monitor";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var statuses = ViewBag.DeviceStatuses as Dictionary<int, ManageEngineWebApp.Models.DeviceStatus>;
-    var dbUsers = ViewBag.DashboardUsers as Dictionary<string, ManageEngineWebApp.Models.WindowsUserDetails>;
-    int totalUp = statuses?.Values.Count(s => s.Status == "Up") ?? 0;
-    int totalDown = statuses?.Values.Count(s => s.Status != "Up" && s.Status != null) ?? 0;
+
+    int totalUp   = statuses?.Values.Count(s => s.Status == "Up") ?? 0;
+    int totalDown = statuses?.Values.Count(s => s.Status != "Up" && s.Status != "Unknown" && s.Status != null) ?? 0;
+    int totalUnk  = Model.Count - totalUp - totalDown;
+
+    bool hasScope  = ViewBag.CompanyId != null || ViewBag.GroupId != null || ViewBag.LocationId != null;
+    string locName = ViewBag.LocationName as string ?? "";
+    string grpName = ViewBag.GroupName   as string ?? "";
+    string comName = ViewBag.CompanyName as string ?? "";
 
     string headerTitle = "Switch Monitor";
-    string breadcrumbText = "";
-    bool hasScope = ViewBag.CompanyId != null || ViewBag.GroupId != null || ViewBag.LocationId != null;
-    string locName = ViewBag.LocationName as string;
-    string grpName = ViewBag.GroupName as string;
-    string comName = ViewBag.CompanyName as string;
-    if (!string.IsNullOrEmpty(locName)) { headerTitle = locName; }
-    else if (!string.IsNullOrEmpty(grpName)) { headerTitle = grpName; }
-    else if (!string.IsNullOrEmpty(comName)) { headerTitle = comName; }
-    if (hasScope)
-    {
-        var bParts = new System.Collections.Generic.List<string>();
-        if (!string.IsNullOrEmpty(comName)) bParts.Add(comName);
-        if (!string.IsNullOrEmpty(grpName)) bParts.Add(grpName);
-        if (!string.IsNullOrEmpty(locName)) bParts.Add(locName);
-        breadcrumbText = string.Join(" › ", bParts);
-    }
+    if (!string.IsNullOrEmpty(locName))     headerTitle = locName;
+    else if (!string.IsNullOrEmpty(grpName)) headerTitle = grpName;
+    else if (!string.IsNullOrEmpty(comName)) headerTitle = comName;
+
+    var bParts = new List<string>();
+    if (!string.IsNullOrEmpty(comName)) bParts.Add(comName);
+    if (!string.IsNullOrEmpty(grpName)) bParts.Add(grpName);
+    if (!string.IsNullOrEmpty(locName)) bParts.Add(locName);
+    string breadcrumb = string.Join(" › ", bParts);
+
+    var grouped = Model
+        .GroupBy(s => s.LocationId)
+        .OrderBy(g => g.Key)
+        .ToList();
+    bool showLocHeaders = grouped.Count > 1 || !hasScope;
 }
 
 <style>
-    .status-pulse {
-        animation: pulse 2s infinite;
+    :root {
+        --brand:      #00BCEB;
+        --brand-dark: #0086BE;
+        --brand-mid:  #0096BE;
+        --brand-bg:   rgba(0,188,235,.07);
+        --brand-border: rgba(0,188,235,.18);
     }
 
-    @@keyframes pulse {
-        0%, 100% {
-            opacity: 1;
-        }
-
-        50% {
-            opacity: .5;
-        }
+    /* ── Pulse ── */
+    .pulse { animation: dot-pulse 2s ease-in-out infinite; }
+    @@keyframes dot-pulse {
+        0%,100% { opacity:1; transform:scale(1); }
+        50%      { opacity:.45; transform:scale(.8); }
     }
 
-    .card-hover {
-        transition: transform .15s ease, box-shadow .15s ease;
+    /* ── Spin ── */
+    .spin { animation: rot 1s linear infinite; }
+    @@keyframes rot { to { transform:rotate(360deg); } }
+
+    /* ── Port bar ── */
+    .port-fill { transition: width .5s cubic-bezier(.4,0,.2,1); }
+
+    /* ── Table row hover ── */
+    .sw-row { transition: background .12s; }
+    .sw-row:hover { background: #f8fcfe; }
+
+    /* ── Location pill ── */
+    .loc-pill {
+        display:inline-flex; align-items:center; gap:5px;
+        padding:3px 10px 3px 7px;
+        background: var(--brand-bg);
+        border:1px solid var(--brand-border);
+        border-radius: 20px;
+        font-size:10px; font-weight:700; color:#0086BE;
+        letter-spacing:.02em; text-transform:uppercase;
     }
 
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,.1);
-        }
-
-    .modal-overlay {
-        backdrop-filter: blur(4px);
+    /* ── Stat card ── */
+    .stat-card {
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        padding:10px 18px; border-radius:10px; min-width:80px; text-align:center;
     }
 
-    .spin {
-        animation: spin 1s linear infinite;
-    }
+    /* ── Modal backdrop ── */
+    .modal-bg { backdrop-filter: blur(3px); }
 
-    @@keyframes spin {
-        from {
-            transform: rotate(0deg);
-        }
+    /* ── Toggle ── */
+    .toggle-track { position:relative; width:34px; height:18px; border-radius:9px; background:#d1d5db; cursor:pointer; transition:background .2s; }
+    .toggle-track.on { background:var(--brand); }
+    .toggle-thumb { position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:transform .2s; }
+    .toggle-track.on .toggle-thumb { transform:translateX(16px); }
 
-        to {
-            transform: rotate(360deg);
-        }
-    }
+    /* ── Scrollbar thin ── */
+    .thin-scroll::-webkit-scrollbar { width:5px; height:5px; }
+    .thin-scroll::-webkit-scrollbar-track { background:transparent; }
+    .thin-scroll::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:4px; }
 </style>
 
-<div class="max-w-full mx-auto px-4 py-3">
+<div class="px-4 py-3 max-w-full">
 
-    <!-- Compact Header -->
-    <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="flex items-center space-x-2">
-            @if (ViewBag.CompanyId != null || ViewBag.GroupId != null || ViewBag.LocationId != null)
+    <!-- ═══════════ PAGE HEADER ═══════════ -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+
+        <div class="flex items-center gap-3 min-w-0">
+            @if (hasScope)
             {
                 string backUrl = "/Companies/Companies";
-                string backTitle = "Back to Companies";
+                string backTitle = "Back";
 
-                if (ViewBag.LocationId != null && ViewBag.LocationId > 0)
+                if (ViewBag.LocationId != null && (int)ViewBag.LocationId > 0)
                 {
                     var ctx = new ManageEngineWebApp.Controllers.HomeController.NavigationContext
                     {
-                        CompanyId = ViewBag.CompanyId,
-                        CompanyName = ViewBag.CompanyName,
-                        GroupId = ViewBag.GroupId,
-                        GroupName = ViewBag.GroupName,
-                        LocationId = ViewBag.LocationId,
+                        CompanyId    = ViewBag.CompanyId,
+                        CompanyName  = ViewBag.CompanyName,
+                        GroupId      = ViewBag.GroupId,
+                        GroupName    = ViewBag.GroupName,
+                        LocationId   = ViewBag.LocationId,
                         LocationName = ViewBag.LocationName
                     };
-                    string json = Newtonsoft.Json.JsonConvert.SerializeObject(ctx);
+                    string json  = Newtonsoft.Json.JsonConvert.SerializeObject(ctx);
                     string token = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(json);
-                    backUrl = $"/ComputerSummary/Deshboad?token={Uri.EscapeDataString(token)}";
+                    backUrl   = $"/ComputerSummary/Deshboad?token={Uri.EscapeDataString(token)}";
                     backTitle = "Back to Dashboard";
                 }
-                else if (ViewBag.GroupId != null && ViewBag.GroupId > 0)
+                else if (ViewBag.GroupId != null && (int)ViewBag.GroupId > 0)
                 {
-                    backUrl = $"/Companies/GroupsDetails?id={ViewBag.CompanyId}&companyName={Uri.EscapeDataString(ViewBag.CompanyName ?? string.Empty)}";
+                    backUrl   = $"/Companies/GroupsDetails?id={ViewBag.CompanyId}&companyName={Uri.EscapeDataString(comName)}";
                     backTitle = "Back to Groups";
                 }
 
                 <a href="@backUrl"
-                   class="w-6 h-6 bg-white border border-gray-200 hover:bg-gray-50 rounded-md flex items-center justify-center transition shadow-sm"
-                   title="@backTitle">
-                    <i class="fas fa-arrow-left text-gray-600 text-[10px]"></i>
+                   title="@backTitle"
+                   class="w-7 h-7 flex-shrink-0 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center shadow-sm transition">
+                    <i class="fas fa-arrow-left text-gray-500 text-[11px]"></i>
                 </a>
             }
 
-            <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm bg-gradient-to-r from-[#00BCEB] to-[#0096BE]">
+            <!-- Icon + Title -->
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center"
+                     style="background:linear-gradient(135deg,var(--brand),var(--brand-dark))">
                     <i class="fas fa-network-wired text-white text-xs"></i>
                 </div>
-                <div>
-                    <h1 class="text-sm font-bold text-gray-900 leading-tight">@headerTitle</h1>
-                    @if (hasScope)
+                <div class="min-w-0">
+                    <h1 class="text-sm font-bold text-gray-900 leading-tight truncate">@headerTitle</h1>
+                    @if (hasScope && bParts.Count > 0)
                     {
-                        <p class="text-[9px] text-gray-500 font-medium">@breadcrumbText</p>
+                        <p class="text-[10px] text-gray-400 leading-none mt-0.5 truncate">@breadcrumb</p>
                     }
                     else
                     {
-                        <p class="text-[9px] text-gray-400 uppercase font-bold tracking-wider leading-none">SNMP INFRASTRUCTURE</p>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-widest leading-none mt-0.5 font-semibold">SNMP Infrastructure</p>
                     }
                 </div>
             </div>
         </div>
 
-        <div class="flex gap-2 flex-wrap items-center">
+        <!-- Actions -->
+        <div class="flex items-center gap-2 flex-wrap">
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Create"))
             {
                 <button onclick="openAddSwitchModal()"
-                        class="px-3 py-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-1.5 text-xs font-semibold">
-                    <i class="fas fa-plus"></i> Add Switch
+                        class="h-7 px-3 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-sm hover:shadow"
+                        style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))">
+                    <i class="fas fa-plus text-[9px]"></i> Add Switch
                 </button>
             }
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Poll"))
             {
                 <form asp-action="TriggerPoll" method="post" id="pollForm" class="m-0">
                     @Html.AntiForgeryToken()
-                    <input type="hidden" name="q" value="@Context.Request.Query["q"]" />
-                    <input type="hidden" name="comId" value="@ViewBag.CompanyId" />
-                    <input type="hidden" name="groupId" value="@ViewBag.GroupId" />
-                    <input type="hidden" name="locationId" value="@ViewBag.LocationId" />
-                    <input type="hidden" name="companyName" value="@ViewBag.CompanyName" />
-                    <input type="hidden" name="groupName" value="@ViewBag.GroupName" />
+                    <input type="hidden" name="q"            value="@Context.Request.Query["q"]" />
+                    <input type="hidden" name="comId"        value="@ViewBag.CompanyId" />
+                    <input type="hidden" name="groupId"      value="@ViewBag.GroupId" />
+                    <input type="hidden" name="locationId"   value="@ViewBag.LocationId" />
+                    <input type="hidden" name="companyName"  value="@ViewBag.CompanyName" />
+                    <input type="hidden" name="groupName"    value="@ViewBag.GroupName" />
                     <input type="hidden" name="locationName" value="@ViewBag.LocationName" />
                     <button type="submit" id="pollBtn"
-                            class="px-3 py-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg shadow hover:shadow-md transition flex items-center gap-1.5 text-xs font-semibold">
-                        <i class="fas fa-sync-alt" id="pollIcon"></i>
+                            class="h-7 px-3 bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-sm">
+                        <i class="fas fa-sync-alt text-[10px] text-[#00BCEB]" id="pollIcon"></i>
                         <span id="pollText">Poll Now</span>
                     </button>
                 </form>
-
             }
         </div>
     </div>
 
-    <!-- Alerts -->
+    <!-- ═══════════ ALERTS ═══════════ -->
     @if (TempData["Message"] != null)
     {
-        <div class="mb-4 p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center gap-2">
-            <i class="fas fa-check-circle text-green-500"></i> @TempData["Message"]
+        <div class="mb-3 px-3 py-2 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center gap-2 text-xs">
+            <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i> @TempData["Message"]
         </div>
     }
     @if (TempData["Error"] != null)
     {
-        <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center gap-2">
-            <i class="fas fa-exclamation-circle text-red-500"></i> @TempData["Error"]
+        <div class="mb-3 px-3 py-2 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center gap-2 text-xs">
+            <i class="fas fa-exclamation-circle text-red-500 flex-shrink-0"></i> @TempData["Error"]
         </div>
     }
 
-    <!-- Summary stats -->
     @if (Model.Any())
     {
-        <div class="grid grid-cols-3 gap-3 mb-4">
-            <div class="bg-white rounded-lg border border-gray-200 p-3 text-center shadow-sm">
-                <p class="text-xl font-bold text-gray-800">@Model.Count</p>
-                <p class="text-[10px] text-gray-500 uppercase font-bold">Total</p>
+        <!-- ═══════════ STAT STRIP ═══════════ -->
+        <div class="flex items-center gap-2 mb-4 flex-wrap">
+            <div class="stat-card bg-white border border-gray-200 shadow-sm">
+                <span class="text-xl font-bold text-gray-800 leading-none">@Model.Count</span>
+                <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Total</span>
             </div>
-            <div class="bg-emerald-50 rounded-lg border border-emerald-200 p-3 text-center shadow-sm">
-                <p class="text-xl font-bold text-emerald-700">@totalUp</p>
-                <p class="text-[10px] text-emerald-600 uppercase font-bold">Online</p>
+            <div class="stat-card bg-emerald-50 border border-emerald-200 shadow-sm">
+                <span class="text-xl font-bold text-emerald-600 leading-none">@totalUp</span>
+                <span class="text-[9px] text-emerald-500 font-bold uppercase tracking-wider mt-0.5">Online</span>
             </div>
-            <div class="bg-red-50 rounded-lg border border-red-200 p-3 text-center shadow-sm">
-                <p class="text-xl font-bold text-red-700">@totalDown</p>
-                <p class="text-[10px] text-red-600 uppercase font-bold">Offline</p>
+            <div class="stat-card bg-red-50 border border-red-200 shadow-sm">
+                <span class="text-xl font-bold text-red-500 leading-none">@totalDown</span>
+                <span class="text-[9px] text-red-400 font-bold uppercase tracking-wider mt-0.5">Offline</span>
+            </div>
+            @if (totalUnk > 0)
+            {
+                <div class="stat-card bg-gray-50 border border-gray-200 shadow-sm">
+                    <span class="text-xl font-bold text-gray-500 leading-none">@totalUnk</span>
+                    <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Unknown</span>
+                </div>
+            }
+
+            <!-- right-side search -->
+            <div class="ml-auto relative">
+                <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
+                <input type="text" id="tableSearch" placeholder="Search switches…"
+                       oninput="filterTable(this.value)"
+                       class="h-7 pl-7 pr-3 border border-gray-200 rounded-lg text-xs bg-white outline-none focus:ring-1 w-44 transition"
+                       style="focus:ring-color:var(--brand)" />
             </div>
         </div>
-    }
 
-    <!-- Switch Cards Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        @foreach (var sw in Model)
+        <!-- ═══════════ LOCATION GROUPS → TABLE ═══════════ -->
+        @foreach (var locGroup in grouped)
         {
-            var status = statuses != null && statuses.ContainsKey(sw.Id) ? statuses[sw.Id] : null;
-            var statusText = status?.Status ?? "Unknown";
-            bool isUp = statusText == "Up";
-            var statusBadge = isUp ? "bg-green-100 text-green-700" : (statusText == "Unknown" ? "bg-gray-100 text-gray-600" : "bg-red-100 text-red-700");
-            var uptime = status?.UpTime ?? "—";
-            var portCount = status?.Ports?.Count ?? 0;
-            var portsUp = status?.Ports?.Count(p => p.PortState == "Up") ?? 0;
-            var dbUser = dbUsers != null && !string.IsNullOrEmpty(sw.DeviceName) && dbUsers.ContainsKey(sw.DeviceName) ? dbUsers[sw.DeviceName] : null;
+            string groupLocName = "";
+            if (!string.IsNullOrEmpty(locName) && grouped.Count == 1)
+            {
+                groupLocName = locName;
+            }
+            else
+            {
+                var firstSw = locGroup.First();
+                groupLocName = (firstSw.GetType().GetProperty("LocationName")?.GetValue(firstSw) as string)
+                               ?? (!string.IsNullOrEmpty(locName) ? locName : $"Location #{locGroup.Key}");
+            }
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden card-hover flex flex-col">
-                <!-- Card Header -->
-                <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-start">
-                    <div class="min-w-0">
-                        <h3 class="font-semibold text-gray-900 truncate">@sw.DeviceName</h3>
-                        <p class="text-xs text-gray-500 font-mono mt-0.5">@sw.IpAddress</p>
-                    </div>
-                    <div class="flex items-center gap-2 ml-2 shrink-0">
-                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold @statusBadge flex items-center gap-1">
-                            @if (isUp)
-                            {
-                                <span class="status-pulse inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                            }
-                            @statusText
+            int locUp  = locGroup.Count(s => statuses != null && statuses.ContainsKey(s.Id) && statuses[s.Id].Status == "Up");
+            int locTotal = locGroup.Count();
+
+            <div class="mb-5">
+                @if (showLocHeaders)
+                {
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="loc-pill">
+                            <i class="fas fa-map-marker-alt text-[9px]"></i>
+                            @groupLocName
                         </span>
+                        <span class="text-[10px] text-gray-400">@locTotal switch@(locTotal != 1 ? "es" : "")</span>
+                        <span class="text-[10px] text-emerald-500 font-semibold">@locUp online</span>
                     </div>
-                </div>
+                }
 
-                <!-- Card Body -->
-                <div class="px-4 py-3 space-y-2 text-sm flex-1">
-                    @if (dbUser != null)
-                    {
-                        <div class="flex items-center gap-2 p-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg mb-2">
-                            <div class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-user-shield text-blue-600 text-xs"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-xs font-bold text-gray-900 truncate">
-                                    @(string.IsNullOrEmpty(dbUser.UserName) ? "System User" : dbUser.UserName)
-                                </p>
-                                <p class="text-[9px] text-gray-500 truncate">
-                                    @dbUser.AccountType @(!string.IsNullOrEmpty(dbUser.FullName) ? $"({dbUser.FullName})" : "")
-                                </p>
-                            </div>
-                        </div>
-                    }
+                <!-- Table -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto thin-scroll">
+                        <table class="min-w-full text-xs" id="switchTable_@locGroup.Key">
+                            <thead>
+                                <tr style="background:linear-gradient(135deg,var(--brand),var(--brand-dark))">
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap">
+                                        <i class="fas fa-server mr-1 text-white/60"></i> Device
+                                    </th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap">
+                                        <i class="fas fa-network-wired mr-1 text-white/60"></i> IP Address
+                                    </th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap hidden sm:table-cell">
+                                        <i class="fas fa-tag mr-1 text-white/60"></i> Type
+                                    </th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap hidden md:table-cell">
+                                        <i class="fas fa-key mr-1 text-white/60"></i> Community
+                                    </th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap">
+                                        <i class="fas fa-circle mr-1 text-white/60"></i> Status
+                                    </th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap hidden lg:table-cell">
+                                        <i class="fas fa-ethernet mr-1 text-white/60"></i> Ports
+                                    </th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap hidden lg:table-cell">
+                                        <i class="fas fa-clock mr-1 text-white/60"></i> Uptime
+                                    </th>
+                                    <th class="px-3 py-2.5 text-right font-semibold text-white/90 whitespace-nowrap">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @foreach (var sw in locGroup)
+                                {
+                                    var status     = statuses != null && statuses.ContainsKey(sw.Id) ? statuses[sw.Id] : null;
+                                    var statusText = status?.Status ?? "Unknown";
+                                    bool isUp      = statusText == "Up";
+                                    bool isUnknown = statusText == "Unknown";
+                                    bool isDown    = !isUp && !isUnknown;
 
-                    <div class="flex justify-between text-gray-600">
-                        <span>Community</span>
-                        <span class="font-mono text-gray-800 bg-gray-50 px-1.5 rounded text-xs">@(sw.Community ?? "public")</span>
-                    </div>
-                    <div class="flex justify-between text-gray-600">
-                        <span>Type</span>
-                        <span class="text-gray-800">@sw.DeviceType</span>
-                    </div>
-                    <div class="flex justify-between text-gray-600">
-                        <span>Uptime</span>
-                        <span class="font-mono text-xs text-gray-800 truncate max-w-[160px]" title="@uptime">@uptime</span>
-                    </div>
-                    @if (portCount > 0)
-                    {
-                        <div>
-                            <div class="flex justify-between text-gray-600 mb-1">
-                                <span>Ports</span>
-                                <span class="text-gray-800 text-xs">@portsUp / @portCount up</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-1.5">
-                                <div class="bg-green-500 h-1.5 rounded-full" style="width:@(portCount > 0 ? (portsUp * 100 / portCount) : 0)%"></div>
-                            </div>
-                        </div>
-                    }
-                    @if (!sw.IsActive)
-                    {
-                        <div class="text-xs text-amber-600 flex items-center gap-1">
-                            <i class="fas fa-pause-circle"></i> Polling disabled
-                        </div>
-                    }
-                </div>
+                                    var portCount = status?.Ports?.Count ?? 0;
+                                    var portsUp   = status?.Ports?.Count(p => p.PortState == "Up") ?? 0;
+                                    var portPct   = portCount > 0 ? (portsUp * 100 / portCount) : 0;
+                                    var uptime    = status?.UpTime ?? "—";
 
-                <!-- Card Footer -->
-                <div class="px-4 py-2 bg-gray-50 border-t border-gray-100">
-                    <div id="autoPollIndicator_@sw.Id" class="hidden text-[9px] text-[#00BCEB] items-center gap-1 mb-1.5">
-                        <i class="fas fa-clock status-pulse"></i>
-                        <span id="autoPollLabel_@sw.Id"></span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <div class="flex gap-3">
-                            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Edit"))
-                            {
-                                <button onclick="editSwitch(@sw.Id)"
-                                        class="text-xs text-gray-500 hover:text-[#00BCEB] flex items-center gap-1 transition">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                            }
-                            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Delete"))
-                            {
-                                <button onclick="deleteSwitch(@sw.Id, '@Html.Raw(sw.DeviceName.Replace("'", "\\\'"))')"
-                                        class="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 transition">
-                                    <i class="fas fa-trash-alt"></i> Delete
-                                </button>
-                            }
-                            <button onclick="openSwitchAutoPoll(@sw.Id, '@Html.Raw(sw.DeviceName.Replace("'", "\\\'"))')"
-                                    class="text-xs text-gray-500 hover:text-[#00BCEB] flex items-center gap-1 transition"
-                                    title="Auto Poll Settings">
-                                <i class="fas fa-clock"></i> Auto
-                            </button>
-                        </div>
-                        <a href="@Url.Action("Details", new { id = sw.Id, comId = ViewBag.CompanyId, groupId = ViewBag.GroupId, locationId = ViewBag.LocationId, companyName = ViewBag.CompanyName, groupName = ViewBag.GroupName, locationName = ViewBag.LocationName })"
-                           class="text-xs text-[#00BCEB] hover:text-[#0096BE] font-medium flex items-center gap-1">
-                            Details <i class="fas fa-arrow-right"></i>
-                        </a>
+                                    <tr class="sw-row" data-name="@sw.DeviceName.ToLower()" data-ip="@sw.IpAddress.ToLower()">
+                                        <!-- Device -->
+                                        <td class="px-3 py-2.5">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <div class="w-6 h-6 flex-shrink-0 rounded-md flex items-center justify-center"
+                                                     style="background:var(--brand-bg);border:1px solid var(--brand-border)">
+                                                    <i class="fas fa-server text-[9px]" style="color:var(--brand)"></i>
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <p class="font-semibold text-gray-800 truncate max-w-[140px]" title="@sw.DeviceName">@sw.DeviceName</p>
+                                                    @if (!sw.IsActive)
+                                                    {
+                                                        <span class="text-[9px] text-amber-500 font-medium"><i class="fas fa-pause-circle mr-0.5"></i>Polling off</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <!-- IP -->
+                                        <td class="px-3 py-2.5">
+                                            <span class="font-mono text-gray-600 bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded text-[10px]">@sw.IpAddress</span>
+                                        </td>
+                                        <!-- Type -->
+                                        <td class="px-3 py-2.5 text-gray-500 hidden sm:table-cell">@sw.DeviceType</td>
+                                        <!-- Community -->
+                                        <td class="px-3 py-2.5 hidden md:table-cell">
+                                            <span class="font-mono text-gray-500 text-[10px]">@(sw.Community ?? "public")</span>
+                                        </td>
+                                        <!-- Status -->
+                                        <td class="px-3 py-2.5">
+                                            @if (isUp)
+                                            {
+                                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse flex-shrink-0"></span> Up
+                                                </span>
+                                            }
+                                            else if (isDown)
+                                            {
+                                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span> @statusText
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0"></span> Unknown
+                                                </span>
+                                            }
+                                        </td>
+                                        <!-- Ports -->
+                                        <td class="px-3 py-2.5 hidden lg:table-cell">
+                                            @if (portCount > 0)
+                                            {
+                                                <div class="w-24">
+                                                    <div class="flex justify-between text-[9px] text-gray-500 mb-0.5">
+                                                        <span>@portsUp/@portCount</span>
+                                                        <span>@portPct%</span>
+                                                    </div>
+                                                    <div class="w-full bg-gray-100 rounded-full h-1">
+                                                        <div class="port-fill h-1 rounded-full"
+                                                             style="width:@portPct%;background:linear-gradient(90deg,#34d399,#10b981)"></div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-gray-300">—</span>
+                                            }
+                                        </td>
+                                        <!-- Uptime -->
+                                        <td class="px-3 py-2.5 hidden lg:table-cell">
+                                            <span class="font-mono text-gray-500 text-[10px] truncate block max-w-[100px]" title="@uptime">@uptime</span>
+                                        </td>
+                                        <!-- Actions -->
+                                        <td class="px-3 py-2.5">
+                                            <div class="flex items-center justify-end gap-1">
+                                                <a href="@Url.Action("Details", new {
+                                                       id           = sw.Id,
+                                                       comId        = ViewBag.CompanyId,
+                                                       groupId      = ViewBag.GroupId,
+                                                       locationId   = ViewBag.LocationId,
+                                                       companyName  = ViewBag.CompanyName,
+                                                       groupName    = ViewBag.GroupName,
+                                                       locationName = ViewBag.LocationName
+                                                   })"
+                                                   class="h-6 px-2 rounded-md text-[10px] font-semibold text-white flex items-center gap-1 transition hover:opacity-85"
+                                                   style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))"
+                                                   title="View Details">
+                                                    <i class="fas fa-eye text-[9px]"></i>
+                                                    <span class="hidden sm:inline">Details</span>
+                                                </a>
+                                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Edit"))
+                                                {
+                                                    <button onclick="editSwitch(@sw.Id)"
+                                                            class="h-6 w-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 hover:text-[#00BCEB] flex items-center justify-center transition"
+                                                            title="Edit">
+                                                        <i class="fas fa-edit text-[9px]"></i>
+                                                    </button>
+                                                }
+                                                <button onclick="openSwitchAutoPoll(@sw.Id, '@Html.Raw(sw.DeviceName.Replace("'", "\\'"))')"
+                                                        class="h-6 w-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 hover:text-[#00BCEB] flex items-center justify-center transition"
+                                                        title="Auto Poll">
+                                                    <i class="fas fa-clock text-[9px]"></i>
+                                                </button>
+                                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Delete"))
+                                                {
+                                                    <button onclick="deleteSwitch(@sw.Id, '@Html.Raw(sw.DeviceName.Replace("'", "\\'"))')"
+                                                            class="h-6 w-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 hover:text-red-500 flex items-center justify-center transition"
+                                                            title="Delete">
+                                                        <i class="fas fa-trash-alt text-[9px]"></i>
+                                                    </button>
+                                                }
+                                                <!-- per-switch auto poll indicator -->
+                                                <span id="autoPollIndicator_@sw.Id" class="hidden items-center gap-1 text-[9px] ml-1" style="color:var(--brand)">
+                                                    <i class="fas fa-clock pulse text-[8px]"></i>
+                                                    <span id="autoPollLabel_@sw.Id"></span>
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         }
-    </div>
-
-    <!-- Empty state -->
-    @if (!Model.Any())
+    }
+    else
     {
-        <div class="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300 mt-4">
-            <i class="fas fa-network-wired text-5xl text-gray-200 mb-4"></i>
-            <p class="text-gray-500 font-medium">No switches configured yet</p>
-            <p class="text-gray-400 text-sm mt-1">Add a switch to start monitoring</p>
+        <!-- ═══════════ EMPTY STATE ═══════════ -->
+        <div class="mt-4 py-16 bg-white rounded-xl border border-dashed border-gray-200 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-network-wired text-3xl text-gray-200"></i>
+            </div>
+            <p class="font-semibold text-gray-600 text-sm">No switches configured yet</p>
+            <p class="text-gray-400 text-xs mt-1">Add a switch to start monitoring</p>
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Create"))
             {
                 <button onclick="openAddSwitchModal()"
-                        class="mt-4 px-4 py-2 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg text-sm font-medium shadow hover:shadow-md transition">
-                    <i class="fas fa-plus mr-1"></i> Add First Switch
+                        class="mt-4 h-8 px-5 text-white rounded-lg text-xs font-semibold shadow transition hover:shadow-md"
+                        style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))">
+                    <i class="fas fa-plus mr-1.5"></i> Add First Switch
                 </button>
             }
         </div>
     }
 </div>
 
+<!-- ═══════════ ADD/EDIT MODAL ═══════════ -->
 <div id="switchModal"
-     class="modal-overlay fixed inset-0 bg-black/50 items-center justify-center z-50 hidden"
-     onclick="handleOverlayClick(event)">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4" onclick="event.stopPropagation()">
-        <div class="px-4 py-3 rounded-t-2xl bg-gradient-to-r from-[#00BCEB] to-[#0096BE] flex justify-between items-center">
-            <h3 id="modalTitle" class="text-sm font-bold text-white">Add Switch</h3>
-            <button onclick="closeSwitchModal()" class="text-white/80 hover:text-white text-sm">
-                <i class="fas fa-times"></i>
+     class="modal-bg fixed inset-0 bg-black/50 items-center justify-center z-50 hidden"
+     onclick="if(event.target===this)closeSwitchModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4" onclick="event.stopPropagation()">
+        <!-- Modal header -->
+        <div class="px-5 py-3 rounded-t-2xl flex justify-between items-center"
+             style="background:linear-gradient(135deg,var(--brand),var(--brand-dark))">
+            <h3 id="modalTitle" class="text-sm font-bold text-white flex items-center gap-2">
+                <i class="fas fa-network-wired text-white/70"></i> Add Switch
+            </h3>
+            <button onclick="closeSwitchModal()" class="w-6 h-6 rounded-md hover:bg-white/10 text-white/60 hover:text-white flex items-center justify-center transition">
+                <i class="fas fa-times text-xs"></i>
             </button>
         </div>
-        <div class="p-4">
+        <div class="p-5">
             <div id="modalBody">
-                <div class="flex justify-center py-8">
-                    <i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i>
+                <div class="flex flex-col items-center justify-center py-10 gap-2">
+                    <i class="fas fa-spinner spin text-2xl" style="color:var(--brand)"></i>
+                    <p class="text-xs text-gray-400">Loading…</p>
                 </div>
             </div>
-            <div id="modalFooter" class="flex justify-end gap-2 mt-4">
+            <div id="modalFooter" class="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
                 <button type="button" onclick="closeSwitchModal()"
-                        class="px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-xs font-medium transition">
+                        class="h-8 px-4 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 text-xs font-medium transition">
                     Cancel
                 </button>
                 <button type="button" id="modalSaveBtn"
-                        class="px-4 py-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg text-xs font-medium shadow hover:shadow-md transition flex items-center gap-1.5">
+                        class="h-8 px-5 text-white rounded-lg text-xs font-semibold shadow transition flex items-center gap-1.5"
+                        style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))">
                     <i class="fas fa-save"></i> Save
                 </button>
             </div>
@@ -357,22 +489,26 @@
     </div>
 </div>
 
+<!-- ═══════════ DELETE CONFIRM MODAL ═══════════ -->
 <div id="deleteModal"
-     class="modal-overlay fixed inset-0 bg-black/50 items-center justify-center z-50 hidden">
+     class="modal-bg fixed inset-0 bg-black/50 items-center justify-center z-50 hidden">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4">
         <div class="p-6 text-center">
-            <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-trash-alt text-red-500 text-xl"></i>
+            <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-3 border border-red-100">
+                <i class="fas fa-trash-alt text-red-500"></i>
             </div>
-            <h3 class="font-bold text-gray-900 text-lg">Delete Switch</h3>
-            <p class="text-gray-500 text-sm mt-2">Are you sure you want to delete <strong id="deleteDeviceName"></strong>? This action cannot be undone.</p>
-            <div class="flex gap-3 mt-5 justify-center">
+            <h3 class="font-bold text-gray-900 text-sm">Delete Switch</h3>
+            <p class="text-gray-500 text-xs mt-2 leading-relaxed">
+                Permanently delete <strong id="deleteDeviceName" class="text-gray-800"></strong>?
+                This action cannot be undone.
+            </p>
+            <div class="flex gap-2 mt-5 justify-center">
                 <button onclick="closeDeleteModal()"
-                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium">
+                        class="h-8 px-4 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 text-xs font-medium transition">
                     Cancel
                 </button>
                 <button id="confirmDeleteBtn"
-                        class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition">
+                        class="h-8 px-5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-semibold transition">
                     Delete
                 </button>
             </div>
@@ -380,54 +516,56 @@
     </div>
 </div>
 
-<!-- Per-Switch Auto Poll Settings Modal -->
+<!-- ═══════════ AUTO POLL MODAL ═══════════ -->
 <div id="autoPollModal"
-     class="modal-overlay fixed inset-0 bg-black/50 items-center justify-center z-50 hidden"
-     onclick="if(event.target===this) closeAutoPollModal()">
+     class="modal-bg fixed inset-0 bg-black/50 items-center justify-center z-50 hidden"
+     onclick="if(event.target===this)closeAutoPollModal()">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xs mx-4" onclick="event.stopPropagation()">
-        <div class="px-4 py-3 rounded-t-2xl bg-gradient-to-r from-[#00BCEB] to-[#0096BE] flex justify-between items-center">
-            <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
-                <i class="fas fa-clock"></i> <span id="autoPollModalTitle">Auto Poll</span>
+        <div class="px-4 py-3 rounded-t-2xl flex justify-between items-center"
+             style="background:linear-gradient(135deg,var(--brand),var(--brand-dark))">
+            <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+                <i class="fas fa-clock text-white/70"></i>
+                <span id="autoPollModalTitle">Auto Poll</span>
             </h3>
-            <button onclick="closeAutoPollModal()" class="text-white/80 hover:text-white text-sm">
-                <i class="fas fa-times"></i>
+            <button onclick="closeAutoPollModal()" class="w-5 h-5 rounded text-white/60 hover:text-white flex items-center justify-center transition">
+                <i class="fas fa-times text-[10px]"></i>
             </button>
         </div>
         <div class="p-4">
             <input type="hidden" id="autoPollSwitchId" value="0" />
             <div class="mb-3">
-                <label class="block text-xs font-medium text-gray-700 mb-1">Polling Interval (minutes)</label>
+                <label class="block text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Interval (minutes)</label>
                 <input type="number" id="autoPollCustomMin" min="1" max="1440" step="1"
                        placeholder="e.g. 5"
-                       class="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs
-                              focus:ring-2 focus:ring-[#00BCEB] focus:border-transparent outline-none transition" />
-                <p class="text-[9px] text-gray-400 mt-1">Enter any custom interval in minutes</p>
+                       class="w-full h-8 px-3 border border-gray-200 rounded-lg text-xs outline-none transition focus:ring-1"
+                       style="focus:ring-color:var(--brand)" />
+                <p class="text-[9px] text-gray-400 mt-1">1 – 1440 minutes</p>
             </div>
-
-            <div id="autoPollStatusBox" class="p-2.5 rounded-lg border border-gray-200 bg-gray-50 mb-3">
+            <div class="p-2.5 rounded-lg border border-gray-100 bg-gray-50 mb-3">
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-semibold text-gray-500 uppercase">Status</span>
-                    <span id="autoPollStatusBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-gray-100 text-gray-600">
-                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Disabled
+                    <span class="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Status</span>
+                    <span id="autoPollStatusBadge"
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-gray-100 text-gray-500">
+                        <span class="w-1 h-1 rounded-full bg-gray-400"></span> Disabled
                     </span>
                 </div>
-                <div id="autoPollNextRun" class="text-[10px] text-gray-400 mt-1 hidden">
-                    Next poll: <span id="autoPollCountdown">--</span>
+                <div id="autoPollNextRun" class="text-[9px] text-gray-400 mt-1 hidden">
+                    Next: <span id="autoPollCountdown" class="font-mono font-semibold">--</span>
                 </div>
             </div>
-
             <div class="flex justify-end gap-2">
                 <button type="button" onclick="clearSwitchAutoPoll()"
-                        class="px-3 py-1.5 border border-red-300 rounded-lg text-red-600 hover:bg-red-50 text-xs font-medium transition">
+                        class="h-7 px-3 border border-red-200 rounded-lg text-red-500 hover:bg-red-50 text-xs font-medium transition">
                     Disable
                 </button>
                 <button type="button" onclick="closeAutoPollModal()"
-                        class="px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-xs font-medium transition">
+                        class="h-7 px-3 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 text-xs font-medium transition">
                     Cancel
                 </button>
                 <button type="button" onclick="saveSwitchAutoPoll()"
-                        class="px-4 py-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE] text-white rounded-lg text-xs font-medium shadow hover:shadow-md transition flex items-center gap-1.5">
-                    <i class="fas fa-save"></i> Save
+                        class="h-7 px-4 text-white rounded-lg text-xs font-semibold transition"
+                        style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))">
+                    Save
                 </button>
             </div>
         </div>
@@ -438,230 +576,158 @@
     let currentSwitchId = 0;
     let pendingDeleteId = 0;
 
-    // Rebuilds Index URL preserving all scope/filter params so reload never loses location context
+    /* ── Search ── */
+    function filterTable(q) {
+        q = q.toLowerCase();
+        document.querySelectorAll('.sw-row').forEach(row => {
+            const match = row.dataset.name.includes(q) || row.dataset.ip.includes(q);
+            row.style.display = match ? '' : 'none';
+        });
+    }
+
+    /* ── Scope URL ── */
     function currentScopeUrl() {
-        const params = new URLSearchParams();
-        @if (ViewBag.CompanyId != null)
-        {
-            <text>params.set('comId',        '@ViewBag.CompanyId');</text>
-        }
-        @if (ViewBag.GroupId != null)
-        {
-            <text>params.set('groupId',      '@ViewBag.GroupId');</text>
-        }
-        @if (ViewBag.LocationId != null)
-        {
-            <text>params.set('locationId',   '@ViewBag.LocationId');</text>
-        }
-        @if (!string.IsNullOrEmpty(ViewBag.CompanyName as string))
-        {
-            <text>params.set('companyName',  '@Html.Raw((ViewBag.CompanyName as string ?? "").Replace("'", "\\'"))');</text>
-        }
-        @if (!string.IsNullOrEmpty(ViewBag.GroupName as string))
-        {
-            <text>params.set('groupName',    '@Html.Raw((ViewBag.GroupName as string ?? "").Replace("'", "\\'"))');</text>
-        }
-        @if (!string.IsNullOrEmpty(ViewBag.LocationName as string))
-        {
-            <text>params.set('locationName', '@Html.Raw((ViewBag.LocationName as string ?? "").Replace("'", "\\'"))');</text>
-        }
-        const qs = params.toString();
+        const p = new URLSearchParams();
+        @if (ViewBag.CompanyId  != null) { <text>p.set('comId',        '@ViewBag.CompanyId');</text> }
+        @if (ViewBag.GroupId    != null) { <text>p.set('groupId',      '@ViewBag.GroupId');</text> }
+        @if (ViewBag.LocationId != null) { <text>p.set('locationId',   '@ViewBag.LocationId');</text> }
+        @if (!string.IsNullOrEmpty(ViewBag.CompanyName  as string)) { <text>p.set('companyName',  '@Html.Raw((ViewBag.CompanyName  as string ?? "").Replace("'", "\\'"))');</text> }
+        @if (!string.IsNullOrEmpty(ViewBag.GroupName    as string)) { <text>p.set('groupName',    '@Html.Raw((ViewBag.GroupName    as string ?? "").Replace("'", "\\'"))');</text> }
+        @if (!string.IsNullOrEmpty(ViewBag.LocationName as string)) { <text>p.set('locationName', '@Html.Raw((ViewBag.LocationName as string ?? "").Replace("'", "\\'"))');</text> }
+        const qs = p.toString();
         return '/SwitchMonitor/Index' + (qs ? '?' + qs : '');
     }
 
-    document.getElementById('pollForm').addEventListener('submit', function () {
-        document.getElementById('pollIcon').className = 'fas fa-sync-alt spin';
-        document.getElementById('pollText').textContent = 'Polling...';
-        document.getElementById('pollBtn').disabled = true;
-    });
+    /* ── Poll spinner ── */
+    const pollFormEl = document.getElementById('pollForm');
+    if (pollFormEl) {
+        pollFormEl.addEventListener('submit', function () {
+            document.getElementById('pollIcon').className = 'fas fa-sync-alt spin text-[10px] text-[#00BCEB]';
+            document.getElementById('pollText').textContent = 'Polling…';
+            document.getElementById('pollBtn').disabled = true;
+        });
+    }
 
-    function openModal(id) {
-        const el = document.getElementById(id);
-        el.classList.remove('hidden');
-        el.classList.add('flex');
-    }
-    function closeModal(id) {
-        const el = document.getElementById(id);
-        el.classList.add('hidden');
-        el.classList.remove('flex');
-    }
-    function handleOverlayClick(e) {
-        if (e.target === document.getElementById('switchModal')) closeSwitchModal();
-    }
+    /* ── Modal helpers ── */
+    function openModal(id)  { const el=document.getElementById(id); el.classList.remove('hidden'); el.classList.add('flex'); }
+    function closeModal(id) { const el=document.getElementById(id); el.classList.add('hidden'); el.classList.remove('flex'); }
     function closeSwitchModal() { closeModal('switchModal'); }
     function closeDeleteModal() { closeModal('deleteModal'); }
 
+    /* ── Add Switch ── */
     function openAddSwitchModal() {
         currentSwitchId = 0;
-        document.getElementById('modalTitle').innerText = 'Add Switch';
+        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus text-[#00BCEB]"></i> Add Switch';
         document.getElementById('modalBody').innerHTML =
-            '<div class="flex justify-center py-8"><i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i></div>';
+            '<div class="flex flex-col items-center justify-center py-10 gap-2"><i class="fas fa-spinner spin text-xl" style="color:var(--brand)"></i><p class="text-xs text-gray-400">Loading…</p></div>';
         openModal('switchModal');
-        fetch('/Home/EncryptDict', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ comId: '@ViewBag.CompanyId', groupId: '@ViewBag.GroupId', locationId: '@ViewBag.LocationId' }) })
-            .then(res => res.json())
-            .then(data => fetch('/SwitchMonitor/Create?q=' + encodeURIComponent(data.q)))
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to load form');
-                return res.text();
-            })
-            .then(html => { document.getElementById('modalBody').innerHTML = html; })
-            .catch(err => {
-                document.getElementById('modalBody').innerHTML =
-                    `<p class="text-red-500 text-sm"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;
-            });
+        fetch('/Home/EncryptDict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comId: '@ViewBag.CompanyId', groupId: '@ViewBag.GroupId', locationId: '@ViewBag.LocationId' })
+        })
+        .then(r => r.json())
+        .then(d => fetch('/SwitchMonitor/Create?q=' + encodeURIComponent(d.q)))
+        .then(r => { if (!r.ok) throw new Error('Form load failed'); return r.text(); })
+        .then(html => { document.getElementById('modalBody').innerHTML = html; })
+        .catch(err => {
+            document.getElementById('modalBody').innerHTML =
+                `<p class="text-red-500 text-xs p-2"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;
+        });
     }
 
+    /* ── Edit Switch ── */
     function editSwitch(id) {
         currentSwitchId = id;
-        document.getElementById('modalTitle').innerText = 'Edit Switch';
+        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit text-[#00BCEB]"></i> Edit Switch';
         document.getElementById('modalBody').innerHTML =
-            '<div class="flex justify-center py-8"><i class="fas fa-spinner spin text-[#00BCEB] text-2xl"></i></div>';
+            '<div class="flex flex-col items-center justify-center py-10 gap-2"><i class="fas fa-spinner spin text-xl" style="color:var(--brand)"></i><p class="text-xs text-gray-400">Loading…</p></div>';
         openModal('switchModal');
-        fetch('/Home/EncryptDict', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ id: id.toString(), comId: '@ViewBag.CompanyId', groupId: '@ViewBag.GroupId', locationId: '@ViewBag.LocationId' }) })
-            .then(res => res.json())
-            .then(data => fetch('/SwitchMonitor/Edit?q=' + encodeURIComponent(data.q)))
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to load form');
-                return res.text();
-            })
-            .then(html => {
-                document.getElementById('modalBody').innerHTML = html;
-                const selectEl = document.getElementById('DeviceNameSelect');
-                if (selectEl && selectEl.value) {
-                    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            })
-            .catch(err => {
-                document.getElementById('modalBody').innerHTML =
-                    `<p class="text-red-500 text-sm"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;
-            });
+        fetch('/Home/EncryptDict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id.toString(), comId: '@ViewBag.CompanyId', groupId: '@ViewBag.GroupId', locationId: '@ViewBag.LocationId' })
+        })
+        .then(r => r.json())
+        .then(d => fetch('/SwitchMonitor/Edit?q=' + encodeURIComponent(d.q)))
+        .then(r => { if (!r.ok) throw new Error('Form load failed'); return r.text(); })
+        .then(html => { document.getElementById('modalBody').innerHTML = html; })
+        .catch(err => {
+            document.getElementById('modalBody').innerHTML =
+                `<p class="text-red-500 text-xs p-2"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;
+        });
     }
 
-    document.getElementById('modalBody').addEventListener('change', function(e) {
-        if (e.target && e.target.id === 'DeviceNameSelect') {
-            const selectEl = e.target;
-            const inputEl = document.getElementById('DeviceNameInput');
-            const locEl = document.getElementById('LocationId');
-
-            const selected = selectEl.options[selectEl.selectedIndex];
-            if (selected && selected.value) {
-                if (inputEl) inputEl.value = selected.value;
-                const locId = selected.getAttribute('data-location-id');
-                if (locEl && locId) {
-                    locEl.value = locId;
-                }
-            } else {
-                if (inputEl) inputEl.value = '';
-            }
-        }
-    });
-
+    /* ── Save (Create / Edit) ── */
     document.getElementById('modalSaveBtn').addEventListener('click', function () {
         const btn = this;
         const formData = {};
-
         const seen = new Set();
         document.querySelectorAll('#modalBody input, #modalBody select').forEach(el => {
             if (!el.name) return;
-            if (el.type === 'checkbox') {
-                formData[el.name] = el.checked; 
-                seen.add(el.name);
-            } else if (!seen.has(el.name)) {
-                formData[el.name] = el.value;
-                seen.add(el.name);
-            }
+            if (el.type === 'checkbox') { formData[el.name] = el.checked; seen.add(el.name); }
+            else if (!seen.has(el.name)) { formData[el.name] = el.value; seen.add(el.name); }
         });
-
         if (formData['Id'] !== undefined) formData['Id'] = parseInt(formData['Id']) || 0;
+        if (!formData['DeviceName']?.trim()) { showModalError('Device Name is required.'); return; }
+        if (!formData['IpAddress']?.trim())  { showModalError('IP Address is required.'); return; }
 
-        const url = currentSwitchId === 0
-            ? '/SwitchMonitor/Create'
-            : `/SwitchMonitor/Edit/${currentSwitchId}`;
-
+        const url = currentSwitchId === 0 ? '/SwitchMonitor/Create' : `/SwitchMonitor/Edit/${currentSwitchId}`;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner spin"></i> Saving...';
+        btn.innerHTML = '<i class="fas fa-spinner spin"></i> Saving…';
 
-        fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        })
-        .then(res => res.json())
+        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
+        .then(r => r.json())
         .then(data => {
-            if (data.success) {
-                closeSwitchModal();
-                window.location.href = currentScopeUrl();
-            } else {
-                showModalError(data.message || 'Operation failed');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Save';
-            }
+            if (data.success) { closeSwitchModal(); window.location.href = currentScopeUrl(); }
+            else { showModalError(data.message || 'Operation failed'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; }
         })
-        .catch(err => {
-            showModalError('Network error: ' + err.message);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save"></i> Save';
-        });
+        .catch(err => { showModalError('Network error: ' + err.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; });
     });
 
     function showModalError(msg) {
-        let errEl = document.getElementById('modalError');
-        if (!errEl) {
-            errEl = document.createElement('div');
-            errEl.id = 'modalError';
-            errEl.className = 'mt-3 p-2 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-1';
-            document.getElementById('modalFooter').insertAdjacentElement('beforebegin', errEl);
+        let el = document.getElementById('modalError');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'modalError';
+            el.className = 'mt-3 px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-1.5';
+            document.getElementById('modalFooter').insertAdjacentElement('beforebegin', el);
         }
-        errEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${msg}`;
+        el.innerHTML = `<i class="fas fa-exclamation-circle flex-shrink-0"></i> ${msg}`;
     }
 
+    /* ── Delete ── */
     function deleteSwitch(id, name) {
         pendingDeleteId = id;
         document.getElementById('deleteDeviceName').textContent = name;
         openModal('deleteModal');
     }
-
     document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
         const btn = this;
-        btn.disabled = true;
-        btn.textContent = 'Deleting...';
-
+        btn.disabled = true; btn.textContent = 'Deleting…';
         fetch(`/SwitchMonitor/Delete/${pendingDeleteId}`, { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = currentScopeUrl();
-                } else {
-                    window.sysAlert(data.message || 'Delete failed', 'error');
-                    closeDeleteModal();
-                    btn.disabled = false;
-                    btn.textContent = 'Delete';
-                }
-            })
-            .catch(err => {
-                window.sysAlert('Network error: ' + err.message, 'error');
-                closeDeleteModal();
-                btn.disabled = false;
-                btn.textContent = 'Delete';
-            });
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { window.location.href = currentScopeUrl(); }
+            else { window.sysAlert?.(data.message || 'Delete failed', 'error'); closeDeleteModal(); btn.disabled = false; btn.textContent = 'Delete'; }
+        })
+        .catch(err => { window.sysAlert?.('Network error: ' + err.message, 'error'); closeDeleteModal(); btn.disabled = false; btn.textContent = 'Delete'; });
     });
 
+    /* ── Per-Switch Auto Poll ── */
     const SWITCH_AUTOPOLL_KEY = 'switchMonitor_perSwitchAutoPoll';
     let switchTimers = {};
 
     function getSwitchAutoPollSettings() {
-        try { return JSON.parse(localStorage.getItem(SWITCH_AUTOPOLL_KEY)) || {}; }
-        catch(e) { return {}; }
+        try { return JSON.parse(localStorage.getItem(SWITCH_AUTOPOLL_KEY)) || {}; } catch(e) { return {}; }
     }
-    function saveSwitchAutoPollSettings(settings) {
-        localStorage.setItem(SWITCH_AUTOPOLL_KEY, JSON.stringify(settings));
-    }
+    function saveSwitchAutoPollSettings(s) { localStorage.setItem(SWITCH_AUTOPOLL_KEY, JSON.stringify(s)); }
 
     function openSwitchAutoPoll(switchId, name) {
         document.getElementById('autoPollSwitchId').value = switchId;
-        document.getElementById('autoPollModalTitle').textContent = 'Auto Poll \u2014 ' + name;
-        const settings = getSwitchAutoPollSettings();
-        const interval = settings[switchId] || 0;
+        document.getElementById('autoPollModalTitle').textContent = name;
+        const s = getSwitchAutoPollSettings();
+        const interval = s[switchId] || 0;
         document.getElementById('autoPollCustomMin').value = interval > 0 ? interval : '';
         updateModalStatusUI(interval);
         openModal('autoPollModal');
@@ -670,110 +736,83 @@
 
     function saveSwitchAutoPoll() {
         const switchId = document.getElementById('autoPollSwitchId').value;
-        const minutes = parseInt(document.getElementById('autoPollCustomMin').value) || 0;
-        if (minutes < 1) {
-            document.getElementById('autoPollCustomMin').focus();
-            return;
-        }
-        const settings = getSwitchAutoPollSettings();
-        settings[switchId] = minutes;
-        saveSwitchAutoPollSettings(settings);
+        const minutes  = parseInt(document.getElementById('autoPollCustomMin').value) || 0;
+        if (minutes < 1) { document.getElementById('autoPollCustomMin').focus(); return; }
+        const s = getSwitchAutoPollSettings();
+        s[switchId] = minutes;
+        saveSwitchAutoPollSettings(s);
         startSwitchTimer(parseInt(switchId), minutes);
         updateCardIndicator(parseInt(switchId), minutes);
         closeAutoPollModal();
-        window.sysAlert && window.sysAlert('Auto poll set to every ' + minutes + ' min', 'success');
+        window.sysAlert?.('Auto poll: every ' + minutes + ' min', 'success');
     }
 
     function clearSwitchAutoPoll() {
         const switchId = document.getElementById('autoPollSwitchId').value;
-        const settings = getSwitchAutoPollSettings();
-        delete settings[switchId];
-        saveSwitchAutoPollSettings(settings);
+        const s = getSwitchAutoPollSettings();
+        delete s[switchId];
+        saveSwitchAutoPollSettings(s);
         stopSwitchTimer(parseInt(switchId));
         updateCardIndicator(parseInt(switchId), 0);
         closeAutoPollModal();
-        window.sysAlert && window.sysAlert('Auto poll disabled for this switch', 'info');
+        window.sysAlert?.('Auto poll disabled', 'info');
     }
 
     function startSwitchTimer(id, minutes) {
         stopSwitchTimer(id);
         if (minutes <= 0) return;
-        const ms = minutes * 60 * 1000;
-        switchTimers[id] = {
-            timer: setInterval(function() { triggerGlobalPoll(); }, ms),
-            nextTime: Date.now() + ms,
-            interval: minutes
-        };
+        const ms = minutes * 60000;
+        switchTimers[id] = { timer: setInterval(() => triggerGlobalPoll(), ms), nextTime: Date.now() + ms, interval: minutes };
     }
-
-    function stopSwitchTimer(id) {
-        if (switchTimers[id]) {
-            clearInterval(switchTimers[id].timer);
-            delete switchTimers[id];
-        }
-    }
+    function stopSwitchTimer(id) { if (switchTimers[id]) { clearInterval(switchTimers[id].timer); delete switchTimers[id]; } }
 
     function triggerGlobalPoll() {
         const form = document.getElementById('pollForm');
-        if (form) {
-            const icon = document.getElementById('pollIcon');
-            const text = document.getElementById('pollText');
-            const btn = document.getElementById('pollBtn');
-            if (icon) icon.className = 'fas fa-sync-alt spin';
-            if (text) text.textContent = 'Auto Polling...';
-            if (btn) btn.disabled = true;
-            form.submit();
-        }
+        if (!form) return;
+        const icon = document.getElementById('pollIcon');
+        const text = document.getElementById('pollText');
+        const btn  = document.getElementById('pollBtn');
+        if (icon) icon.className = 'fas fa-sync-alt spin text-[10px] text-[#00BCEB]';
+        if (text) text.textContent = 'Auto Polling…';
+        if (btn)  btn.disabled = true;
+        form.submit();
     }
 
     function updateCardIndicator(id, minutes) {
-        const el = document.getElementById('autoPollIndicator_' + id);
+        const el  = document.getElementById('autoPollIndicator_' + id);
         const lbl = document.getElementById('autoPollLabel_' + id);
         if (!el || !lbl) return;
-        if (minutes > 0) {
-            el.classList.remove('hidden');
-            el.classList.add('flex');
-            lbl.textContent = 'Auto poll every ' + minutes + ' min';
-        } else {
-            el.classList.add('hidden');
-            el.classList.remove('flex');
-        }
+        if (minutes > 0) { el.classList.remove('hidden'); el.classList.add('inline-flex'); lbl.textContent = minutes + 'm'; }
+        else             { el.classList.add('hidden'); el.classList.remove('inline-flex'); }
     }
 
     function updateModalStatusUI(min) {
         const badge = document.getElementById('autoPollStatusBadge');
-        const next = document.getElementById('autoPollNextRun');
+        const next  = document.getElementById('autoPollNextRun');
         if (!badge) return;
         if (min > 0) {
-            badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-green-100 text-green-700';
-            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-green-500 status-pulse"></span> Active \u00b7 ' + min + 'm';
+            badge.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-50 text-emerald-600';
+            badge.innerHTML = '<span class="w-1 h-1 rounded-full bg-emerald-500 pulse"></span> Active · ' + min + 'm';
             if (next) next.classList.remove('hidden');
         } else {
-            badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-gray-100 text-gray-600';
-            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Disabled';
+            badge.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-gray-100 text-gray-500';
+            badge.innerHTML = '<span class="w-1 h-1 rounded-full bg-gray-400"></span> Disabled';
             if (next) next.classList.add('hidden');
         }
     }
 
-    setInterval(function() {
+    setInterval(function () {
         const el = document.getElementById('autoPollCountdown');
         if (!el) return;
         const switchId = (document.getElementById('autoPollSwitchId') || {}).value;
         if (switchId && switchTimers[switchId]) {
-            const remaining = Math.max(0, Math.ceil((switchTimers[switchId].nextTime - Date.now()) / 1000));
-            const m = Math.floor(remaining / 60);
-            const s = remaining % 60;
-            el.textContent = m + 'm ' + s.toString().padStart(2, '0') + 's';
+            const rem = Math.max(0, Math.ceil((switchTimers[switchId].nextTime - Date.now()) / 1000));
+            el.textContent = Math.floor(rem / 60) + 'm ' + (rem % 60).toString().padStart(2, '0') + 's';
         }
     }, 1000);
 
     (function initPerSwitchAutoPoll() {
-        const settings = getSwitchAutoPollSettings();
-        for (const id in settings) {
-            if (settings[id] > 0) {
-                startSwitchTimer(parseInt(id), settings[id]);
-                updateCardIndicator(parseInt(id), settings[id]);
-            }
-        }
+        const s = getSwitchAutoPollSettings();
+        for (const id in s) { if (s[id] > 0) { startSwitchTimer(parseInt(id), s[id]); updateCardIndicator(parseInt(id), s[id]); } }
     })();
 </script>

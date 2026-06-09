@@ -118,15 +118,11 @@ namespace ManageEngineWebApp.Controllers
                 allowedLocIds = userLocationIds.ToHashSet();
             }
 
-            // FIX: Guard against LocationId being non-nullable int on the model.
-            // If SwitchMaster.LocationId is int? use the HasValue/Value pattern;
-            // if it is int, use a direct comparison. Both cases are handled below.
             if (allowedLocIds != null)
                 switches = switches
                     .Where(s => s.LocationId != null && allowedLocIds.Contains(
                         s.LocationId is int locId ? locId : Convert.ToInt32(s.LocationId)))
                     .ToList();
-
             try
             {
                 var statusResponse = await client.GetAsync($"{_baseUrl}/api/Zabbix/AllDeviceStatuses");
@@ -142,89 +138,7 @@ namespace ManageEngineWebApp.Controllers
             }
             catch { }
 
-            var dbUsers = new Dictionary<string, WindowsUserDetails>(StringComparer.OrdinalIgnoreCase);
-            try
-            {
-                var query = BuildScopedQuery(activeComId, activeLocationId, activeGroupId);
-                var response = await client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser{query}");
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var usersList = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(json);
-
-                    if (usersList != null)
-                    {
-                        if (activeLocationId.HasValue && activeLocationId.Value > 0)
-                        {
-                            usersList = usersList
-                                .Where(u => u.LocationId == activeLocationId.Value)
-                                .ToList();
-                        }
-                        else if (!isTopAdmin && userLocationIds.Any())
-                        {
-                            usersList = usersList
-                                .Where(u => userLocationIds.Contains(u.LocationId))
-                                .ToList();
-                        }
-
-                        foreach (var u in usersList)
-                        {
-                            if (!string.IsNullOrEmpty(u.DomainName))
-                                dbUsers[u.DomainName] = u;
-                            if (!string.IsNullOrEmpty(u.UserCode))
-                                dbUsers[u.UserCode] = u;
-                        }
-                    }
-                }
-            }
-            catch { }
-
             ViewBag.DeviceStatuses = deviceStatuses;
-            ViewBag.DashboardUsers = dbUsers;
-
-            var userIps = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            try
-            {
-                var response = await client.GetAsync($"{_baseUrl}/api/UserDetails");
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var allUserDetails = JsonConvert.DeserializeObject<List<UserDetails>>(json);
-                    if (allUserDetails != null)
-                    {
-                        foreach (var u in allUserDetails)
-                        {
-                            if (!string.IsNullOrEmpty(u.domainName) && !string.IsNullOrEmpty(u.IpAddress))
-                                userIps[u.domainName] = u.IpAddress;
-                        }
-                    }
-                }
-
-                var netResponse = await client.GetAsync($"{_baseUrl}/api/NetworkAdapterDetails");
-                if (netResponse.IsSuccessStatusCode)
-                {
-                    var jsonNet = await netResponse.Content.ReadAsStringAsync();
-                    var allNetDetails = JsonConvert.DeserializeObject<List<dynamic>>(jsonNet);
-                    if (allNetDetails != null)
-                    {
-                        foreach (var n in allNetDetails)
-                        {
-                            string ip = n.ipAddress ?? n.IPAddress;
-                            string userCode = n.userCode ?? n.UserCode;
-                            string hostName = n.dnsHostName ?? n.DNSHostName;
-                            if (!string.IsNullOrEmpty(ip))
-                            {
-                                ip = ip.Trim();
-                                if (!string.IsNullOrEmpty(userCode)) userIps[userCode.Trim()] = ip;
-                                if (!string.IsNullOrEmpty(hostName)) userIps[hostName.Trim()] = ip;
-                            }
-                        }
-                    }
-                }
-            }
-            catch { }
-
-            ViewBag.UserIps = userIps;
             ViewBag.CompanyId = activeComId;
             ViewBag.GroupId = activeGroupId;
             ViewBag.LocationId = activeLocationId;
@@ -236,7 +150,10 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [DynamicPermission("SwitchMonitor.View", "View Switch Details")]
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(
+            int id,
+            int? comId = null, int? groupId = null, int? locationId = null,
+            string? companyName = null, string? groupName = null, string? locationName = null)
         {
             using var client = GetClient();
 
@@ -286,6 +203,13 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.Switch = switchMaster;
             ViewBag.AgentHistory = agentHistory;
 
+            ViewBag.ComId = comId;
+            ViewBag.GroupId = groupId;
+            ViewBag.LocationId = locationId;
+            ViewBag.CompanyName = companyName;
+            ViewBag.GroupName = groupName;
+            ViewBag.LocationName = locationName;
+
             return View(device ?? new DeviceStatus
             {
                 SwitchMasterId = id,
@@ -307,16 +231,13 @@ namespace ManageEngineWebApp.Controllers
             }
 
             await LoadLocationsToViewBagAsync(comId, groupId, locationId);
-            await LoadDevicesToViewBagAsync(comId, groupId, locationId);
 
-            // FIX: LocationId on SwitchMaster must be int? to accept locationId here.
-            // If your model has int LocationId, change it to int? LocationId in SwitchMaster.
             return PartialView("_SwitchForm", new SwitchMaster
             {
                 IsActive = true,
                 DeviceType = "Switch",
                 Community = "public",
-                LocationId = locationId   // requires int? on the model
+                LocationId = locationId
             });
         }
 
@@ -376,11 +297,8 @@ namespace ManageEngineWebApp.Controllers
 
             if (sw == null) return NotFound();
 
-            // FIX: sw.LocationId must be int? for this ?? to compile.
-            // If it is int, use: var activeLocId = locationId ?? (sw.LocationId > 0 ? sw.LocationId : locationId);
             var activeLocId = locationId ?? sw.LocationId;
             await LoadLocationsToViewBagAsync(comId, groupId, activeLocId);
-            await LoadDevicesToViewBagAsync(comId, groupId, activeLocId);
 
             return PartialView("_SwitchForm", sw);
         }
@@ -428,7 +346,6 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, message = "Connection error: An internal server error occurred." });
             }
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         [DynamicPermission("SwitchMonitor.Action", "Trigger Poll")]
@@ -454,10 +371,6 @@ namespace ManageEngineWebApp.Controllers
             return RedirectToAction(nameof(Index),
                 new { q, comId, groupId, locationId, companyName, groupName, locationName });
         }
-
-        // -------------------------------------------------------------------------
-        // Private helpers
-        // -------------------------------------------------------------------------
 
         private async Task LoadLocationsToViewBagAsync(
             int? comId = null, int? groupId = null, int? locationId = null)
@@ -495,88 +408,14 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.Locations = locations;
         }
 
-        private async Task LoadDevicesToViewBagAsync(
-            int? companyId, int? groupId, int? locationId)
+
+        private static string BuildScopedQuery(int? companyId, int? locationId, int? groupId)
         {
-            using var client = GetClient();
-            bool isTopAdmin = RoleHelper.IsTopLevelAdmin(HttpContext);
-            var userLocationIds = RoleHelper.GetLocationIds(HttpContext);
-
-            var query = BuildScopedQuery(companyId, locationId, groupId);
-            var devices = new List<WindowsUserDetails>();
-
-            try
-            {
-                var response = await client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser{query}");
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    devices = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(json)
-                              ?? new List<WindowsUserDetails>();
-                }
-            }
-            catch { }
-
-            if (locationId.HasValue && locationId.Value > 0)
-            {
-                devices = devices.Where(d => d.LocationId == locationId.Value).ToList();
-            }
-            else if (!isTopAdmin && userLocationIds.Any())
-            {
-                devices = devices
-                    .Where(d => userLocationIds.Contains(d.LocationId))
-                    .ToList();
-            }
-
-            var userIps = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            try
-            {
-                var response = await client.GetAsync($"{_baseUrl}/api/UserDetails");
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var allUserDetails = JsonConvert.DeserializeObject<List<UserDetails>>(json);
-                    if (allUserDetails != null)
-                    {
-                        foreach (var u in allUserDetails)
-                        {
-                            if (!string.IsNullOrEmpty(u.IpAddress))
-                            {
-                                var ip = u.IpAddress.Trim();
-                                if (!string.IsNullOrEmpty(u.domainName)) userIps[u.domainName.Trim()] = ip;
-                                if (!string.IsNullOrEmpty(u.WindowName)) userIps[u.WindowName.Trim()] = ip;
-                                if (!string.IsNullOrEmpty(u.UserName)) userIps[u.UserName.Trim()] = ip;
-                            }
-                        }
-                    }
-                }
-
-                var netResponse = await client.GetAsync($"{_baseUrl}/api/NetworkAdapterDetails");
-                if (netResponse.IsSuccessStatusCode)
-                {
-                    var jsonNet = await netResponse.Content.ReadAsStringAsync();
-                    var allNetDetails = JsonConvert.DeserializeObject<List<dynamic>>(jsonNet);
-                    if (allNetDetails != null)
-                    {
-                        foreach (var n in allNetDetails)
-                        {
-                            string ip = n.ipAddress ?? n.IPAddress;
-                            string userCode = n.userCode ?? n.UserCode;
-                            string hostName = n.dnsHostName ?? n.DNSHostName;
-                            if (!string.IsNullOrEmpty(ip))
-                            {
-                                ip = ip.Trim();
-                                if (!string.IsNullOrEmpty(userCode)) userIps[userCode.Trim()] = ip;
-                                if (!string.IsNullOrEmpty(hostName)) userIps[hostName.Trim()] = ip;
-                            }
-                        }
-                    }
-                }
-            }
-            catch { }
-
-            ViewBag.UserIps = userIps;
-            ViewBag.Devices = devices.OrderBy(d => d.DomainName).ToList();
+            var parts = new List<string>();
+            if (companyId.HasValue) parts.Add($"companyId={companyId.Value}");
+            if (groupId.HasValue) parts.Add($"groupId={groupId.Value}");
+            if (locationId.HasValue) parts.Add($"locationId={locationId.Value}");
+            return parts.Any() ? "?" + string.Join("&", parts) : string.Empty;
         }
     }
 }
