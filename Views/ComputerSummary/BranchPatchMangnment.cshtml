@@ -194,7 +194,7 @@
             <p class="text-[10px] text-gray-500 mt-0.5">Select devices · deploy Windows or third-party patches</p>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
             <span id="liveSyncIndicator" title="Live status sync">
                 <span id="liveSyncDot"></span>
                 <span id="liveSyncLabel">Syncing…</span>
@@ -204,29 +204,31 @@
                 <i class="fas fa-check-circle text-[9px]"></i>
                 <span id="selCountPill">0</span> selected
             </span>
-
-            <!-- Bulk Rescan (visible when ≥1 online device selected) -->
-            <button id="bulkRescanBtn" onclick="bulkRescan()" title="Re-scan selected devices for missing patches"
-                    class="hidden items-center gap-1 px-2.5 py-1.5 bg-amber-50 border border-amber-300 text-amber-700 rounded-md font-semibold text-xs hover:bg-amber-100 transition-colors">
-                <i class="fas fa-sync-alt text-[10px]"></i> Rescan Selected
-            </button>
-
             <div class="relative">
                 <button id="patchDropdownBtn" onclick="toggleDropdown()" disabled
-                        class="px-3 py-1.5 text-white rounded-md font-medium text-xs flex items-center gap-1 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                        class="px-3 py-1.5 text-white rounded-md font-medium text-xs flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                         style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
-                    <i class="fas fa-bolt text-[10px]"></i> Patch
+                    <i class="fas fa-bolt text-[10px]"></i> Deploy Patch
                     <i class="fas fa-chevron-down text-[9px] ml-0.5"></i>
                 </button>
                 <div id="patchDropdown"
-                     class="hidden absolute right-0 mt-1 w-44 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                     class="hidden absolute right-0 mt-1 w-48 rounded-lg shadow-xl bg-white ring-1 ring-black ring-opacity-5 z-20 py-1">
                     <a onclick="goWinPatch()"
-                       class="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer">
-                        <i class="fab fa-windows text-cyan-500"></i> Windows Patch
+                       class="flex items-center gap-2.5 px-3 py-2.5 text-xs text-gray-700 hover:bg-cyan-50 hover:text-cyan-700 cursor-pointer transition-colors">
+                        <i class="fab fa-windows text-cyan-500 w-4 text-center"></i>
+                        <div>
+                            <div class="font-semibold">Windows Patch</div>
+                            <div class="text-[9px] text-gray-400">Windows Updates / KB</div>
+                        </div>
                     </a>
+                    <div class="border-t border-gray-100 my-0.5"></div>
                     <a onclick="goPatchSelection()"
-                       class="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer border-t border-gray-100">
-                        <i class="fas fa-cube text-cyan-500"></i> Third-Party Patch
+                       class="flex items-center gap-2.5 px-3 py-2.5 text-xs text-gray-700 hover:bg-cyan-50 hover:text-cyan-700 cursor-pointer transition-colors">
+                        <i class="fas fa-cube text-cyan-500 w-4 text-center"></i>
+                        <div>
+                            <div class="font-semibold">Third-Party Patch</div>
+                            <div class="text-[9px] text-gray-400">Software updates</div>
+                        </div>
                     </a>
                 </div>
             </div>
@@ -264,6 +266,19 @@
         </div>
     </div>
 
+    <div id="selectionSummaryBar" class="hidden mb-2 px-3 py-2 bg-cyan-50 border border-cyan-200 rounded-md flex items-center justify-between gap-2 flex-wrap shadow-sm">
+        <span class="flex items-center gap-1.5 text-[11px] font-semibold text-cyan-700">
+            <i class="fas fa-check-circle text-cyan-500"></i>
+            <span id="summaryBarText">0 device(s) selected for patching</span>
+        </span>
+        <div class="flex items-center gap-2">
+            <button onclick="clearAllSelection()"
+                    class="text-[10px] text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1">
+                <i class="fas fa-times"></i> Clear selection
+            </button>
+        </div>
+    </div>
+
     @if (Model != null && Model.Any())
     {
         <div class="bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
@@ -278,7 +293,6 @@
                             <th class="px-3 py-2 text-left font-semibold" style="width: 160px;">Full Name</th>
                             <th class="px-3 py-2 text-left font-semibold">Department</th>
                             <th class="px-3 py-2 text-left font-semibold" style="width: 100px;">Device ID</th>
-                            <th class="px-3 py-2 text-center font-semibold" style="width: 80px;">Rescan</th>
                         </tr>
                     </thead>
                     <tbody id="deviceTableBody" class="divide-y divide-gray-100">
@@ -302,7 +316,7 @@
                                            @(isOnline ? "" : "disabled")
                                            onchange="updateRowSelection(this)">
                                 </td>
-                                <td class="px-3 py-2 status-badge-cell">
+                                @* <td class="px-3 py-2 status-badge-cell">
                                     @if (isOnline)
                                     {
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold pm-badge-online">
@@ -315,7 +329,7 @@
                                             <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Offline
                                         </span>
                                     }
-                                </td>
+                                </td> *@
                                 <td class="px-3 py-2 font-medium text-gray-900 truncate">@item.DomainName</td>
                                 <td class="px-3 py-2 text-gray-700 truncate">@item.UserName</td>
                                 <td class="px-3 py-2 text-gray-600 truncate">@item.FullName</td>
@@ -376,7 +390,6 @@
 
         const STORAGE_KEY = `BranchPatch_Selection_${'@companyid'}_${'@groupid'}_${'@locationid'}`;
 
-        // Clear selection unless referrer is the patch selection page
         const ref = document.referrer || '';
         const cameFromDeployment = ref.includes('BranchWinPatchselection') || ref.includes('BranchPatchselection');
         if (!cameFromDeployment) {
@@ -389,7 +402,6 @@
         let selectedDomains = new Map(JSON.parse(localStorage.getItem(STORAGE_KEY + '_Domains') || '[]'));
         let selectedNames   = new Map(JSON.parse(localStorage.getItem(STORAGE_KEY + '_Names') || '[]'));
 
-        // Sanitize selection: remove any IDs that do not exist in the current ALL_ROWS to prevent ghost selections
         const existingIds = new Set(ALL_ROWS.map(r => r.dataset.id));
         let changed = false;
         for (const id of selectedIds) {
@@ -470,7 +482,6 @@
                            </span>`;
                 }
 
-                // Refresh rescan button cell
                 const rescanCell = row.querySelector('.rescan-cell');
                 if (rescanCell) {
                     rescanCell.innerHTML = isOnline
@@ -748,13 +759,24 @@
             const pill       = document.getElementById('selectedPill');
             const btn        = document.getElementById('patchDropdownBtn');
             const bulkRescan = document.getElementById('bulkRescanBtn');
+            const summaryBar = document.getElementById('selectionSummaryBar');
+            const summaryTxt = document.getElementById('summaryBarText');
 
             document.getElementById('selCountPill').textContent = count;
             pill.classList.toggle('hidden', count === 0);
             pill.classList.toggle('inline-flex', count > 0);
             btn.disabled = count === 0;
 
-            // Show bulk rescan only when ≥1 selected device is online
+            if (summaryBar) {
+                summaryBar.classList.toggle('hidden', count === 0);
+                summaryBar.classList.toggle('flex', count > 0);
+            }
+            if (summaryTxt && count > 0) {
+                const names = [...selectedIds].map(id => selectedNames.get(id) || selectedDomains.get(id) || id);
+                const preview = names.slice(0, 3).join(', ') + (names.length > 3 ? ` +${names.length - 3} more` : '');
+                summaryTxt.textContent = `${count} device${count === 1 ? '' : 's'} selected: ${preview}`;
+            }
+
             const hasOnlineSelected = [...selectedIds].some(id => {
                 const row = document.querySelector(`.device-row[data-id="${id}"]`);
                 return row && row.dataset.status === 'online';
@@ -763,7 +785,15 @@
             bulkRescan.classList.toggle('inline-flex', hasOnlineSelected);
         }
 
-        // ── Toast ─────────────────────────────────────────────────
+        function clearAllSelection() {
+            selectedIds.clear();
+            selectedDomains.clear();
+            selectedNames.clear();
+            updateSelection();
+            updateSelectAllState();
+            saveSelection();
+        }
+
         function showToast(msg, type = 'info', ms = 4000) {
             const t = document.getElementById('rescanToast');
             t.textContent = msg;
@@ -794,7 +824,6 @@
             });
         }
 
-        // ── Single-device rescan ──────────────────────────────────
         function singleRescan(btn, domain) {
             if (!domain) return;
             btn.classList.add('scanning');
@@ -824,8 +853,7 @@
             });
         }
 
-        // ── Bulk rescan (all selected online devices) ─────────────
-        function bulkRescan() {
+        async function bulkRescan() {
             const domains = [...selectedIds]
                 .map(id => {
                     const row = document.querySelector(`.device-row[data-id="${id}"]`);
@@ -838,37 +866,38 @@
             const btn = document.getElementById('bulkRescanBtn');
             btn.disabled = true;
             btn.classList.add('scanning');
-            const orig = btn.innerHTML;
 
-            domains.forEach(domain => setRowRescanning(domain, true));
+            domains.forEach(d => setRowRescanning(d, true));
 
             let succeeded = 0;
-            Promise.all(domains.map(domain =>
-                fetch('@Url.Action("ReScanPatches", "ComputerSummary")', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ClientId: domain })
-                })
-                .then(r => r.json())
-                .then(res => {
+
+            for (const domain of domains) {
+                showToast(`Scanning ${succeeded + 1}/${domains.length}: ${domain}...`, 'info', 3000);
+                try {
+                    const res = await fetch('@Url.Action("ReScanPatches", "ComputerSummary")', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ClientId: domain })
+                    }).then(r => r.json());
+
                     if (res.success) {
                         succeeded++;
                     } else {
                         setRowRescanning(domain, false);
+                        showToast(`Failed for ${domain}: ${res.error || 'Unknown'}`, 'error', 3000);
                     }
-                })
-                .catch(() => {
+                } catch {
                     setRowRescanning(domain, false);
-                })
-            )).then(() => {
-                showToast(
-                    `Rescan sent to ${succeeded}/${domains.length} device(s). Waiting for data...`,
-                    succeeded > 0 ? 'success' : 'error'
-                );
-                btn.disabled = false;
-                btn.classList.remove('scanning');
-                btn.innerHTML = orig;
-            });
+                }
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            showToast(
+                `Rescan sent to ${succeeded}/${domains.length} device(s). Waiting for data...`,
+                succeeded > 0 ? 'success' : 'error'
+            );
+            btn.disabled = false;
+            btn.classList.remove('scanning');
         }
 
         function goWinPatch() {
@@ -882,7 +911,6 @@
         function navigate(action) {
             const ids     = [...selectedIds].join(',');
             const domains = [...selectedDomains.values()].join(',');
-            // Encrypt sensitive params, pass selectedIds/domainids as payload too
             navigateToEncrypted(`/ComputerSummary/${action}`, {
                 companyid: '@companyid',
                 groupid: '@groupid',
@@ -904,7 +932,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             applyFilters();
             renderPage();
-            updateHeader(); // Ensure button state reflects persisted selection
+            updateHeader(); 
         });
     </script>
 }

@@ -1,4 +1,4 @@
-using ManageEngineWebApp.Datacontext;
+﻿using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Models;
 using ManageEngineWebApp.UpdatesModels;
@@ -106,6 +106,12 @@ namespace ManageEngineWebApp.Controllers
                     if (data != null)
                     {
                         dalalist = data.Where(x => x != null && x.Status == "Enabled").ToList();
+                        if (locationId > 0)
+                            dalalist = dalalist.Where(x => x.LocationId == locationId).ToList();
+                        else if (groupid > 0)
+                            dalalist = dalalist.Where(x => x.GroupId == groupid).ToList();
+                        else if (comId > 0)
+                            dalalist = dalalist.Where(x => x.CompanyId == comId).ToList();
                     }
                 }
 
@@ -975,6 +981,12 @@ namespace ManageEngineWebApp.Controllers
                     if (data != null)
                     {
                         localDatalist = data.Where(x => x.Status == "Enabled").ToList();
+                        if (locationid > 0)
+                            localDatalist = localDatalist.Where(x => x.LocationId == locationid).ToList();
+                        else if (groupid > 0)
+                            localDatalist = localDatalist.Where(x => x.GroupId == groupid).ToList();
+                        else if (companyid > 0)
+                            localDatalist = localDatalist.Where(x => x.CompanyId == companyid).ToList();
                     }
                 }
 
@@ -1039,9 +1051,28 @@ namespace ManageEngineWebApp.Controllers
 
 
 
-        public async Task<IActionResult> BranchPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids,
+        public async Task<IActionResult> BranchPatchselection(string? q = null, int companyid = 0, int groupid = 0, int locationid = 0,
+            string? selectedIds = null, string? domainids = null,
             string? companyName = null, string? groupName = null, string? locationName = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var p = ManageEngineWebApp.Helpers.EncryptionHelper.DecryptParams(q);
+                if (p.TryGetValue("companyid", out var cid) && int.TryParse(cid, out var c)) companyid = c;
+                if (p.TryGetValue("comId", out var cid2) && int.TryParse(cid2, out var c2)) companyid = c2;
+                if (p.TryGetValue("groupid", out var gid) && int.TryParse(gid, out var g)) groupid = g;
+                if (p.TryGetValue("locationid", out var lid) && int.TryParse(lid, out var l)) locationid = l;
+                if (p.TryGetValue("locationId", out var lid2) && int.TryParse(lid2, out var l2)) locationid = l2;
+                if (p.TryGetValue("selectedIds", out var sid)) selectedIds = sid;
+                if (p.TryGetValue("domainids", out var did)) domainids = did;
+                if (p.TryGetValue("companyName", out var cn)) companyName = cn;
+                if (p.TryGetValue("groupName", out var gn)) groupName = gn;
+                if (p.TryGetValue("locationName", out var ln)) locationName = ln;
+            }
+
+            selectedIds ??= "";
+            domainids ??= "";
+
             if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
 
             ViewBag.CompanyId = companyid > 0 ? companyid : (int?)null;
@@ -1065,8 +1096,9 @@ namespace ManageEngineWebApp.Controllers
             {
                 var httpClient = GetClient();
                 var query = BuildScopedQuery(companyid, locationid, groupid);
-                // Append deviceIds manually as they are feature-specific
-                var patchTask = httpClient.GetAsync($"{_baseUrl}/api/MissingPatch{query}&deviceIds={selectedIds}");
+                string patchSeparator = query.Length > 0 ? "&" : "?";
+                var patchTask = httpClient.GetAsync(
+                    $"{_baseUrl}/api/MissingPatch{query}{patchSeparator}deviceIds={selectedIds}");
                 var repoTask = httpClient.GetAsync($"{_baseUrl}/api/SoftwareRepoDetails");
 
                 await Task.WhenAll(patchTask, repoTask);
@@ -1089,8 +1121,10 @@ namespace ManageEngineWebApp.Controllers
                 foreach (var item in datalist)
                 {
                     item.IsAvailableInRepo = repoList.Any(s =>
-                        s.Version == item.AvailableVersion &&
-                        s.SoftwareName.Equals(item.PatchName, StringComparison.OrdinalIgnoreCase));
+                    s.SoftwareName.Equals(item.PatchName, StringComparison.OrdinalIgnoreCase) &&
+                    (s.Version == item.AvailableVersion
+                    || s.Version == item.CurrentVersion
+                    || string.IsNullOrEmpty(s.Version)));
                 }
             }
             catch (Exception ex)
@@ -1100,9 +1134,28 @@ namespace ManageEngineWebApp.Controllers
 
             return View(datalist);
         }
-        public async Task<IActionResult> BranchWinPatchselection(int companyid, int groupid, int locationid, string selectedIds, string domainids,
+        public async Task<IActionResult> BranchWinPatchselection(string? q = null, int companyid = 0, int groupid = 0, int locationid = 0,
+            string? selectedIds = null, string? domainids = null,
             string? companyName = null, string? groupName = null, string? locationName = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var p = ManageEngineWebApp.Helpers.EncryptionHelper.DecryptParams(q);
+                if (p.TryGetValue("companyid", out var cid) && int.TryParse(cid, out var c)) companyid = c;
+                if (p.TryGetValue("comId", out var cid2) && int.TryParse(cid2, out var c2)) companyid = c2;
+                if (p.TryGetValue("groupid", out var gid) && int.TryParse(gid, out var g)) groupid = g;
+                if (p.TryGetValue("locationid", out var lid) && int.TryParse(lid, out var l)) locationid = l;
+                if (p.TryGetValue("locationId", out var lid2) && int.TryParse(lid2, out var l2)) locationid = l2;
+                if (p.TryGetValue("selectedIds", out var sid)) selectedIds = sid;
+                if (p.TryGetValue("domainids", out var did)) domainids = did;
+                if (p.TryGetValue("companyName", out var cn)) companyName = cn;
+                if (p.TryGetValue("groupName", out var gn)) groupName = gn;
+                if (p.TryGetValue("locationName", out var ln)) locationName = ln;
+            }
+
+            selectedIds ??= "";
+            domainids ??= "";
+
             if (!IsAuthorized(companyid, groupid, locationid)) return RedirectToAction("Index", "Home");
 
             ViewBag.CompanyId = companyid > 0 ? companyid : (int?)null;
@@ -1125,7 +1178,9 @@ namespace ManageEngineWebApp.Controllers
             {
                 using var httpClient = GetClient();
                 var query = BuildScopedQuery(companyid, locationid, groupid);
-                var response = await httpClient.GetAsync($"{_baseUrl}/api/MissingPatch/windowpatch{query}&deviceIds={selectedIds}");
+                string winSeparator = query.Length > 0 ? "&" : "?";
+                var response = await httpClient.GetAsync(
+                    $"{_baseUrl}/api/MissingPatch/windowpatch{query}{winSeparator}deviceIds={selectedIds}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -1158,7 +1213,7 @@ namespace ManageEngineWebApp.Controllers
 
                 if (string.IsNullOrEmpty(updatePatchselectiondto.deviceIds))
                     return Json(new { success = false, error = "No device IDs were received. Please go back and re-select your devices." });
-
+                 
                 using var client = GetClient();
                 client.Timeout = TimeSpan.FromSeconds(120);
                 string jsonData = JsonConvert.SerializeObject(updatePatchselectiondto);
