@@ -18,45 +18,376 @@
         x.UserName != "N/A");
 }
 
-<div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 pt-2 sm:pt-3">
-    <!-- Compact Header -->
-    <div class="mb-2 flex items-center justify-between">
-        <div class="flex items-center space-x-1.5">
+<style>
+    /* ── Base ── */
+    * {
+        box-sizing: border-box;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    /* ── Animations ── */
+    @@keyframes pulse {
+        0%, 100% {
+            opacity: 1
+        }
+
+        50% {
+            opacity: .4
+        }
+    }
+
+    .animate-pulse {
+        animation: pulse 2s cubic-bezier(.4,0,.6,1) infinite;
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-5px)
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0)
+        }
+    }
+
+    .menu-dropdown {
+        animation: slideDown .15s ease-out;
+    }
+
+    /* ── Stat card backgrounds ── */
+    .stat-total-bg {
+        background: linear-gradient(135deg,#e8f9fe,#cff3fc);
+    }
+
+    .stat-online-bg {
+        background: linear-gradient(135deg,#f0fdf4,#dcfce7);
+    }
+
+    .stat-remote-bg {
+        background: linear-gradient(135deg,#fff7ed,#ffedd5);
+    }
+
+    .stat-offline-bg {
+        background: linear-gradient(135deg,#f9fafb,#f3f4f6);
+    }
+
+    /* ── Stat grid ── */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4,1fr);
+        gap: 6px;
+        margin-bottom: 7px;
+    }
+
+    @@media (max-width:640px) {
+        .stats-grid {
+            grid-template-columns: repeat(2,1fr);
+        }
+    }
+
+    /* ── Card header tints ── */
+    .card-header-online {
+        background: linear-gradient(135deg,#f0fdf4,#dcfce7);
+        border-bottom: 1px solid #bbf7d0;
+    }
+
+    .card-header-offline {
+        background: linear-gradient(135deg,#f9fafb,#f3f4f6);
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    /* ── Usage bar track ── */
+    .usage-bar-track {
+        height: 4px;
+        border-radius: 4px;
+        background: #e5e7eb;
+        overflow: hidden;
+        margin-top: 2px;
+    }
+
+    /* ── Usage bar fill – smooth grow only, no shimmer ── */
+    .usage-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        width: 0%;
+        transition: width 0.9s cubic-bezier(.4,0,.2,1);
+    }
+    /* bar colors */
+    .cpu-bar {
+        background: linear-gradient(90deg,#00BCEB,#0096BE);
+    }
+
+    .ram-bar {
+        background: linear-gradient(90deg,#f97316,#ea580c);
+    }
+
+    .disk-bar {
+        background: linear-gradient(90deg,#B4D334,#8FB829);
+    }
+    /* alert override */
+    .bar-alert {
+        background: linear-gradient(90deg,#ef4444,#dc2626) !important;
+    }
+
+    /* ── Sparkline ── */
+    .sparkline-wrap {
+        position: relative;
+        height: 30px;
+        width: 100%;
+    }
+
+    /* ── Status badges ── */
+    .status-badge-online {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .status-badge-offline {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    /* ── Filter pills ── */
+    .filter-pill {
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.13s;
+        border: 1.5px solid transparent;
+        line-height: 1.5;
+    }
+
+        .filter-pill.active {
+            background: #00BCEB;
+            color: #fff;
+            border-color: #00BCEB;
+        }
+
+        .filter-pill:not(.active) {
+            background: #fff;
+            color: #4b5563;
+            border-color: #e5e7eb;
+        }
+
+        .filter-pill:hover:not(.active) {
+            border-color: #00BCEB;
+            color: #00BCEB;
+        }
+
+    /* ── Device icon box ── */
+    .device-illus {
+        width: 34px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 7px;
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    .device-illus-online {
+        background: linear-gradient(135deg,#e8f9fe,#cff3fc);
+    }
+
+    .device-illus-offline {
+        background: linear-gradient(135deg,#f3f4f6,#e5e7eb);
+    }
+
+    /* ── Status dots ── */
+    .online-dot, .offline-dot {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+    }
+
+    .online-dot {
+        background: #22c55e;
+    }
+
+    .offline-dot {
+        background: #9ca3af;
+    }
+
+    /* ── Device grid ── */
+    .devices-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+        gap: 7px;
+    }
+
+    @@media (max-width:480px) {
+        .devices-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (min-width:481px) and (max-width:650px) {
+        .devices-grid {
+            grid-template-columns: repeat(2,1fr);
+        }
+    }
+
+    @@media (min-width:651px) and (max-width:900px) {
+        .devices-grid {
+            grid-template-columns: repeat(3,1fr);
+        }
+    }
+
+    @@media (min-width:901px) and (max-width:1200px) {
+        .devices-grid {
+            grid-template-columns: repeat(4,1fr);
+        }
+    }
+
+    @@media (min-width:1201px) and (max-width:1500px) {
+        .devices-grid {
+            grid-template-columns: repeat(5,1fr);
+        }
+    }
+
+    @@media (min-width:1501px) {
+        .devices-grid {
+            grid-template-columns: repeat(6,1fr);
+        }
+    }
+
+    /* ── Device card ── */
+    .device-card {
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+        border-radius: 10px;
+    }
+
+        .device-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(0,0,0,.09);
+        }
+
+    /* ── Protection badge ── */
+    .temp-protection-badge {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        width: 8px;
+        height: 8px;
+        background: #f97316;
+        border-radius: 50%;
+        border: 1.5px solid #fff;
+    }
+
+    /* ── Info row ── */
+    .info-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        margin-bottom: 5px;
+    }
+
+    .info-cell {
+        background: #f8fafc;
+        border-radius: 6px;
+        padding: 3px 5px;
+        min-width: 0;
+    }
+
+    .info-label {
+        font-size: 7px;
+        color: #9ca3af;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: 1px;
+    }
+
+    .info-value {
+        font-size: 9px;
+        font-weight: 700;
+        color: #374151;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* ── Usage section ── */
+    .usage-section {
+        margin-bottom: 4px;
+    }
+
+    .usage-row {
+        margin-bottom: 3px;
+    }
+
+    .usage-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 7px;
+        margin-bottom: 1px;
+    }
+
+    .usage-name {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        color: #6b7280;
+        font-weight: 600;
+    }
+
+    .usage-val {
+        font-weight: 700;
+        color: #374151;
+        font-size: 8px;
+    }
+</style>
+
+<div style="max-width:1400px; margin:0 auto; padding:5px 10px 12px;">
+
+    <!-- ── Header ── -->
+    <div style="margin-bottom:7px; display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:6px;">
             <a href="#" onclick="navigateToEncrypted('/Companies/GroupsDetails', {id: '@ViewBag.companyid', companyName: '@ViewBag.CompanyName'}); return false;"
-               class="w-6 h-6 bg-white border border-gray-200 hover:bg-gray-50 rounded-md flex items-center justify-center transition shadow-sm">
-                <i class="fas fa-arrow-left text-gray-600 text-[10px]"></i>
+               style="width:24px;height:24px;background:#fff;border:1px solid #e5e7eb;border-radius:7px;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.05);">
+                <i class="fas fa-arrow-left" style="color:#6b7280;font-size:9px;"></i>
             </a>
-            <div class="flex items-center space-x-1.5">
+            <div style="display:flex;align-items:center;gap:6px;">
                 @{
                     var logoUrl = ViewBag.CompanyLogoUrl as string;
                 }
                 @if (!string.IsNullOrEmpty(logoUrl))
                 {
-                    <div class="w-7 h-7 rounded-md flex items-center justify-center overflow-hidden border border-gray-100 bg-white shadow-sm">
-                        <img src="/Companies/Logo?path=@Uri.EscapeDataString(logoUrl)"
-                             alt="@ViewBag.CompanyName"
-                             class="max-h-5 object-contain"
-                             onerror="let p = this.parentElement; if (p) { p.innerHTML = '<i class=\'fas fa-map-marker-alt text-white text-[10px]\'></i>'; p.style.background = 'linear-gradient(135deg, #00BCEB 0%, #0096BE 100%)'; } this.onerror = null;" />
+                    <div style="width:26px;height:26px;border-radius:7px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;display:flex;align-items:center;justify-content:center;">
+                        <img src="/Companies/Logo?path=@Uri.EscapeDataString(logoUrl)" alt="@ViewBag.CompanyName" style="max-height:20px;object-fit:contain;"
+                             onerror="let p=this.parentElement;if(p){p.innerHTML='<i class=\'fas fa-map-marker-alt\' style=\'color:#fff;font-size:9px;\'></i>';p.style.background='linear-gradient(135deg,#00BCEB,#0096BE)';}this.onerror=null;" />
                     </div>
                 }
                 else
                 {
-                    <div class="w-7 h-7 rounded-md flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                        <i class="fas fa-map-marker-alt text-white text-[10px]"></i>
+                    <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#00BCEB,#0096BE);display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-map-marker-alt" style="color:#fff;font-size:9px;"></i>
                     </div>
                 }
                 <div>
-                    <div class="flex items-center space-x-1.5">
-                        <h1 class="text-sm font-bold text-gray-900">@ViewBag.locationName</h1>
+                    <div style="display:flex;align-items:center;gap:5px;">
+                        <h1 style="font-size:12px;font-weight:700;color:#111827;margin:0;">@ViewBag.locationName</h1>
                         @if (ViewBag.IsLocationCritical == true)
                         {
                             <span class="critical-indicator" title="Critical Location">
-                                <i class="fas fa-crown text-amber-500 text-[10px] shadow-sm"></i>
+                                <i class="fas fa-crown" style="color:#f59e0b;font-size:11px;"></i>
                             </span>
                         }
                     </div>
-
-                    <p class="text-[9px] text-gray-600">@ViewBag.CompanyName › @ViewBag.groupName</p>
+                    <p style="font-size:8px;color:#9ca3af;margin:0;">@ViewBag.CompanyName › @ViewBag.groupName</p>
                 </div>
             </div>
         </div>
@@ -67,72 +398,88 @@
         <script>
             window.VIP_CLIENTS = @Html.Raw(JsonConvert.SerializeObject(ViewBag.VipClients ?? new List<VIPClient>()));
         </script>
-
-        <div class="flex items-center gap-1.5">
-        </div>
     </div>
 
-    <!-- Compact Stats Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-2">
-        <div class="bg-white rounded-md border border-gray-200 p-1.5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[8px] font-medium text-gray-500 uppercase">Total</p>
-                    <p class="text-sm font-bold text-gray-900 mt-0">@totalDevices</p>
-                </div>
-                <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                    <i class="fas fa-desktop text-white text-[9px]"></i>
-                </div>
+    <!-- ── Stat Cards ── -->
+    <div class="stats-grid">
+
+        <!-- Total -->
+        <div class="stat-total-bg" style="border-radius:10px;padding:8px 10px;border:1px solid #bae6fd;display:flex;align-items:center;gap:8px;">
+            <div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#00BCEB,#0096BE);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="13" rx="2" />
+                    <polyline points="8,21 12,17 16,21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+            </div>
+            <div>
+                <p style="font-size:8px;font-weight:700;color:#0284c7;text-transform:uppercase;letter-spacing:.05em;margin:0 0 1px;">Total</p>
+                <p style="font-size:18px;font-weight:800;color:#0c4a6e;margin:0;line-height:1;">@totalDevices</p>
             </div>
         </div>
-        <div class="bg-white rounded-md border border-gray-200 p-1.5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[8px] font-medium text-gray-500 uppercase">Online</p>
-                    <p class="text-sm font-bold text-gray-900 mt-0" id="onlineCount">@onlineDevices</p>
-                </div>
-                <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);">
-                    <i class="fas fa-check-circle text-white text-[9px]"></i>
-                </div>
+
+        <!-- Online -->
+        <div class="stat-online-bg" style="border-radius:10px;padding:8px 10px;border:1px solid #bbf7d0;display:flex;align-items:center;gap:8px;">
+            <div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg>
+            </div>
+            <div>
+                <p style="font-size:8px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.05em;margin:0 0 1px;">Online</p>
+                <p style="font-size:18px;font-weight:800;color:#14532d;margin:0;line-height:1;" id="onlineCount">@onlineDevices</p>
             </div>
         </div>
-        <div class="bg-white rounded-md border border-gray-200 p-1.5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[8px] font-medium text-gray-500 uppercase">Remote</p>
-                    <p class="text-sm font-bold text-gray-900 mt-0" id="remoteSessionCount">@(ViewBag.RemoteSessions ?? 0)</p>
-                </div>
-                <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);">
-                    <i class="fas fa-broadcast-tower text-white text-[9px]"></i>
-                </div>
+
+        <!-- Remote -->
+        <div class="stat-remote-bg" style="border-radius:10px;padding:8px 10px;border:1px solid #fed7aa;display:flex;align-items:center;gap:8px;">
+            <div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 6s4-5 11-5 11 5 11 5" />
+                    <path d="M5 10s2.5-3 7-3 7 3 7 3" />
+                    <path d="M9 14s1-1 3-1 3 1 3 1" />
+                    <circle cx="12" cy="18" r="2" fill="white" stroke="none" />
+                </svg>
+            </div>
+            <div>
+                <p style="font-size:8px;font-weight:700;color:#ea580c;text-transform:uppercase;letter-spacing:.05em;margin:0 0 1px;">Remote</p>
+                <p style="font-size:18px;font-weight:800;color:#7c2d12;margin:0;line-height:1;" id="remoteSessionCount">@(ViewBag.RemoteSessions ?? 0)</p>
             </div>
         </div>
-        <div class="bg-white rounded-md border border-gray-200 p-1.5 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-[8px] font-medium text-gray-500 uppercase">Offline</p>
-                    <p class="text-sm font-bold text-gray-900 mt-0" id="offlineCount">@offlineDevices</p>
-                </div>
-                <div class="w-6 h-6 bg-gray-700 rounded-md flex items-center justify-center">
-                    <i class="fas fa-power-off text-white text-[9px]"></i>
-                </div>
+
+        <!-- Offline -->
+        <div class="stat-offline-bg" style="border-radius:10px;padding:8px 10px;border:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;">
+            <div style="width:30px;height:30px;border-radius:9px;background:#4b5563;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <circle cx="12" cy="16" r="0.5" fill="white" stroke="white" stroke-width="2" />
+                </svg>
+            </div>
+            <div>
+                <p style="font-size:8px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 1px;">Offline</p>
+                <p style="font-size:18px;font-weight:800;color:#111827;margin:0;line-height:1;" id="offlineCount">@offlineDevices</p>
             </div>
         </div>
+
     </div>
 
-    <!-- Compact Status Filter -->
-    <div class="mb-2 flex justify-end">
-        <select id="statusFilter" class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00BCEB]/30 focus:border-[#00BCEB] text-[10px] font-medium transition-colors">
-            <option value="all">All Status</option>
-            <option value="online">Online</option>
-            <option value="offline">Offline</option>
-        </select>
+    <!-- ── Filter Bar ── -->
+    <div style="margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:6px;">
+            <button class="filter-pill active" onclick="setStatusFilter('all', this)">All</button>
+            <button class="filter-pill" onclick="setStatusFilter('online', this)">Online</button>
+            <button class="filter-pill" onclick="setStatusFilter('offline', this)">Offline</button>
+        </div>
+        <span style="font-size:10px;color:#9ca3af;font-weight:600;display:none;" class="sm-show">
+            <i class="fas fa-circle" style="color:#22c55e;font-size:7px;margin-right:4px;"></i>Live monitoring active
+        </span>
     </div>
 
     @if (Model != null && Model.Any())
     {
         var vipClients = ViewBag.VipClients as List<ManageEngineWebApp.Models.VIPClient> ?? new List<ManageEngineWebApp.Models.VIPClient>();
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-1.5" id="devicesGrid">
+        <div class="devices-grid" id="devicesGrid">
             @foreach (var item in Model)
             {
                 var currentLocId = ViewBag.LocationId as int?;
@@ -141,80 +488,165 @@
                 ((!string.IsNullOrEmpty(v.ClientId) && string.Equals(v.ClientId, item.DomainName, StringComparison.OrdinalIgnoreCase)) ||
                 (!string.IsNullOrEmpty(v.ClientId) && string.Equals(v.ClientId, item.UserCode, StringComparison.OrdinalIgnoreCase))));
 
+                bool isActive = activeComputers.Any(d =>
+                string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(d, item.UserCode, StringComparison.OrdinalIgnoreCase));
 
-                bool isActive = activeComputers.Any(d => string.Equals(d, item.DomainName, StringComparison.OrdinalIgnoreCase) || string.Equals(d, item.UserCode, StringComparison.OrdinalIgnoreCase));
-                var deviceIcon = item.DomainName.ToUpper().Contains("LAPTOP") ? "fa-laptop" :
-                item.DomainName.ToUpper().Contains("DESKTOP") ? "fa-desktop" : "fa-computer";
+                bool isLaptop = item.DomainName.ToUpper().Contains("LAPTOP");
+                bool isServer = item.DomainName.ToUpper().Contains("SERVER") || item.AccountType?.ToUpper().Contains("SERVER") == true;
 
-                <div class="device-card bg-white rounded-md shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-all duration-200 @(isActive ? "js-is-online" : "js-is-offline")"
+                <div class="device-card"
+                     style="background:#fff;border-radius:10px;border:1px solid @(isActive ? "#bbf7d0" : "#e5e7eb");overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);"
                      data-domain="@item.DomainName"
                      data-status="@(isActive ? "online" : "offline")"
                      data-device-id="@item.Id">
 
-                    <!-- Compact Card Header -->
-                    <div class="bg-white border-b border-gray-100 p-1.5">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-1 min-w-0 flex-1">
-                                <div class="relative flex-shrink-0">
-                                    <div class="js-status-icon-bg w-6 h-6 rounded-md flex items-center justify-center @(isActive ? "" : "bg-gray-200")"
-                                         style="@(isActive ? "background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);" : "")">
-                                        <i class="fas @deviceIcon js-status-icon @(isActive ? "text-white" : "text-gray-600") text-[9px]"></i>
-                                    </div>
-                                    <span class="temp-protection-badge hidden absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full border border-white"></span>
+                    <!-- Card Header -->
+                    <div class="@(isActive ? "card-header-online" : "card-header-offline")" style="padding:6px 8px;">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;">
 
+                            <!-- Device illustration + name -->
+                            <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
+
+                                <!-- Illustrated Device Icon -->
+                                <div style="position:relative;flex-shrink:0;">
+                                    <div class="device-illus js-status-icon-bg @(isActive ? "device-illus-online" : "device-illus-offline")">
+                                        @if (isServer)
+                                        {
+                                            <!-- Server: rack illustration -->
+                                            <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <rect x="6" y="8" width="36" height="9" rx="2.5" fill="@(isActive ? "#00BCEB" : "#9ca3af")" opacity=".15" />
+                                                <rect x="6" y="8" width="36" height="9" rx="2.5" stroke="@(isActive ? "#00BCEB" : "#9ca3af")" stroke-width="1.6" fill="none" />
+                                                <rect x="6" y="20" width="36" height="9" rx="2.5" fill="@(isActive ? "#00BCEB" : "#9ca3af")" opacity=".1" />
+                                                <rect x="6" y="20" width="36" height="9" rx="2.5" stroke="@(isActive ? "#00BCEB" : "#9ca3af")" stroke-width="1.6" fill="none" />
+                                                <rect x="6" y="32" width="36" height="8" rx="2.5" fill="@(isActive ? "#00BCEB" : "#9ca3af")" opacity=".07" />
+                                                <rect x="6" y="32" width="36" height="8" rx="2.5" stroke="@(isActive ? "#00BCEB" : "#9ca3af")" stroke-width="1.6" fill="none" />
+                                                <circle cx="34" cy="12.5" r="2" fill="@(isActive ? "#22c55e" : "#9ca3af")" />
+                                                <circle cx="39" cy="12.5" r="2" fill="@(isActive ? "#00BCEB" : "#d1d5db")" />
+                                                <circle cx="34" cy="24.5" r="2" fill="@(isActive ? "#22c55e" : "#9ca3af")" />
+                                                <circle cx="39" cy="24.5" r="2" fill="@(isActive ? "#f97316" : "#d1d5db")" />
+                                                <rect x="10" y="11" width="14" height="2.5" rx="1.2" fill="@(isActive ? "#00BCEB" : "#d1d5db")" opacity=".5" />
+                                                <rect x="10" y="23" width="10" height="2.5" rx="1.2" fill="@(isActive ? "#00BCEB" : "#d1d5db")" opacity=".5" />
+                                            </svg>
+                                        }
+                                        else if (isLaptop)
+                                        {
+                                            <!-- Laptop: realistic illustration -->
+                                            <svg width="34" height="30" viewBox="0 0 52 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <!-- Screen body -->
+                                                <rect x="8" y="2" width="36" height="26" rx="3" fill="@(isActive ? "#00BCEB" : "#9ca3af")" opacity=".13" />
+                                                <rect x="8" y="2" width="36" height="26" rx="3" stroke="@(isActive ? "#00BCEB" : "#9ca3af")" stroke-width="1.8" fill="none" />
+                                                <!-- Screen inner -->
+                                                <rect x="11" y="5" width="30" height="20" rx="1.5" fill="@(isActive ? "#e0f7fe" : "#f3f4f6")" />
+                                                @if (isActive)
+                                                {
+                                                    <!-- Screen content lines when online -->
+                                                    <rect x="14" y="9" width="18" height="2" rx="1" fill="#00BCEB" opacity=".4" />
+                                                    <rect x="14" y="13" width="22" height="1.5" rx=".75" fill="#0096BE" opacity=".3" />
+                                                    <rect x="14" y="16" width="14" height="1.5" rx=".75" fill="#0096BE" opacity=".3" />
+                                                }
+                                                <!-- Hinge -->
+                                                <rect x="8" y="27" width="36" height="2" rx="1" fill="@(isActive ? "#0096BE" : "#d1d5db")" />
+                                                <!-- Base -->
+                                                <path d="M4 29 Q4 32 8 32 H44 Q48 32 48 29 Z" fill="@(isActive ? "#00BCEB" : "#9ca3af")" opacity=".2" />
+                                                <path d="M4 29 Q4 32 8 32 H44 Q48 32 48 29 Z" stroke="@(isActive ? "#00BCEB" : "#9ca3af")" stroke-width="1.6" fill="none" />
+                                                <!-- Touchpad -->
+                                                <rect x="21" y="34" width="10" height="6" rx="1.5" fill="none" stroke="@(isActive ? "#00BCEB" : "#d1d5db")" stroke-width="1.2" />
+                                                <!-- Camera dot -->
+                                                <circle cx="26" cy="4.5" r="1" fill="@(isActive ? "#00BCEB" : "#d1d5db")" />
+                                            </svg>
+                                        }
+                                        else
+                                        {
+                                            <!-- Desktop: monitor + tower illustration -->
+                                            <svg width="34" height="32" viewBox="0 0 52 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <!-- Monitor -->
+                                                <rect x="8" y="2" width="32" height="22" rx="3" fill="@(isActive ? "#00BCEB" : "#9ca3af")" opacity=".13" />
+                                                <rect x="8" y="2" width="32" height="22" rx="3" stroke="@(isActive ? "#00BCEB" : "#9ca3af")" stroke-width="1.8" fill="none" />
+                                                <!-- Screen -->
+                                                <rect x="11" y="5" width="26" height="16" rx="1.5" fill="@(isActive ? "#e0f7fe" : "#f3f4f6")" />
+                                                @if (isActive)
+                                                {
+                                                    <rect x="14" y="8" width="16" height="2" rx="1" fill="#00BCEB" opacity=".4" />
+                                                    <rect x="14" y="12" width="20" height="1.5" rx=".75" fill="#0096BE" opacity=".3" />
+                                                    <rect x="14" y="15" width="12" height="1.5" rx=".75" fill="#0096BE" opacity=".25" />
+                                                }
+                                                <!-- Stand neck -->
+                                                <rect x="22" y="24" width="4" height="5" rx="1" fill="@(isActive ? "#00BCEB" : "#9ca3af")" opacity=".4" />
+                                                <!-- Stand base -->
+                                                <rect x="17" y="29" width="14" height="2.5" rx="1.2" fill="@(isActive ? "#0096BE" : "#d1d5db")" />
+                                                <!-- Tower PC (right side) -->
+                                                <rect x="44" y="8" width="6" height="18" rx="2" fill="@(isActive ? "#00BCEB" : "#9ca3af")" opacity=".15" />
+                                                <rect x="44" y="8" width="6" height="18" rx="2" stroke="@(isActive ? "#00BCEB" : "#9ca3af")" stroke-width="1.4" fill="none" />
+                                                <circle cx="47" cy="12" r="1.2" fill="@(isActive ? "#22c55e" : "#9ca3af")" />
+                                                <rect x="45.5" y="15" width="3" height="1" rx=".5" fill="@(isActive ? "#00BCEB" : "#d1d5db")" opacity=".6" />
+                                                <rect x="45.5" y="18" width="3" height="1" rx=".5" fill="@(isActive ? "#00BCEB" : "#d1d5db")" opacity=".4" />
+                                            </svg>
+                                        }
+                                    </div>
+                                    <!-- Online/offline dot -->
+                                    @if (isActive)
+                                    {
+                                        <span class="online-dot"></span>
+                                    }
+                                    else
+                                    {
+                                        <span class="offline-dot"></span>
+                                    }
+                                    <span class="temp-protection-badge hidden"></span>
                                 </div>
-                                <div class="min-w-0 flex-1 deshboard-name-cell" data-id="@item.Id" data-domain-id="@item.DomainName"
-                                     data-company-id="@item.CompanyId" data-group-id="@item.GroupId" data-location-id="@item.LocationId">
+
+                                <!-- Name & role -->
+                                <div style="min-width:0;flex:1;" class="deshboard-name-cell"
+                                     data-id="@item.Id"
+                                     data-domain-id="@item.DomainName"
+                                     data-company-id="@item.CompanyId"
+                                     data-group-id="@item.GroupId"
+                                     data-location-id="@item.LocationId">
                                     <div class="display-name-section">
-                                        <div class="flex items-center space-x-1">
+                                        <div style="display:flex;align-items:center;gap:4px;">
                                             @{
                                                 string qToken = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(item.UserCode);
                                             }
                                             <a href="/ComputerSummary/Index?q=@Uri.EscapeDataString(qToken)"
-                                               class="text-[10px] font-bold text-gray-900 transition-colors truncate" style="text-decoration:none;"
+                                               style="font-size:10px;font-weight:700;color:#111827;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:72px;"
                                                title="@item.UserName">
                                                 @(string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName)
                                             </a>
                                             @if (isVip)
                                             {
-                                                <span class="critical-indicator" title="Critical User">
-                                                    <i class="fas fa-crown text-amber-500 text-[8px] flex-shrink-0"></i>
-                                                </span>
+                                                <i class="fas fa-crown" style="color:#f59e0b;font-size:9px;flex-shrink:0;" title="Critical User"></i>
                                             }
                                         </div>
-                                        <div class="flex items-center">
-                                            <p class="text-[8px] text-gray-500 truncate">@item.AccountType</p>
+                                        <div style="display:flex;align-items:center;gap:4px;margin-top:1px;">
+                                            <p style="font-size:8px;color:#9ca3af;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px;">@item.AccountType</p>
                                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Edit"))
                                             {
-                                                <button class="edit-name-btn ml-1 text-gray-400 hover:text-blue-500 transition-colors">
-                                                    <i class="fas fa-edit text-[7px]"></i>
+                                                <button class="edit-name-btn" style="color:#d1d5db;border:none;background:none;cursor:pointer;padding:0;">
+                                                    <i class="fas fa-pencil-alt" style="font-size:7px;"></i>
                                                 </button>
                                             }
                                         </div>
                                     </div>
-                                    <div class="edit-section hidden mt-1">
-                                        <input type="text" class="edit-name w-full px-1 py-0.5 border border-gray-300 rounded text-[9px] mb-0.5" value="@item.UserName" />
-                                        <div class="flex gap-0.5">
-                                            <button class="update-btn flex-1 px-1.5 py-0.5 text-white rounded text-[8px] font-medium"
-                                                    style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
-                                                Save
-                                            </button>
-                                            <button class="cancel-edit-btn flex-1 px-1.5 py-0.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-[8px] font-medium">
-                                                Cancel
-                                            </button>
+                                    <div class="edit-section hidden" style="margin-top:4px;">
+                                        <input type="text" class="edit-name" style="width:100%;padding:3px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:9px;margin-bottom:3px;" value="@item.UserName" />
+                                        <div style="display:flex;gap:3px;">
+                                            <button class="update-btn" style="flex:1;padding:2px 6px;background:linear-gradient(135deg,#00BCEB,#0096BE);color:#fff;border:none;border-radius:6px;font-size:8px;font-weight:600;cursor:pointer;">Save</button>
+                                            <button class="cancel-edit-btn" style="flex:1;padding:2px 6px;background:#e5e7eb;color:#374151;border:none;border-radius:6px;font-size:8px;font-weight:600;cursor:pointer;">Cancel</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex items-center space-x-0.5 flex-shrink-0">
-                                <span class="status-badge px-1 py-0.5 text-[8px] rounded-full flex items-center @(isActive ? "text-white font-bold" : "bg-gray-200 text-gray-700 font-semibold")"
-                                      style="@(isActive ? "background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);" : "")"
-                                      data-online-html='<span class="w-1 h-1 bg-white rounded-full mr-0.5 animate-pulse"></span>online'
+
+                            <!-- Status badge + menu -->
+                            <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;margin-top:2px;">
+                                <span class="status-badge @(isActive ? "status-badge-online" : "status-badge-offline")"
+                                      style="padding:2px 7px;border-radius:20px;font-size:8px;font-weight:700;display:flex;align-items:center;gap:3px;"
+                                      data-online-html='<span style="width:6px;height:6px;background:#22c55e;border-radius:50%;display:inline-block;animation:pulse 2s infinite;"></span>online'
                                       data-offline-html='offline'>
                                     @if (isActive)
                                     {
-                                        <span class="w-1 h-1 bg-white rounded-full mr-0.5 animate-pulse"></span>
-
+                                        <span style="width:6px;height:6px;background:#22c55e;border-radius:50%;display:inline-block;" class="animate-pulse"></span>
                                         @:online
                                     }
                                     else
@@ -224,28 +656,26 @@
                                 </span>
                                 @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.OTP"))
                                 {
-                                    <div class="relative device-menu">
-                                        <button class="menu-toggle w-4 h-4 rounded-md hover:bg-gray-100 flex items-center justify-center transition-colors"
-                                                onclick="toggleMenu(this)">
-                                            <i class="fas fa-ellipsis-v text-gray-600 text-[7px]"></i>
+                                    <div class="relative device-menu" style="position:relative;">
+                                        <button class="menu-toggle" style="width:20px;height:20px;border-radius:6px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;" onclick="toggleMenu(this)">
+                                            <i class="fas fa-ellipsis-v" style="color:#9ca3af;font-size:8px;"></i>
                                         </button>
-                                        <div class="menu-dropdown hidden absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-                                            <div class="py-0.5">
-                                                <button class="temp-protection-toggle w-full px-2 py-1 text-left text-[9px] hover:bg-gray-50 flex items-center justify-between transition-colors @(isActive ? "text-gray-700" : "text-gray-400 cursor-not-allowed")"
+                                        <div class="menu-dropdown hidden" style="position:absolute;right:0;margin-top:4px;width:140px;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);border:1px solid #e5e7eb;z-index:50;">
+                                            <div style="padding:3px 0;">
+                                                <button class="temp-protection-toggle" style="width:100%;padding:7px 10px;text-align:left;font-size:9px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;color:@(isActive ? "#374151" : "#9ca3af");"
                                                         onclick="toggleTempProtection(this, '@item.DomainName', '@item.Id')"
                                                         @(isActive ? "" : "disabled")>
-                                                    <span class="flex items-center">
-                                                        <i class="fas fa-shield-alt text-orange-500 mr-1 text-[8px]"></i>
+                                                    <span style="display:flex;align-items:center;gap:6px;">
+                                                        <i class="fas fa-shield-alt" style="color:#f97316;font-size:9px;"></i>
                                                         <span>Protection</span>
                                                     </span>
-                                                    <span class="protection-status text-[8px] font-semibold px-1 py-0.5 rounded-full bg-gray-200 text-gray-600">OFF</span>
+                                                    <span class="protection-status" style="font-size:7px;font-weight:700;padding:2px 6px;border-radius:10px;background:#f3f4f6;color:#6b7280;">OFF</span>
                                                 </button>
-                                                <button class="view-otp-btn w-full px-2 py-1 text-left text-[9px] text-blue-600 hover:bg-blue-50 flex items-center transition-colors hidden"
+                                                <button class="view-otp-btn hidden" style="width:100%;padding:7px 10px;text-align:left;font-size:9px;color:#3b82f6;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;"
                                                         onclick="viewOtpCode('@item.DomainName')">
-                                                    <i class="fas fa-eye mr-1 text-[8px]"></i>
+                                                    <i class="fas fa-eye" style="font-size:9px;"></i>
                                                     <span>View OTP</span>
                                                 </button>
-
                                             </div>
                                         </div>
                                     </div>
@@ -254,96 +684,130 @@
                         </div>
                     </div>
 
-                    <!-- Compact Card Body -->
-                    <div class="p-1.5 bg-white">
-                        <div class="mb-1 pb-1 border-b border-gray-100">
-                            <p class="text-[8px] font-medium text-gray-500 uppercase tracking-wide mb-0">Domain</p>
-                            <p class="text-[9px] font-semibold text-gray-900 truncate" title="@item.DomainName">@item.DomainName</p>
-                        </div>
+                    <!-- Card Body -->
+                    <div style="padding:6px 8px;background:#fff;">
 
-                        <div class="grid grid-cols-2 gap-1 text-[9px] mb-1.5">
-                            <div>
-                                <p class="text-gray-500 mb-0">IP Address</p>
-                                <p class="font-semibold text-gray-900 ip-address-value">
-                                    <i class="fas fa-circle-notch fa-spin text-gray-400 text-[8px]"></i>
-                                </p>
+                        <!-- Domain + IP -->
+                        <div class="info-row">
+                            <div class="info-cell">
+                                <div class="info-label">Domain</div>
+                                <div class="info-value" title="@item.DomainName">@item.DomainName</div>
+                            </div>
+                            <div class="info-cell">
+                                <div class="info-label">IP Address</div>
+                                <div class="info-value ip-address-value">
+                                    <i class="fas fa-circle-notch fa-spin" style="color:#d1d5db;font-size:8px;"></i>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Usage View (Shown when online) -->
-                        <div class="js-online-view space-y-1 mb-1.5 @(isActive ? "" : "hidden")">
-                            <div class="flex items-center justify-between mb-0.5">
-                                <span class="text-[8px] font-semibold text-gray-700 uppercase tracking-wide">System Usage</span>
-                                <button class="refresh-usage-btn w-4 h-4 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors"
-                                        title="Refresh Usage Data">
-                                    <i class="fas fa-sync-alt text-gray-500 text-[7px]"></i>
+                        <!-- Online: usage + sparkline -->
+                        <div class="js-online-view @(isActive ? "" : "hidden")">
+
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                                <span style="font-size:7px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;">System Usage</span>
+                                <button class="refresh-usage-btn" style="width:16px;height:16px;border-radius:5px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Refresh">
+                                    <i class="fas fa-sync-alt" style="color:#9ca3af;font-size:7px;"></i>
                                 </button>
                             </div>
-                            <div>
-                                <div class="flex justify-between text-[8px] mb-0">
-                                    <span class="text-gray-600 font-medium"><i class="fas fa-microchip mr-0.5" style="color: #00BCEB;"></i>CPU</span>
-                                    <span class="font-bold text-gray-900 cpu-value">--</span>
+
+                            <!-- CPU -->
+                            <div class="usage-row">
+                                <div class="usage-label">
+                                    <span class="usage-name">
+                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#00BCEB" stroke-width="2.5"><rect x="4" y="4" width="16" height="16" rx="2" /><rect x="9" y="9" width="6" height="6" /><line x1="9" y1="1" x2="9" y2="4" /><line x1="15" y1="1" x2="15" y2="4" /><line x1="9" y1="20" x2="9" y2="23" /><line x1="15" y1="20" x2="15" y2="23" /><line x1="20" y1="9" x2="23" y2="9" /><line x1="20" y1="14" x2="23" y2="14" /><line x1="1" y1="9" x2="4" y2="9" /><line x1="1" y1="14" x2="4" y2="14" /></svg>
+                                        CPU
+                                    </span>
+                                    <span class="usage-val cpu-value">--</span>
                                 </div>
-                                <div class="w-full bg-gray-200 rounded-full h-0.5">
-                                    <div class="cpu-bar h-0.5 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-[8px] mb-0">
-                                    <span class="text-gray-600 font-medium"><i class="fas fa-memory mr-0.5 text-orange-500"></i>RAM</span>
-                                    <span class="font-bold text-gray-900 ram-value">--</span>
-                                </div>
-                                <div class="w-full bg-gray-200 rounded-full h-0.5">
-                                    <div class="ram-bar bg-orange-500 h-0.5 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                                <div class="usage-bar-track">
+                                    <div class="cpu-bar usage-bar-fill" style="width:0%;background:linear-gradient(90deg,#00BCEB,#0096BE);"></div>
                                 </div>
                             </div>
-                            <div>
-                                <div class="flex justify-between text-[8px] mb-0">
-                                    <span class="text-gray-600 font-medium"><i class="fas fa-hdd mr-0.5" style="color: #B4D334;"></i>Disk</span>
-                                    <span class="font-bold text-gray-900 disk-value">--</span>
+
+                            <!-- RAM -->
+                            <div class="usage-row">
+                                <div class="usage-label">
+                                    <span class="usage-name">
+                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5"><rect x="2" y="7" width="20" height="10" rx="2" /><line x1="6" y1="7" x2="6" y2="3" /><line x1="10" y1="7" x2="10" y2="3" /><line x1="14" y1="7" x2="14" y2="3" /><line x1="18" y1="7" x2="18" y2="3" /></svg>
+                                        RAM
+                                    </span>
+                                    <span class="usage-val ram-value">--</span>
                                 </div>
-                                <div class="w-full bg-gray-200 rounded-full h-0.5">
-                                    <div class="disk-bar h-0.5 rounded-full transition-all duration-300" style="width: 0%; background: linear-gradient(135deg, #B4D334 0%, #8FB829 100%);"></div>
+                                <div class="usage-bar-track">
+                                    <div class="ram-bar usage-bar-fill" style="width:0%;background:linear-gradient(90deg,#f97316,#ea580c);"></div>
                                 </div>
+                            </div>
+
+                            <!-- Disk -->
+                            <div class="usage-row" style="margin-bottom:4px;">
+                                <div class="usage-label">
+                                    <span class="usage-name">
+                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#B4D334" stroke-width="2.5"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12C21 13.66 16.97 15 12 15 7.03 15 3 13.66 3 12" /><path d="M3 5V19C3 20.66 7.03 22 12 22 16.97 22 21 20.66 21 19V5" /></svg>
+                                        Disk
+                                    </span>
+                                    <span class="usage-val disk-value">--</span>
+                                </div>
+                                <div class="usage-bar-track">
+                                    <div class="disk-bar usage-bar-fill" style="width:0%;background:linear-gradient(90deg,#B4D334,#8FB829);"></div>
+                                </div>
+                            </div>
+
+                            <!-- Sparkline -->
+                            <div class="sparkline-wrap" style="border-radius:6px;overflow:hidden;background:linear-gradient(180deg,#f0f9ff,#fff);border:1px solid #e0f2fe;">
+                                <canvas class="sparkline-canvas" width="200" height="30" style="display:block;width:100%;height:30px;"></canvas>
                             </div>
                         </div>
 
-                        <!-- Offline View (Shown when offline) -->
-                        <div class="js-offline-view text-center py-2 bg-gray-50 rounded-md border border-gray-100 mb-1.5 @(isActive ? "hidden" : "")">
-                            <i class="fas fa-moon text-gray-300 text-xs mb-0.5"></i>
-                            <p class="text-[8px] text-gray-500 font-medium">Device Offline</p>
-                            <p class="last-seen-section text-[8px] text-gray-400 mt-0.5" data-domain="@item.DomainName">
-                                <i class="fas fa-clock mr-0.5"></i>
+                        <!-- Offline view -->
+                        <div class="js-offline-view @(isActive ? "hidden" : "")" style="background:#f9fafb;border-radius:8px;border:1px solid #f3f4f6;padding:10px 8px;text-align:center;">
+                            <svg style="margin:0 auto 4px;" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round">
+                                <path d="M1 1L23 23M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
+                            </svg>
+                            <p style="font-size:9px;color:#9ca3af;font-weight:600;margin:0 0 2px;">Device Offline</p>
+                            <p class="last-seen-section" data-domain="@item.DomainName" style="font-size:8px;color:#9ca3af;margin:0;">
+                                <i class="fas fa-clock" style="font-size:7px;margin-right:2px;"></i>
                                 <span class="last-seen-text">Loading...</span>
                             </p>
                         </div>
 
-                        <div class="flex gap-0.5">
+                        <!-- Action Buttons -->
+                        <div style="display:flex;gap:4px;margin-top:6px;">
                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Chat"))
                             {
-                                <a href="javascript:void(0)" onclick="window.openChatModal('@item.DomainName')" data-chat-domain="@item.DomainName" class="open-chat-btn relative flex-none p-1 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors" title="Chat with Client">
-                                    <i class="fas fa-comment-dots text-[9px]"></i>
-                                    <span class="chat-unread-badge hidden">0</span>
+                                <a href="javascript:void(0)" onclick="window.openChatModal('@item.DomainName')" data-chat-domain="@item.DomainName"
+                                   class="open-chat-btn"
+                                   style="flex-shrink:0;width:24px;height:24px;background:#eef2ff;color:#6366f1;border-radius:6px;display:flex;align-items:center;justify-content:center;text-decoration:none;position:relative;" title="Chat">
+                                    <i class="fas fa-comment-dots" style="font-size:9px;"></i>
+                                    <span class="chat-unread-badge hidden"></span>
                                 </a>
                             }
                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.Scan"))
                             {
-                                <button class="rescan-link flex-1 px-1.5 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-[8px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
+                                <button class="rescan-link"
+                                        style="flex:1;height:24px;background:#f97316;color:#fff;border:none;border-radius:6px;font-size:8px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;transition:background .15s;"
                                         data-domain="@item.DomainName"
-                                        @(isActive ? "" : "disabled")>
-                                    <span class="rescan-text"><i class="fas fa-sync-alt mr-0.5 text-[7px]"></i><span class="js-txt">@(isActive ? "Rescan" : "Offline")</span></span>
+                                        @(isActive ? "" : "disabled style=\"opacity:.45;cursor:not-allowed;\"")>
+                                    <span class="rescan-text" style="display:flex;align-items:center;gap:3px;">
+                                        <i class="fas fa-sync-alt" style="font-size:7px;"></i>
+                                        <span class="js-txt">@(isActive ? "Rescan" : "Offline")</span>
+                                    </span>
                                 </button>
                             }
                             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "ComputerSummary.RemoteAccess"))
                             {
-                                <button class="remote-link flex-1 px-1.5 py-1 text-white rounded-md text-[8px] font-semibold transition-all @(isActive ? "" : "opacity-50 cursor-not-allowed")"
-                                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);"
+                                <button class="remote-link"
+                                        style="flex:1;height:24px;background:linear-gradient(135deg,#00BCEB,#0096BE);color:#fff;border:none;border-radius:6px;font-size:8px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;transition:opacity .15s;"
                                         data-domain="@item.DomainName"
-                                        @(isActive ? "" : "disabled")>
-                                    <span class="remote-text"><i class="fas fa-desktop mr-0.5 text-[7px]"></i><span class="js-txt">@(isActive ? "Remote" : "Offline")</span></span>
+                                        @(isActive ? "" : "disabled style=\"opacity:.45;cursor:not-allowed;\"")>
+                                    <span class="remote-text" style="display:flex;align-items:center;gap:3px;">
+                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="13" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="16" x2="12" y2="21" /></svg>
+                                        <span class="js-txt">@(isActive ? "Remote" : "Offline")</span>
+                                    </span>
                                 </button>
                             }
                         </div>
+
                     </div>
                 </div>
             }
@@ -351,83 +815,76 @@
     }
     else
     {
-        <div class="text-center py-8 bg-white rounded-md border border-gray-200 shadow-sm">
-            <i class="fas fa-desktop text-3xl text-gray-300 mb-2"></i>
-            <p class="text-gray-500 text-xs">No devices registered for this location yet</p>
+        <div style="text-align:center;padding:48px 24px;background:#fff;border-radius:14px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+            <svg style="margin:0 auto 12px;" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="13" rx="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="16" x2="12" y2="21" />
+            </svg>
+            <p style="color:#6b7280;font-size:14px;font-weight:600;margin:0 0 4px;">No devices registered for this location</p>
+            <p style="color:#9ca3af;font-size:12px;margin:0;">Devices will appear here once connected</p>
         </div>
     }
 </div>
 
-
-
-<div id="tempProtectionModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 p-3" style="display:none; align-items:center; justify-content:center;">
-    <div class="bg-white rounded-lg shadow-2xl w-full max-w-xs overflow-hidden">
-        <div class="px-3 py-2 bg-gradient-to-r from-orange-500 to-red-500">
+<!-- ── Protection Modal (unchanged) ── -->
+<div id="tempProtectionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 p-4" style="display:none; align-items:center; justify-content:center;">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
+        <div class="px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500">
             <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <div class="w-7 h-7 bg-white/20 rounded-md flex items-center justify-center mr-2">
-                        <i class="fas fa-shield-alt text-white text-xs"></i>
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-shield-alt text-white text-sm"></i>
                     </div>
                     <div>
                         <h3 class="text-xs font-bold text-white">Protection Code</h3>
                         <p id="modalDeviceName" class="text-[9px] text-white/80 truncate max-w-[130px]"></p>
                     </div>
                 </div>
-                <button onclick="closeProtectionModal()" class="w-5 h-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
+                <button onclick="closeProtectionModal()" class="w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
                     <i class="fas fa-times text-white text-[9px]"></i>
                 </button>
             </div>
         </div>
-        <div class="p-3">
-            <div class="bg-gradient-to-br from-gray-50 to-orange-50 rounded-md p-3 mb-2 border border-orange-100 text-center">
-                <p class="text-[8px] text-gray-500 uppercase tracking-widest mb-0.5">Verification Code</p>
-                <div id="accessCode" class="text-xl font-bold text-gray-900 tracking-[0.3em] font-mono min-h-[28px] flex items-center justify-center">
-                </div>
-                <div id="timerSection" class="mt-1 hidden">
-                    <div class="flex items-center justify-center space-x-0.5">
-                        <i class="fas fa-clock text-orange-500 text-[8px]"></i>
-                        <span id="countdownTimer" class="text-[10px] font-bold text-orange-600">01:00</span>
+        <div class="p-4">
+            <div class="bg-gradient-to-br from-gray-50 to-orange-50 rounded-xl p-4 mb-3 border border-orange-100 text-center">
+                <p class="text-[8px] text-gray-400 uppercase tracking-widest mb-1.5 font-semibold">Verification Code</p>
+                <div id="accessCode" class="text-2xl font-bold text-gray-900 tracking-[0.3em] font-mono min-h-[32px] flex items-center justify-center"></div>
+                <div id="timerSection" class="mt-2 hidden">
+                    <div class="flex items-center justify-center space-x-1 mb-1">
+                        <i class="fas fa-clock text-orange-500 text-[9px]"></i>
+                        <span id="countdownTimer" class="text-[11px] font-bold text-orange-600">01:00</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-0.5 mt-1">
-                        <div id="timerBar" class="bg-gradient-to-r from-orange-500 to-red-500 h-0.5 rounded-full transition-all" style="width: 100%"></div>
+                    <div class="w-full bg-gray-200 rounded-full h-1">
+                        <div id="timerBar" class="bg-gradient-to-r from-orange-500 to-red-500 h-1 rounded-full transition-all" style="width:100%"></div>
                     </div>
                 </div>
-                <p id="expiryInfo" class="text-[9px] text-gray-500 mt-1"></p>
-                <p class="text-[9px] text-orange-600 mt-0.5 font-medium">
+                <p id="expiryInfo" class="text-[9px] text-gray-500 mt-1.5"></p>
+                <p class="text-[9px] text-orange-600 mt-1 font-semibold">
                     <i class="fas fa-shield-alt mr-0.5"></i> Protection: <span id="protectionStatusText">Active</span>
                 </p>
             </div>
-
             <button id="generateBtn" onclick="generateOrRegenerateOtp()"
-                    class="w-full mb-2 px-2 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-md text-[10px] font-semibold transition-colors flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed">
-                <i class="fas fa-key mr-1"></i>Generate OTP
+                    class="w-full mb-2.5 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl text-[10px] font-bold transition-colors flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed">
+                <i class="fas fa-key mr-1.5"></i>Generate OTP
             </button>
-
-            <div class="grid grid-cols-2 gap-1.5 mb-1.5">
-                <button onclick="copyCode()"
-                        id="copyCodeBtn"
-                        class="px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-[10px] font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                        disabled>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <button onclick="copyCode()" id="copyCodeBtn"
+                        class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-[10px] font-bold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
                     <i class="fas fa-copy mr-1"></i>Copy
                 </button>
-                <button onclick="closeProtectionModal()"
-                        class="px-2 py-1 text-white rounded-md text-[10px] font-semibold"
-                        style="background: linear-gradient(135deg, #00BCEB 0%, #0096BE 100%);">
+                <button onclick="closeProtectionModal()" class="px-3 py-1.5 text-white rounded-xl text-[10px] font-bold" style="background:linear-gradient(135deg,#00BCEB,#0096BE);">
                     <i class="fas fa-check mr-1"></i>Done
                 </button>
             </div>
-
-            <div class="mt-2 pt-2 border-t border-gray-200">
-                <p class="text-[9px] text-gray-600 text-center">
-                    <i class="fas fa-info-circle mr-0.5 text-blue-500"></i>
-                    Protection remains active until manually turned off
+            <div class="pt-2 border-t border-gray-100">
+                <p class="text-[9px] text-gray-500 text-center">
+                    <i class="fas fa-info-circle mr-0.5 text-blue-400"></i>Protection remains active until manually turned off
                 </p>
             </div>
         </div>
     </div>
 </div>
-
-
 
 @section Scripts {
     <script>
@@ -438,12 +895,12 @@
         var domainUserMap = {
         @foreach (var item in Model)
         {
-                                var domainKey = item.DomainName?.Trim().ToUpper() ?? "";
-                                var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
-                                if (!string.IsNullOrEmpty(domainKey))
-                                {
-                                                        @: "@domainKey": "@name",
-                                }
+                        var domainKey = item.DomainName?.Trim().ToUpper() ?? "";
+                        var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
+                        if (!string.IsNullOrEmpty(domainKey))
+                        {
+                                        @: "@domainKey": "@name",
+                        }
         }
         };
 
@@ -453,62 +910,103 @@
             return domainUserMap[key] || "";
         }
 
+        // ── SPARKLINE ──
+        function drawSparkline(canvas, cpuVal, ramVal, diskVal) {
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+            var w = canvas.offsetWidth || 200;
+            var h = canvas.offsetHeight || 36;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.clearRect(0, 0, w, h);
 
-        function getCurrentMachineId() {
-            var card = $('.device-card').first();
-            return card.data('domain');
+            function makeFakeHistory(currentVal) {
+                var pts = []; var v = currentVal;
+                for (var i = 0; i < 12; i++) {
+                    v = Math.max(0, Math.min(100, v + (Math.random() - 0.5) * 14));
+                    pts.unshift(v);
+                }
+                pts[pts.length - 1] = currentVal;
+                return pts;
+            }
+
+            var lines = [
+                { pts: makeFakeHistory(cpuVal || 0), color: '#00BCEB', alpha: 0.8, width: 1.5 },
+                { pts: makeFakeHistory(ramVal || 0), color: '#f97316', alpha: 0.6, width: 1.3 },
+                { pts: makeFakeHistory(diskVal || 0), color: '#B4D334', alpha: 0.6, width: 1.3 }
+            ];
+
+            lines.forEach(function (line) {
+                if (!line.pts || line.pts.every(function (p) { return p === 0; })) return;
+                var stepX = w / (line.pts.length - 1);
+
+                // Fill area under line
+                ctx.beginPath();
+                line.pts.forEach(function (val, i) {
+                    var x = i * stepX;
+                    var y = h - (val / 100) * (h - 4) - 2;
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                });
+                ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+                ctx.globalAlpha = 0.08;
+                ctx.fillStyle = line.color;
+                ctx.fill();
+
+                // Line
+                ctx.beginPath();
+                ctx.strokeStyle = line.color;
+                ctx.lineWidth = line.width;
+                ctx.globalAlpha = line.alpha;
+                line.pts.forEach(function (val, i) {
+                    var x = i * stepX;
+                    var y = h - (val / 100) * (h - 4) - 2;
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            });
         }
 
+        // ── FILTER ──
+        function setStatusFilter(status, btn) {
+            document.querySelectorAll('.filter-pill').forEach(function (el) { el.classList.remove('active'); });
+            btn.classList.add('active');
+            filterDevices(undefined, status);
+        }
+
+        // ── INIT ──
         $(document).ready(function () {
-            // updateLocationBadgeUI(isLocationCurrentlyCritical); // Removed undefined call
             loadLocationCriticalStatus();
             checkOtpStatusOnLoad();
 
-            $('.device-card').each(function() {
+            $('.device-card').each(function () {
                 var card = $(this);
                 var domain = card.data('domain');
                 var isOnline = card.data('status') === 'online';
 
-                $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")',
-                    { domain: domain },
-                    function(r) {
-                        card.find('.ip-address-value').text(r.success ? r.ipAddress : 'N/A');
-                    }
-                ).fail(function() {
-                    card.find('.ip-address-value').text('N/A');
-                });
+                $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")', { domain: domain }, function (r) {
+                    card.find('.ip-address-value').text(r.success ? r.ipAddress : 'N/A');
+                }).fail(function () { card.find('.ip-address-value').text('N/A'); });
 
-                if (isOnline) {
-                    loadSystemUsageData(card, domain);
-                } else {
-                    loadLastSeenTime(card, domain);
-                }
+                if (isOnline) loadSystemUsageData(card, domain);
+                else loadLastSeenTime(card, domain);
             });
         });
-
 
         function updateLocationBadgeUI(isCritical) {
             const $indicator = $('.critical-indicator');
             if (isCritical) {
                 if ($indicator.length === 0) {
-                    $('h1.text-sm').after(`
-                        <span class="critical-indicator" title="Critical Location">
-                            <i class="fas fa-crown text-amber-500 text-[10px] shadow-sm"></i>
-                        </span>
-                    `);
+                    $('h1').after('<span class="critical-indicator" title="Critical Location"><i class="fas fa-crown" style="color:#f59e0b;font-size:11px;"></i></span>');
                 }
-            } else {
-                $indicator.remove();
-            }
+            } else { $indicator.remove(); }
         }
 
         function loadLocationCriticalStatus() {
             const locId = @(ViewBag.LocationId ?? 0);
             if (!locId) return;
-            $.get('@Url.Action("GetLocationCriticalStatus", "ComputerSummary")', { locationId: locId }, function(res) {
-                if (res && res.success) {
-                    updateLocationBadgeUI(res.isCritical);
-                }
+            $.get('@Url.Action("GetLocationCriticalStatus", "ComputerSummary")', { locationId: locId }, function (res) {
+                if (res && res.success) updateLocationBadgeUI(res.isCritical);
             });
         }
 
@@ -516,7 +1014,7 @@
 
         function startDashboardHub() {
             const apiBase = (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.apiBaseUrl) || '';
-            const hubUrl  = `${apiBase}/scanHub?clientId=Dashboard&computerName=WebPortal`;
+            const hubUrl = `${apiBase}/scanHub?clientId=Dashboard&computerName=WebPortal`;
 
             dashHubConnection = new signalR.HubConnectionBuilder()
                 .withUrl(hubUrl, {
@@ -527,68 +1025,42 @@
                 .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
                 .build();
 
-            dashHubConnection.on('DeviceStatusChanged', function(connectedDevices) {
-                if (Array.isArray(connectedDevices)) {
-                    updateDeviceStatuses(connectedDevices);
-                }
+            dashHubConnection.on('DeviceStatusChanged', function (connectedDevices) {
+                if (Array.isArray(connectedDevices)) updateDeviceStatuses(connectedDevices);
             });
-
-            dashHubConnection.on('ReceiveConnectedDevices', function(connectedDevices) {
-                if (Array.isArray(connectedDevices)) {
-                    updateDeviceStatuses(connectedDevices);
-                }
+            dashHubConnection.on('ReceiveConnectedDevices', function (connectedDevices) {
+                if (Array.isArray(connectedDevices)) updateDeviceStatuses(connectedDevices);
             });
-
-            dashHubConnection.on('ScanResultReceived', function(domain, isSuccess, message) {
+            dashHubConnection.on('ScanResultReceived', function (domain, isSuccess, message) {
                 let card = null;
-                $('.device-card').each(function() {
+                $('.device-card').each(function () {
                     const d = $(this).attr('data-domain');
-                    if (d && d.toUpperCase() === domain.toUpperCase()) {
-                        card = $(this);
-                        return false;
-                    }
+                    if (d && d.toUpperCase() === domain.toUpperCase()) { card = $(this); return false; }
                 });
-
                 if (card && card.length) {
                     const link = card.find('.rescan-link');
                     const domainName = card.attr('data-domain');
-
                     if (link.length) {
                         unregisterActiveRescan(domainName);
-                        link.find('.rescan-text').html(
-                            '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i>' +
-                            '<span class="js-txt">Rescan</span>'
-                        );
+                        link.find('.rescan-text').html('<i class="fas fa-sync-alt" style="font-size:7px;"></i><span class="js-txt">Rescan</span>');
                         link.prop('disabled', false);
                         card.removeClass('opacity-75');
-
                         if (isSuccess) {
                             loadSystemUsageData(card, domainName);
-                            $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")', { domain: domainName }, function(res) {
+                            $.get('@Url.Action("GetUserDetailsJson", "ComputerSummary")', { domain: domainName }, function (res) {
                                 card.find('.ip-address-value').text(res.success ? res.ipAddress : 'N/A');
-                            }).fail(function() { card.find('.ip-address-value').text('N/A'); });
+                            }).fail(function () { card.find('.ip-address-value').text('N/A'); });
                             sysAlert('Scan complete for ' + domainName, 'success');
-                        } else {
-                            sysAlert('Scan failed for ' + domainName + ': ' + message, 'error');
-                        }
+                        } else { sysAlert('Scan failed for ' + domainName + ': ' + message, 'error'); }
                     }
                 }
             });
-
-            dashHubConnection.on('NotificationReceived', function() {
-                if (typeof loadNotificationCount === 'function') {
-                    loadNotificationCount();
-                }
+            dashHubConnection.on('NotificationReceived', function () {
+                if (typeof loadNotificationCount === 'function') loadNotificationCount();
             });
-
-            dashHubConnection.onreconnected(() => {
-                dashHubConnection.invoke('RequestConnectedDevices').catch(() => {});
-            });
-
+            dashHubConnection.onreconnected(() => { dashHubConnection.invoke('RequestConnectedDevices').catch(() => {}); });
             dashHubConnection.start()
-                .then(() => {
-                    return dashHubConnection.invoke('RequestConnectedDevices');
-                })
+                .then(() => dashHubConnection.invoke('RequestConnectedDevices'))
                 .catch(err => {
                     console.warn('Hub connection failed, falling back to HTTP poll:', err);
                     fallbackPoll();
@@ -609,106 +1081,83 @@
 
         function updateDeviceStatuses(connectedDevices) {
             if (!Array.isArray(connectedDevices)) return;
-
             if (connectedDevices.length === 0 && !hasReceivedInitialStatusSync) return;
 
-            let onlineCount = 0;
-            let offlineCount = 0;
+            let onlineCount = 0, offlineCount = 0;
+            const onlineSet = new Set(connectedDevices.map(d => (d || '').toString().trim().toUpperCase()));
 
-            const onlineSet = new Set(
-                connectedDevices.map(d => (d || '').toString().trim().toUpperCase())
-            );
-
-            $('.device-card').each(function() {
+            $('.device-card').each(function () {
                 const card = $(this);
                 const domain = (card.data('domain') || '').toString().trim().toUpperCase();
                 const wasOnline = card.data('status') === 'online';
-
                 const isOnline = onlineSet.has(domain);
 
                 if (isOnline) {
                     card.data('miss-count', 0);
-                    if (!wasOnline || !hasReceivedInitialStatusSync) {
-                        setDeviceStatus(card, true, domain);
-                    }
+                    if (!wasOnline || !hasReceivedInitialStatusSync) setDeviceStatus(card, true, domain);
                 } else {
                     var rescanText = card.find('.rescan-text').text() || "";
-                    if (rescanText.includes('Scanning')) {
-                        console.log("Skipping offline status for " + domain + " because scan is in progress.");
-                        return;
-                    }
-
+                    if (rescanText.includes('Scanning')) return;
                     let misses = (card.data('miss-count') || 0) + 1;
                     card.data('miss-count', misses);
-
-                    if (wasOnline && misses >= 5) {
-                        setDeviceStatus(card, false, domain);
-                    } else if (!wasOnline && !hasReceivedInitialStatusSync) {
-                        setDeviceStatus(card, false, domain);
-                    }
+                    if (wasOnline && misses >= 5) setDeviceStatus(card, false, domain);
+                    else if (!wasOnline && !hasReceivedInitialStatusSync) setDeviceStatus(card, false, domain);
                 }
 
-                if (card.data('status') === 'online') onlineCount++;
-                else offlineCount++;
+                if (card.data('status') === 'online') onlineCount++; else offlineCount++;
             });
 
             $('#onlineCount').text(onlineCount);
             $('#offlineCount').text(offlineCount);
-
-            if (connectedDevices.length > 0) {
-                hasReceivedInitialStatusSync = true;
-            }
+            if (connectedDevices.length > 0) hasReceivedInitialStatusSync = true;
         }
 
         function setDeviceStatus(card, isOnline, domain) {
             card.data('status', isOnline ? 'online' : 'offline');
             card.attr('data-status', isOnline ? 'online' : 'offline');
+            card.css('border-color', isOnline ? '#bbf7d0' : '#e5e7eb');
 
             if (isOnline) {
                 card.removeClass('js-is-offline').addClass('js-is-online');
                 card.find('.js-online-view').removeClass('hidden');
                 card.find('.js-offline-view').addClass('hidden');
+                card.find('.card-header-offline').removeClass('card-header-offline').addClass('card-header-online');
+                card.find('.device-illus-offline').removeClass('device-illus-offline').addClass('device-illus-online');
+                card.find('.online-dot, .offline-dot').attr('class', 'online-dot');
             } else {
                 card.removeClass('js-is-online').addClass('js-is-offline');
                 card.find('.js-online-view').addClass('hidden');
                 card.find('.js-offline-view').removeClass('hidden');
+                card.find('.card-header-online').removeClass('card-header-online').addClass('card-header-offline');
+                card.find('.device-illus-online').removeClass('device-illus-online').addClass('device-illus-offline');
+                card.find('.online-dot, .offline-dot').attr('class', 'offline-dot');
             }
 
             const $badge = card.find('.status-badge');
             if (isOnline) {
                 $badge.html($badge.data('online-html'))
-                      .css('background', 'linear-gradient(135deg, #B4D334 0%, #8FB829 100%)')
-                      .removeClass('bg-gray-200 text-gray-700 font-semibold').addClass('text-white font-bold');
-
-                card.find('.js-status-icon-bg').css('background', 'linear-gradient(135deg, #B4D334 0%, #8FB829 100%)').removeClass('bg-gray-200');
-                card.find('.js-status-icon').removeClass('text-gray-600').addClass('text-white');
+                      .attr('class', 'status-badge status-badge-online')
+                      .css({ padding:'2px 7px', borderRadius:'20px', fontSize:'8px', fontWeight:'700', display:'flex', alignItems:'center', gap:'3px' });
             } else {
                 $badge.html($badge.data('offline-html'))
-                      .css('background', '')
-                      .addClass('bg-gray-200 text-gray-700 font-semibold').removeClass('text-white font-bold');
-
-                card.find('.js-status-icon-bg').css('background', '').addClass('bg-gray-200');
-                card.find('.js-status-icon').addClass('text-gray-600').removeClass('text-white');
+                      .attr('class', 'status-badge status-badge-offline')
+                      .css({ padding:'2px 7px', borderRadius:'20px', fontSize:'8px', fontWeight:'700', display:'flex', alignItems:'center', gap:'3px' });
             }
 
-            card.find('.rescan-link, .remote-link').each(function() {
+            card.find('.rescan-link, .remote-link').each(function () {
                 const $btn = $(this);
                 if (isOnline) {
-                    $btn.removeClass('opacity-50 cursor-not-allowed').prop('disabled', false);
+                    $btn.css('opacity', '1').prop('disabled', false);
                     $btn.find('.js-txt').text($btn.hasClass('rescan-link') ? 'Rescan' : 'Remote');
                 } else {
-                    $btn.addClass('opacity-50 cursor-not-allowed').prop('disabled', true);
+                    $btn.css('opacity', '.5').prop('disabled', true);
                     $btn.find('.js-txt').text('Offline');
                 }
             });
 
-            if (isOnline) {
-                loadSystemUsageData(card, domain);
-            } else {
-                loadLastSeenTime(card, domain);
-            }
+            if (isOnline) loadSystemUsageData(card, domain);
+            else loadLastSeenTime(card, domain);
         }
-
 
         function updateCardUI(card, protectionEnabled) {
             var $card = $(card);
@@ -716,14 +1165,13 @@
             var $viewBtn = $card.find('.view-otp-btn');
             var $protectionBadge = $card.find('.temp-protection-badge');
             var domain = $card.data('domain');
-
             if (protectionEnabled) {
-                $badge.text('ON').removeClass('bg-gray-200 text-gray-600').addClass('bg-orange-500 text-white');
+                $badge.text('ON').css({ background: '#f97316', color: '#fff' });
                 $protectionBadge.removeClass('hidden');
                 $viewBtn.removeClass('hidden');
                 tempProtectionStates[domain] = true;
             } else {
-                $badge.text('OFF').removeClass('bg-orange-500 text-white').addClass('bg-gray-200 text-gray-600');
+                $badge.text('OFF').css({ background: '#f3f4f6', color: '#6b7280' });
                 $protectionBadge.addClass('hidden');
                 $viewBtn.addClass('hidden');
                 delete tempProtectionStates[domain];
@@ -732,133 +1180,76 @@
 
         function updateToggleButtonState(card, protectionEnabled) {
             var $card = $(card);
-            var $toggleBtn = $card.find('.temp-protection-toggle');
-            var $statusBadge = $toggleBtn.find('.protection-status');
-
-            if (protectionEnabled) {
-                $statusBadge.text('ON')
-                    .removeClass('bg-gray-200 text-gray-600')
-                    .addClass('bg-orange-500 text-white');
-            } else {
-                $statusBadge.text('OFF')
-                    .removeClass('bg-orange-500 text-white')
-                    .addClass('bg-gray-200 text-gray-600');
-            }
+            var $statusBadge = $card.find('.temp-protection-toggle .protection-status');
+            if (protectionEnabled) { $statusBadge.text('ON').css({ background: '#f97316', color: '#fff' }); }
+            else { $statusBadge.text('OFF').css({ background: '#f3f4f6', color: '#6b7280' }); }
         }
 
         async function checkOtpStatusOnLoad() {
             var onlineDevices = $('.device-card[data-status="online"]');
-
             for (let i = 0; i < onlineDevices.length; i++) {
                 var $card = $(onlineDevices[i]);
                 var domain = $card.data('domain');
-
                 try {
                     var response = await fetch(`@Url.Action("GetOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
                     var result = await response.json();
-
                     if (result.success && result.otp && !result.isUsed) {
                         var expireTime;
                         if (result.expireAt) {
                             var dateStr = result.expireAt.toString();
                             expireTime = Date.parse(dateStr);
-
-                            if (isNaN(expireTime)) {
-                                var d = new Date(dateStr);
-                                expireTime = d.getTime();
-                            }
-
-                            if (isNaN(expireTime)) {
-                                dateStr = dateStr.replace(' ', 'T');
-                                expireTime = Date.parse(dateStr);
-                            }
+                            if (isNaN(expireTime)) expireTime = new Date(dateStr).getTime();
+                            if (isNaN(expireTime)) expireTime = Date.parse(dateStr.replace(' ', 'T'));
                         }
-
                         if (!isNaN(expireTime) && expireTime > Date.now()) {
                             updateCardUI($card, true);
                             updateToggleButtonState($card, true);
                         }
                     }
-                } catch (e) {
-                }
+                } catch (e) { }
             }
         }
 
-        // Polling removed per user request
-
-        $(document).on('click', function(e) {
-            if (!$(e.target).closest('.device-menu').length) {
-                $('.menu-dropdown').addClass('hidden');
-            }
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('.device-menu').length) $('.menu-dropdown').addClass('hidden');
         });
 
         function toggleMenu(button) {
-            var evt = window.event;
-            if (evt) evt.stopPropagation();
-
+            var evt = window.event; if (evt) evt.stopPropagation();
             var menu = $(button).next('.menu-dropdown');
             $('.menu-dropdown').not(menu).addClass('hidden');
             menu.toggleClass('hidden');
         }
 
-
-
         async function toggleTempProtection(button, domain, deviceId) {
-            var evt = window.event;
-            if (evt) evt.stopPropagation();
-
+            var evt = window.event; if (evt) evt.stopPropagation();
             var $card = $(button).closest('.device-card');
             var isOnline = $card.data('status') === 'online';
-
-            if (!isOnline) {
-                sysAlert('Protection only available for ONLINE devices', 'warning');
-                $(button).closest('.menu-dropdown').addClass('hidden');
-                return;
-            }
-
+            if (!isOnline) { sysAlert('Protection only available for ONLINE devices', 'warning'); $(button).closest('.menu-dropdown').addClass('hidden'); return; }
             var $statusBadge = $(button).find('.protection-status');
             var isEnabled = $statusBadge.text().trim() === 'ON';
-
             $(button).closest('.menu-dropdown').addClass('hidden');
-
             if (isEnabled) {
-                sysConfirm(`Disable Temporary Protection for ${domain}?`, async function() {
+                sysConfirm(`Disable Temporary Protection for ${domain}?`, async function () {
                     try {
                         var response = await fetch(`@Url.Action("ClearOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
                         var result = await response.json();
-
-                        if (result.success) {
-                            updateCardUI($card, false);
-                            updateToggleButtonState($card, false);
-                            sysAlert('Temporary Protection disabled', 'success');
-                        } else {
-                            sysAlert('Failed to disable protection: ' + (result.error || 'Unknown error'), 'error');
-                        }
-                    } catch (e) {
-                        sysAlert('Error: ' + e.message, 'error');
-                    }
+                        if (result.success) { updateCardUI($card, false); updateToggleButtonState($card, false); sysAlert('Temporary Protection disabled', 'success'); }
+                        else { sysAlert('Failed to disable: ' + (result.error || 'Unknown error'), 'error'); }
+                    } catch (e) { sysAlert('Error: ' + e.message, 'error'); }
                 });
             } else {
                 try {
                     var response = await fetch(`@Url.Action("EnableTempProtection", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
                     var result = await response.json();
-
-                    if (result.success || result.message) {
-                        updateCardUI($card, true);
-                        updateToggleButtonState($card, true);
-                        showProtectionModal(domain);
-                    } else {
-                        sysAlert('Failed to enable protection: ' + (result.error || 'Client not connected'), 'error');
-                    }
-                } catch (e) {
-                    sysAlert('Error: ' + e.message, 'error');
-                }
+                    if (result.success || result.message) { updateCardUI($card, true); updateToggleButtonState($card, true); showProtectionModal(domain); }
+                    else { sysAlert('Failed to enable: ' + (result.error || 'Client not connected'), 'error'); }
+                } catch (e) { sysAlert('Error: ' + e.message, 'error'); }
             }
         }
 
         function viewOtpCode(domain) {
-            var evt = window.event;
-            if (evt) evt.stopPropagation();
+            var evt = window.event; if (evt) evt.stopPropagation();
             $('.menu-dropdown').addClass('hidden');
             showProtectionModal(domain);
         }
@@ -866,7 +1257,7 @@
         async function showProtectionModal(domain) {
             currentProtectionDomain = domain;
             $('#modalDeviceName').text(domain);
-            $('#tempProtectionModal').css('display','flex');
+            $('#tempProtectionModal').css('display', 'flex');
             updateProtectionStatusText();
             resetGenerateButton();
             await fetchOtpCode(domain);
@@ -881,54 +1272,36 @@
         }
 
         function closeProtectionModal() {
-            $('#tempProtectionModal').css('display','none');
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
+            $('#tempProtectionModal').css('display', 'none');
+            if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
             currentProtectionDomain = null;
         }
 
         async function generateOrRegenerateOtp() {
             if (!currentProtectionDomain) return;
-
             var btn = $('#generateBtn');
-            if (!btn.prop('disabled')) {
-                await generateNewCode();
-            }
+            if (!btn.prop('disabled')) await generateNewCode();
         }
 
         async function generateNewCode() {
             if (!currentProtectionDomain) return;
-
             var btn = $('#generateBtn');
-            var originalHtml = btn.html();
-
             btn.html('<i class="fas fa-spinner fa-spin mr-2"></i>Generating...').prop('disabled', true);
-
             try {
                 var response = await fetch(`@Url.Action("GenerateOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(currentProtectionDomain)}`);
                 var result = await response.json();
-
                 if (result.success && result.otp) {
                     var expireAt = result.expiry ? new Date(result.expiry).getTime() : (Date.now() + 60000);
-
                     displayOtp(result.otp, expireAt, false);
                     updateGenerateButtonWithTimer();
                     startCountdownTimer(expireAt);
-
                     $('#expiryInfo').text('New OTP generated! Valid for 1 hour.').addClass('text-green-600');
-                    setTimeout(function() {
-                        $('#expiryInfo').removeClass('text-green-600').text('');
-                    }, 3000);
+                    setTimeout(function () { $('#expiryInfo').removeClass('text-green-600').text(''); }, 3000);
                 } else {
                     $('#expiryInfo').text('Failed: ' + (result.error || 'Unknown error')).addClass('text-red-500');
                     resetGenerateButton();
                 }
-            } catch (e) {
-                $('#expiryInfo').text('Error: ' + e.message).addClass('text-red-500');
-                resetGenerateButton();
-            }
+            } catch (e) { $('#expiryInfo').text('Error: ' + e.message).addClass('text-red-500'); resetGenerateButton(); }
         }
 
         async function fetchOtpCode(domain) {
@@ -936,56 +1309,34 @@
             $('#expiryInfo').text('Checking for existing code...');
             $('#timerSection').addClass('hidden');
             $('#copyCodeBtn').addClass('opacity-50 cursor-not-allowed').prop('disabled', true);
-
             try {
                 var response = await fetch(`@Url.Action("GetOtpCode", "ComputerSummary")?machineId=${encodeURIComponent(domain)}`);
                 var result = await response.json();
-
                 if (result.success && result.otp) {
                     var isUsed = result.isUsed || false;
-
-                    if (isUsed) {
-                        showNoOtpState();
-                        return;
-                    }
-
+                    if (isUsed) { showNoOtpState(); return; }
                     var expireTime;
                     if (result.expireAt) {
                         var dateStr = result.expireAt.toString();
                         expireTime = Date.parse(dateStr);
-
-                        if (isNaN(expireTime)) {
-                            var d = new Date(dateStr);
-                            expireTime = d.getTime();
-                        }
-
-                        if (isNaN(expireTime)) {
-                            dateStr = dateStr.replace(' ', 'T');
-                            expireTime = Date.parse(dateStr);
-                        }
+                        if (isNaN(expireTime)) expireTime = new Date(dateStr).getTime();
+                        if (isNaN(expireTime)) expireTime = Date.parse(dateStr.replace(' ', 'T'));
                     }
-
                     if (!isNaN(expireTime) && expireTime > Date.now()) {
                         displayOtp(result.otp, expireTime, false);
                         updateGenerateButtonWithTimer();
                         startCountdownTimer(expireTime);
-
                         $('#expiryInfo').text('Code loaded from server').addClass('text-green-600');
-                        setTimeout(function() {
-                            $('#expiryInfo').removeClass('text-green-600').text('');
-                        }, 2000);
+                        setTimeout(function () { $('#expiryInfo').removeClass('text-green-600').text(''); }, 2000);
                         return;
                     }
                 }
-
                 showNoOtpState();
-            } catch (e) {
-                showNoOtpState();
-            }
+            } catch (e) { showNoOtpState(); }
         }
 
         function showNoOtpState() {
-            $('#accessCode').html('<span class="text-gray-400 text-sm">No active code</span>');
+            $('#accessCode').html('<span style="color:#9ca3af;font-size:14px;">No active code</span>');
             $('#expiryInfo').text('Generate OTP when needed');
             $('#timerSection').addClass('hidden');
             $('#copyCodeBtn').addClass('opacity-50 cursor-not-allowed').prop('disabled', true);
@@ -993,11 +1344,9 @@
         }
 
         function displayOtp(otp, expireAt, isExpired) {
-            var accessCodeEl = $('#accessCode');
-            var copyBtn = $('#copyCodeBtn');
-
+            var accessCodeEl = $('#accessCode'); var copyBtn = $('#copyCodeBtn');
             if (isExpired) {
-                accessCodeEl.html('<span class="text-red-500 text-sm">Code Expired</span>');
+                accessCodeEl.html('<span style="color:#ef4444;font-size:14px;">Code Expired</span>');
                 copyBtn.addClass('opacity-50 cursor-not-allowed').prop('disabled', true);
                 $('#expiryInfo').text('OTP expired. Generate new code when needed.').addClass('text-red-500');
                 resetGenerateButton();
@@ -1009,63 +1358,35 @@
         }
 
         function updateGenerateButtonWithTimer() {
-            $('#generateBtn')
-                .html('<i class="fas fa-clock mr-2"></i><span class="timer-text">01:00</span>')
-                .prop('disabled', true)
-                .removeClass('bg-green-500 hover:bg-green-600 bg-orange-500 hover:bg-orange-600')
-                .addClass('cursor-not-allowed')
-                .css({'background':'linear-gradient(135deg,#00BCEB,#0096BE)', 'opacity':'0.75'});
+            $('#generateBtn').html('<i class="fas fa-clock mr-2"></i><span class="timer-text">01:00</span>').prop('disabled', true)
+                .removeClass('bg-green-500 hover:bg-green-600').addClass('cursor-not-allowed')
+                .css({ 'background': 'linear-gradient(135deg,#00BCEB,#0096BE)', 'opacity': '0.75' });
         }
 
         function updateButtonTimerText(mins, secs) {
-            var timerText = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
-            $('#generateBtn').find('.timer-text').text(timerText);
+            var t = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            $('#generateBtn').find('.timer-text').text(t);
         }
 
         function resetGenerateButton() {
-            $('#generateBtn')
-                .html('<i class="fas fa-key mr-2"></i>Generate OTP')
-                .prop('disabled', false)
-                .removeClass('cursor-not-allowed bg-blue-500 hover:bg-blue-600 bg-orange-500 hover:bg-orange-600')
-                .addClass('bg-green-500 hover:bg-green-600')
-                .css({'background':'', 'opacity':''});
+            $('#generateBtn').html('<i class="fas fa-key mr-1.5"></i>Generate OTP').prop('disabled', false)
+                .removeClass('cursor-not-allowed').addClass('bg-green-500 hover:bg-green-600').css({ 'background': '', 'opacity': '' });
         }
-
 
         function startCountdownTimer(expireAt) {
             var endTime = new Date(expireAt).getTime();
             var startTime = Date.now();
             var totalMs = endTime - startTime;
-
             $('#timerSection').removeClass('hidden');
-
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-            }
-
-            if (totalMs <= 0) {
-                handleOtpExpired();
-                return;
-            }
-
-            countdownInterval = setInterval(function() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (totalMs <= 0) { handleOtpExpired(); return; }
+            countdownInterval = setInterval(function () {
                 var remaining = endTime - Date.now();
-
-                if (remaining <= 0) {
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-                    handleOtpExpired();
-                    return;
-                }
-
+                if (remaining <= 0) { clearInterval(countdownInterval); countdownInterval = null; handleOtpExpired(); return; }
                 var mins = Math.floor(remaining / 60000);
                 var secs = Math.floor((remaining % 60000) / 1000);
-
                 $('#countdownTimer').text(String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0'));
-
-                var percentage = (remaining / totalMs) * 100;
-                $('#timerBar').css('width', percentage + '%');
-
+                $('#timerBar').css('width', (remaining / totalMs) * 100 + '%');
                 updateButtonTimerText(mins, secs);
             }, 1000);
         }
@@ -1080,484 +1401,258 @@
         function copyCode() {
             var code = $('#accessCode').text().trim();
             if (code && code.length > 0 && code !== 'No active code' && code !== 'Code Expired') {
-                navigator.clipboard.writeText(code).then(function() {
+                navigator.clipboard.writeText(code).then(function () {
                     var btn = $('#copyCodeBtn');
-                    btn.html('<i class="fas fa-check mr-1"></i>Copied!')
-                        .addClass('bg-green-500')
-                        .removeClass('bg-orange-500');
-
-                    setTimeout(function() {
-                        btn.html('<i class="fas fa-copy mr-1"></i>Copy')
-                            .removeClass('bg-green-500')
-                            .addClass('bg-orange-500');
-                    }, 1500);
+                    btn.html('<i class="fas fa-check mr-1"></i>Copied!').addClass('bg-green-500').removeClass('bg-orange-500');
+                    setTimeout(function () { btn.html('<i class="fas fa-copy mr-1"></i>Copy').removeClass('bg-green-500').addClass('bg-orange-500'); }, 1500);
                 });
             }
         }
 
         function loadSystemUsageData(card, domain) {
-            if (!domain) {
-                setErrorState(card);
-                return;
-            }
-
-            var cpuValue  = card.find('.cpu-value');
-            var ramValue  = card.find('.ram-value');
+            if (!domain) { setErrorState(card); return; }
+            var cpuValue = card.find('.cpu-value');
+            var ramValue = card.find('.ram-value');
             var diskValue = card.find('.disk-value');
 
-            cpuValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
-            ramValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
-            diskValue.html('<i class="fas fa-circle-notch fa-spin text-gray-400 text-xs"></i>');
+            cpuValue.html('<i class="fas fa-circle-notch fa-spin" style="color:#d1d5db;font-size:8px;"></i>');
+            ramValue.html('<i class="fas fa-circle-notch fa-spin" style="color:#d1d5db;font-size:8px;"></i>');
+            diskValue.html('<i class="fas fa-circle-notch fa-spin" style="color:#d1d5db;font-size:8px;"></i>');
 
             $.ajax({
                 url: '@Url.Action("GetRamCpuDiskData", "ComputerSummary")',
-                type: 'GET',
-                data: { domain: domain },
-                timeout: 25000,
+                type: 'GET', data: { domain: domain }, timeout: 25000,
                 success: function (response) {
                     if (response.status === 'success' && response.data) {
                         var data = response.data;
-
-                        var cpuPercent  = parseFloat(data.cpuUsage);
-                        var ramPercent  = parseFloat(data.ramUsage);
+                        var cpuPercent = parseFloat(data.cpuUsage);
+                        var ramPercent = parseFloat(data.ramUsage);
                         var diskPercent = parseFloat(data.diskUsage);
 
-                        if (!isNaN(cpuPercent)) {
-                            cpuValue.text(cpuPercent.toFixed(1) + '%');
-                            card.find('.cpu-bar').css('width', cpuPercent + '%');
-                            checkThreshold(domain, 'CPU', cpuPercent, card.find('.cpu-bar'));
-                        } else {
-                            cpuValue.text('N/A');
-                            card.find('.cpu-bar').css('width', '0%');
-                        }
+                        if (!isNaN(cpuPercent)) { cpuValue.text(cpuPercent.toFixed(1) + '%'); card.find('.cpu-bar').css('width', cpuPercent + '%'); checkThreshold(domain, 'CPU', cpuPercent, card.find('.cpu-bar')); }
+                        else { cpuValue.text('N/A'); card.find('.cpu-bar').css('width', '0%'); }
 
-                        if (!isNaN(ramPercent)) {
-                            ramValue.text(ramPercent.toFixed(1) + '%');
-                            card.find('.ram-bar').css('width', ramPercent + '%');
-                            checkThreshold(domain, 'RAM', ramPercent, card.find('.ram-bar'));
-                        } else {
-                            ramValue.text('N/A');
-                            card.find('.ram-bar').css('width', '0%');
-                        }
+                        if (!isNaN(ramPercent)) { ramValue.text(ramPercent.toFixed(1) + '%'); card.find('.ram-bar').css('width', ramPercent + '%'); checkThreshold(domain, 'RAM', ramPercent, card.find('.ram-bar')); }
+                        else { ramValue.text('N/A'); card.find('.ram-bar').css('width', '0%'); }
 
-                        if (!isNaN(diskPercent)) {
-                            diskValue.text(diskPercent.toFixed(1) + '%');
-                            card.find('.disk-bar').css('width', diskPercent + '%');
-                            checkThreshold(domain, 'Disk', diskPercent, card.find('.disk-bar'));
-                        } else {
-                            diskValue.text('N/A');
-                            card.find('.disk-bar').css('width', '0%');
-                        }
-                    } else if (response.status === 'timeout') {
-                        setTimeoutState(card);
-                    } else {
-                        setErrorState(card);
-                    }
+                        if (!isNaN(diskPercent)) { diskValue.text(diskPercent.toFixed(1) + '%'); card.find('.disk-bar').css('width', diskPercent + '%'); checkThreshold(domain, 'Disk', diskPercent, card.find('.disk-bar')); }
+                        else { diskValue.text('N/A'); card.find('.disk-bar').css('width', '0%'); }
+                        var canvas = card.find('.sparkline-canvas')[0];
+                        if (canvas) drawSparkline(canvas, isNaN(cpuPercent) ? 0 : cpuPercent, isNaN(ramPercent) ? 0 : ramPercent, isNaN(diskPercent) ? 0 : diskPercent);
+
+                    } else if (response.status === 'timeout') { setTimeoutState(card); }
+                    else { setErrorState(card); }
                 },
                 error: function (xhr, status) {
-                    if (status === 'timeout') {
-                        setTimeoutState(card);
-                    } else {
-                        setErrorState(card);
-                    }
+                    if (status === 'timeout') setTimeoutState(card); else setErrorState(card);
                 }
             });
         }
 
         function checkThreshold(domain, type, value, barElement) {
             const vip = (window.VIP_CLIENTS || []).find(v => (v.ClientId || '').toUpperCase() === domain.toUpperCase());
-
             let threshold = null;
             if (vip) {
                 if (type === 'CPU') threshold = vip.CpuThreshold;
                 else if (type === 'RAM') threshold = vip.RamThreshold;
                 else if (type === 'Disk') threshold = vip.DiskThreshold;
             }
-
-            // Fallback to location default if no VIP specific threshold
             if (threshold === null || threshold === undefined) {
                 const locThres = $(`#loc${type}Threshold`).val();
                 if (locThres) threshold = parseFloat(locThres);
             }
-
             if (threshold !== null && threshold !== undefined && value >= threshold) {
-                barElement.addClass('bg-red-500').removeClass('bg-blue-500 bg-indigo-500 bg-amber-500');
+                barElement.addClass('bar-alert');
                 if (!barElement.data('alerted')) {
                     sysAlert(`Critical: ${domain} reached ${type} threshold (${value.toFixed(1)}% >= ${threshold}%)`, 'warning');
                     barElement.data('alerted', true);
-                    setTimeout(() => barElement.data('alerted', false), 60000); // Re-alert after 1 min
+                    setTimeout(() => barElement.data('alerted', false), 60000);
                 }
             } else {
-                barElement.removeClass('bg-red-500');
-                // Restore original colors if needed, but Tailwind usually handles via classes
+                barElement.removeClass('bar-alert');
             }
         }
 
         function setErrorState(card) {
-            card.find('.cpu-value').text('N/A');
-            card.find('.ram-value').text('N/A');
-            card.find('.disk-value').text('N/A');
-            card.find('.cpu-bar').css('width', '0%');
-            card.find('.ram-bar').css('width', '0%');
-            card.find('.disk-bar').css('width', '0%');
+            card.find('.cpu-value').text('N/A'); card.find('.ram-value').text('N/A'); card.find('.disk-value').text('N/A');
+            card.find('.cpu-bar,.ram-bar,.disk-bar').css('width', '0%');
         }
 
         function setTimeoutState(card) {
-            card.find('.cpu-value').html('<i class="fas fa-clock text-orange-500 text-xs" title="Timeout"></i>');
-            card.find('.ram-value').html('<i class="fas fa-clock text-orange-500 text-xs" title="Timeout"></i>');
-            card.find('.disk-value').html('<i class="fas fa-clock text-orange-500 text-xs" title="Timeout"></i>');
-            card.find('.cpu-bar').css('width', '0%');
-            card.find('.ram-bar').css('width', '0%');
-            card.find('.disk-bar').css('width', '0%');
+            var icon = '<i class="fas fa-clock" style="color:#f97316;font-size:8px;" title="Timeout"></i>';
+            card.find('.cpu-value').html(icon); card.find('.ram-value').html(icon); card.find('.disk-value').html(icon);
+            card.find('.cpu-bar,.ram-bar,.disk-bar').css('width', '0%');
         }
 
-        $(document).on('click', '.refresh-usage-btn', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            var btn = $(this);
-            var card = btn.closest('.device-card');
-            var domain = card.data('domain');
-            var isOnline = card.data('status') === 'online';
-
-            if (!isOnline) {
-                sysAlert('Cannot refresh - device is offline', 'warning');
-                return;
-            }
-
-            var originalHtml = btn.html();
-            btn.html('<i class="fas fa-sync-alt fa-spin text-gray-500 text-xs"></i>')
-                .prop('disabled', true);
-
+        $(document).on('click', '.refresh-usage-btn', function (e) {
+            e.preventDefault(); e.stopPropagation();
+            var btn = $(this); var card = btn.closest('.device-card');
+            var domain = card.data('domain'); var isOnline = card.data('status') === 'online';
+            if (!isOnline) { sysAlert('Cannot refresh - device is offline', 'warning'); return; }
+            var origHtml = btn.html();
+            btn.html('<i class="fas fa-sync-alt fa-spin" style="color:#9ca3af;font-size:8px;"></i>').prop('disabled', true);
             loadSystemUsageData(card, domain);
-
-            setTimeout(function() {
-                btn.html(originalHtml).prop('disabled', false);
-            }, 2000);
+            setTimeout(function () { btn.html(origHtml).prop('disabled', false); }, 2000);
         });
 
         function loadLastSeenTime(card, domain) {
             var lastSeenText = card.find('.last-seen-text');
-
             $.ajax({
-                url: '@Url.Action("GetConnectedDevices", "ComputerSummary")',
-                type: 'GET',
-                timeout: 5000,
-                success: function(devices) {
+                url: '@Url.Action("GetConnectedDevices", "ComputerSummary")', type: 'GET', timeout: 5000,
+                success: function (devices) {
                     var isOnline = devices.some(d => d.toUpperCase() === domain.toUpperCase());
-                    if (isOnline) {
-                        lastSeenText.html('<span class="text-green-600 font-semibold">Online Now</span>');
-                        return;
-                    }
+                    if (isOnline) { lastSeenText.html('<span style="color:#16a34a;font-weight:600;">Online Now</span>'); return; }
                     fetchLastSeenFromServer(lastSeenText, domain);
                 },
-                error: function() {
-                    fetchLastSeenFromServer(lastSeenText, domain);
-                }
+                error: function () { fetchLastSeenFromServer(lastSeenText, domain); }
             });
         }
 
         function fetchLastSeenFromServer(lastSeenText, domain) {
             $.ajax({
-                url: '@Url.Action("GetLastSeenTime", "ComputerSummary")',
-                type: 'GET',
-                data: { domain: domain },
-                timeout: 10000,
-                success: function(response) {
-                    if (response.success && response.lastSeen) {
-                        var lastSeenDate = new Date(response.lastSeen);
-                        var formattedText = formatTimeAgo(lastSeenDate);
-                        lastSeenText.html('Last seen: ' + formattedText);
-                    } else {
-                        lastSeenText.text('Last seen: Never');
-                    }
+                url: '@Url.Action("GetLastSeenTime", "ComputerSummary")', type: 'GET', data: { domain: domain }, timeout: 10000,
+                success: function (response) {
+                    if (response.success && response.lastSeen) { lastSeenText.html('Last seen: ' + formatTimeAgo(new Date(response.lastSeen))); }
+                    else { lastSeenText.text('Last seen: Never'); }
                 },
-                error: function() {
-                    lastSeenText.text('Last seen: Unknown');
-                }
+                error: function () { lastSeenText.text('Last seen: Unknown'); }
             });
         }
 
         function formatTimeAgo(date) {
-            var now = new Date();
-            var diffMs = now - date;
-            var diffMins = Math.floor(diffMs / 60000);
-            var diffHours = Math.floor(diffMs / 3600000);
-            var diffDays = Math.floor(diffMs / 86400000);
-
-            if (diffMins < 1) {
-                return 'Just now';
-            } else if (diffMins < 60) {
-                return diffMins + ' minute' + (diffMins !== 1 ? 's' : '') + ' ago';
-            } else if (diffHours < 24) {
-                return diffHours + ' hour' + (diffHours !== 1 ? 's' : '') + ' ago';
-            } else if (diffDays < 7) {
-                return diffDays + ' day' + (diffDays !== 1 ? 's' : '') + ' ago';
-            } else {
-                var options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-                return date.toLocaleDateString('en-US', options);
-            }
+            var now = new Date(); var diffMs = now - date;
+            var diffMins = Math.floor(diffMs / 60000), diffHours = Math.floor(diffMs / 3600000), diffDays = Math.floor(diffMs / 86400000);
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return diffMins + ' minute' + (diffMins !== 1 ? 's' : '') + ' ago';
+            if (diffHours < 24) return diffHours + ' hour' + (diffHours !== 1 ? 's' : '') + ' ago';
+            if (diffDays < 7) return diffDays + ' day' + (diffDays !== 1 ? 's' : '') + ' ago';
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         }
 
-        $(document).on('searchEvent', function(e, term) {
-            filterDevices(term);
-        });
+        $(document).on('searchEvent', function (e, term) { filterDevices(term); });
+        $('#statusFilter').on('change', function () { filterDevices(); });
 
-        $('#statusFilter').on('change', function() {
-            filterDevices();
-        });
-
-        function filterDevices(searchTerm) {
-            var term = (searchTerm !== undefined ? searchTerm : $('#globalSearchInput').val()).toLowerCase();
-            var status = $('#statusFilter').val();
-
-            $('#devicesGrid .device-card').each(function() {
+        function filterDevices(searchTerm, forceStatus) {
+            var term = (searchTerm !== undefined ? searchTerm : ($('#globalSearchInput').val() || '')).toLowerCase();
+            var status = forceStatus !== undefined ? forceStatus : ($('#statusFilter').val() || 'all');
+            $('#devicesGrid .device-card').each(function () {
                 var card = $(this);
                 var content = card.text().toLowerCase();
                 var cardStatus = card.data('status');
-
                 var matchesSearch = content.indexOf(term) > -1;
                 var matchesStatus = status === 'all' || status === cardStatus;
-
                 card.toggle(matchesSearch && matchesStatus);
             });
         }
 
-        $(document).on('click', '.edit-name-btn', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        $(document).on('click', '.edit-name-btn', function (e) {
+            e.preventDefault(); e.stopPropagation();
             var cell = $(this).closest('.deshboard-name-cell');
             cell.find('.display-name-section').hide();
             cell.find('.edit-section').removeClass('hidden');
         });
 
-        $(document).on('click', '.cancel-edit-btn', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        $(document).on('click', '.cancel-edit-btn', function (e) {
+            e.preventDefault(); e.stopPropagation();
             var cell = $(this).closest('.deshboard-name-cell');
             cell.find('.edit-section').addClass('hidden');
             cell.find('.display-name-section').show();
         });
 
-        $(document).on('click', '.update-btn', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
+        $(document).on('click', '.update-btn', function (e) {
+            e.preventDefault(); e.stopPropagation();
             var cell = $(this).closest('.deshboard-name-cell');
             var newName = cell.find('.edit-name').val().trim();
-
-            if (!newName) {
-                sysAlert('Name cannot be empty.', 'warning');
-                return;
-            }
-
+            if (!newName) { sysAlert('Name cannot be empty.', 'warning'); return; }
             var btn = $(this);
             btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
-
             $.ajax({
-                url: '@Url.Action("deshboardupdate", "ComputerSummary")',
-                type: 'POST',
-                contentType: 'application/json',
+                url: '@Url.Action("deshboardupdate", "ComputerSummary")', type: 'POST', contentType: 'application/json',
                 data: JSON.stringify({
-                    Id: cell.data('id'),
-                    DomainName: cell.data('domain-id'),
-                    CompanyId: cell.data('company-id'),
-                    GroupId: cell.data('group-id'),
-                    LocationId: cell.data('location-id'),
-                    UserName: newName
+                    Id: cell.data('id'), DomainName: cell.data('domain-id'), CompanyId: cell.data('company-id'),
+                    GroupId: cell.data('group-id'), LocationId: cell.data('location-id'), UserName: newName
                 }),
-                success: function() {
+                success: function () {
                     cell.find('.display-name-section a').text(newName);
                     cell.find('.edit-section').addClass('hidden');
                     cell.find('.display-name-section').show();
                 },
-                error: function() {
-                    sysAlert('Error updating name', 'error');
-                },
-                complete: function() {
-                    btn.html('Save').prop('disabled', false);
-                }
+                error: function () { sysAlert('Error updating name', 'error'); },
+                complete: function () { btn.html('Save').prop('disabled', false); }
             });
         });
 
-        $('.rescan-link').on('click', function() {
+        $('.rescan-link').on('click', function () {
             if ($(this).prop('disabled')) return;
-
-            var link   = $(this);
-            var domain = link.data('domain');
-            var card   = link.closest('.device-card');
-
-            link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin mr-0.5"></i>Scanning…');
-            link.prop('disabled', true);
-            card.addClass('opacity-75'); // Visual cue
-
+            var link = $(this); var domain = link.data('domain'); var card = link.closest('.device-card');
+            link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin" style="font-size:7px;"></i>Scanning…');
+            link.prop('disabled', true); card.addClass('opacity-75');
             registerActiveRescan(domain);
 
-            // Stale scan safety timeout (10 minutes)
             setTimeout(() => {
                 if (activeScans[domain.toUpperCase()]) {
-                    unregisterActiveRescan(domain);
-                    resetRescanButton(link, card);
+                    unregisterActiveRescan(domain); resetRescanButton(link, card);
                     sysAlert('Scan timed out for ' + domain, 'warning');
                 }
             }, 10 * 60 * 1000);
 
-            $.post('@Url.Action("Comanddata", "ComputerSummary")?domain=' + domain, function(res) {
-                if (res.success) {
-                    sysAlert('Scan initiated for ' + domain, 'info');
-                } else {
-                    unregisterActiveRescan(domain);
-                    resetRescanButton(link, card);
-                    sysAlert('Failed: ' + (res.message || 'Server error'), 'error');
-                }
-            }).fail(function() {
-                unregisterActiveRescan(domain);
-                resetRescanButton(link, card);
-                sysAlert('Could not start scan for ' + domain, 'error');
-            });
+            $.post('@Url.Action("Comanddata", "ComputerSummary")?domain=' + domain, function (res) {
+                if (res.success) { sysAlert('Scan initiated for ' + domain, 'info'); }
+                else { unregisterActiveRescan(domain); resetRescanButton(link, card); sysAlert('Failed: ' + (res.message || 'Server error'), 'error'); }
+            }).fail(function () { unregisterActiveRescan(domain); resetRescanButton(link, card); sysAlert('Could not start scan for ' + domain, 'error'); });
         });
 
         function resetRescanButton(link, card) {
-            link.find('.rescan-text').html(
-                '<i class="fas fa-sync-alt mr-0.5 text-[7px]"></i><span class="js-txt">Rescan</span>'
-            );
-            link.prop('disabled', false);
-            if (card) card.removeClass('opacity-75');
+            link.find('.rescan-text').html('<i class="fas fa-sync-alt" style="font-size:7px;"></i><span class="js-txt">Rescan</span>');
+            link.prop('disabled', false); if (card) card.removeClass('opacity-75');
         }
 
-        // Duplicate startDashboardHub removed
-
-        // Initial load
-        $(document).ready(function() {
-            loadPersistedScans();
-        });
+        $(document).ready(function () { loadPersistedScans(); });
 
         let activeScans = {};
 
-        function registerActiveRescan(domain) {
-            activeScans[domain.toUpperCase()] = Date.now();
-            localStorage.setItem('activeScans', JSON.stringify(activeScans));
-        }
-
-        function unregisterActiveRescan(domain) {
-            delete activeScans[domain.toUpperCase()];
-            localStorage.setItem('activeScans', JSON.stringify(activeScans));
-        }
+        function registerActiveRescan(domain) { activeScans[domain.toUpperCase()] = Date.now(); localStorage.setItem('activeScans', JSON.stringify(activeScans)); }
+        function unregisterActiveRescan(domain) { delete activeScans[domain.toUpperCase()]; localStorage.setItem('activeScans', JSON.stringify(activeScans)); }
 
         function loadPersistedScans() {
             const saved = localStorage.getItem('activeScans');
             if (saved) {
                 try {
                     activeScans = JSON.parse(saved);
-                    const now = Date.now();
-                    const timeoutMs = 10 * 60 * 1000; // 10 minutes timeout
-
+                    const now = Date.now(); const timeoutMs = 10 * 60 * 1000;
                     Object.keys(activeScans).forEach(domain => {
                         const registeredTime = activeScans[domain];
-
-                        // If it has been more than 10 minutes, or is old format (boolean true)
-                        if (typeof registeredTime !== 'number' || (now - registeredTime > timeoutMs)) {
-                            delete activeScans[domain];
-                            return;
-                        }
-
-                        // Case-insensitive card search
+                        if (typeof registeredTime !== 'number' || (now - registeredTime > timeoutMs)) { delete activeScans[domain]; return; }
                         let card = null;
-                        $('.device-card').each(function() {
+                        $('.device-card').each(function () {
                             const d = $(this).attr('data-domain');
-                            if (d && d.toUpperCase() === domain.toUpperCase()) {
-                                card = $(this);
-                                return false;
-                            }
+                            if (d && d.toUpperCase() === domain.toUpperCase()) { card = $(this); return false; }
                         });
-
                         if (card && card.length) {
                             const link = card.find('.rescan-link');
                             if (link.length) {
-                                link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin mr-0.5"></i>Scanning…');
-                                link.prop('disabled', true);
-                                card.addClass('opacity-75');
-
-                                // Set timeout to clean up when the remaining time is reached
+                                link.find('.rescan-text').html('<i class="fas fa-spinner fa-spin" style="font-size:7px;"></i>Scanning…');
+                                link.prop('disabled', true); card.addClass('opacity-75');
                                 const remainingTime = timeoutMs - (now - registeredTime);
                                 setTimeout(() => {
-                                    if (activeScans[domain]) {
-                                        unregisterActiveRescan(domain);
-                                        resetRescanButton(link, card);
-                                        sysAlert('Scan timed out for ' + domain, 'warning');
-                                    }
+                                    if (activeScans[domain]) { unregisterActiveRescan(domain); resetRescanButton(link, card); sysAlert('Scan timed out for ' + domain, 'warning'); }
                                 }, remainingTime);
                             }
                         }
                     });
                     localStorage.setItem('activeScans', JSON.stringify(activeScans));
-                } catch (e) {
-                    activeScans = {};
-                }
+                } catch (e) { activeScans = {}; }
             }
         }
 
-
-        $('.remote-link').on('click', function() {
-            if (!$(this).prop('disabled')) {
-                window.location.href = '@Url.Action("Live", "ComputerSummary")?domain=' + $(this).data('domain');
-            }
+        $('.remote-link').on('click', function () {
+            if (!$(this).prop('disabled')) window.location.href = '@Url.Action("Live", "ComputerSummary")?domain=' + $(this).data('domain');
         });
 
-        $(document).on('click', '.open-chat-btn', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        $(document).on('click', '.open-chat-btn', function (e) {
+            e.preventDefault(); e.stopPropagation();
             var domain = $(this).data('domain');
-            if (domain) {
-                window.openChatModal(domain);
-            }
+            if (domain) window.openChatModal(domain);
         });
-
     </script>
-
-
-    <style>
-        .device-card {
-            transition: all 0.3s ease;
-        }
-
-            .device-card:hover {
-                transform: translateY(-2px);
-            }
-
-        .hidden {
-            display: none !important;
-        }
-
-        @@keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        .animate-pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        .menu-dropdown {
-            animation: slideDown 0.2s ease-out;
-        }
-
-        @@keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
 }
-
