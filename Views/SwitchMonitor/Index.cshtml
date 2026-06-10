@@ -533,13 +533,35 @@
         </div>
         <div class="p-4">
             <input type="hidden" id="autoPollSwitchId" value="0" />
-            <div class="mb-3">
-                <label class="block text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Interval (minutes)</label>
-                <input type="number" id="autoPollCustomMin" min="1" max="1440" step="1"
-                       placeholder="e.g. 5"
-                       class="w-full h-8 px-3 border border-gray-200 rounded-lg text-xs outline-none transition focus:ring-1"
-                       style="focus:ring-color:var(--brand)" />
-                <p class="text-[9px] text-gray-400 mt-1">1 – 1440 minutes</p>
+            <div class="mb-4">
+                <label class="block text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">Interval Options</label>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <label class="flex items-center gap-2 cursor-pointer p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                        <input type="radio" name="autoPollPreset" value="1" class="text-blue-500 focus:ring-blue-500" onchange="toggleCustomPollInput()">
+                        <span class="text-xs text-gray-700">1 minute</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                        <input type="radio" name="autoPollPreset" value="5" class="text-blue-500 focus:ring-blue-500" onchange="toggleCustomPollInput()">
+                        <span class="text-xs text-gray-700">5 minutes</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                        <input type="radio" name="autoPollPreset" value="10" class="text-blue-500 focus:ring-blue-500" onchange="toggleCustomPollInput()">
+                        <span class="text-xs text-gray-700">10 minutes</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                        <input type="radio" name="autoPollPreset" value="custom" class="text-blue-500 focus:ring-blue-500" onchange="toggleCustomPollInput()">
+                        <span class="text-xs text-gray-700">Custom</span>
+                    </label>
+                </div>
+                
+                <div id="customPollInputContainer" class="hidden">
+                    <label class="block text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Custom Interval (minutes)</label>
+                    <input type="number" id="autoPollCustomMin" min="1" max="1440" step="1"
+                           placeholder="e.g. 15"
+                           class="w-full h-8 px-3 border border-gray-200 rounded-lg text-xs outline-none transition focus:ring-1"
+                           style="focus:ring-color:var(--brand)" />
+                    <p class="text-[9px] text-gray-400 mt-1">1 – 1440 minutes</p>
+                </div>
             </div>
             <div class="p-2.5 rounded-lg border border-gray-100 bg-gray-50 mb-3">
                 <div class="flex items-center justify-between">
@@ -586,16 +608,32 @@
     }
 
     /* ── Scope URL ── */
-    function currentScopeUrl() {
-        const p = new URLSearchParams();
-        @if (ViewBag.CompanyId  != null) { <text>p.set('comId',        '@ViewBag.CompanyId');</text> }
-        @if (ViewBag.GroupId    != null) { <text>p.set('groupId',      '@ViewBag.GroupId');</text> }
-        @if (ViewBag.LocationId != null) { <text>p.set('locationId',   '@ViewBag.LocationId');</text> }
-        @if (!string.IsNullOrEmpty(ViewBag.CompanyName  as string)) { <text>p.set('companyName',  '@Html.Raw((ViewBag.CompanyName  as string ?? "").Replace("'", "\\'"))');</text> }
-        @if (!string.IsNullOrEmpty(ViewBag.GroupName    as string)) { <text>p.set('groupName',    '@Html.Raw((ViewBag.GroupName    as string ?? "").Replace("'", "\\'"))');</text> }
-        @if (!string.IsNullOrEmpty(ViewBag.LocationName as string)) { <text>p.set('locationName', '@Html.Raw((ViewBag.LocationName as string ?? "").Replace("'", "\\'"))');</text> }
-        const qs = p.toString();
-        return '/SwitchMonitor/Index' + (qs ? '?' + qs : '');
+    function navigateToScopeUrl() {
+        const payload = {
+            comId: '@ViewBag.CompanyId',
+            groupId: '@ViewBag.GroupId',
+            locationId: '@ViewBag.LocationId',
+            companyName: '@Html.Raw((ViewBag.CompanyName as string ?? "").Replace("'", "\\'"))',
+            groupName: '@Html.Raw((ViewBag.GroupName as string ?? "").Replace("'", "\\'"))',
+            locationName: '@Html.Raw((ViewBag.LocationName as string ?? "").Replace("'", "\\'"))'
+        };
+
+        fetch('@Url.Action("EncryptDict", "Home")', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/SwitchMonitor/Index?q=' + data.encrypted;
+            } else {
+                window.location.href = '/SwitchMonitor/Index';
+            }
+        })
+        .catch(err => {
+            window.location.href = '/SwitchMonitor/Index';
+        });
     }
 
     /* ── Poll spinner ── */
@@ -679,7 +717,7 @@
         fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
         .then(r => r.json())
         .then(data => {
-            if (data.success) { closeSwitchModal(); window.location.href = currentScopeUrl(); }
+            if (data.success) { closeSwitchModal(); navigateToScopeUrl(); }
             else { showModalError(data.message || 'Operation failed'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; }
         })
         .catch(err => { showModalError('Network error: ' + err.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; });
@@ -708,7 +746,7 @@
         fetch(`/SwitchMonitor/Delete/${pendingDeleteId}`, { method: 'POST' })
         .then(r => r.json())
         .then(data => {
-            if (data.success) { window.location.href = currentScopeUrl(); }
+            if (data.success) { navigateToScopeUrl(); }
             else { window.sysAlert?.(data.message || 'Delete failed', 'error'); closeDeleteModal(); btn.disabled = false; btn.textContent = 'Delete'; }
         })
         .catch(err => { window.sysAlert?.('Network error: ' + err.message, 'error'); closeDeleteModal(); btn.disabled = false; btn.textContent = 'Delete'; });
@@ -723,12 +761,43 @@
     }
     function saveSwitchAutoPollSettings(s) { localStorage.setItem(SWITCH_AUTOPOLL_KEY, JSON.stringify(s)); }
 
+    function toggleCustomPollInput() {
+        const radios = document.getElementsByName('autoPollPreset');
+        let selected = '';
+        for (const radio of radios) {
+            if (radio.checked) selected = radio.value;
+        }
+        const customContainer = document.getElementById('customPollInputContainer');
+        if (selected === 'custom') {
+            customContainer.classList.remove('hidden');
+            document.getElementById('autoPollCustomMin').focus();
+        } else {
+            customContainer.classList.add('hidden');
+        }
+    }
+
     function openSwitchAutoPoll(switchId, name) {
         document.getElementById('autoPollSwitchId').value = switchId;
         document.getElementById('autoPollModalTitle').textContent = name;
         const s = getSwitchAutoPollSettings();
         const interval = s[switchId] || 0;
-        document.getElementById('autoPollCustomMin').value = interval > 0 ? interval : '';
+        const radios = document.getElementsByName('autoPollPreset');
+        let matched = false;
+        if (interval === 1 || interval === 5 || interval === 10) {
+            for (const r of radios) if (r.value == interval) { r.checked = true; matched = true; }
+        }
+        
+        if (!matched && interval > 0) {
+            for (const r of radios) if (r.value === 'custom') r.checked = true;
+            document.getElementById('autoPollCustomMin').value = interval;
+        } else {
+            document.getElementById('autoPollCustomMin').value = '';
+            if (!matched) {
+                for (const r of radios) if (r.value === '5') r.checked = true;
+            }
+        }
+        toggleCustomPollInput();
+        
         updateModalStatusUI(interval);
         openModal('autoPollModal');
     }
@@ -736,8 +805,24 @@
 
     function saveSwitchAutoPoll() {
         const switchId = document.getElementById('autoPollSwitchId').value;
-        const minutes  = parseInt(document.getElementById('autoPollCustomMin').value) || 0;
-        if (minutes < 1) { document.getElementById('autoPollCustomMin').focus(); return; }
+        let minutes = 0;
+        const radios = document.getElementsByName('autoPollPreset');
+        for (const r of radios) {
+            if (r.checked) {
+                if (r.value === 'custom') {
+                    minutes = parseInt(document.getElementById('autoPollCustomMin').value) || 0;
+                } else {
+                    minutes = parseInt(r.value);
+                }
+            }
+        }
+        
+        if (minutes < 1) { 
+            if(!document.getElementById('customPollInputContainer').classList.contains('hidden')) {
+                document.getElementById('autoPollCustomMin').focus(); 
+            }
+            return; 
+        }
         const s = getSwitchAutoPollSettings();
         s[switchId] = minutes;
         saveSwitchAutoPollSettings(s);

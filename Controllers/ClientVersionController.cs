@@ -1,5 +1,6 @@
-using ManageEngineWebApp.Attributes;
+﻿using ManageEngineWebApp.Attributes;
 using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ManageEngineWebApp.Controllers
@@ -9,7 +10,7 @@ namespace ManageEngineWebApp.Controllers
     {
         private readonly IWebHostEnvironment _env;
 
-        public ClientVersionController(IHttpClientFactory httpClientFactory, IConfiguration config, IWebHostEnvironment env) 
+        public ClientVersionController(IHttpClientFactory httpClientFactory, IConfiguration config, IWebHostEnvironment env)
             : base(httpClientFactory, config)
         {
             _env = env;
@@ -28,9 +29,7 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var result = await response.Content.ReadFromJsonAsync<Models.VersionInfoModel>();
                     if (result != null)
-                    {
                         model = result;
-                    }
                 }
             }
             catch
@@ -38,7 +37,89 @@ namespace ManageEngineWebApp.Controllers
                 TempData["Error"] = "Failed to connect to API to get current version.";
             }
 
+            bool isAutoUpdateOn = false;
+            int currentInterval = 0;
+            try
+            {
+                var statusResp = await client.GetAsync($"{_baseUrl}/api/ClientAutoUpdater/Status");
+                if (statusResp.IsSuccessStatusCode)
+                {
+                    var status = await statusResp.Content.ReadFromJsonAsync<AutoUpdateStatusDto>();
+                    if (status != null)
+                    {
+                        isAutoUpdateOn = status.IsOn;
+                        currentInterval = status.IntervalSeconds; 
+                    }
+                }
+            }
+            catch { }
+
+            ViewBag.IsAutoUpdateOn = isAutoUpdateOn;
+            ViewBag.CurrentInterval = currentInterval; 
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [DynamicPermission("ClientVersion.AutoUpdate", "Trigger Auto Update")]
+        public async Task<IActionResult> TriggerAutoUpdate(string message, int intervalSeconds)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                TempData["Error"] = "Message cannot be empty.";
+                return RedirectToAction("Index");
+            }
+
+            if (message == "On" && intervalSeconds <= 0)
+            {
+                TempData["Error"] = "Interval must be greater than 0 seconds.";
+                return RedirectToAction("Index");
+            }
+
+            try
+            {
+                using var client = GetClient();
+                var payload = new { message = message, intervalSeconds = intervalSeconds };
+                var response = await client.PostAsJsonAsync($"{_baseUrl}/api/ClientAutoUpdater/AutoUpdate", payload);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    if (message == "On")
+                    {
+                        int mins = intervalSeconds / 60;
+                        TempData["Message"] = $"Auto-update turned ON. Clients will check every {mins} minute(s).";
+                    }
+                    else
+                    {
+                        TempData["Message"] = "Auto-update turned OFF. All clients notified.";
+                    }
+                }
+                else
+                {
+                    var body = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(body);
+                        var msg = doc.RootElement.TryGetProperty("msg", out var msgProp)
+                            ? msgProp.GetString() : "Unknown API error";
+
+                        TempData["Error"] = (response.StatusCode == System.Net.HttpStatusCode.NotFound
+                            && msg != null && msg.Contains("No clients connected"))
+                            ? "No clients are currently connected to receive the update."
+                            : $"API Error: {msg}";
+                    }
+                    catch
+                    {
+                        TempData["Error"] = $"API returned {(int)response.StatusCode}: {body}";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Failed to reach API: {ex.Message}";
+            }
+
+            return RedirectToAction("Index");
         }
 
         [HttpPost]
@@ -62,43 +143,26 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                // Ensure the directory exists
                 string uploadsFolder = Path.Combine(_env.WebRootPath, "ClientVersionUpload");
                 if (!Directory.Exists(uploadsFolder))
-                {
                     Directory.CreateDirectory(uploadsFolder);
-                }
 
-                // Delete any existing files in the folder to keep only the latest version
-                var existingFiles = Directory.GetFiles(uploadsFolder);
-                foreach (var file in existingFiles)
-                {
+                foreach (var file in Directory.GetFiles(uploadsFolder))
                     try { System.IO.File.Delete(file); } catch { }
-                }
 
                 string fileName = Path.GetFileName(versionFile.FileName);
                 string filePath = Path.Combine(uploadsFolder, fileName);
-
                 using (var fileStream = new FileStream(filePath, FileMode.Create))
-                {
                     await versionFile.CopyToAsync(fileStream);
-                }
 
                 string downloadUrl = $"/ClientVersionUpload/{fileName}";
-
-                // Update the database via API
                 using var client = GetClient();
                 var payload = new { version = newVersion, url = downloadUrl };
                 var response = await client.PostAsJsonAsync($"{_baseUrl}/api/ClientVersionControl/UpdateVersion", payload);
 
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Message"] = "Client version uploaded and updated successfully.";
-                }
-                else
-                {
-                    TempData["Error"] = $"File uploaded, but failed to update API. Status: {response.StatusCode}";
-                }
+                TempData[response.IsSuccessStatusCode ? "Message" : "Error"] = response.IsSuccessStatusCode
+                    ? "Client version uploaded and updated successfully."
+                    : $"File uploaded, but failed to update API. Status: {response.StatusCode}";
             }
             catch (Exception ex)
             {
