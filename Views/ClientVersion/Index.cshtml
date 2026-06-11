@@ -252,6 +252,13 @@
         margin-bottom: 10px;
     }
 
+    a.cv-version-box:hover {
+        background: linear-gradient(135deg,#cffafe,#a5f3fc);
+        border-color: #06b6d4;
+        box-shadow: 0 2px 8px rgba(6,182,212,.2);
+        transform: translateY(-1px);
+    }
+
     .cv-version-label {
         font-size: 0.65rem;
         font-weight: 600;
@@ -538,17 +545,18 @@
             <div class="cv-card-body">
                 @if (Model != null && !string.IsNullOrEmpty(Model.Version))
                 {
-                    <div class="cv-version-box">
+                    <a href="@Model.Url" target="_blank" class="cv-version-box" style="display:block;text-decoration:none;cursor:pointer;transition:all .2s;">
                         <div class="cv-version-label">Version</div>
                         <div class="cv-version-num">@Model.Version</div>
-                    </div>
-                    <div class="cv-url-row">
-                        <i class="fas fa-link"></i>
-                        <div>
-                            <div style="font-size:0.62rem;color:#6b7280;margin-bottom:2px;font-weight:600;">Download URL</div>
-                            <a href="@Model.Url" target="_blank">@Model.Url</a>
+                        <div style="font-size:0.62rem;color:#0891b2;margin-top:6px;"><i class="fas fa-download" style="margin-right:4px;"></i>Click to download</div>
+                    </a>
+                    @if (Model.UpdatedAt.HasValue)
+                    {
+                        <div style="text-align:center;margin-top:4px;">
+                            <span style="font-size:0.62rem;color:#6b7280;"><i class="fas fa-clock" style="margin-right:3px;color:#9ca3af;"></i>Updated: @Model.UpdatedAt.Value.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</span>
                         </div>
-                    </div>
+                    }
+                    <input type="hidden" id="currentVersion" value="@Model.Version" />
                 }
                 else
                 {
@@ -574,7 +582,9 @@
 
                         <div class="cv-field">
                             <label class="cv-label" for="newVersion">Version Number <span style="color:#ef4444">*</span></label>
-                            <input type="text" id="newVersion" name="newVersion" required placeholder="e.g., 1.0.0.5" class="cv-input" />
+                            <input type="text" id="newVersion" name="newVersion" required placeholder="e.g., 1.0.1 or 1.0.0.5"
+                                   pattern="^\d+\.\d+\.\d+(\.\d+)?$" class="cv-input" oninput="validateVersion()" />
+                            <div id="versionError" style="font-size:0.63rem;color:#ef4444;margin-top:3px;display:none;"></div>
                         </div>
 
                         <div class="cv-field">
@@ -663,9 +673,85 @@
         }
     }
 
+    function parseVersion(str) {
+        var parts = str.split('.');
+        var nums = [];
+        for (var i = 0; i < parts.length; i++) {
+            var n = parseInt(parts[i], 10);
+            if (isNaN(n) || n < 0) return null;
+            nums.push(n);
+        }
+        while (nums.length < 4) nums.push(0);
+        return nums;
+    }
+
+    function compareVersions(a, b) {
+        for (var i = 0; i < 4; i++) {
+            if (a[i] > b[i]) return 1;
+            if (a[i] < b[i]) return -1;
+        }
+        return 0;
+    }
+
+    function validateVersion() {
+        var input = document.getElementById('newVersion');
+        var errorDiv = document.getElementById('versionError');
+        var submitBtn = document.getElementById('submitBtn');
+        var val = input.value.trim();
+
+        if (!val) {
+            errorDiv.style.display = 'none';
+            input.style.borderColor = '';
+            return true;
+        }
+
+        var versionRegex = /^\d+\.\d+\.\d+(\.\d+)?$/;
+        if (!versionRegex.test(val)) {
+            errorDiv.textContent = 'Invalid format. Use x.x.x or x.x.x.x (e.g., 1.0.1 or 1.0.0.5)';
+            errorDiv.style.display = 'block';
+            input.style.borderColor = '#ef4444';
+            return false;
+        }
+
+        var newVer = parseVersion(val);
+        if (!newVer) {
+            errorDiv.textContent = 'Invalid version number.';
+            errorDiv.style.display = 'block';
+            input.style.borderColor = '#ef4444';
+            return false;
+        }
+
+        var minVer = [1, 0, 1, 0];
+        if (compareVersions(newVer, minVer) < 0) {
+            errorDiv.textContent = 'Version must be at least 1.0.1';
+            errorDiv.style.display = 'block';
+            input.style.borderColor = '#ef4444';
+            return false;
+        }
+
+        var currentEl = document.getElementById('currentVersion');
+        if (currentEl && currentEl.value) {
+            var curVer = parseVersion(currentEl.value);
+            if (curVer && compareVersions(newVer, curVer) <= 0) {
+                errorDiv.textContent = 'New version must be greater than current version (' + currentEl.value + ')';
+                errorDiv.style.display = 'block';
+                input.style.borderColor = '#ef4444';
+                return false;
+            }
+        }
+
+        errorDiv.style.display = 'none';
+        input.style.borderColor = '#10b981';
+        return true;
+    }
+
     var uploadFormEl = document.getElementById('uploadForm');
     if (uploadFormEl) {
-        uploadFormEl.addEventListener('submit', function () {
+        uploadFormEl.addEventListener('submit', function (e) {
+            if (!validateVersion()) {
+                e.preventDefault();
+                return false;
+            }
             var btn = document.getElementById('submitBtn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';

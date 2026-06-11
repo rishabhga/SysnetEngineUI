@@ -1,4 +1,4 @@
-﻿using ManageEngineWebApp.Attributes;
+using ManageEngineWebApp.Attributes;
 using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using Microsoft.AspNetCore.Mvc;
@@ -141,28 +141,49 @@ namespace ManageEngineWebApp.Controllers
                 return RedirectToAction("Index");
             }
 
+            // Validate version format on MVC side too
+            if (!System.Text.RegularExpressions.Regex.IsMatch(newVersion, @"^\d+\.\d+\.\d+(\.\d+)?$"))
+            {
+                TempData["Error"] = "Invalid version format. Use format like 1.0.1 or 1.0.0.5";
+                return RedirectToAction("Index");
+            }
+
+            if (!System.Version.TryParse(newVersion, out var parsedVersion) || parsedVersion < new System.Version(1, 0, 1))
+            {
+                TempData["Error"] = "Version must be at least 1.0.1";
+                return RedirectToAction("Index");
+            }
+
             try
             {
-                string uploadsFolder = Path.Combine(_env.WebRootPath, "ClientVersionUpload");
-                if (!Directory.Exists(uploadsFolder))
-                    Directory.CreateDirectory(uploadsFolder);
-
-                foreach (var file in Directory.GetFiles(uploadsFolder))
-                    try { System.IO.File.Delete(file); } catch { }
-
-                string fileName = Path.GetFileName(versionFile.FileName);
-                string filePath = Path.Combine(uploadsFolder, fileName);
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
-                    await versionFile.CopyToAsync(fileStream);
-
-                string downloadUrl = $"/ClientVersionUpload/{fileName}";
                 using var client = GetClient();
-                var payload = new { version = newVersion, url = downloadUrl };
-                var response = await client.PostAsJsonAsync($"{_baseUrl}/api/ClientVersionControl/UpdateVersion", payload);
+                using var content = new MultipartFormDataContent();      
+                content.Add(new StringContent(newVersion), "version");
+                using var stream = versionFile.OpenReadStream();
+                var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(versionFile.ContentType);
+                content.Add(fileContent, "versionFile", versionFile.FileName);
+                var response = await client.PostAsync($"{_baseUrl}/api/ClientVersionControl/UpdateVersion", content);
 
-                TempData[response.IsSuccessStatusCode ? "Message" : "Error"] = response.IsSuccessStatusCode
-                    ? "Client version uploaded and updated successfully."
-                    : $"File uploaded, but failed to update API. Status: {response.StatusCode}";
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Message"] = "Client version uploaded and updated successfully.";
+                }
+                else
+                {
+                    var body = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(body);
+                        var msg = doc.RootElement.TryGetProperty("message", out var msgProp)
+                            ? msgProp.GetString() : null;
+                        TempData["Error"] = !string.IsNullOrEmpty(msg) ? msg : $"Upload failed. Status: {response.StatusCode}";
+                    }
+                    catch
+                    {
+                        TempData["Error"] = $"Upload failed. Status: {response.StatusCode}";
+                    }
+                }
             }
             catch (Exception ex)
             {
