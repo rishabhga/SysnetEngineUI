@@ -2,152 +2,603 @@
     ViewData["Title"] = "Company Email Configuration";
 }
 
-<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-    <div class="flex items-center gap-2">
-        <h1 class="text-base font-bold text-gray-900 flex items-center gap-1.5">
-            <i class="fa fa-envelope-open-text text-cyan-500 text-sm"></i> Company Email Configuration
-        </h1>
+<style>
+    /* ── Page ── */
+    .ec-page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 14px 16px;
+    }
+
+    /* ── Header ── */
+    .ec-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+        .ec-header h1 {
+            font-size: .85rem;
+            font-weight: 700;
+            color: #0e7490;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .ec-header h1 i {
+                color: #06b6d4;
+                font-size: .8rem;
+            }
+
+    /* ── Buttons ── */
+    .ec-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: 5px;
+        font-size: .72rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: all .15s;
+    }
+
+    .ec-btn-primary {
+        background: linear-gradient(135deg,#06b6d4,#0891b2);
+        color: #fff;
+    }
+
+        .ec-btn-primary:hover {
+            background: linear-gradient(135deg,#0891b2,#0e7490);
+            box-shadow: 0 2px 6px rgba(8,145,178,.35);
+        }
+
+    .ec-btn-secondary {
+        background: #f9fafb;
+        color: #374151;
+        border: 1px solid #d1d5db;
+    }
+
+        .ec-btn-secondary:hover {
+            background: #f3f4f6;
+        }
+
+    .ec-btn-ghost {
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+
+        .ec-btn-ghost:hover {
+            background: #dcfce7;
+        }
+
+    .ec-btn:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+    }
+
+    /* ── Alert ── */
+    .ec-alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        padding: 7px 10px;
+        border-radius: 5px;
+        font-size: .7rem;
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+
+    .ec-alert-ok {
+        background: #f0fdf4;
+        border-left: 3px solid #22c55e;
+        color: #15803d;
+    }
+
+    .ec-alert-err {
+        background: #fef2f2;
+        border-left: 3px solid #ef4444;
+        color: #b91c1c;
+    }
+
+    /* ── Card / Table ── */
+    .ec-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 7px;
+        overflow: hidden;
+    }
+
+    .ec-card-head {
+        background: linear-gradient(90deg,#0891b2,#0e7490);
+        padding: 7px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+        .ec-card-head span {
+            font-size: .72rem;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+    .ec-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .72rem;
+    }
+
+        .ec-table thead tr {
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .ec-table th {
+            padding: 7px 12px;
+            font-size: .65rem;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            white-space: nowrap;
+        }
+
+        .ec-table td {
+            padding: 8px 12px;
+            color: #374151;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .ec-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .ec-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+    .ec-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 5px;
+        background: #ecfeff;
+        color: #0891b2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .6rem;
+        font-weight: 800;
+        border: 1px solid #a5f3fc;
+    }
+
+    .ec-mono {
+        font-family: monospace;
+        font-size: .68rem;
+        color: #4b5563;
+    }
+
+    .ec-badge-on {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        border-radius: 999px;
+        padding: 1px 7px;
+        font-size: .62rem;
+        font-weight: 700;
+    }
+
+    .ec-badge-off {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        background: #f9fafb;
+        color: #6b7280;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        padding: 1px 7px;
+        font-size: .62rem;
+        font-weight: 700;
+    }
+
+    .ec-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .ec-badge-on .ec-dot {
+        background: #22c55e;
+    }
+
+    .ec-badge-off .ec-dot {
+        background: #9ca3af;
+    }
+
+    .ec-icon-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        font-size: .65rem;
+        transition: all .12s;
+    }
+
+    .ec-icon-btn-blue {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+        .ec-icon-btn-blue:hover {
+            background: #dbeafe;
+        }
+
+    .ec-icon-btn-indigo {
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+
+        .ec-icon-btn-indigo:hover {
+            background: #e0e7ff;
+        }
+
+    .ec-icon-btn-red {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+        .ec-icon-btn-red:hover {
+            background: #fee2e2;
+        }
+
+    /* ── Modal overlay ── */
+    .ec-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        background: rgba(0,0,0,.45);
+        backdrop-filter: blur(2px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+
+        .ec-overlay.hidden {
+            display: none;
+        }
+
+    /* ── Config modal ── */
+    .ec-modal {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 16px 40px rgba(0,0,0,.18);
+        width: 100%;
+        max-width: 520px;
+        overflow: hidden;
+        transform: scale(.96);
+        transition: transform .15s;
+    }
+
+        .ec-modal.scale-100 {
+            transform: scale(1);
+        }
+
+    .ec-modal-head {
+        background: linear-gradient(90deg,#0891b2,#0e7490);
+        padding: 9px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+        .ec-modal-head h6 {
+            font-size: .76rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ec-modal-head button {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,.7);
+            cursor: pointer;
+            font-size: .9rem;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+            .ec-modal-head button:hover {
+                color: #fff;
+                background: rgba(255,255,255,.15);
+            }
+
+    .ec-modal-body {
+        padding: 12px 14px;
+    }
+
+    .ec-modal-foot {
+        padding: 8px 14px;
+        border-top: 1px solid #f1f5f9;
+        background: #f8fafc;
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    /* ── Form ── */
+    .ec-label {
+        display: block;
+        font-size: .68rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 3px;
+    }
+
+    .ec-input {
+        width: 100%;
+        padding: 5px 9px;
+        border: 1px solid #d1d5db;
+        border-radius: 5px;
+        font-size: .72rem;
+        outline: none;
+        transition: border .15s;
+        box-sizing: border-box;
+        color: #111827;
+    }
+
+        .ec-input:focus {
+            border-color: #06b6d4;
+            box-shadow: 0 0 0 2px rgba(6,182,212,.12);
+        }
+
+    .ec-field {
+        margin-bottom: 8px;
+    }
+
+    .ec-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .ec-grid-3 {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 8px;
+    }
+
+    .ec-pw-wrap {
+        position: relative;
+    }
+
+        .ec-pw-wrap .ec-input {
+            padding-right: 32px;
+        }
+
+    .ec-pw-toggle {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #9ca3af;
+        font-size: .7rem;
+    }
+
+        .ec-pw-toggle:hover {
+            color: #4b5563;
+        }
+
+    .ec-ssl-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+
+        .ec-ssl-row label {
+            font-size: .7rem;
+            font-weight: 600;
+            color: #374151;
+            cursor: pointer;
+        }
+
+    .ec-hint {
+        font-size: .62rem;
+        color: #9ca3af;
+        margin-top: 2px;
+    }
+
+    .ec-divider {
+        border: none;
+        border-top: 1px solid #f1f5f9;
+        margin: 8px 0;
+    }
+
+    /* ── Test modal ── */
+    .ec-test-modal {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 16px 40px rgba(0,0,0,.18);
+        width: 100%;
+        max-width: 340px;
+        overflow: hidden;
+        transform: scale(.96);
+        transition: transform .15s;
+    }
+
+        .ec-test-modal.scale-100 {
+            transform: scale(1);
+        }
+</style>
+
+<div class="ec-page">
+
+    <div class="ec-header">
+        <h1><i class="fa fa-envelope-open-text"></i> Company Email Configuration</h1>
+        <button onclick="openConfigModal()" class="ec-btn ec-btn-primary">
+            <i class="fa fa-plus" style="font-size:.65rem;"></i> Add Configuration
+        </button>
+    </div>
+
+    <div id="tableAlert" class="ec-alert hidden"></div>
+
+    <div class="ec-card">
+        <div class="ec-card-head">
+            <span><i class="fa fa-list" style="font-size:.65rem;"></i> Configured Companies</span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="ec-table">
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Host</th>
+                        <th>Port</th>
+                        <th>Sender</th>
+                        <th style="text-align:center;">Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="configTbody">
+                    <tr>
+                        <td colspan="6" style="text-align:center;padding:24px;color:#9ca3af;font-size:.72rem;">
+                            <i class="fa fa-spinner fa-spin" style="margin-right:5px;"></i>Loading...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+<!-- ── Config Modal ── -->
+<div id="configModal" class="ec-overlay hidden">
+    <div class="ec-modal" id="configModalContent">
+        <div class="ec-modal-head">
+            <h6><i class="fa fa-gear"></i> <span id="configModalTitle">Add SMTP Configuration</span></h6>
+            <button type="button" onclick="closeConfigModal()"><i class="fa fa-xmark"></i></button>
+        </div>
+        <div class="ec-modal-body">
+            <div id="formAlert" class="ec-alert hidden"></div>
 
-    @* Form *@
-    <div class="lg:col-span-4">
-        <div class="bg-white rounded-md shadow-sm border border-gray-200">
-            <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                <h6 class="text-gray-800 font-semibold text-sm flex items-center mb-0">
-                    <i class="fa fa-gear text-cyan-500 mr-2 text-xs"></i>SMTP Settings
-                </h6>
-            </div>
-            <div class="p-4">
-                
-                <div id="formAlert" class="hidden mb-4 p-3 rounded-lg flex items-center gap-2 text-sm font-medium"></div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Company <span class="text-red-400">*</span></label>
-                    <select id="selCompany" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-[#00BCEB] focus:border-[#00BCEB] outline-none transition" onchange="loadConfig(this.value)">
-                        <option value="">- Select Company -</option>
-                        @if (ViewBag.Companies != null)
+            <div class="ec-field">
+                <label class="ec-label">Company <span style="color:#ef4444">*</span></label>
+                <select id="selCompany" class="ec-input" onchange="checkExistingConfig(this.value)">
+                    <option value="">— Select Company —</option>
+                    @if (ViewBag.Companies != null)
+                    {
+                        foreach (var company in ViewBag.Companies)
                         {
-                            foreach (var company in ViewBag.Companies)
-                            {
-                                <option value="@company.id">@company.companyName</option>
-                            }
+                            <option value="@company.id">@company.companyName</option>
                         }
-                    </select>
-                </div>
+                    }
+                </select>
+            </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">SMTP Host <span class="text-red-400">*</span></label>
-                        <input type="text" id="smtpHost" class="w-full rounded border-gray-300 border px-3 py-1.5 text-xs focus:ring-[#00BCEB] focus:border-[#00BCEB] outline-none transition" placeholder="smtp.gmail.com" />
-                    </div>
-                    <div class="sm:col-span-1">
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Port <span class="text-red-400">*</span></label>
-                        <input type="number" id="smtpPort" class="w-full rounded border-gray-300 border px-3 py-1.5 text-xs focus:ring-[#00BCEB] focus:border-[#00BCEB] outline-none transition" value="587" />
-                    </div>
+            <div class="ec-grid-3 ec-field">
+                <div>
+                    <label class="ec-label">SMTP Host <span style="color:#ef4444">*</span></label>
+                    <input type="text" id="smtpHost" class="ec-input" placeholder="smtp.gmail.com" />
                 </div>
-
-                <div class="mb-4 flex items-center">
-                    <input type="checkbox" id="enableSsl" class="w-4 h-4 text-[#00BCEB] bg-gray-100 border-gray-300 rounded focus:ring-[#00BCEB] focus:ring-2 cursor-pointer" checked>
-                    <label for="enableSsl" class="ml-2 text-sm font-semibold text-gray-700 cursor-pointer">Enable SSL / TLS</label>
+                <div>
+                    <label class="ec-label">Port <span style="color:#ef4444">*</span></label>
+                    <input type="number" id="smtpPort" class="ec-input" value="587" />
                 </div>
+            </div>
 
-                <div class="mb-4">
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Sender Email <span class="text-red-400">*</span></label>
-                    <input type="email" id="senderEmail" class="w-full rounded border-gray-300 border px-3 py-1.5 text-xs focus:ring-[#00BCEB] focus:border-[#00BCEB] outline-none transition" placeholder="noreply@company.com" />
+            <div class="ec-ssl-row">
+                <input type="checkbox" id="enableSsl" style="width:13px;height:13px;accent-color:#06b6d4;cursor:pointer;" checked>
+                <label for="enableSsl">Enable SSL / TLS</label>
+            </div>
+
+            <hr class="ec-divider">
+
+            <div class="ec-grid-2 ec-field">
+                <div>
+                    <label class="ec-label">Sender Email <span style="color:#ef4444">*</span></label>
+                    <input type="email" id="senderEmail" class="ec-input" placeholder="noreply@company.com" />
                 </div>
-
-                <div class="mb-4">
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Sender Display Name</label>
-                    <input type="text" id="senderName" class="w-full rounded border-gray-300 border px-3 py-1.5 text-xs focus:ring-[#00BCEB] focus:border-[#00BCEB] outline-none transition" placeholder="IT Support" />
+                <div>
+                    <label class="ec-label">Display Name</label>
+                    <input type="text" id="senderName" class="ec-input" placeholder="IT Support" />
                 </div>
+            </div>
 
-                <div class="mb-4">
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">SMTP Username <span class="text-red-400">*</span></label>
-                    <input type="text" id="smtpUsername" class="w-full rounded border-gray-300 border px-3 py-1.5 text-xs focus:ring-[#00BCEB] focus:border-[#00BCEB] outline-none transition" placeholder="smtp-user@company.com" />
-                </div>
+            <div class="ec-field">
+                <label class="ec-label">SMTP Username <span style="color:#ef4444">*</span></label>
+                <input type="text" id="smtpUsername" class="ec-input" placeholder="smtp-user@company.com" />
+            </div>
 
-                <div class="mb-4">
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">SMTP Password</label>
-                    <div class="relative">
-                        <input type="password" id="smtpPassword" class="w-full rounded border-gray-300 border px-3 py-1.5 pr-8 text-xs focus:ring-[#00BCEB] focus:border-[#00BCEB] outline-none transition" placeholder="Leave blank to keep existing" />
-                        <button type="button" onclick="togPw()" class="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600">
-                            <i class="fa fa-eye text-xs" id="pwEye"></i>
-                        </button>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Leave blank when editing to keep the stored password.</p>
-                </div>
-
-                <div class="flex gap-2 mt-2">
-                    <button id="btnSave" onclick="saveConfig()" class="flex-1 text-white rounded-md text-xs font-semibold py-1.5 px-3 shadow-sm transition-all flex items-center justify-center gap-1.5 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed" style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
-                        <i class="fa fa-floppy-disk text-[10px]"></i> Save
-                    </button>
-                    <button id="btnTest" onclick="openTestModal()" class="bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold py-1.5 px-3 rounded-md shadow-sm border border-gray-200 transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <i class="fa fa-paper-plane text-[10px]"></i> Test
-                    </button>
-                    <button onclick="clearForm()" class="bg-white hover:bg-gray-50 text-gray-500 text-xs font-semibold py-1.5 px-3 rounded-md shadow-sm border border-gray-200 transition-all flex items-center gap-1.5" title="Clear form">
-                        <i class="fa fa-eraser text-[10px]"></i>
+            <div class="ec-field">
+                <label class="ec-label">SMTP Password</label>
+                <div class="ec-pw-wrap">
+                    <input type="password" id="smtpPassword" class="ec-input" placeholder="Leave blank to keep existing" />
+                    <button type="button" onclick="togPw()" class="ec-pw-toggle">
+                        <i class="fa fa-eye" id="pwEye"></i>
                     </button>
                 </div>
-
+                <p class="ec-hint">Leave blank when editing to keep the stored password.</p>
             </div>
         </div>
-    </div>
-
-    @* Table *@
-    <div class="lg:col-span-8">
-        <div class="bg-white rounded-md shadow-sm border border-gray-200">
-            <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                <h6 class="text-gray-800 font-semibold text-sm flex items-center mb-0">
-                    <i class="fa fa-list text-cyan-500 mr-2 text-xs"></i>Configured Companies
-                </h6>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-600">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th scope="col" class="px-4 py-3 font-semibold">Company</th>
-                            <th scope="col" class="px-4 py-3 font-semibold">Host</th>
-                            <th scope="col" class="px-4 py-3 font-semibold">Port</th>
-                            <th scope="col" class="px-4 py-3 font-semibold">Sender</th>
-                            <th scope="col" class="px-4 py-3 font-semibold text-center">Status</th>
-                            <th scope="col" class="px-4 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="configTbody" class="divide-y divide-gray-100">
-                        <tr>
-                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
-                                <i class="fa fa-spinner fa-spin mr-2"></i>Loading...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-@* Test email modal *@
-<div id="testModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm transition-opacity">
-    <div class="bg-white rounded-md shadow-xl max-w-sm w-full mx-4 overflow-hidden transform scale-95 transition-transform" id="testModalContent">
-        <div class="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 bg-gray-50">
-            <h6 class="font-semibold text-gray-800 text-sm m-0">Send Test Email</h6>
-            <button type="button" onclick="closeTestModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none">
-                <i class="fa fa-xmark"></i>
+        <div class="ec-modal-foot">
+            <button type="button" onclick="closeConfigModal()" class="ec-btn ec-btn-secondary">Cancel</button>
+            <button id="btnTest" onclick="openTestModalFromForm()" class="ec-btn ec-btn-ghost">
+                <i class="fa fa-paper-plane" style="font-size:.6rem;"></i> Test
+            </button>
+            <button id="btnSave" onclick="saveConfig()" class="ec-btn ec-btn-primary">
+                <i class="fa fa-floppy-disk" style="font-size:.6rem;"></i> Save
             </button>
         </div>
-        <div class="p-4">
-            <label class="block text-xs font-semibold text-gray-700 mb-1">Recipient Email <span class="text-red-400">*</span></label>
-            <input type="email" id="testEmail" class="w-full rounded border-gray-300 border px-3 py-1.5 text-xs focus:ring-[#00BCEB] focus:border-[#00BCEB] outline-none transition" placeholder="admin@company.com" />
-            <p id="testEmailError" class="text-xs text-red-500 mt-1 hidden">Please enter a valid email address.</p>
+    </div>
+</div>
+
+<!-- ── Test Email Modal ── -->
+<div id="testModal" class="ec-overlay hidden" style="z-index:60;">
+    <div class="ec-test-modal" id="testModalContent">
+        <div class="ec-modal-head">
+            <h6><i class="fa fa-paper-plane"></i> Send Test Email</h6>
+            <button type="button" onclick="closeTestModal()"><i class="fa fa-xmark"></i></button>
         </div>
-        <div class="px-3 py-2 border-t border-gray-100 bg-gray-50 flex justify-end gap-2">
-            <button onclick="closeTestModal()" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50 transition">Cancel</button>
-            <button id="btnSendTest" onclick="sendTest()" class="px-3 py-1.5 text-xs font-medium text-white rounded shadow-sm hover:shadow transition disabled:opacity-50 disabled:cursor-not-allowed" style="background:linear-gradient(135deg,#00BCEB,#0096BE)">
-                <i class="fa fa-paper-plane text-[10px] mr-1"></i>Send
+        <div class="ec-modal-body">
+            <input type="hidden" id="testCompanyId" />
+            <div class="ec-field">
+                <label class="ec-label">Recipient Email <span style="color:#ef4444">*</span></label>
+                <input type="email" id="testEmail" class="ec-input" placeholder="admin@company.com" />
+                <p id="testEmailError" class="ec-hint hidden" style="color:#ef4444;">Please enter a valid email address.</p>
+            </div>
+        </div>
+        <div class="ec-modal-foot">
+            <button onclick="closeTestModal()" class="ec-btn ec-btn-secondary">Cancel</button>
+            <button id="btnSendTest" onclick="sendTest()" class="ec-btn ec-btn-primary">
+                <i class="fa fa-paper-plane" style="font-size:.6rem;"></i> Send Test
             </button>
         </div>
     </div>
@@ -155,248 +606,273 @@
 
 @section Scripts {
     <script>
-        // ── Robust API wrapper with proper error handling ──
+        // ── Robust API wrapper ──
         async function api(url, opts = {}) {
             try {
-                const res = await fetch(url, {
-                    headers: { 'Content-Type': 'application/json' },
-                    ...opts
-                });
-
+                const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
                 const text = await res.text();
                 let data;
                 try { data = JSON.parse(text); } catch { data = { message: text }; }
-
-                if (!res.ok) {
-                    return {
-                        success: false,
-                        message: data.message || data.title || `Server error (${res.status})`
-                    };
-                }
+                if (!res.ok) return { success: false, message: data.message || data.title || `Server error (${res.status})` };
                 return data;
             } catch (err) {
-                console.error('API call failed:', err);
                 return { success: false, message: 'Network error — could not reach the server.' };
             }
         }
 
         // ── Alert system ──
         let alertTimer = null;
-        function showAlert(msg, isSuccess) {
-            const el = document.getElementById('formAlert');
+        function showAlert(msg, isSuccess, targetId = 'tableAlert') {
+            const el = document.getElementById(targetId);
+            if (!el) return;
             if (alertTimer) clearTimeout(alertTimer);
 
-            el.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-200',
-                                'bg-green-50', 'text-green-700', 'border-green-200',
-                                'bg-amber-50', 'text-amber-700', 'border-amber-200');
-            
+            el.classList.remove('hidden','ec-alert-ok','ec-alert-err');
             if (isSuccess) {
-                el.classList.add('bg-green-50', 'text-green-700', 'border', 'border-green-200');
-                el.innerHTML = '<i class="fa fa-circle-check text-green-500"></i><span>' + msg + '</span>';
+                el.classList.add('ec-alert','ec-alert-ok');
+                el.innerHTML = '<i class="fa fa-circle-check text-green-500 text-lg"></i><span>' + msg + '</span>';
             } else {
-                el.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
-                el.innerHTML = '<i class="fa fa-triangle-exclamation text-red-500"></i><span>' + msg + '</span>';
+                el.classList.add('ec-alert','ec-alert-err');
+                el.innerHTML = '<i class="fa fa-triangle-exclamation text-red-500 text-lg"></i><span>' + msg + '</span>';
             }
-            
             alertTimer = setTimeout(() => el.classList.add('hidden'), 8000);
         }
 
-        // ── Button loading helpers ──
         function setButtonLoading(btn, loading, originalHtml) {
             if (!btn) return;
             if (loading) {
                 btn._origHtml = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fa fa-spinner fa-spin text-[10px]"></i> Please wait...';
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin text-sm"></i> Please wait...';
             } else {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml || btn._origHtml || 'Submit';
             }
         }
 
-        // ── Load all configs into table ──
+        // ── Modal Handling ──
+        function openConfigModal(companyId = null) {
+            clearForm();
+            document.getElementById('formAlert').classList.add('hidden');
+            const modal = document.getElementById('configModal');
+            const content = document.getElementById('configModalContent');
+
+            if (companyId) {
+                document.getElementById('configModalTitle').innerText = "Edit SMTP Configuration";
+                document.getElementById('selCompany').value = companyId;
+                document.getElementById('selCompany').disabled = true; 
+                loadConfigData(companyId);
+            } else {
+                document.getElementById('configModalTitle').innerText = "Add SMTP Configuration";
+                document.getElementById('selCompany').disabled = false;
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeConfigModal() {
+            const modal = document.getElementById('configModal');
+            const content = document.getElementById('configModalContent');
+            content.classList.remove('scale-100');
+            setTimeout(() => modal.classList.add('hidden'), 150);
+        }
+
+        async function checkExistingConfig(companyId) {
+            if (!companyId) { clearForm(true); return; }
+            const d = await api('/Auth/api/CompanyEmailConfig/' + companyId);
+            if (d && d.id) {
+                showAlert('Configuration already exists for this company. Form populated with existing details.', true, 'formAlert');
+                fillForm(d);
+            } else {
+                clearForm(true);
+            }
+        }
+
+        async function loadConfigData(companyId) {
+            try {
+                const d = await api('/Auth/api/CompanyEmailConfig/' + companyId);
+                if (d && d.id) fillForm(d);
+            } catch (e) {
+                console.error(e);
+                showAlert('Failed to load configuration data.', false, 'formAlert');
+            }
+        }
+
+        function fillForm(d) {
+            document.getElementById('smtpHost').value = d.smtpHost || '';
+            document.getElementById('smtpPort').value = d.smtpPort || 587;
+            document.getElementById('enableSsl').checked = d.enableSsl !== false;
+            document.getElementById('senderEmail').value = d.senderEmail || '';
+            document.getElementById('senderName').value = d.senderName || '';
+            document.getElementById('smtpUsername').value = d.smtpUsername || '';
+            document.getElementById('smtpPassword').value = '';
+        }
+
+        function clearForm(keepCompany = false) {
+            if (!keepCompany) document.getElementById('selCompany').value = '';
+            document.getElementById('smtpHost').value = '';
+            document.getElementById('smtpPort').value = '587';
+            document.getElementById('enableSsl').checked = true;
+            document.getElementById('senderEmail').value = '';
+            document.getElementById('senderName').value = '';
+            document.getElementById('smtpUsername').value = '';
+            document.getElementById('smtpPassword').value = '';
+        }
+
         async function loadAll() {
             try {
                 const data = await api('/Auth/api/CompanyEmailConfig');
                 const tbody = document.getElementById('configTbody');
 
                 if (!Array.isArray(data) || !data.length) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">
-                        <i class="fa fa-inbox text-2xl mb-2 block"></i>No email configurations found.<br>
-                        <span class="text-xs">Select a company and fill in the SMTP details to get started.</span>
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:28px;color:#9ca3af;font-size:.72rem;">
+                        <div style="display:flex;flex-direction:column;align-items:center;">
+                            <div style="width:40px;height:40px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+                                <i class="fa fa-envelope-open" style="font-size:1.1rem;color:#9ca3af;"></i>
+                            </div>
+                            <p style="font-size:.75rem;font-weight:600;color:#374151;margin:0;">No email configurations found</p>
+                            <p style="font-size:.67rem;color:#9ca3af;margin:3px 0 0;">Click "Add Configuration" to set up SMTP for a company.</p>
+                        </div>
                     </td></tr>`;
                     return;
                 }
 
                 tbody.innerHTML = data.map(r => `
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3 font-medium text-gray-800">${r.companyName || '-'}</td>
-                        <td class="px-4 py-3 text-gray-600 font-mono text-xs">${r.smtpHost || '-'}</td>
-                        <td class="px-4 py-3 text-gray-600">${r.smtpPort || '-'}</td>
-                        <td class="px-4 py-3 text-gray-600 text-xs">${r.senderEmail || '-'}</td>
-                        <td class="px-4 py-3 text-center">
-                            <span class="px-2 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full ${r.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">
-                                ${r.isActive ? 'Active' : 'Off'}
+                    <tr class="ec-table-row" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                        <td style="padding:8px 12px;font-size:.72rem;font-weight:600;color:#111827;">
+                            <div class="ec-avatar">
+                                ${(r.companyName || 'C').substring(0,2)}
+                            </div>
+                            ${r.companyName || '-'}
+                        </td>
+                        <td class="ec-mono" style="padding:8px 12px;">${r.smtpHost || '-'}</td>
+                        <td style="padding:8px 12px;font-size:.72rem;color:#4b5563;">${r.smtpPort || '-'}</td>
+                        <td style="padding:8px 12px;font-size:.72rem;color:#4b5563;">${r.senderEmail || '-'}</td>
+                        <td style="padding:8px 12px;text-align:center;">
+                            <span class="${r.isActive ? 'ec-badge-on' : 'ec-badge-off'}">
+                                <span class='ec-dot'></span>${r.isActive ? 'Active' : 'Inactive'}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex items-center justify-end gap-1">
-                                <button class="text-[#00BCEB] hover:text-[#0096BE] p-1 transition-colors" onclick="editRow(${r.companyId})" title="Edit">
-                                    <i class="fa fa-pen text-xs"></i>
+                        <td style="padding:8px 12px;text-align:right;">
+                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
+                                <button class="ec-icon-btn ec-icon-btn-indigo" onclick="openTestModal(${r.companyId})" title="Test Email">
+                                    <i class="fa fa-paper-plane" style="font-size:.6rem;"></i>
                                 </button>
-                                <button class="text-gray-400 hover:text-red-500 p-1 transition-colors" onclick="deleteConfig(${r.companyId}, '${(r.companyName || '').replace(/'/g, "\\'")}')" title="Delete">
-                                    <i class="fa fa-trash text-xs"></i>
+                                <button class="ec-icon-btn ec-icon-btn-blue" onclick="openConfigModal(${r.companyId})" title="Edit">
+                                    <i class="fa fa-pen" style="font-size:.6rem;"></i>
+                                </button>
+                                <button class="ec-icon-btn ec-icon-btn-red" onclick="deleteConfig(${r.companyId}, '${(r.companyName || '').replace(/'/g, "\\'")}')" title="Delete">
+                                    <i class="fa fa-trash" style="font-size:.6rem;"></i>
                                 </button>
                             </div>
                         </td>
                     </tr>
                 `).join('');
             } catch (e) {
-                console.error('Failed to load configs', e);
-                document.getElementById('configTbody').innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-red-500"><i class="fa fa-triangle-exclamation mr-1"></i>Error loading configurations.</td></tr>';
+                document.getElementById('configTbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#dc2626;font-size:.72rem;"><i class="fa fa-triangle-exclamation" style="margin-right:5px;"></i>Error loading configurations.</td></tr>';
             }
         }
 
-        // ── Load a specific company config into the form ──
-        async function loadConfig(companyId) {
-            if (!companyId) { clearForm(true); return; }
-            try {
-                const d = await api('/Auth/api/CompanyEmailConfig/' + companyId);
-                if (d && d.id) {
-                    document.getElementById('smtpHost').value     = d.smtpHost || '';
-                    document.getElementById('smtpPort').value     = d.smtpPort || 587;
-                    document.getElementById('enableSsl').checked  = d.enableSsl !== false;
-                    document.getElementById('senderEmail').value  = d.senderEmail || '';
-                    document.getElementById('senderName').value   = d.senderName || '';
-                    document.getElementById('smtpUsername').value  = d.smtpUsername || '';
-                    document.getElementById('smtpPassword').value = '';
-                } else {
-                    // New config for this company — clear fields but keep company selected
-                    clearForm(true);
-                }
-            } catch (e) {
-                console.error('Failed to load config', e);
-            }
-        }
-
-        // ── Edit row from table ──
-        function editRow(companyId) {
-            document.getElementById('selCompany').value = companyId;
-            loadConfig(companyId);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // ── Clear form ──
-        function clearForm(keepCompany) {
-            if (!keepCompany) document.getElementById('selCompany').value = '';
-            document.getElementById('smtpHost').value     = '';
-            document.getElementById('smtpPort').value     = '587';
-            document.getElementById('enableSsl').checked  = true;
-            document.getElementById('senderEmail').value  = '';
-            document.getElementById('senderName').value   = '';
-            document.getElementById('smtpUsername').value  = '';
-            document.getElementById('smtpPassword').value = '';
-        }
-
-        // ── Validate form ──
-        function validateForm() {
-            const companyId    = document.getElementById('selCompany').value;
-            const smtpHost     = document.getElementById('smtpHost').value.trim();
-            const smtpPort     = document.getElementById('smtpPort').value;
-            const senderEmail  = document.getElementById('senderEmail').value.trim();
-            const smtpUsername  = document.getElementById('smtpUsername').value.trim();
-
-            if (!companyId)    { showAlert('Please select a company.', false); return false; }
-            if (!smtpHost)     { showAlert('SMTP Host is required.', false); return false; }
-            if (!smtpPort || parseInt(smtpPort) <= 0) { showAlert('Please enter a valid port number.', false); return false; }
-            if (!senderEmail)  { showAlert('Sender Email is required.', false); return false; }
-            if (!smtpUsername)  { showAlert('SMTP Username is required.', false); return false; }
-            return true;
-        }
-
-        // ── Save config ──
         async function saveConfig() {
-            if (!validateForm()) return;
+            const companyId = document.getElementById('selCompany').value;
+            const smtpHost = document.getElementById('smtpHost').value.trim();
+            const smtpPort = document.getElementById('smtpPort').value;
+            const senderEmail = document.getElementById('senderEmail').value.trim();
+            const smtpUsername = document.getElementById('smtpUsername').value.trim();
+
+            if (!companyId) { showAlert('Please select a company.', false, 'formAlert'); return; }
+            if (!smtpHost) { showAlert('SMTP Host is required.', false, 'formAlert'); return; }
+            if (!smtpPort || parseInt(smtpPort) <= 0) { showAlert('Please enter a valid port number.', false, 'formAlert'); return; }
+            if (!senderEmail) { showAlert('Sender Email is required.', false, 'formAlert'); return; }
+            if (!smtpUsername) { showAlert('SMTP Username is required.', false, 'formAlert'); return; }
 
             const btn = document.getElementById('btnSave');
             const origHtml = btn.innerHTML;
             setButtonLoading(btn, true);
 
-            const pw = document.getElementById('smtpPassword').value;
             const body = {
-                companyId:    parseInt(document.getElementById('selCompany').value),
-                smtpHost:     document.getElementById('smtpHost').value.trim(),
-                smtpPort:     parseInt(document.getElementById('smtpPort').value),
-                enableSsl:    document.getElementById('enableSsl').checked,
-                senderEmail:  document.getElementById('senderEmail').value.trim(),
-                senderName:   document.getElementById('senderName').value.trim(),
-                smtpUsername:  document.getElementById('smtpUsername').value.trim(),
-                smtpPassword: pw || '__KEEP__'  
+                companyId: parseInt(companyId),
+                smtpHost: smtpHost,
+                smtpPort: parseInt(smtpPort),
+                enableSsl: document.getElementById('enableSsl').checked,
+                senderEmail: senderEmail,
+                senderName: document.getElementById('senderName').value.trim(),
+                smtpUsername: smtpUsername,
+                smtpPassword: document.getElementById('smtpPassword').value || '__KEEP__'
             };
 
-            const res = await api('/Auth/api/CompanyEmailConfig', {
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-            
+            const res = await api('/Auth/api/CompanyEmailConfig', { method: 'POST', body: JSON.stringify(body) });
             setButtonLoading(btn, false, origHtml);
-            showAlert(res.message || (res.success ? 'Configuration saved successfully.' : 'Failed to save configuration.'), res.success);
-            if (res.success) loadAll();
+
+            if (res.success) {
+                closeConfigModal();
+                showAlert('Configuration saved successfully.', true, 'tableAlert');
+                loadAll();
+            } else {
+                showAlert(res.message || 'Failed to save configuration.', false, 'formAlert');
+            }
         }
 
-        // ── Delete config ──
         async function deleteConfig(companyId, companyName) {
             if (!confirm(`Are you sure you want to delete the email configuration for "${companyName}"?\n\nThis action cannot be undone.`)) return;
 
-            const res = await api('/Auth/api/CompanyEmailConfig/delete/' + companyId, {
-                method: 'POST'
-            });
-            
+            const res = await api('/Auth/api/CompanyEmailConfig/delete/' + companyId, { method: 'POST' });
             if (res.success) {
-                showAlert(`Configuration for "${companyName}" deleted successfully.`, true);
+                showAlert(`Configuration for "${companyName}" deleted successfully.`, true, 'tableAlert');
                 loadAll();
-                // If the deleted company was selected in form, clear it
-                if (document.getElementById('selCompany').value == companyId) {
-                    clearForm();
-                }
             } else {
-                showAlert(res.message || 'Failed to delete configuration.', false);
+                showAlert(res.message || 'Failed to delete configuration.', false, 'tableAlert');
             }
         }
 
-        // ── Test email modal ──
-        function openTestModal() {
-            if (!document.getElementById('selCompany').value) {
-                showAlert('Select a company first to test its configuration.', false);
+        function openTestModalFromForm() {
+            const companyId = document.getElementById('selCompany').value;
+            if (!companyId) {
+                showAlert('Select a company first before testing.', false, 'formAlert');
                 return;
             }
+            document.getElementById('testCompanyId').value = companyId;
             document.getElementById('testEmail').value = '';
             document.getElementById('testEmailError').classList.add('hidden');
+
             const modal = document.getElementById('testModal');
             const content = document.getElementById('testModalContent');
             modal.classList.remove('hidden');
             setTimeout(() => {
-                content.classList.remove('scale-95', 'opacity-0');
-                content.classList.add('scale-100', 'opacity-100');
+                content.classList.add('scale-100');
             }, 10);
-            // Focus the email input
+            setTimeout(() => document.getElementById('testEmail').focus(), 100);
+        }
+
+        function openTestModal(companyId) {
+            document.getElementById('testCompanyId').value = companyId;
+            document.getElementById('testEmail').value = '';
+            document.getElementById('testEmailError').classList.add('hidden');
+
+            const modal = document.getElementById('testModal');
+            const content = document.getElementById('testModalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.add('scale-100');
+            }, 10);
             setTimeout(() => document.getElementById('testEmail').focus(), 100);
         }
 
         function closeTestModal() {
             const modal = document.getElementById('testModal');
             const content = document.getElementById('testModalContent');
-            content.classList.remove('scale-100', 'opacity-100');
-            content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => modal.classList.add('hidden'), 200);
+            content.classList.remove('scale-100');
+            setTimeout(() => modal.classList.add('hidden'), 150);
         }
 
         async function sendTest() {
-            const companyId = document.getElementById('selCompany').value;
+            const companyId = document.getElementById('testCompanyId').value;
             const toEmail = document.getElementById('testEmail').value.trim();
             const errEl = document.getElementById('testEmailError');
-            
-            // Validate email
+
             if (!toEmail || !/^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(toEmail)) {
                 errEl.classList.remove('hidden');
                 document.getElementById('testEmail').focus();
@@ -412,28 +888,33 @@
                 method: 'POST',
                 body: JSON.stringify({ toEmail: toEmail })
             });
-            
+
             setButtonLoading(btn, false, origHtml);
             closeTestModal();
 
             if (res.success) {
-                showAlert(res.message || `Test email sent successfully to ${toEmail}!`, true);
+                if (!document.getElementById('configModal').classList.contains('hidden')) {
+                    showAlert(res.message || `Test email sent successfully to ${toEmail}!`, true, 'formAlert');
+                } else {
+                    showAlert(res.message || `Test email sent successfully to ${toEmail}!`, true, 'tableAlert');
+                }
             } else {
-                showAlert(res.message || 'Failed to send test email. Check your SMTP settings.', false);
+                if (!document.getElementById('configModal').classList.contains('hidden')) {
+                    showAlert(res.message || 'Failed to send test email. Check your SMTP settings.', false, 'formAlert');
+                } else {
+                    showAlert(res.message || 'Failed to send test email. Check your SMTP settings.', false, 'tableAlert');
+                }
             }
         }
 
-        // ── Toggle password visibility ──
         function togPw() {
             const inp = document.getElementById('smtpPassword');
             inp.type = inp.type === 'password' ? 'text' : 'password';
-            document.getElementById('pwEye').className = inp.type === 'text' ? 'fa fa-eye-slash text-xs' : 'fa fa-eye text-xs';
+            document.getElementById('pwEye').className = inp.type === 'text' ? 'fa fa-eye-slash text-sm' : 'fa fa-eye text-sm';
         }
 
-        // ── Allow Enter key to submit test email ──
         document.addEventListener("DOMContentLoaded", () => {
             loadAll();
-
             document.getElementById('testEmail')?.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') { e.preventDefault(); sendTest(); }
             });
