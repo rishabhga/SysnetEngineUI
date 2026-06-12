@@ -59,6 +59,33 @@ namespace ManageEngineWebApp.Controllers
             return View(model);
         }
 
+        [DynamicPermission("ClientVersion.ViewLogs", "View Client Version Logs")]
+        public async Task<IActionResult> Logs()
+        {
+            var logs = new List<ManageEngineWebApp.Models.VersionControlLogModel>();
+            try
+            {
+                using var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}/api/ClientVersionControl/Logs");
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<List<ManageEngineWebApp.Models.VersionControlLogModel>>();
+                    if (result != null)
+                        logs = result;
+                }
+                else
+                {
+                    TempData["Error"] = "Failed to fetch logs from API.";
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error connecting to API: {ex.Message}";
+            }
+
+            return View(logs);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [DynamicPermission("ClientVersion.AutoUpdate", "Trigger Auto Update")]

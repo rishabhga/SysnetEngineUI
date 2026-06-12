@@ -1,0 +1,282 @@
+@model List<ManageEngineWebApp.Models.VersionControlLogModel>
+@{
+    ViewData["Title"] = "Version Control Logs";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .logs-page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .logs-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .logs-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .logs-header h1 i {
+        color: #0ea5e9;
+        background: #e0f2fe;
+        padding: 10px;
+        border-radius: 12px;
+    }
+
+    .logs-header p {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin: 4px 0 0 44px;
+    }
+
+    .logs-btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: #fff;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        color: #334155;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .logs-btn-back:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        color: #0f172a;
+    }
+
+    .logs-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+
+    .logs-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .logs-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .logs-table th {
+        background: #f8fafc;
+        padding: 16px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #475569;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .logs-table td {
+        padding: 16px;
+        font-size: 0.875rem;
+        color: #334155;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.2s;
+    }
+
+    .logs-table tbody tr:hover td {
+        background: #f8fafc;
+    }
+
+    .logs-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .badge-success {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .badge-primary {
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+    }
+
+    .badge-secondary {
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+    }
+
+    .action-icon {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+
+    .icon-upload {
+        background: #ecfdf5;
+        color: #10b981;
+    }
+
+    .icon-auto {
+        background: #eff6ff;
+        color: #3b82f6;
+    }
+
+    .empty-state {
+        padding: 48px 24px;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #cbd5e1;
+        margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+        font-size: 1.125rem;
+        color: #334155;
+        margin: 0 0 8px;
+        font-weight: 600;
+    }
+</style>
+
+<div class="logs-page">
+    <div class="logs-header">
+        <div>
+            <h1><i class="fas fa-clipboard-list"></i> Version Control Audit Logs</h1>
+            <p>Track history of version uploads and auto-update configuration changes.</p>
+        </div>
+        <a href="/ClientVersion/Index" class="logs-btn-back">
+            <i class="fas fa-arrow-left"></i> Back to Version Control
+        </a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div style="background: #fef2f2; color: #991b1b; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; border-left: 4px solid #ef4444; font-size: 0.875rem;">
+            <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i> @TempData["Error"]
+        </div>
+    }
+
+    <div class="logs-card">
+        <div class="logs-table-wrapper">
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>Version / Config</th>
+                        <th>Performed By</th>
+                        <th>Status</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Count > 0)
+                    {
+                        foreach (var log in Model)
+                        {
+                            bool isUpload = log.Action.Contains("Upload");
+                            <tr>
+                                <td>
+                                    <div style="display:flex; align-items:center;">
+                                        <span class="action-icon @(isUpload ? "icon-upload" : "icon-auto")">
+                                            <i class="fas @(isUpload ? "fa-cloud-upload-alt" : "fa-sync-alt")"></i>
+                                        </span>
+                                        <span style="font-weight: 500;">@log.Action</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (isUpload)
+                                    {
+                                        <div style="font-weight:600; color:#0f172a;">
+                                            @if (log.PreviousVersion != "None")
+                                            {
+                                                <span style="color:#64748b; font-weight:normal;">v@(log.PreviousVersion)</span>
+                                                <i class="fas fa-arrow-right" style="margin: 0 4px; font-size: 0.7rem; color: #94a3b8;"></i>
+                                            }
+                                            v@(log.NewVersion)
+                                        </div>
+                                        <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">@log.FileName</div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-primary">@log.Action</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge badge-secondary"><i class="fas fa-user" style="font-size:10px;"></i> @log.PerformedBy</span>
+                                </td>
+                                <td>
+                                    @if (log.Status == "Success")
+                                    {
+                                        <span class="badge badge-success"><i class="fas fa-check"></i> Success</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca;"><i class="fas fa-times"></i> @log.Status</span>
+                                    }
+                                </td>
+                                <td style="color:#64748b; font-size:0.8rem;">
+                                    @log.Timestamp.ToLocalTime().ToString("dd MMM yyyy, HH:mm:ss")
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <i class="fas fa-inbox"></i>
+                                    <h3>No Logs Found</h3>
+                                    <p>There are no version control records to display yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
