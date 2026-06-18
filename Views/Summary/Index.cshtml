@@ -23,7 +23,7 @@
     <!-- Table Card -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-xs">
+            <table id="summaryTable" class="w-full text-xs">
                 <thead>
                     <tr class="border-b border-gray-100" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9);">
                         <th class="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">#</th>
@@ -64,21 +64,40 @@
                             </tr>
                         }
                     }
-                    else
-                    {
-                        <tr>
-                            <td colspan="6" class="px-4 py-12 text-center">
-                                <div class="flex flex-col items-center">
-                                    <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                                        <i class="fas fa-users text-gray-300 text-lg"></i>
-                                    </div>
-                                    <p class="text-gray-400 font-semibold text-sm">No user accounts found</p>
-                                </div>
-                            </td>
-                        </tr>
-                    }
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#summaryTable').DataTable({
+                responsive: true,
+                pageLength: 10,
+                language: {
+                    search: "",
+                    searchPlaceholder: "Search records...",
+                    lengthMenu: "_MENU_ per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_",
+                    emptyTable: '<div class="cs-dt-empty"><i class="fas fa-inbox"></i><span>No records found</span></div>',
+                    paginate: {
+                        previous: '<i class="fas fa-chevron-left"></i>',
+                        next: '<i class="fas fa-chevron-right"></i>'
+                    }
+                },
+                dom: '<"cs-dt-top"lf>rt<"cs-dt-bottom"ip>',
+                initComplete: function () {
+                    var $wrapper = $('#summaryTable').closest('.dataTables_wrapper');
+                    $wrapper.find('.dataTables_filter').addClass('cs-dt-search-wrapper');
+                    $wrapper.find('.dataTables_filter input').addClass('cs-dt-search-input');
+                    if ($wrapper.find('.dataTables_filter i.fa-search').length === 0) {
+                        $wrapper.find('.dataTables_filter').prepend('<i class="fas fa-search cs-dt-search-icon"></i>');
+                    }
+                    $wrapper.find('.dataTables_length select').addClass('cs-dt-length-select');
+                }
+            });
+        });
+    </script>
+}

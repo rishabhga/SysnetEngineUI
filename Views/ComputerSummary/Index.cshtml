@@ -1,4 +1,4 @@
-﻿@model List<WindowsUserDetails>
+@model List<WindowsUserDetails>
 @{
     ViewData["Title"] = "Computer Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -9,10 +9,9 @@
 @section Styles {
     <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet" />
     <link href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <style>
-        /* ── Root Variables ── */
         :root {
             --cyan: #00BCEB;
             --cyan-dark: #0096BE;
@@ -20,27 +19,28 @@
             --slate-900: #0f172a;
             --slate-800: #1e293b;
             --slate-700: #334155;
+            --slate-600: #475569;
             --slate-500: #64748b;
             --slate-400: #94a3b8;
+            --slate-300: #cbd5e1;
             --slate-200: #e2e8f0;
             --slate-100: #f1f5f9;
             --slate-50: #f8fafc;
-            --green: #B4D334;
+            --green: #22c55e;
             --red: #ef4444;
             --amber: #f59e0b;
             --text-main: #1e293b;
             --text-muted: #475569;
             --text-faint: #64748b;
-            --font-main: 'DM Sans', system-ui, sans-serif;
-            --font-mono: 'DM Mono', monospace;
+            --font-main: 'Inter', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
             --radius-sm: 6px;
             --radius-md: 8px;
             --radius-lg: 12px;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
-            --shadow-md: 0 4px 12px rgba(0,0,0,.06);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.07);
+            --shadow-md: 0 4px 12px rgba(0,0,0,.08);
         }
 
-        /* ── Global Reset / Base ── */
         *, *::before, *::after {
             box-sizing: border-box;
         }
@@ -48,108 +48,122 @@
         html {
             font-size: 13px;
         }
-        /* ← THIS fixes the "too big at 100% zoom" */
+
         body {
             font-family: var(--font-main);
             background: var(--slate-50);
             color: var(--text-main);
         }
 
-        /* ── Layout wrapper ── */
         .cs-page {
             width: 100%;
-            max-width: 1480px;
-            margin: 0 auto;
-            padding: 12px 16px 24px;
+            max-width: 100%;
+            padding: 10px 16px 20px;
         }
 
-        /* ── Header Card ── */
         .cs-header {
-            background: #fff;
-            border: 1px solid var(--slate-200);
+            position: relative;
+            background: linear-gradient(135deg, var(--slate-800) 0%, var(--slate-900) 100%);
             border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
-            padding: 14px 20px;
-            margin-bottom: 10px;
+            padding: 12px 18px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 14px;
-            flex-wrap: wrap;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
+            .cs-header::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(circle at top right, rgba(0,188,235,.18), transparent 60%);
+                pointer-events: none;
+            }
+
         .cs-header-icon {
-            width: 44px;
-            height: 44px;
+            width: 38px;
+            height: 38px;
             flex-shrink: 0;
             border-radius: var(--radius-md);
             background: linear-gradient(135deg, var(--cyan), var(--cyan-dark));
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,188,235,.25);
+            box-shadow: 0 4px 14px rgba(0,188,235,.4);
+            position: relative;
+            z-index: 1;
         }
 
             .cs-header-icon i {
-                font-size: 1.25rem;
+                font-size: 1rem;
                 color: #fff;
             }
 
         .cs-header-text {
             flex: 1;
             min-width: 0;
+            position: relative;
+            z-index: 1;
         }
 
         .cs-breadcrumb {
             display: flex;
             align-items: center;
             gap: 5px;
-            font-size: .72rem;
+            font-size: .68rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: .06em;
-            color: var(--slate-400);
+            letter-spacing: .08em;
+            color: var(--cyan);
             margin-bottom: 2px;
         }
 
             .cs-breadcrumb a {
-                color: inherit;
+                color: var(--slate-400);
                 text-decoration: none;
+                transition: color .2s;
             }
 
                 .cs-breadcrumb a:hover {
-                    color: var(--cyan);
+                    color: #fff;
                 }
 
             .cs-breadcrumb i {
                 font-size: .6rem;
+                color: var(--slate-500);
             }
 
         .cs-device-name {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--slate-900);
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #fff;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            line-height: 1.2;
+            line-height: 1.25;
+            letter-spacing: -.01em;
         }
 
         .cs-device-sub {
             display: flex;
             align-items: center;
-            gap: 6px;
-            margin-top: 2px;
+            gap: 7px;
+            margin-top: 3px;
         }
 
         .cs-online-dot {
             width: 7px;
             height: 7px;
             border-radius: 50%;
-            background: var(--green);
-            animation: pulse 2s infinite;
+            background: #22c55e;
+            box-shadow: 0 0 6px #22c55e;
+            animation: pulse-dot 2s infinite;
         }
 
-        @@keyframes pulse {
+        @@keyframes pulse-dot {
             0%, 100% {
                 opacity: 1;
             }
@@ -161,58 +175,66 @@
 
         .cs-device-sub span {
             font-size: .75rem;
-            color: var(--text-faint);
+            color: var(--slate-300);
             font-weight: 500;
         }
 
-        /* Meta pills */
         .cs-meta-pills {
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
             align-items: center;
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
         }
 
         .cs-pill {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 4px 10px;
+            padding: 5px 10px;
             border-radius: 20px;
-            background: var(--slate-50);
-            border: 1px solid var(--slate-200);
+            background: rgba(255,255,255,.1);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,.12);
             font-size: .72rem;
             font-weight: 600;
-            color: var(--text-muted);
+            color: #fff;
+            white-space: nowrap;
         }
 
             .cs-pill i {
                 color: var(--cyan);
-                font-size: .68rem;
+                font-size: .7rem;
             }
 
-        /* ── Tab Nav ── */
         .cs-tab-bar {
             background: #fff;
-            border: 1px solid var(--slate-200);
             border-radius: var(--radius-md);
+            border: 1px solid var(--slate-200);
             box-shadow: var(--shadow-sm);
-            margin-bottom: 10px;
-            overflow: hidden;
+            margin-bottom: 14px;
+            padding: 0 8px;
         }
 
         .cs-tab-list {
             display: flex;
-            overflow-x: auto;
-            list-style: none;
-            margin: 0;
-            padding: 0 6px;
             gap: 2px;
-            scrollbar-width: none;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--slate-300) transparent;
         }
 
             .cs-tab-list::-webkit-scrollbar {
-                display: none;
+                height: 6px;
+            }
+            .cs-tab-list::-webkit-scrollbar-thumb {
+                background: var(--slate-300);
+                border-radius: 4px;
             }
 
             .cs-tab-list li {
@@ -222,259 +244,102 @@
                 .cs-tab-list li a {
                     display: flex;
                     align-items: center;
-                    gap: 5px;
-                    padding: 9px 13px;
-                    font-size: .78rem;
+                    gap: 6px;
+                    padding: 11px 13px;
+                    color: var(--slate-500);
+                    font-size: .8rem;
                     font-weight: 600;
-                    color: var(--text-faint);
-                    border-bottom: 2px solid transparent;
                     text-decoration: none;
+                    border-bottom: 2px solid transparent;
+                    transition: all .18s;
                     white-space: nowrap;
-                    transition: color .2s, border-color .2s, background .2s;
-                    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
                 }
 
                     .cs-tab-list li a i {
-                        font-size: .72rem;
+                        font-size: .78rem;
+                        color: var(--slate-400);
+                        transition: color .18s;
                     }
 
                     .cs-tab-list li a:hover {
-                        color: var(--cyan);
-                        background: var(--cyan-soft);
+                        color: var(--slate-800);
+                        border-bottom-color: var(--slate-200);
                     }
 
                 .cs-tab-list li.active a {
-                    color: var(--cyan) !important;
-                    border-bottom-color: var(--cyan) !important;
-                    background: var(--cyan-soft) !important;
-                }
-
-        /* ── Tab Content ── */
-        .tab-content > .tab-pane {
-            display: none !important;
-        }
-
-            .tab-content > .tab-pane.active {
-                display: block !important;
-            }
-
-        .tab-pane .tab-pane {
-            display: none !important;
-        }
-
-            .tab-pane .tab-pane.active {
-                display: block !important;
-            }
-
-        /* ── DataTables Global Style ── */
-        .dataTables_wrapper {
-            width: 100%;
-            font-size: .8rem;
-        }
-
-            .dataTables_wrapper .dataTables_length select,
-            .dataTables_wrapper .dataTables_filter input {
-                padding: 5px 9px !important;
-                border-radius: var(--radius-sm) !important;
-                border: 1px solid var(--slate-200) !important;
-                font-size: .78rem !important;
-                font-weight: 500 !important;
-                color: var(--text-main) !important;
-                background: #fff !important;
-                font-family: var(--font-main) !important;
-            }
-
-            .dataTables_wrapper .dataTables_filter label {
-                font-weight: 600;
-                color: var(--text-muted);
-            }
-
-            .dataTables_wrapper .dataTables_length label {
-                font-weight: 600;
-                color: var(--text-muted);
-            }
-
-        table.dataTable {
-            border-collapse: separate !important;
-            border-spacing: 0 !important;
-            width: 100% !important;
-            margin: 6px 0 !important;
-            border: none !important;
-            table-layout: auto !important;
-        }
-
-            table.dataTable thead th {
-                background: var(--cyan) !important;
-                color: #fff !important;
-                font-family: var(--font-main) !important;
-                font-weight: 700 !important;
-                text-transform: uppercase !important;
-                font-size: .7rem !important;
-                letter-spacing: .05em !important;
-                padding: 9px 12px !important;
-                border: none !important;
-                white-space: nowrap !important;
-            }
-
-            table.dataTable thead .sorting::after,
-            table.dataTable thead .sorting_asc::after,
-            table.dataTable thead .sorting_desc::after {
-                color: rgba(255,255,255,.65) !important;
-                opacity: 1 !important;
-            }
-
-            table.dataTable tbody tr {
-                background: #fff !important;
-                transition: background .15s;
-            }
-
-                table.dataTable tbody tr:hover {
-                    background: var(--slate-50) !important;
-                }
-
-            table.dataTable td {
-                padding: 8px 12px !important;
-                font-size: .78rem !important;
-                color: var(--text-main) !important;
-                border-bottom: 1px solid var(--slate-100) !important;
-                font-weight: 500 !important;
-                vertical-align: middle !important;
-                word-break: break-word !important;
-                overflow-wrap: anywhere !important;
-            }
-
-        /* Pagination */
-        .dataTables_paginate .paginate_button {
-            border-radius: var(--radius-sm) !important;
-            border: 1px solid var(--slate-200) !important;
-            padding: 4px 9px !important;
-            margin-left: 3px !important;
-            font-weight: 600 !important;
-            font-size: .72rem !important;
-            color: var(--text-muted) !important;
-        }
-
-            .dataTables_paginate .paginate_button.current {
-                background: var(--cyan) !important;
-                color: #fff !important;
-                border-color: var(--cyan) !important;
-            }
-
-            .dataTables_paginate .paginate_button:hover:not(.current) {
-                background: var(--slate-100) !important;
-                color: var(--text-main) !important;
-            }
-
-        .dataTables_info {
-            font-size: .72rem;
-            color: var(--text-faint);
-        }
-
-        /* ── Sub-nav (side panels) ── */
-        .cs-subnav {
-            background: #fff;
-            border: 1px solid var(--slate-200);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-sm);
-            overflow: hidden;
-            position: sticky;
-            top: 8px;
-        }
-
-        .cs-subnav-header {
-            padding: 9px 14px;
-            background: var(--slate-50);
-            border-bottom: 1px solid var(--slate-200);
-            font-size: .7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            color: var(--slate-700);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-            .cs-subnav-header i {
-                color: var(--cyan);
-            }
-
-        .cs-subnav ul {
-            list-style: none;
-            margin: 0;
-            padding: 5px 0;
-            max-height: 560px;
-            overflow-y: auto;
-        }
-
-            .cs-subnav ul li a {
-                display: flex;
-                align-items: center;
-                gap: 9px;
-                padding: 7px 14px;
-                font-size: .78rem;
-                font-weight: 500;
-                color: var(--text-muted);
-                text-decoration: none;
-                border-left: 3px solid transparent;
-                transition: all .15s;
-            }
-
-                .cs-subnav ul li a i {
-                    width: 14px;
-                    text-align: center;
-                    font-size: .72rem;
-                }
-
-                .cs-subnav ul li a:hover {
-                    background: var(--slate-50);
                     color: var(--cyan);
+                    border-bottom-color: var(--cyan);
+                    font-weight: 700;
                 }
 
-            .cs-subnav ul li.active a {
-                background: var(--cyan-soft) !important;
-                color: var(--cyan) !important;
-                border-left-color: var(--cyan) !important;
-                font-weight: 700 !important;
-            }
-
-        /* Patch horizontal sub-tabs */
-        .cs-patch-subtabs {
-            display: flex;
-            gap: 3px;
-            padding: 8px 10px;
-            background: var(--slate-50);
-            border-bottom: 1px solid var(--slate-200);
-        }
-
-            .cs-patch-subtabs li {
-                list-style: none;
-            }
-
-                .cs-patch-subtabs li a {
-                    display: block;
-                    padding: 5px 12px;
-                    border-radius: var(--radius-sm);
-                    font-size: .76rem;
-                    font-weight: 600;
-                    color: var(--text-faint);
-                    text-decoration: none;
-                    border-bottom: 2px solid transparent;
-                    transition: all .15s;
-                }
-
-                    .cs-patch-subtabs li a:hover {
-                        background: var(--cyan-soft);
+                    .cs-tab-list li.active a i {
                         color: var(--cyan);
                     }
 
-                .cs-patch-subtabs li.active a {
-                    background: var(--cyan-soft) !important;
-                    color: var(--cyan) !important;
-                    border-bottom-color: var(--cyan) !important;
+        .tab-pane {
+            display: none !important;
+        }
+
+            .tab-pane.active {
+                display: block !important;
+            }
+
+        .cs-subtab-bar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 12px 0;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--slate-300) transparent;
+            border-bottom: 1px solid var(--slate-100);
+            margin-bottom: 14px;
+        }
+
+            .cs-subtab-bar::-webkit-scrollbar {
+                height: 6px;
+            }
+            .cs-subtab-bar::-webkit-scrollbar-thumb {
+                background: var(--slate-300);
+                border-radius: 4px;
+            }
+
+            .cs-subtab-bar li {
+                list-style: none;
+                flex-shrink: 0;
+            }
+
+                .cs-subtab-bar li a {
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    padding: 6px 12px;
+                    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+                    font-size: .78rem;
+                    font-weight: 600;
+                    color: var(--slate-500);
+                    text-decoration: none;
+                    border-bottom: 2px solid transparent;
+                    transition: all .15s;
+                    white-space: nowrap;
                 }
 
-        /* ── Info Cards (key-value grids) ── */
+                    .cs-subtab-bar li a i {
+                        font-size: .74rem;
+                    }
+
+                    .cs-subtab-bar li a:hover {
+                        color: var(--slate-700);
+                        background: var(--slate-50);
+                    }
+
+                .cs-subtab-bar li.active a {
+                    color: var(--cyan);
+                    border-bottom-color: var(--cyan);
+                    background: var(--cyan-soft);
+                    font-weight: 700;
+                }
+
         .cs-card {
             background: #fff;
             border: 1px solid var(--slate-200);
@@ -487,7 +352,7 @@
             padding: 9px 14px;
             background: var(--slate-50);
             border-bottom: 1px solid var(--slate-200);
-            font-size: .72rem;
+            font-size: .7rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .05em;
@@ -532,10 +397,9 @@
 
             .cs-kv-value.mono {
                 font-family: var(--font-mono);
-                font-size: .74rem;
+                font-size: .72rem;
             }
 
-        /* ── Stat Chips ── */
         .cs-stat-grid {
             display: grid;
             grid-template-columns: repeat(3,1fr);
@@ -543,7 +407,7 @@
 
         .cs-stat-cell {
             text-align: center;
-            padding: 10px 8px;
+            padding: 10px 6px;
             border-right: 1px solid var(--slate-100);
         }
 
@@ -552,21 +416,21 @@
             }
 
         .cs-stat-num {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-weight: 800;
             color: var(--slate-900);
+            line-height: 1;
         }
 
         .cs-stat-label {
-            font-size: .65rem;
+            font-size: .68rem;
             text-transform: uppercase;
-            letter-spacing: .06em;
+            letter-spacing: .07em;
             color: var(--slate-400);
-            margin-top: 2px;
-            font-weight: 600;
+            margin-top: 3px;
+            font-weight: 700;
         }
 
-        /* ── Mini info boxes ── */
         .cs-info-grid {
             display: grid;
             gap: 8px;
@@ -576,11 +440,11 @@
             background: var(--slate-50);
             border: 1px solid var(--slate-100);
             border-radius: var(--radius-sm);
-            padding: 9px 11px;
+            padding: 8px 10px;
         }
 
         .cs-info-box-label {
-            font-size: .65rem;
+            font-size: .68rem;
             text-transform: uppercase;
             letter-spacing: .05em;
             color: var(--slate-400);
@@ -589,7 +453,7 @@
         }
 
         .cs-info-box-value {
-            font-size: .82rem;
+            font-size: .88rem;
             font-weight: 700;
             color: var(--text-main);
         }
@@ -600,7 +464,7 @@
             }
 
             .cs-info-box-value.green {
-                color: #22c55e;
+                color: var(--green);
                 font-size: 1rem;
             }
 
@@ -609,7 +473,204 @@
                 font-size: 1rem;
             }
 
-        /* ── Utility ── */
+        .hw-category-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+        }
+
+        .hw-category-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .82rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .hw-category-title {
+            font-size: .82rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .hw-category-desc {
+            font-size: .68rem;
+            color: var(--text-faint);
+            font-weight: 500;
+            margin-top: 1px;
+        }
+
+        .hw-cat-cyan {
+            background: var(--cyan-soft);
+        }
+
+            .hw-cat-cyan .hw-category-icon {
+                background: var(--cyan);
+            }
+
+        .hw-cat-green {
+            background: #f0fdf4;
+        }
+
+            .hw-cat-green .hw-category-icon {
+                background: #22c55e;
+            }
+
+        .hw-cat-blue {
+            background: #eff6ff;
+        }
+
+            .hw-cat-blue .hw-category-icon {
+                background: #3b82f6;
+            }
+
+        .hw-cat-amber {
+            background: #fffbeb;
+        }
+
+            .hw-cat-amber .hw-category-icon {
+                background: #f59e0b;
+            }
+
+        .hw-cat-purple {
+            background: #faf5ff;
+        }
+
+            .hw-cat-purple .hw-category-icon {
+                background: #a855f7;
+            }
+
+        .hw-cat-slate {
+            background: var(--slate-100);
+        }
+
+            .hw-cat-slate .hw-category-icon {
+                background: var(--slate-500);
+            }
+
+        .hw-cat-red {
+            background: #fef2f2;
+        }
+
+            .hw-cat-red .hw-category-icon {
+                background: #ef4444;
+            }
+
+        .battery-gauge-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 14px;
+            background: var(--slate-50);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--slate-200);
+        }
+
+        .battery-gauge-ring {
+            position: relative;
+            width: 76px;
+            height: 76px;
+            flex-shrink: 0;
+        }
+
+            .battery-gauge-ring svg {
+                width: 100%;
+                height: 100%;
+                transform: rotate(-90deg);
+            }
+
+        .gauge-bg {
+            fill: none;
+            stroke: var(--slate-200);
+            stroke-width: 8;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dasharray 1s ease-in-out;
+        }
+
+        .battery-gauge-percent {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gauge-num {
+            font-size: .95rem;
+            font-weight: 800;
+            color: var(--slate-800);
+        }
+
+        table.dataTable {
+            border-collapse: collapse !important;
+            width: 100% !important;
+        }
+
+            table.dataTable thead th {
+                background: var(--slate-50);
+                color: var(--slate-600);
+                font-size: .68rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: .06em;
+                padding: 9px 12px;
+                border-bottom: 2px solid var(--slate-200);
+            }
+
+            table.dataTable tbody td {
+                padding: 8px 12px;
+                font-size: .8rem;
+                border-bottom: 1px solid var(--slate-100);
+                color: var(--text-muted);
+            }
+
+            table.dataTable tbody tr:hover td {
+                background: #f0f9ff;
+            }
+
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            font-size: .76rem;
+            padding: 8px 2px;
+        }
+
+            .dataTables_wrapper .dataTables_filter input {
+                border: 1px solid var(--slate-200);
+                border-radius: var(--radius-sm);
+                padding: 4px 8px;
+                font-size: .76rem;
+            }
+
+            .dataTables_wrapper .dataTables_length select {
+                border: 1px solid var(--slate-200);
+                border-radius: var(--radius-sm);
+                padding: 2px 4px;
+                font-size: .76rem;
+            }
+
+        .cs-drive-card {
+            transition: transform .2s, box-shadow .2s;
+        }
+
+            .cs-drive-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-md);
+            }
+
         .w-full {
             width: 100%;
         }
@@ -629,10 +690,6 @@
 
         .flex-col {
             flex-direction: column;
-        }
-
-        .flex-shrink-0 {
-            flex-shrink: 0;
         }
 
         .gap-3 {
@@ -679,21 +736,33 @@
             text-align: center;
         }
 
-        @@media (min-width: 1024px) {
-            .lg-flex {
-                display: flex !important;
+        .tab-pane .cs-card {
+            overflow-x: auto;
+        }
+
+        @@media (max-width: 768px) {
+            .cs-meta-pills {
+                display: none;
             }
 
-            .lg-w-48 {
-                width: 176px !important;
+            .cs-device-name {
+                font-size: 1rem;
             }
 
-            .lg-w-52 {
-                width: 200px !important;
+            .cs-tab-list li a {
+                padding: 10px 10px;
+                font-size: .75rem;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .cs-header {
+                padding: 10px 12px;
+                gap: 10px;
             }
 
-            .lg-w-56 {
-                width: 212px !important;
+            html {
+                font-size: 12px;
             }
         }
     </style>
@@ -701,7 +770,6 @@
 
 <div class="cs-page">
 
-    <!-- ── Header ── -->
     <div class="cs-header">
         <div class="cs-header-icon">
             <i class="fab fa-windows"></i>
@@ -730,43 +798,42 @@
     <input id="domainid" value="@ViewBag.UserName" type="hidden" />
     <input id="domainName" value="@ViewBag.DomainNameForCommand" type="hidden" />
 
-    <!-- ── Tab Navigation ── -->
     <div class="cs-tab-bar">
-        <ul class="cs-tab-list" id="mainComputerTabs" role="tablist">
-            <li class="tab-item active">
-                <a href="#Summary" data-toggle="tab"><i class="fas fa-chart-pie"></i> Summary</a>
+        <ul class="cs-tab-list" role="tablist" id="mainTabList">
+            <li class="main-tab active" data-target="#Summary">
+                <a href="#Summary" data-tab="main"><i class="fas fa-chart-pie"></i> Summary</a>
             </li>
-            <li class="tab-item">
-                <a href="#System" data-toggle="tab"><i class="fas fa-cogs"></i> System</a>
+            <li class="main-tab" data-target="#System">
+                <a href="#System" data-tab="main"><i class="fas fa-cogs"></i> System</a>
             </li>
-            <li class="tab-item">
-                <a href="#Hardware" data-toggle="tab"><i class="fas fa-microchip"></i> Hardware</a>
+            <li class="main-tab" data-target="#Hardware">
+                <a href="#Hardware" data-tab="main"><i class="fas fa-microchip"></i> Hardware</a>
             </li>
-            <li class="tab-item">
-                <a href="#Software" data-toggle="tab"><i class="fas fa-laptop-code"></i> Software</a>
+            <li class="main-tab" data-target="#Software">
+                <a href="#Software" data-tab="main"><i class="fas fa-laptop-code"></i> Software</a>
             </li>
-            <li class="tab-item">
-                <a href="#security" data-toggle="tab"><i class="fas fa-shield-alt"></i> Security</a>
+            <li class="main-tab" data-target="#security">
+                <a href="#security" data-tab="main"><i class="fas fa-shield-alt"></i> Security</a>
             </li>
-            <li class="tab-item">
-                <a href="#PatchManagment" data-toggle="tab"><i class="fas fa-band-aid"></i> Patches</a>
+            <li class="main-tab" data-target="#PatchManagment">
+                <a href="#PatchManagment" data-tab="main"><i class="fas fa-band-aid"></i> Patches</a>
             </li>
-            <li class="tab-item">
-                <a href="#Restriction" data-toggle="tab"><i class="fas fa-ban"></i> Restrictions</a>
+            <li class="main-tab" data-target="#Restriction">
+                <a href="#Restriction" data-tab="main"><i class="fas fa-ban"></i> Restrictions</a>
             </li>
-            <li class="tab-item">
-                <a href="#UsbAudit" data-toggle="tab"><i class="fas fa-usb"></i> USB Audit</a>
+            <li class="main-tab" data-target="#UsbAudit">
+                <a href="#UsbAudit" data-tab="main"><i class="fas fa-usb"></i> USB Audit</a>
             </li>
-            <li class="tab-item">
-                <a href="#History" data-toggle="tab"><i class="fas fa-history"></i> History</a>
+            <li class="main-tab" data-target="#History">
+                <a href="#History" data-tab="main"><i class="fas fa-history"></i> History</a>
             </li>
-            <li class="tab-item">
-                <a href="#Updatelogs" data-toggle="tab"><i class="fas fa-file-alt"></i> Change Logs</a>
+            <li class="main-tab" data-target="#Updatelogs">
+                <a href="#Updatelogs" data-tab="main"><i class="fas fa-file-alt"></i> Change Logs</a>
             </li>
         </ul>
     </div>
 
-    <div class="tab-content">
+    <div class="tab-content" id="mainTabContent">
         <partial name="_SummaryTab" />
         <partial name="_SystemTab" />
         <partial name="_HardwareTab" />
@@ -784,7 +851,6 @@
 @section Scripts {
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/computer-summary.js" asp-append-version="true"></script>
 }

@@ -3500,6 +3500,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         //BatteryInfo
+        [HttpGet]
         public async Task<IActionResult> Battery(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
@@ -3520,25 +3521,58 @@ namespace ManageEngineWebApp.Controllers
 
                 if (!localDatalist.Any())
                 {
-                    return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
+                    return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = "0", BatteryPercentage = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
                 }
 
+                var b = localDatalist[0];
                 var batterydata = new
                 {
-                    Manufacturer = localDatalist[0].Manufacturer,
-                    Status = localDatalist[0].Status,
-                    Description = localDatalist[0].Description,
-                    BatteryLevel = localDatalist[0].BatteryLevel,
-                    SystemType = localDatalist[0].SystemType,
-                    UserCode = localDatalist[0].UserCode,
-                    DateTime = localDatalist[0].DateTime
+                    Manufacturer = b.Manufacturer,
+                    Status = b.Status,
+                    Description = b.Description,
+                    BatteryLevel = b.BatteryPercentage.ToString(),
+                    BatteryPercentage = b.BatteryPercentage,
+                    SystemType = b.SystemType,
+                    UserCode = b.UserCode,
+                    DateTime = b.ScanDate,
+                    IsCharging = b.IsCharging,
+                    DesignCapacity = b.DesignCapacity,
+                    FullChargeCapacity = b.FullChargeCapacity,
+                    CycleCount = b.CycleCount,
+                    BatteryHealthPercent = b.BatteryHealthPercent
                 };
 
                 return Json(batterydata);
             }
             catch (Exception)
             {
-                return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
+                return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = "0", BatteryPercentage = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
+            }
+        }
+        [HttpPost]
+        public async Task<IActionResult> AuditBattery([FromQuery] string domain)
+        {
+            if (!await IsDeviceAuthorized(domain))
+                return Json(new { success = false, message = "Unauthorized access to this device." });
+            try
+            {
+                // Strip domain prefix if present e.g. "DOMAIN\PC001" → "PC001"
+                var cleanDomain = domain.Contains('\\') ? domain.Split('\\').Last() : domain;
+                cleanDomain = cleanDomain.Split('.')[0]; // strip FQDN suffix too
+
+                using var httpClient = GetClient();
+                var response = await httpClient.PostAsync(
+                    $"{_baseUrl}/api/Battery/batteryFetchDetails?clientId={Uri.EscapeDataString(cleanDomain)}", null);
+
+                if (response.IsSuccessStatusCode)
+                    return Json(new { success = true, message = "Audit request sent successfully." });
+
+                var errorContent = await response.Content.ReadAsStringAsync();
+                return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : $"Server returned {(int)response.StatusCode}" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
             }
         }
 

@@ -1,15 +1,28 @@
 var domaindata = "";
 var actualDomainName = "";
-var dataTables = {};      
-var tableRegistry = {};    
+var dataTables = {};
+var tableRegistry = {};
 
 const flexRender = (row, ...fields) => {
+    let val = undefined;
     for (const field of fields) {
-        if (row[field] !== undefined && row[field] !== null) return row[field];
+        if (row[field] !== undefined && row[field] !== null) { val = row[field]; break; }
         const camel = field.charAt(0).toLowerCase() + field.slice(1);
-        if (row[camel] !== undefined && row[camel] !== null) return row[camel];
+        if (row[camel] !== undefined && row[camel] !== null) { val = row[camel]; break; }
     }
-    return "N/A";
+    if (val === undefined || val === null || val === '') return "N/A";
+    if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+        try {
+            const date = new Date(val);
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleString(undefined, {
+                    year: 'numeric', month: 'short', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+            }
+        } catch (e) { }
+    }
+    return val;
 };
 
 const commonLogColumns = [
@@ -38,41 +51,23 @@ window.sysAlert = function (msg, type) {
 
 $(document).ready(function () {
     initTabStyles();
+
     domaindata = $('#domainid').val();
     actualDomainName = $('#domainName').val() || domaindata;
 
     if (!domaindata) {
-        console.error("Domain ID not found � skipping data load");
+        console.error("Domain ID not found — skipping data load");
         return;
     }
 
     loadSummaryData();
-    loadDiskChart();
     loadOSDetails();
     loadDeviceDetails();
+    loadLogicalDrivesDashboard();
 
     setTimeout(function () {
         initializeAllTables();
     }, 500);
-
-    var loadedTabs = { '#Summary': true };
-
-    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-        var targetId = $(e.target).attr('href');
-        if (!loadedTabs[targetId]) {
-            loadedTabs[targetId] = true;
-            lazyLoadTabData(targetId);
-        }
-        initTablesInPane(targetId);
-    });
-
-    $('.tab-item a').on('click', function () {
-        var targetId = $(this).attr('href');
-        if (targetId && !loadedTabs[targetId]) {
-            loadedTabs[targetId] = true;
-            lazyLoadTabData(targetId);
-        }
-    });
 });
 
 function lazyLoadTabData(tabId) {
@@ -92,35 +87,80 @@ function lazyLoadTabData(tabId) {
             break;
     }
 }
-
 function initTabStyles() {
-    $('.tab-item a').off('click').on('click', function (e) {
-        e.preventDefault();
-        var $li = $(this).closest('.tab-item');
-        $('.tab-item').removeClass('active');
-        $li.addClass('active');
+    var loadedTabs = { '#Summary': true };
 
-        var target = $(this).attr('href');
-        $('.tab-content').first().children('.tab-pane').removeClass('active');
-        $(target).addClass('active');
-
-        setTimeout(function () { $(window).trigger('resize'); }, 150);
-    });
-
-    const subTabSelector = '.system-tab a, .hardware-tab a, .software-tab a, .security-tab a, .patch-sub-tab a, .usb-tab a, .history-tab a, .updatelog-tab a';
-    $(document).off('click', subTabSelector).on('click', subTabSelector, function (e) {
+    $(document).on('click', '#mainTabList .main-tab a', function (e) {
         e.preventDefault();
         var $li = $(this).closest('li');
+        var target = $(this).attr('href');
+        if (!target) return;
+
+        $('#mainTabList .main-tab').removeClass('active');
+        $li.addClass('active');
+
+        if ($li.length && $li[0].scrollIntoView) {
+            $li[0].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+
+        $('#mainTabContent').children('.tab-pane').removeClass('active');
+        $(target).addClass('active');
+
+        if (!loadedTabs[target]) {
+            loadedTabs[target] = true;
+            lazyLoadTabData(target);
+        }
+
+        setTimeout(function () {
+            $(window).trigger('resize');
+            if ($.fn.DataTable) {
+                $.each($.fn.dataTable.tables({ visible: true, api: true }), function () {
+                    this.columns.adjust();
+                });
+            }
+        }, 150);
+    });
+
+    var subTabSelector = [
+        '.system-tab a',
+        '.hardware-tab a',
+        '.software-tab a',
+        '.security-tab a',
+        '.patch-sub-tab a',
+        '.usb-tab a',
+        '.history-tab a',
+        '.updatelog-tab a'
+    ].join(', ');
+
+    $(document).on('click', subTabSelector, function (e) {
+        e.preventDefault();
+        var $li = $(this).closest('li');
+        var target = $(this).attr('href');
+        if (!target) return;
         $li.siblings().removeClass('active');
         $li.addClass('active');
 
-        var target = $(this).attr('href');
-        $(target).parent().children('.tab-pane').removeClass('active');
+        if ($li.length && $li[0].scrollIntoView) {
+            $li[0].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+
+        var $paneParent = $(target).parent();
+        $paneParent.children('.tab-pane').removeClass('active');
         $(target).addClass('active');
 
-        setTimeout(function () { $(window).trigger('resize'); }, 150);
+        setTimeout(function () {
+            $(window).trigger('resize');
+            if ($.fn.DataTable) {
+                $(target).find('table.dataTable').each(function () {
+                    if ($.fn.DataTable.isDataTable(this)) {
+                        $(this).DataTable().columns.adjust();
+                    }
+                });
+            }
+        }, 150);
     });
 }
+
 
 function initializeAllTables() {
     initTable('#servicesTable', `/ComputerSummary/services?domain=${domaindata}`, [
@@ -158,15 +198,6 @@ function initializeAllTables() {
         { data: null, render: (row) => flexRender(row, 'Manufacturer') },
         { data: null, render: (row) => flexRender(row, 'SerialNumber') },
         { data: null, render: (row) => flexRender(row, 'TotalCapacity', 'Capacity') }
-    ]);
-
-    initTable('#logicalDiskTable', `/ComputerSummary/LocalDisk?domain=${domaindata}`, [
-        { data: null, render: (row) => flexRender(row, 'DriveLetter', 'Name') },
-        { data: null, render: (row) => flexRender(row, 'FileSystem') },
-        { data: null, render: (row) => flexRender(row, 'TotalCapacity', 'Size') },
-        { data: null, render: (row) => flexRender(row, 'FreeSpace') },
-        { data: null, render: (row) => flexRender(row, 'UsedSpace') },
-        { data: null, render: (row) => flexRender(row, 'UsagePercentage', 'Usage') }
     ]);
 
     initTable('#pointingTable', `/ComputerSummary/PointingDevices?domain=${domaindata}`, [
@@ -370,31 +401,30 @@ function initTable(selector, url, columns) {
         columns: columns,
         responsive: true,
         pageLength: 10,
+        processing: true,
         language: {
+            processing: '<div class="cs-dt-processing"><i class="fas fa-circle-notch fa-spin"></i> Loading data...</div>',
             search: "",
             searchPlaceholder: "Search records...",
             lengthMenu: "_MENU_ per page",
             info: "Showing _START_ to _END_ of _TOTAL_",
-            emptyTable: '<div class="text-center py-10"><i class="fas fa-inbox text-4xl text-slate-200 mb-3 block"></i><span class="text-slate-400 font-medium">No records found</span></div>',
+            emptyTable: '<div class="cs-dt-empty"><i class="fas fa-inbox"></i><span>No records found</span></div>',
             paginate: {
                 previous: '<i class="fas fa-chevron-left"></i>',
                 next: '<i class="fas fa-chevron-right"></i>'
             }
         },
-        dom: '<"flex flex-col sm:flex-row justify-between items-center mb-4 gap-4"l f>rt<"flex flex-col sm:flex-row justify-between items-center mt-4 gap-4"i p>',
+        dom: '<"cs-dt-top"lf>rt<"cs-dt-bottom"ip>',
         drawCallback: function () {
-            $('.dataTables_paginate .paginate_button').addClass('px-3 py-1 border border-slate-200 rounded-lg text-sm mx-0.5 hover:bg-slate-50 transition-colors');
-            $('.dataTables_paginate .paginate_button.current').addClass('bg-blue-600 text-white border-blue-600 hover:bg-blue-700');
-            $('.dataTables_paginate .paginate_button.disabled').addClass('opacity-50 cursor-not-allowed');
         },
         initComplete: function () {
-            $(selector).parent().find('.dataTables_filter input')
-                .addClass('pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-64 transition-all');
-            $(selector).parent().find('.dataTables_filter')
-                .addClass('relative')
-                .prepend('<i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm z-10"></i>');
-            $(selector).parent().find('.dataTables_length select')
-                .addClass('px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500');
+            var $wrapper = $(selector).closest('.dataTables_wrapper');
+            $wrapper.find('.dataTables_filter').addClass('cs-dt-search-wrapper');
+            $wrapper.find('.dataTables_filter input').addClass('cs-dt-search-input');
+            if ($wrapper.find('.dataTables_filter i.fa-search').length === 0) {
+                $wrapper.find('.dataTables_filter').prepend('<i class="fas fa-search cs-dt-search-icon"></i>');
+            }
+            $wrapper.find('.dataTables_length select').addClass('cs-dt-length-select');
         }
     });
 }
@@ -450,33 +480,6 @@ function loadSummaryData() {
     }).fail(function () { console.error("Failed to load summary data"); });
 }
 
-function loadDiskChart() {
-    $.get(`/ComputerSummary/UsegeDisk?domain=${domaindata}`, function (data) {
-        var ctx = document.getElementById('assetChart');
-        if (!ctx) return;
-        new Chart(ctx.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: ['Used Space', 'Free Space'],
-                datasets: [{
-                    data: [data.usedSpaceGB || 0, data.freeSpaceGB || 0],
-                    backgroundColor: ['#3b82f6', '#10b981'],
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '65%',
-                plugins: {
-                    legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' }, padding: 15 } },
-                    tooltip: { callbacks: { label: (ctx) => ctx.label + ': ' + ctx.raw + ' GB' } }
-                }
-            }
-        });
-    }).fail(function () { console.error("Failed to load disk chart"); });
-}
 
 function loadOSDetails() {
     $.get(`/ComputerSummary/OSSummary?domain=${domaindata}`, function (data) {
@@ -503,6 +506,59 @@ function loadDeviceDetails() {
         $('#tdUDID').text(data.udid || data.UDID || 'N/A');
         $('#tdBatteryLevel').text(data.batteryLevel || data.BatteryLevel || 'N/A');
     }).fail(function () { console.error("Failed to load device details"); });
+}
+
+function loadLogicalDrivesDashboard() {
+    $.get(`/ComputerSummary/LocalDisk?domain=${domaindata}`, function (res) {
+        var data = res;
+        if (res && res.data) data = res.data;
+
+        var container = $('#summaryLogicalDrivesContainer').empty();
+        if (data && data.length) {
+            data.forEach(function (d) {
+                var driveLetter = d.driveLetter || d.DriveLetter || d.Name || 'Unknown';
+                var fileSystem = d.fileSystem || d.FileSystem || 'Unknown';
+                var total = parseFloat(d.totalCapacity || d.Size || 0).toFixed(2);
+                var free = parseFloat(d.freeSpace || d.FreeSpace || 0).toFixed(2);
+                var used = parseFloat(d.usedSpace || d.UsedSpace || 0).toFixed(2);
+                var usagePct = parseFloat(d.usagePercentage || d.Usage || 0);
+
+                var barColor = 'var(--cyan)'; // Cyan Blue for up to 80
+                if (usagePct > 90) barColor = 'var(--red)'; // Red for > 90
+                else if (usagePct > 80) barColor = 'var(--amber)'; // Yellow for > 80
+
+                var icon = driveLetter.includes('C:') ? '<i class="fab fa-windows" style="color:var(--cyan); font-size: 1.15rem;"></i>' : '<i class="fas fa-hdd" style="color:var(--slate-400); font-size: 1.15rem;"></i>';
+
+                var dashLen = (usagePct / 100) * 100;
+                var circleColor = barColor;
+
+                container.append(
+                    '<div class="cs-drive-card" style="background: var(--white); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 10px 14px; display: flex; gap: 14px; align-items: center; box-shadow: var(--shadow-sm); cursor: default;">' +
+                    '<div style="position:relative; width: 54px; height: 54px; flex-shrink: 0;">' +
+                    '<svg viewBox="0 0 36 36" style="width:100%; height:100%; transform: rotate(-90deg);">' +
+                    '<path stroke="#a7f3d0" stroke-width="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />' +
+                    '<path stroke="' + circleColor + '" stroke-width="3" stroke-dasharray="' + dashLen + ', 100" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" style="stroke-linecap: round; transition: stroke-dasharray 1s ease-in-out;" />' +
+                    '</svg>' +
+                    '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; color:var(--slate-800);">' + usagePct.toFixed(0) + '%</div>' +
+                    '</div>' +
+                    '<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;">' +
+                    '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">' +
+                    '<div style="font-weight: 800; color: var(--slate-800); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">' + icon + ' ' + escapeHtml(driveLetter) + '</div>' +
+                    '<div style="font-size: 0.65rem; color: var(--slate-500); font-weight: 700; background: var(--slate-100); padding: 2px 5px; border-radius: 4px; letter-spacing: 0.5px;">' + escapeHtml(fileSystem) + '</div>' +
+                    '</div>' +
+                    '<div style="font-size: 0.8rem; color: var(--slate-500); font-weight: 500;">' +
+                    '<span style="color:#10b981; font-weight:700;">' + free + ' GB</span> free of ' + total + ' GB' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>'
+                );
+            });
+        } else {
+            container.html('<div style="text-align:center; padding: 20px; color: var(--slate-400); font-weight: 500; font-size: 0.9rem; grid-column: 1 / -1;"><i class="fas fa-inbox text-2xl mb-2 block"></i>No logical drives found</div>');
+        }
+    }).fail(function () {
+        $('#summaryLogicalDrivesContainer').html('<div style="text-align:center; padding: 20px; color: var(--red); font-weight: 500; font-size: 0.9rem; grid-column: 1 / -1;"><i class="fas fa-exclamation-triangle text-2xl mb-2 block"></i>Failed to load drive details</div>');
+    });
 }
 
 function loadBiosDetails() {
@@ -823,7 +879,7 @@ function installPatch(patchId, patchName) {
             success: function (res) {
                 if (res && res.status === 'success') {
                     sysAlert('Patch command sent. Checking status�', 'info');
-                    pollInstallStatus(displayName, 0);  
+                    pollInstallStatus(displayName, 0);
                 } else {
                     sysAlert('Patch failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
                 }
@@ -886,7 +942,119 @@ function applyUsbUnblock() {
                 if (res && res.success) sysAlert('USB Unblocked successfully', 'success');
                 else sysAlert(res.message || 'Unblock failed', 'error');
             },
-            error: function () { sysAlert('Connection error', 'error'); }
         });
     });
 }
+
+let batteryHubConnection;
+
+$(document).ready(function () {
+    const hubUrl = (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.apiBaseUrl) ? window.SYSNET_CONTEXT.apiBaseUrl + '/scanHub' : '/scanHub';
+
+    batteryHubConnection = new signalR.HubConnectionBuilder()
+        .withUrl(hubUrl)
+        .withAutomaticReconnect()
+        .build();
+
+    batteryHubConnection.on("ReceiveBatteryMetrics", function (metrics) {
+        if (!metrics || !metrics.computerName || metrics.computerName.toLowerCase() !== actualDomainName.toLowerCase()) return;
+
+        if (typeof batteryAuditTimeout !== 'undefined' && batteryAuditTimeout) {
+            clearTimeout(batteryAuditTimeout);
+        }
+
+        $('#batteryAuditLoading').hide();
+        $('#batteryAuditResults').css('display', 'flex');
+
+        $('#auditHealthPercentText').text(metrics.healthPercentage + '%');
+        $('#auditDesignCap').text(metrics.designCapacity.toLocaleString());
+        $('#auditFullCap').text(metrics.fullChargeCapacity.toLocaleString());
+        $('#auditCycleCount').text(metrics.cycleCount > 0 ? metrics.cycleCount : 'N/A');
+        const circle = $('#auditHealthCircle');
+        var circumference = 2 * Math.PI * 45;
+        var dashLen = (metrics.healthPercentage / 100) * circumference;
+        circle.css('stroke-dasharray', dashLen + ', ' + circumference);
+
+        let color = '#4ade80';
+        let icon = '<i class="fas fa-check-circle" style="color:#4ade80;"></i>';
+
+        if (metrics.status === 'Aging') {
+            color = '#f59e0b';
+            icon = '<i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i>';
+        } else if (metrics.status === 'Replacement Recommended') {
+            color = '#f97316';
+            icon = '<i class="fas fa-tools" style="color:#f97316;"></i>';
+        } else if (metrics.status === 'Critical') {
+            color = '#ef4444';
+            icon = '<i class="fas fa-times-circle" style="color:#ef4444;"></i>';
+        }
+
+        circle.css('stroke', color);
+        $('#auditStatus').html(`${icon} ${metrics.status}`);
+
+        sysAlert('Battery health data received!', 'success');
+    });
+
+    batteryHubConnection.start().catch(err => console.error("Battery SignalR Error:", err));
+
+    let batteryAuditTimeout;
+
+    $('#btnAuditBattery').on('click', function (e) {
+        e.preventDefault();
+        $('#batteryAuditResults').hide();
+        $('#batteryAuditLoading').html('<i class="fas fa-circle-notch fa-spin" style="font-size: 1.5rem; color: var(--cyan); margin-bottom: 8px; display: block;"></i> Fetching live diagnostics from device, please wait...');
+        $('#batteryAuditLoading').show();
+
+        if (batteryAuditTimeout) clearTimeout(batteryAuditTimeout);
+
+        function triggerBatteryFallback(reasonMsg) {
+            if (!$('#batteryAuditLoading').is(':visible')) return;
+            if (batteryAuditTimeout) clearTimeout(batteryAuditTimeout);
+
+            $.get(`/ComputerSummary/Battery?domain=${domaindata}`, function (data) {
+                let percent = parseInt(data.batteryPercentage || data.batteryLevel) || 0;
+                let healthPercent = data.batteryHealthPercent ? data.batteryHealthPercent : percent;
+
+                $('#batteryAuditLoading').hide();
+                $('#batteryAuditResults').css('display', 'flex');
+                $('#auditHealthPercentText').text(healthPercent + '%');
+                $('#auditDesignCap').text(data.designCapacity ? data.designCapacity.toLocaleString() : 'N/A');
+                $('#auditFullCap').text(data.fullChargeCapacity ? data.fullChargeCapacity.toLocaleString() : 'N/A');
+                $('#auditCycleCount').text(data.cycleCount > 0 ? data.cycleCount : 'N/A');
+
+                const circle = $('#auditHealthCircle');
+                var circumference = 2 * Math.PI * 45;
+                var dashLen = (healthPercent / 100) * circumference;
+                circle.css('stroke-dasharray', dashLen + ', ' + circumference);
+
+                let color = '#4ade80';
+                let icon = '<i class="fas fa-check-circle" style="color:#4ade80;"></i>';
+                if (healthPercent < 60) { color = '#f59e0b'; icon = '<i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i>'; }
+                if (healthPercent < 30) { color = '#ef4444'; icon = '<i class="fas fa-times-circle" style="color:#ef4444;"></i>'; }
+                circle.css('stroke', color);
+
+                $('#auditStatus').html(`${icon} ${data.status || 'N/A'}`);
+                sysAlert(reasonMsg || 'Live fetch unavailable. Showing last known state.', 'warning');
+            });
+        }
+
+        batteryAuditTimeout = setTimeout(function () {
+            triggerBatteryFallback('Live fetch timed out (15s). Showing last known state.');
+        }, 15000);
+
+        $.ajax({
+            url: '/ComputerSummary/AuditBattery?domain=' + encodeURIComponent(actualDomainName),
+            type: 'POST',
+            success: function (res) {
+                if (res && res.success) {
+                    sysAlert('Battery audit requested from device. Waiting for data...', 'info');
+                } else {
+                    triggerBatteryFallback(res.message || 'Failed to send audit request, falling back...');
+                }
+            },
+            error: function () {
+                triggerBatteryFallback('Connection error while requesting audit, falling back...');
+            }
+        });
+    });
+});

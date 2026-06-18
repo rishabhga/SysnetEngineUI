@@ -1,67 +1,65 @@
 <div id="Software" class="tab-pane">
-    <div style="display:flex;gap:10px;align-items:flex-start;" class="lg-flex">
+    <div class="cs-card">
+        <ul class="cs-subtab-bar" id="softwareSubTabs" role="tablist">
+            <li class="software-tab active"><a href="#DesktopAppsSw"><i class="fas fa-window-maximize"></i> Desktop Apps</a></li>
+            <li class="software-tab"><a href="#StoreAppsSw"><i class="fab fa-microsoft"></i> Store Apps</a></li>
+            <li class="software-tab"><a href="#InstallersSw"><i class="fas fa-download"></i> Installers</a></li>
+        </ul>
 
-        <!-- Side nav -->
-        <div class="cs-subnav flex-shrink-0 lg-w-52" style="width:100%;max-width:200px;">
-            <div class="cs-subnav-header"><i class="fas fa-laptop-code"></i> Software</div>
-            <ul role="tablist">
-                <li class="software-tab active"><a href="#DesktopAppsSw" data-toggle="tab"><i class="fas fa-window-maximize"></i> Desktop Apps</a></li>
-                <li class="software-tab"><a href="#StoreAppsSw" data-toggle="tab"><i class="fab fa-microsoft"></i> Store Apps</a></li>
-                <li class="software-tab"><a href="#InstallersSw" data-toggle="tab"><i class="fas fa-download"></i> Installers</a></li>
-            </ul>
-        </div>
-
-        <!-- Content -->
-        <div class="flex-1 min-w-0">
-            <div class="cs-card">
-                <div class="tab-content p-3">
-
-                    <div id="DesktopAppsSw" class="tab-pane active">
-                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-                            <span class="cs-card-header" style="background:transparent;border:none;padding:0;display:flex;align-items:center;gap:6px;">
-                                <i class="fas fa-window-maximize" style="color:var(--cyan);"></i> Installed Desktop Apps
-                            </span>
-                            <div style="display:flex;gap:6px;align-items:center;">
-                                <select id="filterSoftwareType"
-                                        style="padding:5px 8px;border:1px solid var(--slate-200);border-radius:6px;font-size:.76rem;font-weight:600;background:#fff;color:var(--text-muted);"
-                                        onchange="refreshSoftwareTable()">
-                                    <option value="all">All Software</option>
-                                    <option value="thirdparty">Third-Party</option>
-                                    <option value="windows">Windows</option>
-                                </select>
-                                <button onclick="refreshSoftwareTable()"
-                                        style="padding:5px 10px;background:var(--slate-100);border:1px solid var(--slate-200);border-radius:6px;font-size:.76rem;font-weight:600;color:var(--text-muted);cursor:pointer;">
-                                    <i class="fas fa-sync-alt"></i> Refresh
-                                </button>
-                            </div>
-                        </div>
-                        <table id="desktopAppsTable" class="w-full">
-                            <thead><tr><th>Software Name</th><th>Version</th><th>Publisher</th><th>Install Date</th><th>Action</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
+        <div class="tab-content p-3">
+            <div id="DesktopAppsSw" class="tab-pane active">
+                <div class="hw-category-header hw-cat-cyan" style="margin-bottom:12px;">
+                    <div class="hw-category-icon"><i class="fas fa-window-maximize"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">Installed Desktop Apps</div>
+                        <div class="hw-category-desc">Standard desktop applications and software</div>
                     </div>
-
-                    <div id="StoreAppsSw" class="tab-pane">
-                        <div class="cs-card-header" style="background:transparent;border:none;padding:0 0 10px;display:flex;align-items:center;gap:6px;">
-                            <i class="fab fa-microsoft" style="color:var(--cyan);"></i> Microsoft Store Apps
-                        </div>
-                        <table id="storeAppsTable" class="w-full">
-                            <thead><tr><th>App Name</th><th>Package Name</th><th>Version</th><th>Publisher</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
+                    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+                        <select id="filterSoftwareType"
+                                style="padding:5px 10px;border:1px solid var(--slate-200);border-radius:var(--radius-sm);font-size:.76rem;font-weight:600;background:#fff;color:var(--slate-700);outline:none;cursor:pointer;"
+                                onchange="refreshSoftwareTable()">
+                            <option value="all">All Software</option>
+                            <option value="thirdparty">Third-Party</option>
+                            <option value="windows">Windows OS</option>
+                        </select>
+                        <button onclick="refreshSoftwareTable()"
+                                style="padding:5px 12px;background:var(--cyan);border:none;border-radius:var(--radius-sm);font-size:.76rem;font-weight:600;color:#fff;cursor:pointer;">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
                     </div>
-
-                    <div id="InstallersSw" class="tab-pane">
-                        <div class="cs-card-header" style="background:transparent;border:none;padding:0 0 10px;display:flex;align-items:center;gap:6px;">
-                            <i class="fas fa-download" style="color:var(--green);"></i> Software Installers
-                        </div>
-                        <table id="installersTable" class="w-full">
-                            <thead><tr><th>File Name</th><th>Version</th><th>Action</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
                 </div>
+                <table id="desktopAppsTable" class="w-full">
+                    <thead><tr><th>Software Name</th><th>Version</th><th>Publisher</th><th>Install Date</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="StoreAppsSw" class="tab-pane">
+                <div class="hw-category-header hw-cat-blue" style="margin-bottom:12px;">
+                    <div class="hw-category-icon"><i class="fab fa-microsoft"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">Microsoft Store Apps</div>
+                        <div class="hw-category-desc">UWP applications installed via the Microsoft Store</div>
+                    </div>
+                </div>
+                <table id="storeAppsTable" class="w-full">
+                    <thead><tr><th>App Name</th><th>Package Name</th><th>Version</th><th>Publisher</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="InstallersSw" class="tab-pane">
+                <div class="hw-category-header hw-cat-green" style="margin-bottom:12px;">
+                    <div class="hw-category-icon"><i class="fas fa-download"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">Software Installers</div>
+                        <div class="hw-category-desc">Available installers and deployment packages</div>
+                    </div>
+                </div>
+                <table id="installersTable" class="w-full">
+                    <thead><tr><th>File Name</th><th>Version</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>

@@ -1,10 +1,16 @@
 <div id="PatchManagment" class="tab-pane">
     <div class="cs-card">
-        <div class="cs-card-header"><i class="fas fa-band-aid" style="color:var(--cyan);"></i> Patch Management</div>
-        <ul class="cs-patch-subtabs" id="patchSubTabs" role="tablist">
-            <li class="patch-sub-tab active"><a href="#WindowsListTab" data-toggle="tab">Windows Updates</a></li>
-            <li class="patch-sub-tab"><a href="#ThirdPartyTab" data-toggle="tab">Third Party</a></li>
-            <li class="patch-sub-tab"><a href="#HotfixTab" data-toggle="tab">Windows History</a></li>
+        <div class="hw-category-header hw-cat-amber" style="margin:12px 12px 0;">
+            <div class="hw-category-icon"><i class="fas fa-band-aid"></i></div>
+            <div class="hw-category-text">
+                <div class="hw-category-title">Patch Management</div>
+                <div class="hw-category-desc">Manage Windows updates, hotfixes, and third-party software patches</div>
+            </div>
+        </div>
+        <ul class="cs-subtab-bar" id="patchSubTabs" role="tablist" style="margin-top:6px;">
+            <li class="patch-sub-tab active"><a href="#WindowsListTab">Windows Updates</a></li>
+            <li class="patch-sub-tab"><a href="#ThirdPartyTab">Third Party</a></li>
+            <li class="patch-sub-tab"><a href="#HotfixTab">Windows History</a></li>
         </ul>
         <div class="tab-content p-3">
             <div id="WindowsListTab" class="tab-pane active">

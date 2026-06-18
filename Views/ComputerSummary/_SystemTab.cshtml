@@ -1,57 +1,79 @@
 <div id="System" class="tab-pane">
-    <div style="display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;gap:10px;align-items:flex-start;" class="lg-flex">
+    <div class="cs-card">
+        <ul class="cs-subtab-bar" id="systemSubTabs" role="tablist">
+            <li class="system-tab active"><a href="#ServicesSys"><i class="fas fa-server"></i> Services</a></li>
+            <li class="system-tab"><a href="#UsersSys"><i class="fas fa-users"></i> Users</a></li>
+            <li class="system-tab"><a href="#GroupsSys"><i class="fas fa-users-cog"></i> Groups</a></li>
+            <li class="system-tab"><a href="#DriversSys"><i class="fas fa-microchip"></i> Drivers</a></li>
+            <li class="system-tab"><a href="#SharesSys"><i class="fas fa-folder-open"></i> Shares</a></li>
+        </ul>
 
-            <!-- Side nav -->
-            <div class="cs-subnav flex-shrink-0 lg-w-52" style="width:100%;max-width:200px;">
-                <div class="cs-subnav-header"><i class="fas fa-cogs"></i> System</div>
-                <ul role="tablist">
-                    <li class="system-tab active"><a href="#ServicesSys" data-toggle="tab"><i class="fas fa-server"></i> Services</a></li>
-                    <li class="system-tab"><a href="#UsersSys" data-toggle="tab"><i class="fas fa-users"></i> Users</a></li>
-                    <li class="system-tab"><a href="#GroupsSys" data-toggle="tab"><i class="fas fa-users-cog"></i> Groups</a></li>
-                    <li class="system-tab"><a href="#DriversSys" data-toggle="tab"><i class="fas fa-microchip"></i> Drivers</a></li>
-                    <li class="system-tab"><a href="#SharesSys" data-toggle="tab"><i class="fas fa-folder-open"></i> Shares</a></li>
-                </ul>
-            </div>
-
-            <!-- Content -->
-            <div class="flex-1 min-w-0">
-                <div class="cs-card">
-                    <div class="tab-content p-3">
-                        <div id="ServicesSys" class="tab-pane active">
-                            <table id="servicesTable" class="w-full">
-                                <thead><tr><th>Display Name</th><th>Startup Type</th><th>Status</th><th>Logon Name</th><th>Date</th></tr></thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div id="UsersSys" class="tab-pane">
-                            <table id="usersTable" class="w-full">
-                                <thead><tr><th>Username</th><th>Domain</th><th>Full Name</th><th>Account Type</th><th>Status</th></tr></thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div id="GroupsSys" class="tab-pane">
-                            <table id="groupsTable" class="w-full">
-                                <thead><tr><th>Group Name</th><th>Description</th><th>SID</th><th>Status</th></tr></thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div id="DriversSys" class="tab-pane">
-                            <table id="driversTable" class="w-full">
-                                <thead><tr><th>Driver Name</th><th>Description</th><th>Status</th><th>Date</th></tr></thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div id="SharesSys" class="tab-pane">
-                            <div style="text-align:center;padding:40px 20px;color:var(--slate-400);">
-                                <i class="fas fa-folder-open" style="font-size:2rem;margin-bottom:10px;display:block;"></i>
-                                <p style="font-size:.8rem;font-weight:500;">No shared folders found on this device.</p>
-                            </div>
-                        </div>
+        <div class="tab-content p-3">
+            <div id="ServicesSys" class="tab-pane active">
+                <div class="hw-category-header hw-cat-cyan">
+                    <div class="hw-category-icon"><i class="fas fa-server"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">System Services</div>
+                        <div class="hw-category-desc">Manage and view all background services</div>
                     </div>
                 </div>
+                <table id="servicesTable" class="w-full">
+                    <thead><tr><th>Display Name</th><th>Startup Type</th><th>Status</th><th>Logon Name</th><th>Date</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
-
+            <div id="UsersSys" class="tab-pane">
+                <div class="hw-category-header hw-cat-blue">
+                    <div class="hw-category-icon"><i class="fas fa-users"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">Local Users</div>
+                        <div class="hw-category-desc">User accounts configured on this machine</div>
+                    </div>
+                </div>
+                <table id="usersTable" class="w-full">
+                    <thead><tr><th>Username</th><th>Domain</th><th>Full Name</th><th>Account Type</th><th>Status</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="GroupsSys" class="tab-pane">
+                <div class="hw-category-header hw-cat-purple">
+                    <div class="hw-category-icon"><i class="fas fa-users-cog"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">Local Groups</div>
+                        <div class="hw-category-desc">Security groups and their configurations</div>
+                    </div>
+                </div>
+                <table id="groupsTable" class="w-full">
+                    <thead><tr><th>Group Name</th><th>Description</th><th>SID</th><th>Status</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="DriversSys" class="tab-pane">
+                <div class="hw-category-header hw-cat-slate">
+                    <div class="hw-category-icon"><i class="fas fa-microchip"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">System Drivers</div>
+                        <div class="hw-category-desc">Installed kernel and device drivers</div>
+                    </div>
+                </div>
+                <table id="driversTable" class="w-full">
+                    <thead><tr><th>Driver Name</th><th>Description</th><th>Status</th><th>Date</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="SharesSys" class="tab-pane">
+                <div class="hw-category-header hw-cat-amber">
+                    <div class="hw-category-icon"><i class="fas fa-folder-open"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">Network Shares</div>
+                        <div class="hw-category-desc">Folders shared from this device to the network</div>
+                    </div>
+                </div>
+                <div style="text-align:center;padding:36px 20px;color:var(--slate-400);">
+                    <i class="fas fa-folder-open" style="font-size:2rem;margin-bottom:10px;display:block;opacity:.4;"></i>
+                    <p style="font-size:.85rem;font-weight:600;">No shared folders found on this device.</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>

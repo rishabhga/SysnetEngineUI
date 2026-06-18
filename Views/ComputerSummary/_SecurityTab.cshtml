@@ -1,40 +1,65 @@
 <div id="security" class="tab-pane">
-    <div style="display:flex;gap:10px;align-items:flex-start;" class="lg-flex">
+    <div class="cs-card">
+        <ul class="cs-subtab-bar" id="securitySubTabs" role="tablist">
+            <li class="security-tab active"><a href="#AntivirusSec"><i class="fas fa-virus-slash"></i> Antivirus</a></li>
+            <li class="security-tab"><a href="#FirewallSec"><i class="fas fa-fire-extinguisher"></i> Firewall</a></li>
+            <li class="security-tab"><a href="#BitLockerSec"><i class="fas fa-lock"></i> BitLocker</a></li>
+            <li class="security-tab"><a href="#ExternalDevSec"><i class="fas fa-plug"></i> External Devices</a></li>
+        </ul>
 
-        <!-- Side nav -->
-        <div class="cs-subnav flex-shrink-0 lg-w-52" style="width:100%;max-width:200px;">
-            <div class="cs-subnav-header"><i class="fas fa-shield-alt"></i> Security</div>
-            <ul role="tablist">
-                <li class="security-tab active"><a href="#AntivirusSec" data-toggle="tab"><i class="fas fa-virus-slash"></i> Antivirus</a></li>
-                <li class="security-tab"><a href="#FirewallSec" data-toggle="tab"><i class="fas fa-fire-extinguisher"></i> Firewall</a></li>
-            </ul>
-        </div>
-
-        <!-- Content -->
-        <div class="flex-1 min-w-0">
-            <div class="cs-card">
-                <div class="tab-content p-3">
-                    <div id="AntivirusSec" class="tab-pane active">
-                        <div class="cs-card-header" style="background:transparent;border:none;padding:0 0 10px;display:flex;align-items:center;gap:6px;">
-                            <i class="fas fa-virus-slash" style="color:#ef4444;"></i> Antivirus Status
-                        </div>
-                        <table id="antivirusTable" class="w-full">
-                            <thead><tr><th>Name</th><th>Protection Status</th><th>License Status</th><th>Version</th><th>Manufacturer</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
+        <div class="tab-content p-3">
+            <div id="AntivirusSec" class="tab-pane active">
+                <div class="hw-category-header hw-cat-red" style="margin-bottom:12px;">
+                    <div class="hw-category-icon"><i class="fas fa-virus-slash"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">Antivirus Status</div>
+                        <div class="hw-category-desc">Security software detection and status</div>
                     </div>
-                    <div id="FirewallSec" class="tab-pane">
-                        <div class="cs-card-header" style="background:transparent;border:none;padding:0 0 10px;display:flex;align-items:center;gap:6px;">
-                            <i class="fas fa-fire-extinguisher" style="color:#ef4444;"></i> Firewall Status
-                        </div>
-                        <table id="firewallTable" class="w-full">
-                            <thead><tr><th>Name</th><th>Protection Status</th><th>Version</th><th>Manufacturer</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
+                </div>
+                <table id="antivirusTable" class="w-full">
+                    <thead><tr><th>Name</th><th>Protection Status</th><th>License Status</th><th>Version</th><th>Manufacturer</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="FirewallSec" class="tab-pane">
+                <div class="hw-category-header hw-cat-amber" style="margin-bottom:12px;">
+                    <div class="hw-category-icon"><i class="fas fa-fire-extinguisher"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">Firewall Status</div>
+                        <div class="hw-category-desc">Network firewall configurations</div>
                     </div>
+                </div>
+                <table id="firewallTable" class="w-full">
+                    <thead><tr><th>Name</th><th>Protection Status</th><th>Version</th><th>Manufacturer</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="BitLockerSec" class="tab-pane">
+                <div class="hw-category-header hw-cat-blue" style="margin-bottom:12px;">
+                    <div class="hw-category-icon"><i class="fas fa-lock"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">BitLocker Encryption</div>
+                        <div class="hw-category-desc">Drive encryption status</div>
+                    </div>
+                </div>
+                <div style="text-align:center;padding:36px 20px;color:var(--slate-400);">
+                    <i class="fas fa-lock" style="font-size:2rem;margin-bottom:10px;display:block;opacity:.4;"></i>
+                    <p style="font-size:.85rem;font-weight:600;">BitLocker data will appear here when available.</p>
+                </div>
+            </div>
+            <div id="ExternalDevSec" class="tab-pane">
+                <div class="hw-category-header hw-cat-slate" style="margin-bottom:12px;">
+                    <div class="hw-category-icon"><i class="fas fa-plug"></i></div>
+                    <div class="hw-category-text">
+                        <div class="hw-category-title">External Devices</div>
+                        <div class="hw-category-desc">Connected peripheral device monitoring</div>
+                    </div>
+                </div>
+                <div style="text-align:center;padding:36px 20px;color:var(--slate-400);">
+                    <i class="fas fa-plug" style="font-size:2rem;margin-bottom:10px;display:block;opacity:.4;"></i>
+                    <p style="font-size:.85rem;font-weight:600;">External device data will appear here when available.</p>
                 </div>
             </div>
         </div>
-
     </div>
 </div>

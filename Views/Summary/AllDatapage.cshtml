@@ -147,7 +147,20 @@
                         bodyHtml += '<tr class="hover:bg-blue-50/40 transition-colors">';
                         headers.forEach(h => {
                             if (!hide.includes(h)) {
-                                bodyHtml += `<td class="px-4 py-2.5 text-xs text-gray-700">${row[h] ?? ''}</td>`;
+                                let val = row[h] ?? '';
+                                // Date formatting check
+                                if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+                                    try {
+                                        const date = new Date(val);
+                                        if (!isNaN(date.getTime())) {
+                                            val = date.toLocaleString(undefined, { 
+                                                year: 'numeric', month: 'short', day: 'numeric', 
+                                                hour: '2-digit', minute: '2-digit' 
+                                            });
+                                        }
+                                    } catch(e) {}
+                                }
+                                bodyHtml += `<td class="px-4 py-2.5 text-xs text-gray-700">${val}</td>`;
                             }
                         });
                         bodyHtml += '</tr>';
@@ -158,11 +171,38 @@
                             <span class="text-xs font-bold text-gray-500">${data.length} records</span>
                         </div>
                         <div class="overflow-x-auto rounded-lg border border-gray-200">
-                            <table class="w-full text-xs">
+                            <table id="dynamicDataTable" class="w-full text-xs">
                                 <thead><tr class="border-b border-gray-100" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9);">${headerHtml}</tr></thead>
                                 <tbody class="divide-y divide-gray-50">${bodyHtml}</tbody>
                             </table>
                         </div>`;
+                        
+                    // Initialize DataTables
+                    $('#dynamicDataTable').DataTable({
+                        responsive: true,
+                        pageLength: 10,
+                        language: {
+                            search: "",
+                            searchPlaceholder: "Search records...",
+                            lengthMenu: "_MENU_ per page",
+                            info: "Showing _START_ to _END_ of _TOTAL_",
+                            emptyTable: '<div class="cs-dt-empty"><i class="fas fa-inbox"></i><span>No records found</span></div>',
+                            paginate: {
+                                previous: '<i class="fas fa-chevron-left"></i>',
+                                next: '<i class="fas fa-chevron-right"></i>'
+                            }
+                        },
+                        dom: '<"cs-dt-top"lf>rt<"cs-dt-bottom"ip>',
+                        initComplete: function () {
+                            var $wrapper = $('#dynamicDataTable').closest('.dataTables_wrapper');
+                            $wrapper.find('.dataTables_filter').addClass('cs-dt-search-wrapper');
+                            $wrapper.find('.dataTables_filter input').addClass('cs-dt-search-input');
+                            if ($wrapper.find('.dataTables_filter i.fa-search').length === 0) {
+                                $wrapper.find('.dataTables_filter').prepend('<i class="fas fa-search cs-dt-search-icon"></i>');
+                            }
+                            $wrapper.find('.dataTables_length select').addClass('cs-dt-length-select');
+                        }
+                    });
                 } else {
                     content.innerHTML = `
                         <div class="flex flex-col items-center justify-center py-12">

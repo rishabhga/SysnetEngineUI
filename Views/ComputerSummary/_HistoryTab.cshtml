@@ -1,40 +1,29 @@
 <div id="History" class="tab-pane">
-    <div style="display:flex;gap:10px;align-items:flex-start;" class="lg-flex">
+    <div class="cs-card">
+        <ul class="cs-subtab-bar" id="historySubTabs" role="tablist">
+            <li class="history-tab active"><a href="#AuditHistory"><i class="fas fa-clipboard-list"></i> Audit History</a></li>
+            <li class="history-tab"><a href="#LoginHistory"><i class="fas fa-user-clock"></i> Login History</a></li>
+        </ul>
 
-        <!-- Side nav -->
-        <div class="cs-subnav flex-shrink-0 lg-w-48" style="width:100%;max-width:176px;">
-            <div class="cs-subnav-header"><i class="fas fa-history"></i> History</div>
-            <ul role="tablist">
-                <li class="history-tab active"><a href="#AuditHistory" data-toggle="tab"><i class="fas fa-clipboard-list"></i> Audit History</a></li>
-                <li class="history-tab"><a href="#LoginHistory" data-toggle="tab"><i class="fas fa-user-clock"></i> Login History</a></li>
-            </ul>
-        </div>
-
-        <!-- Content -->
-        <div class="flex-1 min-w-0">
-            <div class="cs-card">
-                <div class="tab-content p-3">
-                    <div id="AuditHistory" class="tab-pane active">
-                        <div class="cs-card-header" style="background:transparent;border:none;padding:0 0 10px;display:flex;align-items:center;gap:6px;">
-                            <i class="fas fa-clipboard-list" style="color:var(--cyan);"></i> Audit History
-                        </div>
-                        <table id="auditHistoryTable" class="w-full">
-                            <thead><tr><th>Device Name</th><th>Username</th><th>Device Type</th><th>Manufacturer</th><th>Connected Time</th><th>Duration</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                    <div id="LoginHistory" class="tab-pane">
-                        <div class="cs-card-header" style="background:transparent;border:none;padding:0 0 10px;display:flex;align-items:center;gap:6px;">
-                            <i class="fas fa-user-clock" style="color:var(--amber);"></i> Login History
-                        </div>
-                        <table id="loginHistoryTable" class="w-full">
-                            <thead><tr><th>Username</th><th>Logon Time</th><th>Logoff Time</th><th>Date</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
+        <div class="tab-content p-3">
+            <div id="AuditHistory" class="tab-pane active">
+                <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-600);display:flex;align-items:center;gap:6px;padding-bottom:10px;">
+                    <i class="fas fa-clipboard-list" style="color:var(--cyan);"></i> Audit History
                 </div>
+                <table id="auditHistoryTable" class="w-full">
+                    <thead><tr><th>Device Name</th><th>Username</th><th>Device Type</th><th>Manufacturer</th><th>Connected Time</th><th>Duration</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="LoginHistory" class="tab-pane">
+                <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-600);display:flex;align-items:center;gap:6px;padding-bottom:10px;">
+                    <i class="fas fa-user-clock" style="color:var(--amber);"></i> Login History
+                </div>
+                <table id="loginHistoryTable" class="w-full">
+                    <thead><tr><th>Username</th><th>Logon Time</th><th>Logoff Time</th><th>Date</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
-
     </div>
 </div>
