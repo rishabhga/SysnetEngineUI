@@ -1,4 +1,4 @@
-﻿using ManageEngineWebApp.Datacontext;
+using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Models;
 using ManageEngineWebApp.UpdatesModels;
@@ -16,6 +16,7 @@ using System.Net.Http.Headers;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Text.RegularExpressions;
+using ManageEngineWebApp.Helpers;
 
 namespace ManageEngineWebApp.Controllers
 {
@@ -1576,6 +1577,7 @@ namespace ManageEngineWebApp.Controllers
                 using var detailsClient = GetClient();
                 detailsClient.BaseAddress = new Uri($"{_baseUrl}/api/UserDetails");
                 var response = await detailsClient.GetAsync("");
+                ViewBag.ApiBaseUrl = _baseUrl;
                 ViewBag.DisplayDomain = winUser?.DomainName ?? domain;
                 ViewBag.UserCode = winUser?.UserCode ?? "N/A";
                 ViewBag.LastLogUser = winUser?.UserName ?? "N/A";
@@ -3549,6 +3551,7 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = "0", BatteryPercentage = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
             }
         }
+
         [HttpPost]
         public async Task<IActionResult> AuditBattery([FromQuery] string domain)
         {
@@ -3556,9 +3559,9 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, message = "Unauthorized access to this device." });
             try
             {
-                // Strip domain prefix if present e.g. "DOMAIN\PC001" → "PC001"
-                var cleanDomain = domain.Contains('\\') ? domain.Split('\\').Last() : domain;
-                cleanDomain = cleanDomain.Split('.')[0]; // strip FQDN suffix too
+                var cleanDomain = DeviceNameHelper.Normalize(domain);
+                if (string.IsNullOrEmpty(cleanDomain))
+                    return Json(new { success = false, message = "Invalid device identifier." });
 
                 using var httpClient = GetClient();
                 var response = await httpClient.PostAsync(
@@ -3576,7 +3579,86 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ViewBatteryReport(string domain)
+        {
+            try
+            {
+                string cleanDomain = DeviceNameHelper.Normalize(domain);
+                if (string.IsNullOrEmpty(cleanDomain))
+                    return NotFound("Invalid device identifier.");
 
+                using var httpClient = GetClient();
+
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/Battery/report/{Uri.EscapeDataString(cleanDomain)}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var htmlBytes = await response.Content.ReadAsByteArrayAsync();
+                    return File(htmlBytes, "text/html");
+                }
+
+                return NotFound("Battery report not found.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Error retrieving battery report.");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> BatteryReportExists(string domain)
+        {
+            try
+            {
+                string cleanDomain = DeviceNameHelper.Normalize(domain);
+                if (string.IsNullOrEmpty(cleanDomain))
+                    return Json(new { exists = false });
+
+                using var httpClient = GetClient();
+
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/Battery/report/{Uri.EscapeDataString(cleanDomain)}/exists");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadAsStringAsync();
+                    return Content(result, "application/json");
+                }
+
+                return Json(new { exists = false });
+            }
+            catch
+            {
+                return Json(new { exists = false });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> LatestBatteryMetrics(string domain)
+        {
+            try
+            {
+                string cleanDomain = DeviceNameHelper.Normalize(domain);
+                if (string.IsNullOrEmpty(cleanDomain))
+                    return Ok(new { ready = false, message = "Invalid device identifier." });
+
+                using var httpClient = GetClient();
+
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/Battery/metrics/{Uri.EscapeDataString(cleanDomain)}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadAsStringAsync();
+                    return Content(result, "application/json");
+                }
+
+                return Ok(new { ready = false, message = "Metrics not found yet." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Error retrieving battery metrics.");
+            }
+        }
         public async Task<IActionResult> BatteryLog(string domain)
         {
             var localDatalist = new List<BiosSummaryChangeAudit>();

@@ -946,58 +946,134 @@ function applyUsbUnblock() {
     });
 }
 
-let batteryHubConnection;
+function checkBatteryReportExists() {
+    $.get(`/ComputerSummary/BatteryReportExists?domain=${actualDomainName}`, function (res) {
+        if (res && res.exists) {
+            $('#btnViewBatteryReport').show();
+        } else {
+            $('#btnViewBatteryReport').hide();
+        }
+    });
+}
+
+function renderBatteryAuditPanel(metrics) {
+    if (!metrics) return;
+
+    $('#batteryAuditLoading').hide();
+    $('#batteryAuditResults').css('display', 'flex');
+
+    let healthPercent = metrics.healthPercentage !== undefined ? metrics.healthPercentage : (metrics.batteryHealthPercent || 0);
+    
+    $('#auditHealthPercentText').text(healthPercent + '%');
+    $('#auditDesignCap').text(metrics.designCapacity ? metrics.designCapacity.toLocaleString() : '--');
+    $('#auditFullCap').text(metrics.fullChargeCapacity ? metrics.fullChargeCapacity.toLocaleString() : '--');
+    $('#auditCycleCount').text(metrics.cycleCount > 0 ? metrics.cycleCount : '--');
+    
+    $('#auditWearRate').text(metrics.wearRatePerMonth !== undefined ? metrics.wearRatePerMonth : '--');
+    
+    let remainingLife = '--';
+    if (metrics.estimatedRemainingMonths !== undefined) {
+        if (metrics.estimatedRemainingMonths === 999) remainingLife = 'Healthy';
+        else remainingLife = metrics.estimatedRemainingMonths;
+    }
+    $('#auditRemainingLife').text(remainingLife);
+
+    const circle = $('#auditHealthCircle');
+    var circumference = 2 * Math.PI * 45;
+    var dashLen = (healthPercent / 100) * circumference;
+    circle.css('stroke-dasharray', dashLen + ', ' + circumference);
+
+    let color = '#4ade80';
+    let icon = '<i class="fas fa-check-circle" style="color:#4ade80;"></i>';
+
+    let status = metrics.status || 'Unknown';
+    if (status === 'Aging' || (healthPercent < 80 && healthPercent >= 60)) {
+        color = '#f59e0b';
+        icon = '<i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i>';
+    } else if (status === 'Replacement Recommended' || (healthPercent < 60 && healthPercent >= 50)) {
+        color = '#f97316';
+        icon = '<i class="fas fa-tools" style="color:#f97316;"></i>';
+    } else if (status === 'Critical' || healthPercent < 50) {
+        color = '#ef4444';
+        icon = '<i class="fas fa-times-circle" style="color:#ef4444;"></i>';
+    }
+
+    circle.css('stroke', color);
+    $('#auditStatus').html(`${icon} ${status}`);
+    
+    renderCapacityTrendChart(metrics.capacityHistory);
+    checkBatteryReportExists();
+}
+
+let capacityChartInstance = null;
+function renderCapacityTrendChart(history) {
+    const container = $('#capacityChartContainer');
+    if (!history || history.length < 2) {
+        container.hide();
+        return;
+    }
+    container.show();
+
+    const canvas = document.getElementById('capacityTrendChart');
+    if (!canvas) return;
+
+    if (capacityChartInstance) {
+        capacityChartInstance.destroy();
+    }
+
+    const labels = history.map(h => h.period);
+    const fullChargeData = history.map(h => h.fullChargeCapacity);
+    const designCapData = history.map(h => h.designCapacity);
+
+    capacityChartInstance = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Full Charge Capacity (mWh)',
+                    data: fullChargeData,
+                    borderColor: '#0ea5e9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Design Capacity (mWh)',
+                    data: designCapData,
+                    borderColor: '#cbd5e1',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: { display: true, text: 'Capacity (mWh)' }
+                }
+            }
+        }
+    });
+}
 
 $(document).ready(function () {
-    const hubUrl = (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.apiBaseUrl) ? window.SYSNET_CONTEXT.apiBaseUrl + '/scanHub' : '/scanHub';
-
-    batteryHubConnection = new signalR.HubConnectionBuilder()
-        .withUrl(hubUrl)
-        .withAutomaticReconnect()
-        .build();
-
-    batteryHubConnection.on("ReceiveBatteryMetrics", function (metrics) {
-        if (!metrics || !metrics.computerName || metrics.computerName.toLowerCase() !== actualDomainName.toLowerCase()) return;
-
-        if (typeof batteryAuditTimeout !== 'undefined' && batteryAuditTimeout) {
-            clearTimeout(batteryAuditTimeout);
-        }
-
-        $('#batteryAuditLoading').hide();
-        $('#batteryAuditResults').css('display', 'flex');
-
-        $('#auditHealthPercentText').text(metrics.healthPercentage + '%');
-        $('#auditDesignCap').text(metrics.designCapacity.toLocaleString());
-        $('#auditFullCap').text(metrics.fullChargeCapacity.toLocaleString());
-        $('#auditCycleCount').text(metrics.cycleCount > 0 ? metrics.cycleCount : 'N/A');
-        const circle = $('#auditHealthCircle');
-        var circumference = 2 * Math.PI * 45;
-        var dashLen = (metrics.healthPercentage / 100) * circumference;
-        circle.css('stroke-dasharray', dashLen + ', ' + circumference);
-
-        let color = '#4ade80';
-        let icon = '<i class="fas fa-check-circle" style="color:#4ade80;"></i>';
-
-        if (metrics.status === 'Aging') {
-            color = '#f59e0b';
-            icon = '<i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i>';
-        } else if (metrics.status === 'Replacement Recommended') {
-            color = '#f97316';
-            icon = '<i class="fas fa-tools" style="color:#f97316;"></i>';
-        } else if (metrics.status === 'Critical') {
-            color = '#ef4444';
-            icon = '<i class="fas fa-times-circle" style="color:#ef4444;"></i>';
-        }
-
-        circle.css('stroke', color);
-        $('#auditStatus').html(`${icon} ${metrics.status}`);
-
-        sysAlert('Battery health data received!', 'success');
-    });
-
-    batteryHubConnection.start().catch(err => console.error("Battery SignalR Error:", err));
-
     let batteryAuditTimeout;
+    let batteryAuditPollInterval;
+
+    $('#btnViewBatteryReport').on('click', function(e) {
+        e.preventDefault();
+        window.open(`/ComputerSummary/ViewBatteryReport?domain=${encodeURIComponent(actualDomainName)}`, '_blank');
+    });
 
     $('#btnAuditBattery').on('click', function (e) {
         e.preventDefault();
@@ -1006,41 +1082,46 @@ $(document).ready(function () {
         $('#batteryAuditLoading').show();
 
         if (batteryAuditTimeout) clearTimeout(batteryAuditTimeout);
+        if (batteryAuditPollInterval) clearInterval(batteryAuditPollInterval);
+
+        let initialTime = Date.now();
+        let maxPollDuration = 30000; // 30 seconds max polling
+
+        function stopPolling() {
+            if (batteryAuditPollInterval) clearInterval(batteryAuditPollInterval);
+            if (batteryAuditTimeout) clearTimeout(batteryAuditTimeout);
+        }
 
         function triggerBatteryFallback(reasonMsg) {
             if (!$('#batteryAuditLoading').is(':visible')) return;
-            if (batteryAuditTimeout) clearTimeout(batteryAuditTimeout);
+            stopPolling();
 
             $.get(`/ComputerSummary/Battery?domain=${domaindata}`, function (data) {
-                let percent = parseInt(data.batteryPercentage || data.batteryLevel) || 0;
-                let healthPercent = data.batteryHealthPercent ? data.batteryHealthPercent : percent;
-
-                $('#batteryAuditLoading').hide();
-                $('#batteryAuditResults').css('display', 'flex');
-                $('#auditHealthPercentText').text(healthPercent + '%');
-                $('#auditDesignCap').text(data.designCapacity ? data.designCapacity.toLocaleString() : 'N/A');
-                $('#auditFullCap').text(data.fullChargeCapacity ? data.fullChargeCapacity.toLocaleString() : 'N/A');
-                $('#auditCycleCount').text(data.cycleCount > 0 ? data.cycleCount : 'N/A');
-
-                const circle = $('#auditHealthCircle');
-                var circumference = 2 * Math.PI * 45;
-                var dashLen = (healthPercent / 100) * circumference;
-                circle.css('stroke-dasharray', dashLen + ', ' + circumference);
-
-                let color = '#4ade80';
-                let icon = '<i class="fas fa-check-circle" style="color:#4ade80;"></i>';
-                if (healthPercent < 60) { color = '#f59e0b'; icon = '<i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i>'; }
-                if (healthPercent < 30) { color = '#ef4444'; icon = '<i class="fas fa-times-circle" style="color:#ef4444;"></i>'; }
-                circle.css('stroke', color);
-
-                $('#auditStatus').html(`${icon} ${data.status || 'N/A'}`);
+                renderBatteryAuditPanel(data);
                 sysAlert(reasonMsg || 'Live fetch unavailable. Showing last known state.', 'warning');
             });
         }
 
         batteryAuditTimeout = setTimeout(function () {
-            triggerBatteryFallback('Live fetch timed out (15s). Showing last known state.');
-        }, 15000);
+            triggerBatteryFallback('Live fetch timed out (30s). Showing last known state.');
+        }, maxPollDuration);
+
+        // Function to poll for the latest file
+        function pollLatestMetrics() {
+            $.get(`/ComputerSummary/LatestBatteryMetrics?domain=${encodeURIComponent(actualDomainName)}`, function (res) {
+                if (res && res.metrics && res.lastWriteTimeUtc) {
+                    let fileTime = new Date(res.lastWriteTimeUtc).getTime();
+                    // If the file was written AFTER we started the audit (with a 5 second buffer for time drift)
+                    if (fileTime > (initialTime - 5000)) {
+                        stopPolling();
+                        renderBatteryAuditPanel(res.metrics);
+                        sysAlert('Battery health data received!', 'success');
+                    }
+                }
+            }).fail(function() {
+                // Ignore 404s, keep polling
+            });
+        }
 
         $.ajax({
             url: '/ComputerSummary/AuditBattery?domain=' + encodeURIComponent(actualDomainName),
@@ -1048,6 +1129,7 @@ $(document).ready(function () {
             success: function (res) {
                 if (res && res.success) {
                     sysAlert('Battery audit requested from device. Waiting for data...', 'info');
+                    batteryAuditPollInterval = setInterval(pollLatestMetrics, 3000);
                 } else {
                     triggerBatteryFallback(res.message || 'Failed to send audit request, falling back...');
                 }
@@ -1057,4 +1139,7 @@ $(document).ready(function () {
             }
         });
     });
+    
+    // Initial check on load
+    checkBatteryReportExists();
 });

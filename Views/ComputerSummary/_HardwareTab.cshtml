@@ -27,9 +27,14 @@
                             <div class="hw-category-desc">Power source &amp; health diagnostics</div>
                         </div>
                     </div>
-                    <button id="btnAuditBattery" class="btn btn-sm" style="background:var(--cyan);color:#fff;border:none;font-weight:700;font-size:.76rem;border-radius:var(--radius-md);padding:8px 16px;transition:all .2s;box-shadow:0 4px 12px rgba(0,188,235,.3);white-space:nowrap;">
-                        <i class="fas fa-stethoscope"></i> Audit Battery
-                    </button>
+                    <div style="display:flex; gap:8px;">
+                        <button id="btnViewBatteryReport" class="btn btn-sm" style="display:none;background:var(--slate-700);color:#fff;border:none;font-weight:700;font-size:.76rem;border-radius:var(--radius-md);padding:8px 16px;transition:all .2s;white-space:nowrap;">
+                            <i class="fas fa-file-alt"></i> View Report
+                        </button>
+                        <button id="btnAuditBattery" class="btn btn-sm" style="background:var(--cyan);color:#fff;border:none;font-weight:700;font-size:.76rem;border-radius:var(--radius-md);padding:8px 16px;transition:all .2s;box-shadow:0 4px 12px rgba(0,188,235,.3);white-space:nowrap;">
+                            <i class="fas fa-stethoscope"></i> Audit Battery
+                        </button>
+                    </div>
                 </div>
                 <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:16px;">
                     <div class="cs-info-box"><div class="cs-info-box-label">Manufacturer</div><div class="cs-info-box-value" id="batteryManufacturer">--</div></div>
@@ -66,6 +71,12 @@
                         <div class="cs-info-box"><div class="cs-info-box-label">Design Capacity</div><div class="cs-info-box-value"><span id="auditDesignCap" style="font-size:1rem;">--</span> <span style="font-size:.68rem;color:var(--slate-400);">mWh</span></div></div>
                         <div class="cs-info-box"><div class="cs-info-box-label">Full Charge</div><div class="cs-info-box-value"><span id="auditFullCap" style="font-size:1rem;">--</span> <span style="font-size:.68rem;color:var(--slate-400);">mWh</span></div></div>
                         <div class="cs-info-box"><div class="cs-info-box-label">Cycle Count</div><div class="cs-info-box-value" id="auditCycleCount" style="font-size:1rem;">--</div></div>
+                        <div class="cs-info-box"><div class="cs-info-box-label">Wear Rate</div><div class="cs-info-box-value"><span id="auditWearRate" style="font-size:1rem;">--</span> <span style="font-size:.68rem;color:var(--slate-400);">mWh/mo</span></div></div>
+                        <div class="cs-info-box"><div class="cs-info-box-label">Est. Remaining</div><div class="cs-info-box-value"><span id="auditRemainingLife" style="font-size:1rem;">--</span> <span style="font-size:.68rem;color:var(--slate-400);">Months</span></div></div>
+                    </div>
+                    <div id="capacityChartContainer" style="display:none;margin-top:20px;padding:15px;background:#fff;border-radius:var(--radius-md);border:1px solid var(--slate-200);">
+                        <h4 style="font-size:.85rem;font-weight:700;color:var(--slate-700);margin-bottom:10px;"><i class="fas fa-chart-line"></i> Capacity History Trend</h4>
+                        <canvas id="capacityTrendChart" height="200"></canvas>
                     </div>
                 </div>
             </div>
