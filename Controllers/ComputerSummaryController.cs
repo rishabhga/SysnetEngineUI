@@ -60,7 +60,7 @@ namespace ManageEngineWebApp.Controllers
                             companyName = ctx.CompanyName;
                         }
                     }
-                    catch {  }
+                    catch { }
                 }
             }
 
@@ -1214,7 +1214,7 @@ namespace ManageEngineWebApp.Controllers
 
                 if (string.IsNullOrEmpty(updatePatchselectiondto.deviceIds))
                     return Json(new { success = false, error = "No device IDs were received. Please go back and re-select your devices." });
-                 
+
                 using var client = GetClient();
                 client.Timeout = TimeSpan.FromSeconds(120);
                 string jsonData = JsonConvert.SerializeObject(updatePatchselectiondto);
@@ -2174,15 +2174,48 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/WindowsUserDetails");
+                string UCode = GetUCodeFromDomain(domain);
 
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails");
                 if (response.IsSuccessStatusCode)
                 {
-                    string UCode = GetUCodeFromDomain(domain);
                     var content = await response.Content.ReadAsStringAsync();
                     var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<WindowsUserDetails>>(content) : null;
                     localDatalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<WindowsUserDetails>();
+                }
+                var historyResponse = await httpClient.GetAsync($"{_baseUrl}/api/UserLogonHistory");
+                if (historyResponse.IsSuccessStatusCode)
+                {
+                    var historyContent = await historyResponse.Content.ReadAsStringAsync();
+                    var historyData = !string.IsNullOrEmpty(historyContent) ? JsonConvert.DeserializeObject<List<UserLogonHistory>>(historyContent) : null;
+                    var userHistory = historyData?.Where(x => x.UserCode == UCode).ToList();
+
+                    if (userHistory != null && userHistory.Any())
+                    {
+                        foreach (var user in localDatalist)
+                        {
+                            var latestLogin = userHistory
+                                .Where(h => string.Equals(h.Username, user.UserName, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(h.LogonTime))
+                                .OrderByDescending(h => h.DateTime)
+                                .FirstOrDefault();
+
+                            user.LastLogin = latestLogin != null ? latestLogin.LogonTime : "Never";
+                        }
+                    }
+                    else
+                    {
+                        foreach (var user in localDatalist)
+                        {
+                            user.LastLogin = "Never";
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var user in localDatalist)
+                    {
+                        user.LastLogin = "Never";
+                    }
                 }
             }
             catch (Exception) { }
@@ -2404,7 +2437,6 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> drivers(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
-            var localDatalist = new List<WindowDrivers>();
             try
             {
                 string UCode = GetUCodeFromDomain(domain);
@@ -2415,13 +2447,17 @@ namespace ManageEngineWebApp.Controllers
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = JsonConvert.DeserializeObject<List<WindowDrivers>>(content);
-                    localDatalist = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<WindowDrivers>();
+                    var data = JsonConvert.DeserializeObject<List<DeviceManagerItem>>(content);
+                    var userDrivers = data?.Where(x => x.UserCode == UCode).ToList() ?? new List<DeviceManagerItem>();
+
+                    return Json(userDrivers);
                 }
             }
             catch (Exception) { }
-            return Json(localDatalist);
+            return Json(new List<object>());
         }
+
+
 
         [HttpGet]
         public async Task<IActionResult> BIOS(string domain)
@@ -2743,7 +2779,9 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Processors(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
-            var localDatalist = new List<ProcessorDetails>();
+
+            var empty = new ProcessorInfo { Name = "N/A", Manufacturer = "N/A", Status = "N/A", DateTime = DateTime.Now };
+
             try
             {
                 string UCode = GetUCodeFromDomain(domain);
@@ -2751,38 +2789,126 @@ namespace ManageEngineWebApp.Controllers
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/ProcessorDetails");
 
                 var response = await httpClient.GetAsync("");
-                if (response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var data = JsonConvert.DeserializeObject<List<ProcessorDetails>>(content);
-                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                    return Json(empty);
                 }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonConvert.DeserializeObject<List<ProcessorInfo>>(content);
+
+                var localDatalist = data?.Where(x => x.UserCode == UCode)
+                                          .OrderByDescending(x => x.DateTime)
+                                          .ToList() ?? new List<ProcessorInfo>();
 
                 if (!localDatalist.Any())
                 {
-                    return Json(new { ProcessorSpeed = "N/A", Manufacturer = "N/A", Stepping = "N/A", Family = "N/A", NumberOfCores = 0, SocketDesignation = "N/A", Voltage = "N/A", Version = "N/A", DeviceStatus = "N/A", Description = "N/A", DateTime = DateTime.Now });
+                    return Json(empty);
                 }
-
-                var processerdata = new
-                {
-                    ProcessorSpeed = localDatalist[0].ProcessorSpeed,
-                    Manufacturer = localDatalist[0].Manufacturer,
-                    Stepping = localDatalist[0].Stepping,
-                    Family = localDatalist[0].Family,
-                    NumberOfCores = localDatalist[0].NumberOfCores,
-                    SocketDesignation = localDatalist[0].SocketDesignation,
-                    Voltage = localDatalist[0].Voltage,
-                    Version = localDatalist[0].Version,
-                    DeviceStatus = localDatalist[0].DeviceStatus,
-                    Description = localDatalist[0].Description,
-                    DateTime = localDatalist[0].DateTime
-                };
-
-                return Json(processerdata);
+                return Json(localDatalist[0]);
             }
             catch (Exception)
             {
-                return Json(new { ProcessorSpeed = "N/A", Manufacturer = "N/A", Stepping = "N/A", Family = "N/A", NumberOfCores = 0, SocketDesignation = "N/A", Voltage = "N/A", Version = "N/A", DeviceStatus = "N/A", Description = "N/A", DateTime = DateTime.Now });
+                return Json(empty);
+            }
+        }
+
+      
+        [HttpGet]
+        public async Task<IActionResult> ProcessorHistory(string domain, int count = 20)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+
+            var empty = new List<ProcessorInfo>();
+
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}");
+
+                var response = await httpClient.GetAsync($"api/ProcessorDetails/history/{UCode}?count={count}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Json(empty);
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonConvert.DeserializeObject<List<ProcessorInfo>>(content);
+
+                return Json(data ?? empty);
+            }
+            catch (Exception)
+            {
+                return Json(empty);
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> MemorySummary(string domain)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+
+            var empty = new MemorySummary { InstalledMemoryGB = 0, MaximumSupportedMemoryGB = 0, TotalSlots = 0, UsedSlots = 0, FreeMemoryGB = 0, UsedMemoryGB = 0, UsagePercent = 0, DateTime = DateTime.Now, MemoryModules = new List<PhysicalMemoryInfo>() };
+
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}");
+
+                var response = await httpClient.GetAsync($"api/MemorySlotDetails");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Json(empty);
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonConvert.DeserializeObject<List<MemorySummary>>(content);
+
+                var localDatalist = data?.Where(x => x.UserCode == UCode)
+                                          .OrderByDescending(x => x.DateTime)
+                                          .ToList() ?? new List<MemorySummary>();
+
+                if (!localDatalist.Any())
+                {
+                    return Json(empty);
+                }
+                return Json(localDatalist[0]);
+            }
+            catch (Exception)
+            {
+                return Json(empty);
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> MemoryHistory(string domain, int count = 20)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+
+            var empty = new List<MemorySummary>();
+
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}");
+
+                var response = await httpClient.GetAsync($"api/MemorySlotDetails/history/{UCode}?count={count}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Json(empty);
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonConvert.DeserializeObject<List<MemorySummary>>(content);
+
+                return Json(data ?? empty);
+            }
+            catch (Exception)
+            {
+                return Json(empty);
             }
         }
 
@@ -3567,11 +3693,32 @@ namespace ManageEngineWebApp.Controllers
                 var response = await httpClient.PostAsync(
                     $"{_baseUrl}/api/Battery/batteryFetchDetails?clientId={Uri.EscapeDataString(cleanDomain)}", null);
 
-                if (response.IsSuccessStatusCode)
-                    return Json(new { success = true, message = "Audit request sent successfully." });
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : $"Server returned {(int)response.StatusCode}" });
+                }
 
-                var errorContent = await response.Content.ReadAsStringAsync();
-                return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : $"Server returned {(int)response.StatusCode}" });
+                var initialTime = DateTime.UtcNow;
+                for (int i = 0; i < 12; i++)
+                {
+                    await Task.Delay(2000);
+                    var metricsResponse = await httpClient.GetAsync($"{_baseUrl}/api/Battery/metrics/{Uri.EscapeDataString(cleanDomain)}");
+                    if (metricsResponse.IsSuccessStatusCode)
+                    {
+                        var content = await metricsResponse.Content.ReadAsStringAsync();
+                        var data = Newtonsoft.Json.Linq.JObject.Parse(content);
+                        if (data != null && data["lastWriteTimeUtc"] != null)
+                        {
+                            DateTime lastWriteTime = data["lastWriteTimeUtc"].ToObject<DateTime>();
+                            if (lastWriteTime > initialTime.AddSeconds(-5))
+                            {
+                                return Json(new { success = true, data = data });
+                            }
+                        }
+                    }
+                }
+                return Json(new { success = false, message = "Live fetch timed out. Showing last known state." });
             }
             catch (Exception ex)
             {

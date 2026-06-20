@@ -452,13 +452,13 @@ namespace ManageEngineWebApp.Controllers
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ProcessorDetails>>(content) : null;
-                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<ProcessorDetails>();
+                    var data = !string.IsNullOrEmpty(content) ? JsonConvert.DeserializeObject<List<ProcessorInfo>>(content) : null;
+                    var resultList = data != null ? data.Where(x => x.UserCode == UCode).ToList() : new List<ProcessorInfo>();
                     return Json(resultList);
                 }
             }
             catch (Exception) { }
-            return Json(new List<ProcessorDetails>());
+            return Json(new List<ProcessorInfo>());
         }
 
         //Sound

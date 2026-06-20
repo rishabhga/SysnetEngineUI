@@ -80,7 +80,7 @@ function lazyLoadTabData(tabId) {
             loadNetworkAdapters();
             loadKeyboardDetails();
             loadMotherboardDetails();
-            loadPhysicalMemoryDetails();
+            loadMemoryDetails();
             break;
         case '#Restriction':
             loadRestrictionData();
@@ -176,7 +176,8 @@ function initializeAllTables() {
         { data: null, render: (row) => flexRender(row, 'DomainName') },
         { data: null, render: (row) => flexRender(row, 'FullName') },
         { data: null, render: (row) => flexRender(row, 'AccountType') },
-        { data: null, render: (row) => flexRender(row, 'Status') }
+        { data: null, render: (row) => flexRender(row, 'Status') },
+        { data: null, render: (row) => flexRender(row, 'LastLogin', 'LastLogin', 'Last Login') }
     ]);
 
     initTable('#groupsTable', `/ComputerSummary/groups?domain=${domaindata}`, [
@@ -187,11 +188,37 @@ function initializeAllTables() {
     ]);
 
     initTable('#driversTable', `/ComputerSummary/drivers?domain=${domaindata}`, [
-        { data: null, render: (row) => flexRender(row, 'Name') },
-        { data: null, render: (row) => flexRender(row, 'Description') },
+        { data: function(row) { return row.Category || row.category || 'Other Devices'; }, visible: false },
+        { data: null, render: (row) => flexRender(row, 'DeviceName', 'Name') },
+        { data: null, render: (row) => flexRender(row, 'Manufacturer', 'Description') },
         { data: null, render: (row) => flexRender(row, 'Status') },
         { data: null, render: (row) => flexRender(row, 'DateTime') }
-    ]);
+    ], {
+        order: [[0, 'asc']],
+        rowGroup: {
+            dataSrc: function (row) {
+                return row.Category || row.category || 'Other Devices';
+            },
+            startRender: function (rows, group) {
+                let icon = 'fa-microchip';
+                const g = group.toLowerCase();
+                if (g.includes('system') || g.includes('board')) icon = 'fa-cogs';
+                else if (g.includes('volume') || g.includes('disk') || g.includes('storage') || g.includes('hdc')) icon = 'fa-hdd';
+                else if (g.includes('mouse') || g.includes('pointing')) icon = 'fa-mouse';
+                else if (g.includes('keyboard')) icon = 'fa-keyboard';
+                else if (g.includes('print') || g.includes('fax')) icon = 'fa-print';
+                else if (g.includes('usb')) icon = 'fa-usb';
+                else if (g.includes('net') || g.includes('wan') || g.includes('wi-fi')) icon = 'fa-network-wired';
+                else if (g.includes('audio') || g.includes('sound') || g.includes('media')) icon = 'fa-volume-up';
+                else if (g.includes('video') || g.includes('display') || g.includes('monitor')) icon = 'fa-desktop';
+                else if (g.includes('processor') || g.includes('cpu')) icon = 'fa-microchip';
+                else if (g.includes('bluetooth')) icon = 'fa-bluetooth';
+                else if (g.includes('hidclass')) icon = 'fa-gamepad';
+                
+                return $('<tr/>').append('<td colspan="5" class="bg-slate-100 font-bold text-slate-700 border-y border-slate-300 py-2 px-4 shadow-sm"><i class="fas ' + icon + ' mr-2 text-cyan-600"></i>' + group + ' <span class="text-xs text-slate-500 font-normal ml-2">(' + rows.count() + ')</span></td>');
+            }
+        }
+    });
 
     initTable('#hardDiskTable', `/ComputerSummary/HardDisk?domain=${domaindata}`, [
         { data: null, render: (row) => flexRender(row, 'Model') },
@@ -376,15 +403,16 @@ function initializeAllTables() {
     });
 }
 
-function initTable(selector, url, columns) {
-    dataTables[selector] = { url: url, columns: columns };
-    tableRegistry[selector] = { url: url, columns: columns };
+function initTable(selector, url, columns, options) {
+    options = options || {};
+    dataTables[selector] = { url: url, columns: columns, options: options };
+    tableRegistry[selector] = { url: url, columns: columns, options: options };
 
     if ($.fn.DataTable.isDataTable(selector)) {
         $(selector).DataTable().destroy();
     }
 
-    $(selector).DataTable({
+    var dtConfig = {
         ajax: {
             url: url,
             type: "GET",
@@ -408,7 +436,8 @@ function initTable(selector, url, columns) {
             searchPlaceholder: "Search records...",
             lengthMenu: "_MENU_ per page",
             info: "Showing _START_ to _END_ of _TOTAL_",
-            emptyTable: '<div class="cs-dt-empty"><i class="fas fa-inbox"></i><span>No records found</span></div>',
+            emptyTable: '<div class="text-center py-8 text-slate-400"><i class="fas fa-inbox text-2xl mb-2 block"></i>No records found</div>',
+            zeroRecords: '<div class="text-center py-8 text-slate-400"><i class="fas fa-search text-2xl mb-2 block"></i>No matching records found</div>',
             paginate: {
                 previous: '<i class="fas fa-chevron-left"></i>',
                 next: '<i class="fas fa-chevron-right"></i>'
@@ -426,36 +455,123 @@ function initTable(selector, url, columns) {
             }
             $wrapper.find('.dataTables_length select').addClass('cs-dt-length-select');
         }
-    });
+    };
+
+    if (options) {
+        Object.assign(dtConfig, options);
+    }
+
+    $(selector).DataTable(dtConfig);
 }
 
 function initTablesInPane(paneId) {
     $(paneId).find('table').each(function () {
         var tableId = '#' + $(this).attr('id');
         if (!$.fn.DataTable.isDataTable(tableId) && tableRegistry[tableId]) {
-            initTable(tableId, tableRegistry[tableId].url, tableRegistry[tableId].columns);
+            initTable(tableId, tableRegistry[tableId].url, tableRegistry[tableId].columns, tableRegistry[tableId].options);
         }
     });
 }
 
-function loadPhysicalMemoryDetails() {
-    $('#tdMaximumSupportedRAM, #tdLocation, #tdSlotsAvailable, #tdSlotsUsed')
-        .html('<i class="fas fa-spinner fa-spin text-gray-400"></i>');
+let memUsageChartInstance = null;
+let memCapacityChartInstance = null;
 
-    $.get(`/ComputerSummary/PhysicalMemory?domain=${domaindata}`, function (data) {
+function renderMemoryTrendChart(history) {
+    if (!history || !history.length) return;
+    
+    var labels = history.map(function (h) {
+        var dt = new Date(h.dateTime || h.DateTime);
+        return isNaN(dt.getTime()) ? '' : dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    });
+
+    var usageCanvas = document.getElementById('memUsageTrendChart');
+    if (usageCanvas) {
+        if (memUsageChartInstance) memUsageChartInstance.destroy();
+        memUsageChartInstance = new Chart(usageCanvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Usage %', data: history.map(h => parseFloat(h.usagePercent || h.UsagePercent) || 0), borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, .1)', borderWidth: 2, fill: true, tension: 0, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { title: { display: true, text: '%' }, min: 0, max: 100 } }
+            }
+        });
+    }
+
+    var capacityCanvas = document.getElementById('memCapacityTrendChart');
+    if (capacityCanvas) {
+        if (memCapacityChartInstance) memCapacityChartInstance.destroy();
+        memCapacityChartInstance = new Chart(capacityCanvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Used (GB)', data: history.map(h => parseFloat(h.usedMemoryGB || h.UsedMemoryGB) || 0), borderColor: '#0ea5e9', borderWidth: 2, fill: false, tension: 0, pointRadius: 0 },
+                    { label: 'Free (GB)', data: history.map(h => parseFloat(h.freeMemoryGB || h.FreeMemoryGB) || 0), borderColor: '#22c55e', borderWidth: 2, fill: false, tension: 0, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+                scales: { y: { title: { display: true, text: 'GB' }, min: 0 } }
+            }
+        });
+    }
+}
+
+function loadMemoryDetails() {
+    $.get(`/ComputerSummary/MemorySummary?domain=${domaindata}`, function (data) {
         if (data) {
-            $('#tdMaximumSupportedRAM').text(data.maximumSupportedRAM || data.MaximumSupportedRAM || 'N/A');
-            $('#tdLocation').text(data.location || data.Location || 'N/A');
-            $('#tdSlotsAvailable').text(data.slotsAvailable !== undefined ? data.slotsAvailable
-                : (data.SlotsAvailable !== undefined ? data.SlotsAvailable : '0'));
-            $('#tdSlotsUsed').text(data.slotsUsed !== undefined ? data.slotsUsed
-                : (data.SlotsUsed !== undefined ? data.SlotsUsed : '0'));
-        } else {
-            $('#tdMaximumSupportedRAM, #tdLocation, #tdSlotsAvailable, #tdSlotsUsed').text('N/A');
+            $('#memTotalCapacity').text((data.installedMemoryGB || data.InstalledMemoryGB || 0).toFixed(2) + ' GB Installed');
+            $('#memUsageBadge').html(`<i class="fas fa-chart-pie"></i> ${(data.usagePercent || data.UsagePercent || 0).toFixed(1)}% Used`);
+            
+            let totalSlots = data.totalSlots || data.TotalSlots || 0;
+            let usedSlots = data.usedSlots || data.UsedSlots || 0;
+            $('#memSlotsBadge').html(`<i class="fas fa-grip-horizontal"></i> ${usedSlots}/${totalSlots} Slots`);
+            
+            let dt = data.dateTime || data.DateTime;
+            if (dt) {
+                var d = new Date(dt);
+                if (!isNaN(d.getTime())) $('#memLastUpdated').text('Updated: ' + d.toLocaleTimeString());
+            }
+
+            $('#memInstalled').text((data.installedMemoryGB || data.InstalledMemoryGB || 0).toFixed(2) + ' GB');
+            $('#memMaxSupported').text((data.maximumSupportedMemoryGB || data.MaximumSupportedMemoryGB || 0).toFixed(2) + ' GB');
+            $('#memUsed').text((data.usedMemoryGB || data.UsedMemoryGB || 0).toFixed(2) + ' GB');
+            $('#memFree').text((data.freeMemoryGB || data.FreeMemoryGB || 0).toFixed(2) + ' GB');
+            $('#memTotalSlots').text(totalSlots);
+            $('#memUsedSlots').text(usedSlots);
+            
+            var tbody = $('#memoryModulesTable tbody').empty();
+            var modules = data.memoryModules || data.MemoryModules || [];
+            if (modules.length === 0) {
+                tbody.append(`<tr><td colspan="6" style="padding:15px;text-align:center;color:#94a3b8;">No modules found</td></tr>`);
+            } else {
+                modules.forEach(m => {
+                    tbody.append(`
+                        <tr style="border-bottom:1px solid var(--slate-100);">
+                            <td style="padding:10px 12px;font-family:var(--font-mono);font-size:0.8rem;color:var(--slate-700);">${m.deviceLocator || m.DeviceLocator || 'N/A'}</td>
+                            <td style="padding:10px 12px;color:var(--slate-800);">${m.manufacturer || m.Manufacturer || 'N/A'}</td>
+                            <td style="padding:10px 12px;color:var(--slate-800);font-weight:600;">${(m.capacityGB || m.CapacityGB || 0).toFixed(2)} GB</td>
+                            <td style="padding:10px 12px;color:var(--slate-600);">${m.speedMHz || m.SpeedMHz || m.configuredClockSpeedMHz || m.ConfiguredClockSpeedMHz || 0} MHz</td>
+                            <td style="padding:10px 12px;color:var(--slate-600);"><span style="background:var(--slate-100);padding:2px 6px;border-radius:4px;font-size:0.75rem;">${decodeMap(MEM_TYPE_MAP, m.memoryType || m.MemoryType)}</span></td>
+                            <td style="padding:10px 12px;color:var(--slate-600);">${decodeMap(MEM_FORM_FACTOR_MAP, m.formFactor || m.FormFactor)}</td>
+                        </tr>
+                    `);
+                });
+            }
         }
-    }).fail(function () {
-        $('#tdMaximumSupportedRAM, #tdLocation, #tdSlotsAvailable, #tdSlotsUsed')
-            .html('<span class="text-red-400">Error</span>');
+    });
+
+    $.get(`/ComputerSummary/MemoryHistory?domain=${domaindata}`, function (history) {
+        if (history && history.length > 0) {
+            renderMemoryTrendChart(history);
+        }
     });
 }
 
@@ -523,9 +639,9 @@ function loadLogicalDrivesDashboard() {
                 var used = parseFloat(d.usedSpace || d.UsedSpace || 0).toFixed(2);
                 var usagePct = parseFloat(d.usagePercentage || d.Usage || 0);
 
-                var barColor = 'var(--cyan)'; // Cyan Blue for up to 80
-                if (usagePct > 90) barColor = 'var(--red)'; // Red for > 90
-                else if (usagePct > 80) barColor = 'var(--amber)'; // Yellow for > 80
+                var barColor = 'var(--cyan)';
+                if (usagePct > 90) barColor = 'var(--red)';
+                else if (usagePct > 80) barColor = 'var(--amber)';
 
                 var icon = driveLetter.includes('C:') ? '<i class="fab fa-windows" style="color:var(--cyan); font-size: 1.15rem;"></i>' : '<i class="fas fa-hdd" style="color:var(--slate-400); font-size: 1.15rem;"></i>';
 
@@ -593,16 +709,262 @@ function loadMonitorDetails() {
     }).fail(function () { console.error("Failed to load monitor details"); });
 }
 
+const CPU_ARCH_MAP = { '0': 'x86', '1': 'MIPS', '2': 'Alpha', '3': 'PowerPC', '5': 'ARM', '6': 'Itanium-based (IA-64)', '9': 'x64', '12': 'ARM64' };
+const CPU_TYPE_MAP = { '1': 'Other', '2': 'Unknown', '3': 'Central Processor', '4': 'Math Processor', '5': 'DSP Processor', '6': 'Video Processor' };
+const CPU_STATUS_MAP = { '0': 'Unknown', '1': 'CPU Enabled', '2': 'Disabled by User (BIOS)', '3': 'Disabled by BIOS (Error)', '4': 'CPU Idle', '5': 'Other', '6': 'Reserved', '7': 'Other' };
+const CPU_SOCKET_MAP = {
+    '4': 'ZIF Socket', '20': 'LGA771', '21': 'LGA775', '25': 'LGA1366', '27': 'AM3', '29': 'LGA1156',
+    '36': 'LGA1155', '37': 'LGA1356', '38': 'LGA2011', '41': 'FM1', '42': 'FM2', '45': 'LGA1150',
+    '49': 'AM4', '50': 'LGA1151', '54': 'LGA3647', '57': 'LGA2066', '62': 'LGA1200', '64': 'LGA1700',
+    '73': 'AM5', '84': 'LGA1851'
+};
+
+const MEM_TYPE_MAP = {
+    '0': 'Unknown', '1': 'Other', '2': 'DRAM', '3': 'SDRAM', '4': 'Cache DRAM', '5': 'EDO', '6': 'EDRAM', '7': 'VRAM', '8': 'SRAM', '9': 'RAM',
+    '10': 'ROM', '11': 'Flash', '12': 'EEPROM', '13': 'FEPROM', '14': 'EPROM', '15': 'CDRAM', '16': '3DRAM', '17': 'SDRAM', '18': 'SGRAM',
+    '19': 'RDRAM', '20': 'DDR', '21': 'DDR2', '22': 'DDR2 FB-DIMM', '24': 'DDR3', '25': 'FBD2', '26': 'DDR4', '34': 'DDR5', '35': 'LPDDR5'
+};
+
+const MEM_FORM_FACTOR_MAP = {
+    '0': 'Unknown', '1': 'Other', '2': 'SIP', '3': 'DIP', '4': 'ZIP', '5': 'SOJ', '6': 'Proprietary', '7': 'SIMM', '8': 'DIMM', '9': 'TSOP',
+    '10': 'PGA', '11': 'RIMM', '12': 'SODIMM', '13': 'SRIMM', '14': 'SMD', '15': 'SSMP', '16': 'QFP', '17': 'TQFP', '18': 'SOIC',
+    '19': 'LCC', '20': 'PLCC', '21': 'BGA', '22': 'FPBGA', '23': 'LGA', '24': 'FB-DIMM'
+};
+
+function decodeMap(map, code) {
+    if (code === null || code === undefined) return 'N/A';
+    return map[String(code)] || code || 'N/A';
+}
+
+function cpuDecode(map, code) {
+    return decodeMap(map, code);
+}
+
+function cpuDecodeVoltage(raw) {
+    var v = parseInt(raw, 10);
+    if (isNaN(v) || v === 0) return 'N/A';
+    if (v & 0x80) return ((v & 0x7f) / 10).toFixed(1) + ' V';
+    return 'Index ' + v;
+}
+
+function cpuTempColor(t) {
+    if (t === undefined || t === null || isNaN(t) || t <= 0) return '#94a3b8';
+    if (t < 50) return '#22c55e';
+    if (t < 70) return '#f59e0b';
+    return '#ef4444';
+}
+
+function cpuVal(d, ...keys) {
+    if (!d) return undefined;
+    var origKeys = Object.keys(d);
+    var lower = origKeys.map(function (k) { return k.toLowerCase(); });
+    for (var i = 1; i < arguments.length; i++) {
+        var key = arguments[i];
+        var idx = lower.indexOf(key.toLowerCase());
+        if (idx > -1) {
+            var actualKey = origKeys[idx];
+            if (d[actualKey] !== undefined && d[actualKey] !== null && d[actualKey] !== '') {
+                return d[actualKey];
+            }
+        }
+    }
+    return undefined;
+}
+
 function loadProcessorDetails() {
     $.get(`/ComputerSummary/Processors?domain=${domaindata}`, function (data) {
-        $('#processorSpeed').text(data.processorSpeed || 'N/A');
-        $('#processorManufacturer').text(data.manufacturer || 'N/A');
-        $('#processorCores').text(data.numberOfCores || 'N/A');
-        $('#processorSocket').text(data.socketDesignation || 'N/A');
-        $('#processorStatus').text(data.deviceStatus || 'N/A');
-        $('#processorDescription').text(data.description || 'N/A');
+        if (!data) return;
+        // TEMP DEBUG: open DevTools console and check this log to see the exact
+        // field names the API actually returns, then compare against the cpuVal(...)
+        // candidate keys used below. Remove this line once everything matches.
+        console.log('[Processor API raw payload]', data);
+        renderProcessorHero(data);
+        renderProcessorSpecs(data);
+        renderProcessorCache(data);
+        renderProcessorThermal(data);
     }).fail(function () { console.error("Failed to load processor details"); });
+
+    $.get(`/ComputerSummary/ProcessorHistory?domain=${domaindata}&count=20`, function (history) {
+        renderProcessorTrendCharts(history);
+    }).fail(function () { console.error("Failed to load processor trend history"); });
 }
+
+function renderProcessorHero(d) {
+    $('#cpuName').text(cpuVal(d, 'name', 'Name', 'processorName', 'ProcessorName') || 'Unknown Processor');
+    $('#cpuManufacturerBadge').html('<i class="fas fa-industry"></i> ' + (cpuVal(d, 'manufacturer', 'Manufacturer') || 'N/A'));
+    $('#cpuArchBadge').html('<i class="fas fa-layer-group"></i> ' + cpuDecode(CPU_ARCH_MAP, cpuVal(d, 'architecture', 'Architecture')));
+    $('#cpuTypeBadge').html('<i class="fas fa-tag"></i> ' + cpuDecode(CPU_TYPE_MAP, cpuVal(d, 'processorType', 'ProcessorType')));
+
+    var status = cpuVal(d, 'status', 'Status') || 'Unknown';
+    var cpuStatusLabel = cpuDecode(CPU_STATUS_MAP, cpuVal(d, 'cpuStatus', 'CpuStatus'));
+    var isOk = String(status).toUpperCase() === 'OK' || cpuStatusLabel.indexOf('Enabled') > -1;
+    var $badge = $('#cpuStatusBadge');
+    $badge.toggleClass('is-down', !isOk);
+    $badge.html('<span class="cpu-live-dot"></span> ' + (isOk ? 'Operational' : status));
+
+    var dt = cpuVal(d, 'dateTime', 'DateTime');
+    if (dt) {
+        var date = new Date(dt);
+        if (!isNaN(date.getTime())) {
+            $('#cpuLastUpdated').text('Synced ' + date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
+        }
+    }
+}
+
+function renderProcessorSpecs(d) {
+    var cores = cpuVal(d, 'cores', 'Cores', 'numberOfCores', 'NumberOfCores') || 0;
+    var threads = cpuVal(d, 'logicalProcessors', 'LogicalProcessors', 'numberOfLogicalProcessors', 'NumberOfLogicalProcessors', 'threadCount', 'ThreadCount') || 0;
+    $('#cpuCoresThreads').text(cores + ' Cores / ' + threads + ' Threads');
+
+    var baseGhz = parseFloat(cpuVal(d, 'baseSpeedGHz', 'BaseSpeedGHz')) || 0;
+    var maxMHz = cpuVal(d, 'maxClockSpeedMHz', 'MaxClockSpeedMHz', 'maxClockSpeed', 'MaxClockSpeed') || 0;
+    $('#cpuBaseClock').text(baseGhz > 0 ? baseGhz.toFixed(2) + ' GHz' : (maxMHz + ' MHz'));
+    $('#cpuCurrentClock').text((cpuVal(d, 'currentClockSpeedMHz', 'CurrentClockSpeedMHz', 'currentClockSpeed', 'CurrentClockSpeed') || 0) + ' MHz');
+    $('#cpuMaxClock').text(maxMHz + ' MHz');
+
+    var bus = parseFloat(cpuVal(d, 'busSpeedMHz', 'BusSpeedMHz', 'extClock', 'ExtClock', 'externalClock', 'ExternalClock'));
+    $('#cpuBusSpeed').text(bus > 0 ? bus.toFixed(1) + ' MHz' : 'N/A');
+
+    $('#cpuSocket').text(cpuVal(d, 'socketDesignation', 'SocketDesignation') || 'N/A');
+    $('#cpuUpgradeMethod').text(cpuDecode(CPU_SOCKET_MAP, cpuVal(d, 'upgradeMethod', 'UpgradeMethod')));
+
+    var aw = cpuVal(d, 'addressWidth', 'AddressWidth');
+    var dw = cpuVal(d, 'dataWidth', 'DataWidth');
+    $('#cpuWidth').text((aw || '?') + '-bit / ' + (dw || '?') + '-bit');
+
+    $('#cpuVoltage').text(cpuDecodeVoltage(cpuVal(d, 'voltage', 'Voltage', 'currentVoltage', 'CurrentVoltage')));
+    $('#cpuProcessorId').text(cpuVal(d, 'processorId', 'ProcessorId', 'processorID', 'ProcessorID') || 'N/A');
+}
+
+function renderProcessorCache(d) {
+    var l1 = parseFloat(cpuVal(d, 'l1CacheKB', 'L1CacheKB', 'l1CacheSize', 'L1CacheSize')) || 0;
+    var l2 = parseFloat(cpuVal(d, 'l2CacheKB', 'L2CacheKB', 'l2CacheSize', 'L2CacheSize')) || 0;
+    var l3 = parseFloat(cpuVal(d, 'l3CacheKB', 'L3CacheKB', 'l3CacheSize', 'L3CacheSize')) || 0;
+    var max = Math.max(l1, l2, l3, 1);
+
+    var rows = [
+        { label: 'L1', value: l1, color: '#0ea5e9' },
+        { label: 'L2', value: l2, color: '#6366f1' },
+        { label: 'L3', value: l3, color: '#f59e0b' }
+    ];
+
+    var html = '';
+    rows.forEach(function (r) {
+        var pct = Math.max(4, (r.value / max) * 100);
+        var displayVal = r.value >= 1024 ? (r.value / 1024).toFixed(1) + ' MB' : (r.value > 0 ? r.value + ' KB' : 'N/A');
+        html += '<div class="cpu-cache-row">' +
+            '<div class="cpu-cache-label">' + r.label + '</div>' +
+            '<div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:' + pct + '%;background:' + r.color + ';"></div></div>' +
+            '<div class="cpu-cache-value">' + displayVal + '</div>' +
+            '</div>';
+    });
+    $('#cpuCacheContainer').html(html);
+}
+
+function renderProcessorThermal(d) {
+    var pkgTemp = parseFloat(cpuVal(d, 'cpuPackageTemperature', 'CpuPackageTemperature', 'packageTemperature', 'PackageTemperature', 'cpuTemperature', 'CpuTemperature')) || 0;
+    var pkgPower = parseFloat(cpuVal(d, 'cpuPackagePower', 'CpuPackagePower', 'packagePower', 'PackagePower', 'powerDraw', 'PowerDraw')) || 0;
+
+    var circumference = 2 * Math.PI * 45;
+    var maxTemp = 100;
+    var dashLen = Math.min(100, (pkgTemp / maxTemp) * 100) / 100 * circumference;
+    var color = cpuTempColor(pkgTemp);
+
+    $('#cpuPackageTempCircle').css({ stroke: color, 'stroke-dasharray': dashLen + ', ' + circumference });
+    $('#cpuPackageTempText').text(pkgTemp > 0 ? pkgTemp.toFixed(0) + '\u00B0C' : 'N/A');
+    $('#cpuPackagePowerText').text('Power draw: ' + (pkgPower > 0 ? pkgPower.toFixed(1) + ' W' : 'N/A'));
+
+    var cores = [
+        { label: 'Core 0', value: parseFloat(cpuVal(d, 'core0Temp', 'Core0Temp', 'coreTemp0', 'CoreTemp0')) || 0 },
+        { label: 'Core 1', value: parseFloat(cpuVal(d, 'core1Temp', 'Core1Temp', 'coreTemp1', 'CoreTemp1')) || 0 },
+        { label: 'Core 2', value: parseFloat(cpuVal(d, 'core2Temp', 'Core2Temp', 'coreTemp2', 'CoreTemp2')) || 0 },
+        { label: 'Core 3', value: parseFloat(cpuVal(d, 'core3Temp', 'Core3Temp', 'coreTemp3', 'CoreTemp3')) || 0 }
+    ];
+
+    var html = '';
+    cores.forEach(function (c) {
+        var cColor = cpuTempColor(c.value);
+        var cDash = Math.min(100, (c.value / maxTemp) * 100);
+        html += '<div class="cpu-core-gauge">' +
+            '<svg viewBox="0 0 36 36" style="width:48px;height:48px;transform:rotate(-90deg);">' +
+            '<path stroke="#e2e8f0" stroke-width="3.2" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />' +
+            '<path stroke="' + cColor + '" stroke-width="3.2" stroke-dasharray="' + cDash + ', 100" fill="none" stroke-linecap="round" style="transition:stroke-dasharray 1s ease;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />' +
+            '</svg>' +
+            '<div class="cpu-core-gauge-label">' + c.label + '</div>' +
+            '<div class="cpu-core-gauge-value" style="color:' + cColor + ';">' + (c.value > 0 ? c.value.toFixed(0) + '\u00B0C' : 'N/A') + '</div>' +
+            '</div>';
+    });
+    $('#cpuCoreGaugeContainer').html(html);
+}
+
+let cpuTempChartInstance = null;
+let cpuClockChartInstance = null;
+
+function renderProcessorTrendCharts(history) {
+    if (!history || !history.length) return;
+
+    var labels = history.map(function (h) {
+        var dt = new Date(cpuVal(h, 'dateTime', 'DateTime'));
+        return isNaN(dt.getTime()) ? '' : dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    });
+
+    var tempCanvas = document.getElementById('cpuTempTrendChart');
+    if (tempCanvas) {
+        if (cpuTempChartInstance) cpuTempChartInstance.destroy();
+        cpuTempChartInstance = new Chart(tempCanvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Package', data: history.map(h => parseFloat(cpuVal(h, 'cpuPackageTemperature', 'CpuPackageTemperature', 'packageTemperature', 'PackageTemperature')) || 0), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.08)', borderWidth: 2, fill: true, tension: 0, pointRadius: 0 },
+                    { label: 'Core 0', data: history.map(h => parseFloat(cpuVal(h, 'core0Temp', 'Core0Temp', 'coreTemp0', 'CoreTemp0')) || 0), borderColor: '#0ea5e9', borderWidth: 1.5, fill: false, tension: 0, pointRadius: 0 },
+                    { label: 'Core 1', data: history.map(h => parseFloat(cpuVal(h, 'core1Temp', 'Core1Temp', 'coreTemp1', 'CoreTemp1')) || 0), borderColor: '#22c55e', borderWidth: 1.5, fill: false, tension: 0, pointRadius: 0 },
+                    { label: 'Core 2', data: history.map(h => parseFloat(cpuVal(h, 'core2Temp', 'Core2Temp', 'coreTemp2', 'CoreTemp2')) || 0), borderColor: '#f59e0b', borderWidth: 1.5, fill: false, tension: 0, pointRadius: 0 },
+                    { label: 'Core 3', data: history.map(h => parseFloat(cpuVal(h, 'core3Temp', 'Core3Temp', 'coreTemp3', 'CoreTemp3')) || 0), borderColor: '#a855f7', borderWidth: 1.5, fill: false, tension: 0, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+                scales: { y: { title: { display: true, text: '°C' } } }
+            }
+        });
+    }
+
+    var clockCanvas = document.getElementById('cpuClockTrendChart');
+    if (clockCanvas) {
+        if (cpuClockChartInstance) cpuClockChartInstance.destroy();
+        cpuClockChartInstance = new Chart(clockCanvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Current Clock (MHz)', data: history.map(h => cpuVal(h, 'currentClockSpeedMHz', 'CurrentClockSpeedMHz', 'currentClockSpeed', 'CurrentClockSpeed') || 0), borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,.08)', borderWidth: 2, fill: true, tension: 0, pointRadius: 0 },
+                    { label: 'Bus Speed (MHz)', data: history.map(h => parseFloat(cpuVal(h, 'busSpeedMHz', 'BusSpeedMHz', 'extClock', 'ExtClock')) || 0), borderColor: '#cbd5e1', borderWidth: 1.5, borderDash: [5, 5], fill: false, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+                scales: { y: { title: { display: true, text: 'MHz' } } }
+            }
+        });
+    }
+}
+
+$(document).on('click', '#btnRefreshProcessor', function (e) {
+    e.preventDefault();
+    var $btn = $(this).addClass('spinning');
+    loadProcessorDetails();
+    setTimeout(function () { $btn.removeClass('spinning'); }, 600);
+});
+
+$(document).on('click', '#btnRefreshMemory', function (e) {
+    e.preventDefault();
+    var $btn = $(this).addClass('spinning');
+    loadMemoryDetails();
+    setTimeout(function () { $btn.removeClass('spinning'); }, 600);
+});
 
 function loadNetworkAdapters() {
     $.get(`/ComputerSummary/NetworkAdapters?domain=${domaindata}`, function (data) {
@@ -963,14 +1325,14 @@ function renderBatteryAuditPanel(metrics) {
     $('#batteryAuditResults').css('display', 'flex');
 
     let healthPercent = metrics.healthPercentage !== undefined ? metrics.healthPercentage : (metrics.batteryHealthPercent || 0);
-    
+
     $('#auditHealthPercentText').text(healthPercent + '%');
     $('#auditDesignCap').text(metrics.designCapacity ? metrics.designCapacity.toLocaleString() : '--');
     $('#auditFullCap').text(metrics.fullChargeCapacity ? metrics.fullChargeCapacity.toLocaleString() : '--');
     $('#auditCycleCount').text(metrics.cycleCount > 0 ? metrics.cycleCount : '--');
-    
+
     $('#auditWearRate').text(metrics.wearRatePerMonth !== undefined ? metrics.wearRatePerMonth : '--');
-    
+
     let remainingLife = '--';
     if (metrics.estimatedRemainingMonths !== undefined) {
         if (metrics.estimatedRemainingMonths === 999) remainingLife = 'Healthy';
@@ -1000,7 +1362,7 @@ function renderBatteryAuditPanel(metrics) {
 
     circle.css('stroke', color);
     $('#auditStatus').html(`${icon} ${status}`);
-    
+
     renderCapacityTrendChart(metrics.capacityHistory);
     checkBatteryReportExists();
 }
@@ -1070,7 +1432,7 @@ $(document).ready(function () {
     let batteryAuditTimeout;
     let batteryAuditPollInterval;
 
-    $('#btnViewBatteryReport').on('click', function(e) {
+    $('#btnViewBatteryReport').on('click', function (e) {
         e.preventDefault();
         window.open(`/ComputerSummary/ViewBatteryReport?domain=${encodeURIComponent(actualDomainName)}`, '_blank');
     });
@@ -1081,65 +1443,33 @@ $(document).ready(function () {
         $('#batteryAuditLoading').html('<i class="fas fa-circle-notch fa-spin" style="font-size: 1.5rem; color: var(--cyan); margin-bottom: 8px; display: block;"></i> Fetching live diagnostics from device, please wait...');
         $('#batteryAuditLoading').show();
 
-        if (batteryAuditTimeout) clearTimeout(batteryAuditTimeout);
-        if (batteryAuditPollInterval) clearInterval(batteryAuditPollInterval);
-
-        let initialTime = Date.now();
-        let maxPollDuration = 30000; // 30 seconds max polling
-
-        function stopPolling() {
-            if (batteryAuditPollInterval) clearInterval(batteryAuditPollInterval);
-            if (batteryAuditTimeout) clearTimeout(batteryAuditTimeout);
-        }
-
         function triggerBatteryFallback(reasonMsg) {
             if (!$('#batteryAuditLoading').is(':visible')) return;
-            stopPolling();
-
             $.get(`/ComputerSummary/Battery?domain=${domaindata}`, function (data) {
                 renderBatteryAuditPanel(data);
                 sysAlert(reasonMsg || 'Live fetch unavailable. Showing last known state.', 'warning');
             });
         }
 
-        batteryAuditTimeout = setTimeout(function () {
-            triggerBatteryFallback('Live fetch timed out (30s). Showing last known state.');
-        }, maxPollDuration);
-
-        // Function to poll for the latest file
-        function pollLatestMetrics() {
-            $.get(`/ComputerSummary/LatestBatteryMetrics?domain=${encodeURIComponent(actualDomainName)}`, function (res) {
-                if (res && res.metrics && res.lastWriteTimeUtc) {
-                    let fileTime = new Date(res.lastWriteTimeUtc).getTime();
-                    // If the file was written AFTER we started the audit (with a 5 second buffer for time drift)
-                    if (fileTime > (initialTime - 5000)) {
-                        stopPolling();
-                        renderBatteryAuditPanel(res.metrics);
-                        sysAlert('Battery health data received!', 'success');
-                    }
-                }
-            }).fail(function() {
-                // Ignore 404s, keep polling
-            });
-        }
+        sysAlert('Battery audit requested from device. Waiting for data...', 'info');
 
         $.ajax({
             url: '/ComputerSummary/AuditBattery?domain=' + encodeURIComponent(actualDomainName),
             type: 'POST',
+            timeout: 30000,
             success: function (res) {
-                if (res && res.success) {
-                    sysAlert('Battery audit requested from device. Waiting for data...', 'info');
-                    batteryAuditPollInterval = setInterval(pollLatestMetrics, 3000);
+                if (res && res.success && res.data && res.data.metrics) {
+                    renderBatteryAuditPanel(res.data.metrics);
+                    sysAlert('Battery health data received!', 'success');
                 } else {
-                    triggerBatteryFallback(res.message || 'Failed to send audit request, falling back...');
+                    triggerBatteryFallback(res ? res.message : 'Failed to receive audit data, falling back...');
                 }
             },
-            error: function () {
-                triggerBatteryFallback('Connection error while requesting audit, falling back...');
+            error: function (xhr, status, error) {
+                let msg = status === 'timeout' ? 'Live fetch timed out. Showing last known state.' : 'Connection error while requesting audit, falling back...';
+                triggerBatteryFallback(msg);
             }
         });
     });
-    
-    // Initial check on load
     checkBatteryReportExists();
 });

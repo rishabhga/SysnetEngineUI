@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace ManageEngineWebApp.Models
@@ -18,5 +18,6 @@ namespace ManageEngineWebApp.Models
         public string Status { get; set; }
         public string UserCode { get; set; }
         public DateTime DateTime { get; set; }
+        public string LastLogin { get; set; }
     }
 }

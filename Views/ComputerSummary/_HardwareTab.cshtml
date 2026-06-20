@@ -1,3 +1,292 @@
+<style>
+    .cpu-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 14px;
+        background: var(--cyan-soft);
+        border: 1px solid #d3f1fa;
+        border-radius: var(--radius-md);
+        padding: 12px 16px;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .cpu-hero-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+    }
+
+    .cpu-chip-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: var(--radius-sm);
+        flex-shrink: 0;
+        background: var(--cyan);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: #fff;
+    }
+
+    .cpu-hero-name {
+        font-size: .92rem;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text-main);
+        word-break: break-word;
+    }
+
+    .cpu-hero-sub {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 5px;
+    }
+
+    .cpu-pill {
+        font-size: .66rem;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid var(--slate-200);
+        color: var(--slate-600);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        letter-spacing: .02em;
+    }
+
+    .cpu-hero-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .cpu-status-badge {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: .72rem;
+        font-weight: 800;
+        background: #ecfdf5;
+        border: 1px solid rgba(34,197,94,.35);
+        color: #16a34a;
+        padding: 5px 11px;
+        border-radius: 999px;
+        white-space: nowrap;
+    }
+
+        .cpu-status-badge.is-down {
+            background: #fef2f2;
+            border-color: rgba(239,68,68,.35);
+            color: #dc2626;
+        }
+
+    .cpu-live-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+        flex-shrink: 0;
+        animation: cpuLiveDot 1.8s infinite;
+    }
+
+    .cpu-status-badge.is-down .cpu-live-dot {
+        background: #ef4444;
+    }
+
+    @@keyframes cpuLiveDot {
+        0% {
+            box-shadow: 0 0 0 0 rgba(34,197,94,.5);
+        }
+
+        70% {
+            box-shadow: 0 0 0 7px rgba(34,197,94,0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(34,197,94,0);
+        }
+    }
+
+    .cpu-updated {
+        font-size: .66rem;
+        color: var(--text-faint);
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .cpu-refresh-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1px solid var(--slate-200);
+        background: #fff;
+        color: var(--slate-600);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background .2s, color .2s;
+    }
+
+        .cpu-refresh-btn:hover {
+            background: var(--cyan);
+            color: #fff;
+        }
+
+        .cpu-refresh-btn.spinning i {
+            animation: cpuSpin .8s linear infinite;
+        }
+
+    @@keyframes cpuSpin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .cpu-section-label {
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--slate-600);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 18px 0 8px;
+    }
+
+    .cpu-cache-card {
+        background: #fff;
+        border: 1px solid var(--slate-200);
+        border-radius: var(--radius-md);
+        padding: 16px 18px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .cpu-cache-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+        .cpu-cache-row:last-child {
+            margin-bottom: 0;
+        }
+
+    .cpu-cache-label {
+        width: 30px;
+        flex-shrink: 0;
+        font-size: .74rem;
+        font-weight: 800;
+        color: var(--slate-700);
+    }
+
+    .cpu-cache-track {
+        flex: 1;
+        height: 10px;
+        border-radius: 6px;
+        background: var(--slate-100);
+        overflow: hidden;
+    }
+
+    .cpu-cache-fill {
+        height: 100%;
+        border-radius: 6px;
+        transition: width 1s cubic-bezier(.4,0,.2,1);
+    }
+
+    .cpu-cache-value {
+        width: 76px;
+        text-align: right;
+        flex-shrink: 0;
+        font-size: .76rem;
+        font-weight: 700;
+        color: var(--slate-600);
+    }
+
+    .cpu-thermal-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 22px;
+        align-items: center;
+        background: #fff;
+        border: 1px solid var(--slate-200);
+        border-radius: var(--radius-md);
+        padding: 18px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .cpu-core-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 14px;
+        flex: 1;
+        min-width: 240px;
+    }
+
+    .cpu-core-gauge {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .cpu-core-gauge-label {
+        font-size: .64rem;
+        font-weight: 700;
+        color: var(--slate-500);
+        text-transform: uppercase;
+    }
+
+    .cpu-core-gauge-value {
+        font-size: .7rem;
+        font-weight: 800;
+    }
+
+    .cpu-chart-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    .cpu-chart-card {
+        background: #fff;
+        border: 1px solid var(--slate-200);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        box-shadow: var(--shadow-sm);
+    }
+
+        .cpu-chart-card h4 {
+            font-size: .8rem;
+            font-weight: 700;
+            color: var(--slate-700);
+            margin: 0 0 10px;
+        }
+
+    @@media (max-width: 560px) {
+        .cpu-hero {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .cpu-hero-right {
+            width: 100%;
+            justify-content: space-between;
+        }
+    }
+</style>
+
 <div id="Hardware" class="tab-pane">
     <div class="cs-card">
         <ul class="cs-subtab-bar" id="hardwareSubTabs" role="tablist">
@@ -162,19 +451,65 @@
             </div>
 
             <div id="MemoryHw" class="tab-pane">
-                <div class="hw-category-header hw-cat-amber">
-                    <div class="hw-category-icon"><i class="fas fa-memory"></i></div>
-                    <div class="hw-category-text">
-                        <div class="hw-category-title">Physical Memory</div>
-                        <div class="hw-category-desc">RAM modules and capacity information</div>
-                    </div>
-                </div>
-                <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));">
-                    <div class="cs-info-box"><div class="cs-info-box-label">Max RAM</div><div class="cs-info-box-value accent" id="tdMaximumSupportedRAM">--</div></div>
-                    <div class="cs-info-box"><div class="cs-info-box-label">Location</div><div class="cs-info-box-value" id="tdLocation">--</div></div>
-                    <div class="cs-info-box"><div class="cs-info-box-label">Slots Available</div><div class="cs-info-box-value green" id="tdSlotsAvailable">--</div></div>
-                    <div class="cs-info-box"><div class="cs-info-box-label">Slots Used</div><div class="cs-info-box-value amber" id="tdSlotsUsed">--</div></div>
-                </div>
+                  <!-- Hero header -->
+                  <div class="cpu-hero" style="background:linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);border-color:#fde68a;">
+                      <div class="cpu-hero-left">
+                          <div class="cpu-chip-icon" style="background:#f59e0b;color:#fff;"><i class="fas fa-memory"></i></div>
+                          <div style="min-width:0;">
+                              <div class="cpu-hero-name" id="memTotalCapacity">-- GB Installed</div>
+                              <div class="cpu-hero-sub">
+                                  <span class="cpu-pill" id="memUsageBadge" style="background:#fff;border-color:#fde68a;color:#d97706;"><i class="fas fa-chart-pie"></i> --% Used</span>
+                                  <span class="cpu-pill" id="memSlotsBadge" style="background:#fff;border-color:#fde68a;color:#d97706;"><i class="fas fa-grip-horizontal"></i> --/-- Slots</span>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="cpu-hero-right">
+                          <div class="cpu-status-badge" id="memStatusBadge" style="background:#dcfce7;color:#166534;"><span class="cpu-live-dot"></span> Healthy</div>
+                          <div class="cpu-updated" id="memLastUpdated">--</div>
+                          <button id="btnRefreshMemory" class="cpu-refresh-btn" style="color:#d97706;background:#fef3c7;border-color:#fcd34d;" title="Refresh memory data"><i class="fas fa-sync-alt"></i></button>
+                      </div>
+                  </div>
+
+                  <!-- Key specs -->
+                  <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:16px;">
+                      <div class="cs-info-box"><div class="cs-info-box-label">Total Installed</div><div class="cs-info-box-value accent" id="memInstalled">--</div></div>
+                      <div class="cs-info-box"><div class="cs-info-box-label">Max Supported</div><div class="cs-info-box-value" id="memMaxSupported">--</div></div>
+                      <div class="cs-info-box"><div class="cs-info-box-label">Used Memory</div><div class="cs-info-box-value amber" id="memUsed">--</div></div>
+                      <div class="cs-info-box"><div class="cs-info-box-label">Free Memory</div><div class="cs-info-box-value green" id="memFree">--</div></div>
+                      <div class="cs-info-box"><div class="cs-info-box-label">Total Slots</div><div class="cs-info-box-value" id="memTotalSlots">--</div></div>
+                      <div class="cs-info-box"><div class="cs-info-box-label">Used Slots</div><div class="cs-info-box-value" id="memUsedSlots">--</div></div>
+                  </div>
+
+                  <!-- Modules Table -->
+                  <div class="cpu-section-label"><i class="fas fa-list" style="color:var(--amber);"></i> Physical Memory Modules</div>
+                  <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);overflow:hidden;">
+                      <table id="memoryModulesTable" class="w-full text-left" style="font-size:0.85rem; border-collapse: collapse;">
+                          <thead style="background:var(--slate-50);border-bottom:1px solid var(--slate-200);">
+                              <tr>
+                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Locator</th>
+                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Manufacturer</th>
+                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Capacity</th>
+                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Speed</th>
+                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Type</th>
+                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Form Factor</th>
+                              </tr>
+                          </thead>
+                          <tbody></tbody>
+                      </table>
+                  </div>
+
+                  <!-- Trend charts -->
+                  <div class="cpu-section-label" style="margin-top:20px;"><i class="fas fa-chart-line" style="color:var(--amber);"></i> Live Trend (Recent Samples)</div>
+                  <div class="cpu-chart-grid">
+                      <div class="cpu-chart-card">
+                          <h4>Memory Usage Trend (%)</h4>
+                          <div style="position:relative; height:180px; width:100%;"><canvas id="memUsageTrendChart"></canvas></div>
+                      </div>
+                      <div class="cpu-chart-card">
+                          <h4>Used vs Free Memory (GB)</h4>
+                          <div style="position:relative; height:180px; width:100%;"><canvas id="memCapacityTrendChart"></canvas></div>
+                      </div>
+                  </div>
             </div>
 
             <div id="PointingHw" class="tab-pane">
@@ -200,20 +535,81 @@
             </div>
 
             <div id="ProcessorsHw" class="tab-pane">
-                <div class="hw-category-header hw-cat-blue">
-                    <div class="hw-category-icon"><i class="fas fa-microchip"></i></div>
-                    <div class="hw-category-text">
-                        <div class="hw-category-title">Processor</div>
-                        <div class="hw-category-desc">CPU architecture and capabilities</div>
+
+                <!-- Hero header -->
+                <div class="cpu-hero">
+                    <div class="cpu-hero-left">
+                        <div class="cpu-chip-icon"><i class="fas fa-microchip"></i></div>
+                        <div style="min-width:0;">
+                            <div class="cpu-hero-name" id="cpuName">--</div>
+                            <div class="cpu-hero-sub">
+                                <span class="cpu-pill" id="cpuManufacturerBadge"><i class="fas fa-industry"></i> --</span>
+                                <span class="cpu-pill" id="cpuArchBadge"><i class="fas fa-layer-group"></i> --</span>
+                                <span class="cpu-pill" id="cpuTypeBadge"><i class="fas fa-tag"></i> --</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cpu-hero-right">
+                        <div class="cpu-status-badge" id="cpuStatusBadge"><span class="cpu-live-dot"></span> --</div>
+                        <div class="cpu-updated" id="cpuLastUpdated">--</div>
+                        <button id="btnRefreshProcessor" class="cpu-refresh-btn" title="Refresh processor data"><i class="fas fa-sync-alt"></i></button>
                     </div>
                 </div>
-                <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));">
-                    <div class="cs-info-box"><div class="cs-info-box-label">Speed</div><div class="cs-info-box-value accent" id="processorSpeed">--</div></div>
-                    <div class="cs-info-box"><div class="cs-info-box-label">Manufacturer</div><div class="cs-info-box-value" id="processorManufacturer">--</div></div>
-                    <div class="cs-info-box"><div class="cs-info-box-label">Cores</div><div class="cs-info-box-value green" id="processorCores">--</div></div>
-                    <div class="cs-info-box"><div class="cs-info-box-label">Socket</div><div class="cs-info-box-value" id="processorSocket">--</div></div>
-                    <div class="cs-info-box"><div class="cs-info-box-label">Status</div><div class="cs-info-box-value" id="processorStatus">--</div></div>
-                    <div class="cs-info-box"><div class="cs-info-box-label">Description</div><div class="cs-info-box-value" style="font-size:.76rem;font-weight:500;" id="processorDescription">--</div></div>
+
+                <!-- Key specs -->
+                <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:16px;">
+                    <div class="cs-info-box"><div class="cs-info-box-label">Cores / Threads</div><div class="cs-info-box-value accent" id="cpuCoresThreads">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Base Clock</div><div class="cs-info-box-value" id="cpuBaseClock">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Current Clock</div><div class="cs-info-box-value green" id="cpuCurrentClock">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Max Clock</div><div class="cs-info-box-value" id="cpuMaxClock">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Bus Speed</div><div class="cs-info-box-value" id="cpuBusSpeed">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Socket</div><div class="cs-info-box-value" id="cpuSocket">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Socket Type</div><div class="cs-info-box-value" style="font-size:.78rem;" id="cpuUpgradeMethod">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Address / Data Width</div><div class="cs-info-box-value" id="cpuWidth">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Voltage</div><div class="cs-info-box-value amber" id="cpuVoltage">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Processor ID</div><div class="cs-info-box-value" style="font-family:var(--font-mono);font-size:.66rem;" id="cpuProcessorId">--</div></div>
+                </div>
+
+                <!-- Cache hierarchy -->
+                <div class="cpu-section-label"><i class="fas fa-layer-group" style="color:var(--cyan);"></i> Cache Hierarchy</div>
+                <div class="cpu-cache-card" id="cpuCacheContainer">
+                    <div class="cpu-cache-row"><div class="cpu-cache-label">L1</div><div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:4%;background:#0ea5e9;"></div></div><div class="cpu-cache-value">--</div></div>
+                    <div class="cpu-cache-row"><div class="cpu-cache-label">L2</div><div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:4%;background:#6366f1;"></div></div><div class="cpu-cache-value">--</div></div>
+                    <div class="cpu-cache-row"><div class="cpu-cache-label">L3</div><div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:4%;background:#f59e0b;"></div></div><div class="cpu-cache-value">--</div></div>
+                </div>
+
+                <!-- Thermal & power -->
+                <div class="cpu-section-label"><i class="fas fa-thermometer-half" style="color:var(--red);"></i> Thermal &amp; Power</div>
+                <div class="cpu-thermal-grid">
+                    <div class="battery-gauge-container">
+                        <div class="battery-gauge-ring">
+                            <svg viewBox="0 0 100 100">
+                                <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
+                                <circle id="cpuPackageTempCircle" class="gauge-fill" cx="50" cy="50" r="45" stroke="#94a3b8" stroke-dasharray="0,283"></circle>
+                            </svg>
+                            <div class="battery-gauge-percent">
+                                <div class="gauge-num" id="cpuPackageTempText">--</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="font-size:.95rem;font-weight:800;color:var(--slate-900);margin:0 0 3px;">Package Temperature</h3>
+                            <p style="font-size:.74rem;color:var(--slate-500);margin:0;font-weight:500;" id="cpuPackagePowerText">Power draw: --</p>
+                        </div>
+                    </div>
+                    <div class="cpu-core-grid" id="cpuCoreGaugeContainer"></div>
+                </div>
+
+                <!-- Trend charts -->
+                <div class="cpu-section-label"><i class="fas fa-chart-line" style="color:var(--cyan);"></i> Live Trend (Recent Samples)</div>
+                <div class="cpu-chart-grid">
+                      <div class="cpu-chart-card">
+                          <h4>Temperature Trend (&deg;C)</h4>
+                          <div style="position:relative; height:180px; width:100%;"><canvas id="cpuTempTrendChart"></canvas></div>
+                      </div>
+                      <div class="cpu-chart-card">
+                          <h4>Clock Speed Trend (MHz)</h4>
+                          <div style="position:relative; height:180px; width:100%;"><canvas id="cpuClockTrendChart"></canvas></div>
+                      </div>
                 </div>
             </div>
 
