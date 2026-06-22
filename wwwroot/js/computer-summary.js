@@ -187,36 +187,77 @@ function initializeAllTables() {
         { data: null, render: (row) => flexRender(row, 'Status') }
     ]);
 
+    window.expandedDriversGroups = window.expandedDriversGroups || {};
+    
+    function getDeviceIcon(category) {
+        let icon = 'fa-microchip'; // default
+        if (!category) return icon;
+        const g = category.toLowerCase();
+        
+        if (g.includes('computer')) icon = 'fa-desktop';
+        else if (g.includes('display') || g.includes('monitor')) icon = 'fa-tv';
+        else if (g.includes('audio') || g.includes('sound') || g.includes('media')) icon = 'fa-volume-up';
+        else if (g.includes('disk') || g.includes('volume') || g.includes('drive')) icon = 'fa-hdd';
+        else if (g.includes('mouse') || g.includes('pointing')) icon = 'fa-mouse';
+        else if (g.includes('keyboard')) icon = 'fa-keyboard';
+        else if (g.includes('print') || g.includes('fax')) icon = 'fa-print';
+        else if (g.includes('net') || g.includes('wan') || g.includes('wi-fi') || g.includes('bluetooth')) icon = 'fa-network-wired';
+        else if (g.includes('usb')) icon = 'fa-usb';
+        else if (g.includes('processor') || g.includes('cpu')) icon = 'fa-microchip';
+        else if (g.includes('hid') || g.includes('human interface')) icon = 'fa-gamepad';
+        else if (g.includes('storage') || g.includes('scsi')) icon = 'fa-database';
+        else if (g.includes('system') || g.includes('board') || g.includes('ide') || g.includes('hdc')) icon = 'fa-microchip';
+        
+        return icon;
+    }
+
     initTable('#driversTable', `/ComputerSummary/drivers?domain=${domaindata}`, [
         { data: function(row) { return row.Category || row.category || 'Other Devices'; }, visible: false },
-        { data: null, render: (row) => flexRender(row, 'DeviceName', 'Name') },
+        { 
+            data: null, 
+            render: function(data, type, row) { 
+                let icon = getDeviceIcon(row.Category || row.category);
+                return `<div class="flex items-center relative pl-6">
+                            <div class="absolute left-2 top-0 bottom-0 w-px bg-slate-300"></div>
+                            <div class="absolute left-2 top-1/2 w-3 h-px bg-slate-300"></div>
+                            <i class="fas ${icon} mr-2 text-slate-500 w-4 text-center z-10 bg-white"></i>
+                            <span class="z-10 truncate" title="${flexRender(row, 'DeviceName', 'Name')}">${flexRender(row, 'DeviceName', 'Name')}</span>
+                        </div>`;
+            } 
+        },
         { data: null, render: (row) => flexRender(row, 'Manufacturer', 'Description') },
         { data: null, render: (row) => flexRender(row, 'Status') },
         { data: null, render: (row) => flexRender(row, 'DateTime') }
     ], {
         order: [[0, 'asc']],
+        paging: false,
         rowGroup: {
             dataSrc: function (row) {
                 return row.Category || row.category || 'Other Devices';
             },
             startRender: function (rows, group) {
-                let icon = 'fa-microchip';
-                const g = group.toLowerCase();
-                if (g.includes('system') || g.includes('board')) icon = 'fa-cogs';
-                else if (g.includes('volume') || g.includes('disk') || g.includes('storage') || g.includes('hdc')) icon = 'fa-hdd';
-                else if (g.includes('mouse') || g.includes('pointing')) icon = 'fa-mouse';
-                else if (g.includes('keyboard')) icon = 'fa-keyboard';
-                else if (g.includes('print') || g.includes('fax')) icon = 'fa-print';
-                else if (g.includes('usb')) icon = 'fa-usb';
-                else if (g.includes('net') || g.includes('wan') || g.includes('wi-fi')) icon = 'fa-network-wired';
-                else if (g.includes('audio') || g.includes('sound') || g.includes('media')) icon = 'fa-volume-up';
-                else if (g.includes('video') || g.includes('display') || g.includes('monitor')) icon = 'fa-desktop';
-                else if (g.includes('processor') || g.includes('cpu')) icon = 'fa-microchip';
-                else if (g.includes('bluetooth')) icon = 'fa-bluetooth';
-                else if (g.includes('hidclass')) icon = 'fa-gamepad';
+                let icon = getDeviceIcon(group);
+                var expanded = !!window.expandedDriversGroups[group];
                 
-                return $('<tr/>').append('<td colspan="5" class="bg-slate-100 font-bold text-slate-700 border-y border-slate-300 py-2 px-4 shadow-sm"><i class="fas ' + icon + ' mr-2 text-cyan-600"></i>' + group + ' <span class="text-xs text-slate-500 font-normal ml-2">(' + rows.count() + ')</span></td>');
+                rows.nodes().each(function (r) {
+                    r.style.display = expanded ? '' : 'none';
+                });
+                
+                return $('<tr class="cursor-pointer group-header hover:bg-slate-50 transition-colors" data-name="' + group + '"/>')
+                    .append('<td colspan="5" class="bg-white font-bold text-slate-800 border-y border-slate-200 py-2 px-2 shadow-sm">' +
+                            '<i class="fas fa-chevron-' + (expanded ? 'down' : 'right') + ' mr-2 w-4 text-center text-slate-400 text-xs"></i>' +
+                            '<i class="fas ' + icon + ' mr-2 text-cyan-600"></i>' + 
+                            group + 
+                            ' <span class="text-xs text-slate-500 font-normal ml-2">(' + rows.count() + ')</span></td>');
             }
+        }
+    });
+
+    $('#driversTable tbody').off('click', 'tr.group-header').on('click', 'tr.group-header', function () {
+        var name = $(this).data('name');
+        if (name) {
+            window.expandedDriversGroups[name] = !window.expandedDriversGroups[name];
+            $('#driversTable').DataTable().draw(false);
         }
     });
 
