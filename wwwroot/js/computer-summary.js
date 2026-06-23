@@ -1430,8 +1430,89 @@ function renderBatteryAuditPanel(metrics) {
     circle.css('stroke', color);
     $('#auditStatus').html(icon + ' <span style="color:' + color + ';">' + status + '</span>');
 
+    // LIVE BATTERY WIDGET ANIMATION
+    if (metrics.liveBatteryLevel !== undefined && metrics.liveBatteryLevel !== null) {
+        $('#liveBatteryCard').css('display', 'flex');
+        $('#liveBatteryLevelText').text(metrics.liveBatteryLevel + '%');
+        
+        let liveColor = '#10b981'; // green
+        if (metrics.liveBatteryLevel <= 20) liveColor = '#ef4444'; // red
+        else if (metrics.liveBatteryLevel <= 50) liveColor = '#f59e0b'; // amber
+        
+        // Setup initial width at 0 for animation, then animate
+        setTimeout(() => {
+            $('#liveBatteryFill').css({
+                'width': metrics.liveBatteryLevel + '%',
+                'background': liveColor
+            });
+        }, 100);
+
+        let details = metrics.liveBatteryDetails || 'Unknown';
+        if (details.toLowerCase().includes('ac') || details.toLowerCase().includes('charge')) {
+            $('#liveBatteryLightning').show();
+            details = 'Charging (' + details + ')';
+        } else {
+            $('#liveBatteryLightning').hide();
+            if (details.toLowerCase() === 'battery') details = 'Discharging';
+        }
+        $('#liveBatteryDetailsText').text(details);
+        
+        // Update top-level dashboard if possible
+        if (metrics.liveBatteryLevel > 0) {
+            $('#batteryLevel').html(`
+                <div style="font-size:1.1rem;font-weight:700;">${metrics.liveBatteryLevel}%</div>
+                <div style="font-size:.65rem;color:var(--slate-500);">${details}</div>
+            `);
+        }
+    } else {
+        $('#liveBatteryCard').hide();
+    }
+
     renderCapacityTrendChart(metrics.capacityHistory);
+    renderBatteryUsageTables(metrics.batteryUsage, metrics.usageHistory);
     checkBatteryReportExists();
+}
+
+function renderBatteryUsageTables(batteryUsage, usageHistory) {
+    let hasData = false;
+    const container = $('#usageHistoryContainer');
+    
+    if (batteryUsage && batteryUsage.length > 0) {
+        let html = '';
+        batteryUsage.forEach(r => {
+            html += `<tr>
+                <td>${r.startTime || '-'}</td>
+                <td>${r.state || '-'}</td>
+                <td>${r.duration || '-'}</td>
+                <td>${r.energyDrained || '-'}</td>
+            </tr>`;
+        });
+        $('#batteryUsageTableBody').html(html);
+        hasData = true;
+    } else {
+        $('#batteryUsageTableBody').html('<tr><td colspan="4" class="text-center text-muted">No recent drains found.</td></tr>');
+    }
+
+    if (usageHistory && usageHistory.length > 0) {
+        let html = '';
+        usageHistory.forEach(r => {
+            html += `<tr>
+                <td>${r.period || '-'}</td>
+                <td>${r.batteryActive || '-'}</td>
+                <td>${r.acActive || '-'}</td>
+            </tr>`;
+        });
+        $('#usageHistoryTableBody').html(html);
+        hasData = true;
+    } else {
+        $('#usageHistoryTableBody').html('<tr><td colspan="3" class="text-center text-muted">No usage history found.</td></tr>');
+    }
+
+    if (hasData) {
+        container.show();
+    } else {
+        container.hide();
+    }
 }
 
 let capacityChartInstance = null;
