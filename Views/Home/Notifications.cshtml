@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Notifications";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
@@ -348,7 +348,8 @@
                     const type = getNotifType(n);
                     var msg         = n.Message     || n.message     || 'System alert';
                     var machineId   = n.MachineId   || n.machineId   || n.computerName || '';
-                    var companyName = n.CompanyName || n.companyName || '';
+                    var locationName = n.LocationName || n.locationName || '';
+                    var userName    = n.UserName    || n.userName    || '';
                     var timeRaw     = n.CreatedAt   || n.createdAt   || n.Timestamp    || n.timestamp || '';
                     var isRead      = n.IsRead      ?? n.isRead      ?? true;
 
@@ -386,7 +387,8 @@
                             ${downloadBtn}
                             <div class="flex items-center gap-3 mt-1">
                                 ${machineId   ? `<span class="text-[11px] text-slate-400"><i class="fas fa-desktop mr-1"></i>${machineId}</span>`   : ''}
-                                ${companyName ? `<span class="text-[11px] text-slate-400"><i class="fas fa-building mr-1"></i>${companyName}</span>` : ''}
+                                ${userName ? `<span class="text-[11px] text-slate-400"><i class="fas fa-user mr-1"></i>${userName}</span>` : ''}
+                                ${locationName ? `<span class="text-[11px] text-slate-400"><i class="fas fa-map-marker-alt mr-1"></i>${locationName}</span>` : ''}
                             </div>
                         </div>
                         ${unreadDot}

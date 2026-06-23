@@ -1248,13 +1248,30 @@
             };
 
             window.showChatToast = function(clientId, message) {
+                // Strictly isolate chat messages: ONLY show toast if the device is currently rendered on the screen.
+                // This prevents messages from showing up on the Companies page, Groups page, or other locations.
+                var lCid = (clientId || '').toLowerCase();
+                var isRendered = $('.device-card').filter(function(){ return ($(this).attr('data-domain')||'').toLowerCase()===lCid; }).length > 0;
+                if (!isRendered) {
+                    return; // Suppress toast! Device is not in the current view.
+                }
+
                 try { var a=new(window.AudioContext||window.webkitAudioContext)(); var o=a.createOscillator(); var g=a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value=880; o.type='sine'; g.gain.setValueAtTime(.08,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.25); o.start(a.currentTime); o.stop(a.currentTime+.25); } catch(e){}
                 var container=document.getElementById('chatToastContainer'); if(!container) return;
                 var existing=container.querySelector(`.chat-toast[data-client-id="${clientId}"]`); if(existing) existing.remove();
                 var userName=clientId; if(window.getUserNameFromDomain) userName=window.getUserNameFromDomain(clientId)||clientId;
                 var preview=message?(message.length>50?message.substring(0,50)+'...':message):'New message';
+                
+                var locBadge = "";
+                if (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.isDashboard && window.SYSNET_CONTEXT.locationId > 0) {
+                    var locName = $('#locationFilter option:selected').text() || 'Location';
+                    if (locName !== 'All Locations' && locName !== 'Location') {
+                        locBadge = `<span style="background:#e0e7ff;color:#4f46e5;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700;margin-left:6px;"><i class="fas fa-map-marker-alt" style="margin-right:3px;"></i>${locName}</span>`;
+                    }
+                }
+
                 var toastId='toast_'+Date.now();
-                container.insertAdjacentHTML('afterbegin',`<div id="${toastId}" data-client-id="${clientId}" class="chat-toast" onclick="dismissToastAndOpenChat('${toastId}','${clientId}')"><div class="chat-toast-accent"></div><div class="chat-toast-body"><div class="chat-toast-header"><div class="chat-toast-avatar"><i class="fas fa-comment-dots"></i></div><div class="chat-toast-info"><span class="chat-toast-sender">${userName}</span><span class="chat-toast-time">Just now</span></div><button class="chat-toast-close" onclick="event.stopPropagation();dismissToast('${toastId}')"><i class="fas fa-times"></i></button></div><p class="chat-toast-message">${preview}</p><div class="chat-toast-action"><i class="fas fa-reply"></i> Reply</div></div></div>`);
+                container.insertAdjacentHTML('afterbegin',`<div id="${toastId}" data-client-id="${clientId}" class="chat-toast" onclick="dismissToastAndOpenChat('${toastId}','${clientId}')"><div class="chat-toast-accent"></div><div class="chat-toast-body"><div class="chat-toast-header"><div class="chat-toast-avatar"><i class="fas fa-comment-dots"></i></div><div class="chat-toast-info"><span class="chat-toast-sender">${userName}${locBadge}</span><span class="chat-toast-time">Just now</span></div><button class="chat-toast-close" onclick="event.stopPropagation();dismissToast('${toastId}')"><i class="fas fa-times"></i></button></div><p class="chat-toast-message">${preview}</p><div class="chat-toast-action"><i class="fas fa-reply"></i> Reply</div></div></div>`);
             };
 
             window.dismissToast = function(id) { var el=document.getElementById(id); if(!el) return; el.classList.add('chat-toast-exit'); setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); },350); };

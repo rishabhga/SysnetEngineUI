@@ -188,6 +188,8 @@
                 var id = n.id || n.Id;
                 var msg = n.message || n.Message || "";
                 var source = n.machineId || n.MachineId || "System";
+                var locName = n.locationName || n.LocationName || "";
+                var uName = n.userName || n.UserName || "";
                 var isRead = n.isRead || n.IsRead;
                 var type = (n.msNotificationType || n.MSNotificationType || "INFO").toUpperCase();
                 var time = n.createdAt || n.CreatedAt || "";
@@ -238,9 +240,10 @@
                     '</div>' +
                     '<p style="font-size:11px;font-weight:600;color:#334155;margin:0;line-height:1.4;">' + msg + '</p>' +
                     downloadBtn +
-                    '<div style="margin-top:4px;font-size:9px;color:#64748b;display:flex;align-items:center;gap:4px;">' +
-                    '<i class="fas fa-desktop" style="font-size:8px;opacity:0.7;"></i>' +
-                    '<span style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + source + '</span>' +
+                    '<div style="margin-top:4px;font-size:9px;color:#64748b;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">' +
+                    '<span style="display:flex;align-items:center;gap:3px;"><i class="fas fa-desktop" style="font-size:8px;opacity:0.7;"></i><span style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + source + '</span></span>' +
+                    (uName ? '<span style="display:flex;align-items:center;gap:3px;margin-left:4px;"><i class="fas fa-user" style="font-size:8px;opacity:0.7;"></i><span style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + uName + '</span></span>' : '') +
+                    (locName ? '<span style="display:flex;align-items:center;gap:3px;margin-left:4px;"><i class="fas fa-map-marker-alt" style="font-size:8px;opacity:0.7;"></i><span style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + locName + '</span></span>' : '') +
                     (n.hierarchy ? '<span style="background:#e2e8f0;padding:1px 4px;border-radius:3px;font-weight:700;color:#475569;font-size:7px;">' + n.hierarchy + '</span>' : '') +
                     (!isRead ? '<span style="margin-left:auto;width:6px;height:6px;background:#3b82f6;border-radius:50%;"></span>' : '') +
                     '</div></div></div>';

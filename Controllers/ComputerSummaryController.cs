@@ -3699,8 +3699,7 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : $"Server returned {(int)response.StatusCode}" });
                 }
 
-                var initialTime = DateTime.UtcNow;
-                for (int i = 0; i < 12; i++)
+                for (int i = 0; i < 40; i++)
                 {
                     await Task.Delay(2000);
                     var metricsResponse = await httpClient.GetAsync($"{_baseUrl}/api/Battery/metrics/{Uri.EscapeDataString(cleanDomain)}");
@@ -3710,10 +3709,13 @@ namespace ManageEngineWebApp.Controllers
                         var data = Newtonsoft.Json.Linq.JObject.Parse(content);
                         if (data != null && data["lastWriteTimeUtc"] != null)
                         {
-                            DateTime lastWriteTime = data["lastWriteTimeUtc"].ToObject<DateTime>();
-                            if (lastWriteTime > initialTime.AddSeconds(-5))
+                            DateTime lastWriteTime = data["lastWriteTimeUtc"].ToObject<DateTime>().ToUniversalTime();
+                            // Accept any file written within the last 5 minutes to handle extremely slow client uploads gracefully
+                            if (lastWriteTime > DateTime.UtcNow.AddMinutes(-5))
                             {
-                                return Json(new { success = true, data = data });
+                                // Return raw JSON string to prevent System.Text.Json from corrupting the JObject
+                                string finalJson = $"{{\"success\":true,\"data\":{content}}}";
+                                return Content(finalJson, "application/json");
                             }
                         }
                     }

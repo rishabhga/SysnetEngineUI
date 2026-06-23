@@ -1365,9 +1365,28 @@ function renderBatteryAuditPanel(metrics) {
     $('#batteryAuditLoading').hide();
     $('#batteryAuditResults').css('display', 'flex');
 
-    let healthPercent = metrics.healthPercentage !== undefined ? metrics.healthPercentage : (metrics.batteryHealthPercent || 0);
+    if (metrics.manufacturer && $('#batteryManufacturer').text() === 'No Battery' || $('#batteryManufacturer').text() === 'N/A') {
+        $('#batteryManufacturer').text(metrics.manufacturer);
+    }
+    if ($('#batteryStatus').text() === 'Error' || $('#batteryStatus').text() === 'N/A') {
+        $('#batteryStatus').text('Online');
+    }
+    if ($('#batteryDescription').text() === 'Not found' || $('#batteryDescription').text() === 'N/A') {
+        $('#batteryDescription').text('Real-time audit active');
+    }
+    if ($('#batteryLevel').text() === '0' || $('#batteryLevel').text() === 'N/A') {
+        $('#batteryLevel').text('--');
+    }
 
-    $('#auditHealthPercentText').text(healthPercent + '%');
+    let healthPercent = metrics.healthPercentage !== undefined ? metrics.healthPercentage : (metrics.batteryHealthPercent || 0);
+    let hasValidHealthData = (healthPercent > 0 || (metrics.designCapacity && metrics.designCapacity > 0));
+
+    if (hasValidHealthData) {
+        $('#auditHealthPercentText').text(healthPercent + '%');
+    } else {
+        $('#auditHealthPercentText').text('N/A');
+    }
+
     $('#auditDesignCap').text(metrics.designCapacity ? metrics.designCapacity.toLocaleString() : '--');
     $('#auditFullCap').text(metrics.fullChargeCapacity ? metrics.fullChargeCapacity.toLocaleString() : '--');
     $('#auditCycleCount').text(metrics.cycleCount > 0 ? metrics.cycleCount : '--');
@@ -1383,14 +1402,21 @@ function renderBatteryAuditPanel(metrics) {
 
     const circle = $('#auditHealthCircle');
     var circumference = 2 * Math.PI * 45;
-    var dashLen = (healthPercent / 100) * circumference;
+    var dashLen = hasValidHealthData ? (healthPercent / 100) * circumference : 0;
     circle.css('stroke-dasharray', dashLen + ', ' + circumference);
 
     let color = '#4ade80';
     let icon = '<i class="fas fa-check-circle" style="color:#4ade80;"></i>';
 
     let status = metrics.status || 'Unknown';
-    if (status === 'Aging' || (healthPercent < 80 && healthPercent >= 60)) {
+
+    if (!hasValidHealthData) {
+        color = '#94a3b8'; // Slate 400 for N/A
+        icon = '<i class="fas fa-question-circle" style="color:#94a3b8;"></i>';
+        if (status === 'Unknown' || status === 'Error' || status === 'N/A') {
+            status = 'No Data';
+        }
+    } else if (status === 'Aging' || (healthPercent < 80 && healthPercent >= 60)) {
         color = '#f59e0b';
         icon = '<i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i>';
     } else if (status === 'Replacement Recommended' || (healthPercent < 60 && healthPercent >= 50)) {
@@ -1402,7 +1428,7 @@ function renderBatteryAuditPanel(metrics) {
     }
 
     circle.css('stroke', color);
-    $('#auditStatus').html(`${icon} ${status}`);
+    $('#auditStatus').html(icon + ' <span style="color:' + color + ';">' + status + '</span>');
 
     renderCapacityTrendChart(metrics.capacityHistory);
     checkBatteryReportExists();
@@ -1461,7 +1487,7 @@ function renderCapacityTrendChart(history) {
             },
             scales: {
                 y: {
-                    beginAtZero: false,
+                    beginAtZero: true,
                     title: { display: true, text: 'Capacity (mWh)' }
                 }
             }
@@ -1497,7 +1523,7 @@ $(document).ready(function () {
         $.ajax({
             url: '/ComputerSummary/AuditBattery?domain=' + encodeURIComponent(actualDomainName),
             type: 'POST',
-            timeout: 30000,
+            timeout: 60000,
             success: function (res) {
                 if (res && res.success && res.data && res.data.metrics) {
                     renderBatteryAuditPanel(res.data.metrics);
