@@ -1,4 +1,4 @@
-<style>
+﻿<style>
     .cpu-hero {
         display: flex;
         align-items: center;
@@ -285,6 +285,181 @@
             justify-content: space-between;
         }
     }
+
+    /* ── Hard Disk responsive ───────────────────────── */
+    .disk-hero-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    @@media (max-width: 600px) {
+        #HardDiskHw .cpu-hero
+
+    {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #HardDiskHw .cpu-hero-right {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    #HardDiskHw .cpu-hero-sub {
+        flex-wrap: wrap;
+    }
+
+    #diskUsageContainer > div {
+        padding: 12px !important;
+    }
+
+    #diskUsageContainer .disk-label-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 2px;
+    }
+
+    }
+
+    /* ── Partition / Logical Drive cards ────────── */
+    .partition-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 12px;
+    }
+
+    .partition-card {
+        background: #fff;
+        border: 1px solid var(--slate-200);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        transition: box-shadow .2s;
+    }
+
+        .partition-card:hover {
+            box-shadow: 0 4px 16px -4px rgba(0,0,0,.1);
+        }
+
+    .partition-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .partition-drive-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .partition-drive-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .9rem;
+        flex-shrink: 0;
+    }
+
+    .partition-drive-letter {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--slate-800);
+    }
+
+    .partition-fs-badge {
+        font-size: .6rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        background: var(--slate-100);
+        color: var(--slate-500);
+        border-radius: 4px;
+        padding: 2px 6px;
+        text-transform: uppercase;
+    }
+
+    .partition-type-badge {
+        font-size: .6rem;
+        font-weight: 700;
+        letter-spacing: .03em;
+        padding: 2px 7px;
+        border-radius: 999px;
+        white-space: nowrap;
+    }
+
+    .partition-bar-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .partition-bar-track {
+        height: 8px;
+        border-radius: 4px;
+        background: var(--slate-100);
+        overflow: hidden;
+    }
+
+    .partition-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 1s cubic-bezier(.4,0,.2,1);
+    }
+
+    .partition-bar-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: .68rem;
+        font-weight: 700;
+    }
+
+    .partition-stats {
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid var(--slate-100);
+        padding-top: 8px;
+        gap: 6px;
+    }
+
+    .partition-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+    }
+
+    .partition-stat-val {
+        font-size: .8rem;
+        font-weight: 800;
+        color: var(--slate-800);
+    }
+
+    .partition-stat-lbl {
+        font-size: .6rem;
+        font-weight: 600;
+        color: var(--slate-400);
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    @@media (max-width: 480px) {
+        .partition-grid
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    }
 </style>
 
 <div id="Hardware" class="tab-pane">
@@ -436,14 +611,53 @@
             </div>
 
             <div id="HardDiskHw" class="tab-pane">
-                <div class="hw-category-header hw-cat-slate">
-                    <div class="hw-category-icon"><i class="fas fa-hdd"></i></div>
-                    <div class="hw-category-text">
-                        <div class="hw-category-title">Physical Disks</div>
-                        <div class="hw-category-desc">Installed storage devices and physical media</div>
+
+                <!-- Hero header -->
+                <div class="cpu-hero" style="background:linear-gradient(135deg,#f1f5f9 0%,#f8fafc 100%);border-color:#cbd5e1;">
+                    <div class="cpu-hero-left">
+                        <div class="cpu-chip-icon" style="background:#475569;color:#fff;"><i class="fas fa-hdd"></i></div>
+                        <div style="min-width:0;">
+                            <div class="cpu-hero-name" id="diskHeroName">-- Storage Devices</div>
+                            <div class="cpu-hero-sub">
+                                <span class="cpu-pill" id="diskHeroCapacity" style="background:#fff;border-color:#cbd5e1;color:#475569;"><i class="fas fa-database"></i> -- GB Total</span>
+                                <span class="cpu-pill" id="diskHeroInterface" style="background:#fff;border-color:#cbd5e1;color:#475569;"><i class="fas fa-plug"></i> --</span>
+                                <span class="cpu-pill" id="diskHeroPowerOn" style="background:#fff;border-color:#cbd5e1;color:#475569;"><i class="fas fa-clock"></i> -- hrs powered</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cpu-hero-right">
+                        <div class="cpu-status-badge" id="diskHealthBadge"><span class="cpu-live-dot"></span> --</div>
+                        <div class="cpu-updated" id="diskLastUpdated">--</div>
                     </div>
                 </div>
-                <table id="hardDiskTable" class="w-full"><thead><tr><th>Model</th><th>Manufacturer</th><th>Serial Number</th><th>Capacity</th></tr></thead><tbody></tbody></table>
+
+                <!-- Storage usage bars per disk -->
+                <div class="cpu-section-label"><i class="fas fa-chart-bar" style="color:#475569;"></i> Storage Usage</div>
+                <div id="diskUsageContainer" style="display:flex;flex-direction:column;gap:10px;"></div>
+
+                <!-- Key specs grid -->
+                <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-info-circle" style="color:var(--cyan);"></i> Disk Details</div>
+                <div id="diskSpecsContainer"></div>
+
+                <!-- S.M.A.R.T. / Health metrics -->
+                <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:var(--red);"></i> S.M.A.R.T. Health Metrics</div>
+                <div id="diskSmartContainer"></div>
+
+                <!-- Disk selector tabs when multiple disks -->
+                <div id="diskSelectorWrap" style="display:none;margin-bottom:14px;">
+                    <ul id="diskSelectorTabs" style="display:flex;gap:6px;list-style:none;padding:0;margin:0;flex-wrap:wrap;"></ul>
+                </div>
+
+                <!-- Partitions / Logical Drives -->
+                <div class="cpu-section-label" style="margin-top:22px;">
+                    <i class="fas fa-sitemap" style="color:#6366f1;"></i> Partitions &amp; Logical Drives
+                </div>
+                <div id="hwPartitionsContainer">
+                    <div style="text-align:center;padding:24px;color:var(--slate-400);font-size:.85rem;">
+                        <i class="fas fa-circle-notch fa-spin"></i> Loading partitions...
+                    </div>
+                </div>
+
             </div>
 
             <div id="KeyboardHw" class="tab-pane">
@@ -498,65 +712,64 @@
             </div>
 
             <div id="MemoryHw" class="tab-pane">
-                  <!-- Hero header -->
-                  <div class="cpu-hero" style="background:linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);border-color:#fde68a;">
-                      <div class="cpu-hero-left">
-                          <div class="cpu-chip-icon" style="background:#f59e0b;color:#fff;"><i class="fas fa-memory"></i></div>
-                          <div style="min-width:0;">
-                              <div class="cpu-hero-name" id="memTotalCapacity">-- GB Installed</div>
-                              <div class="cpu-hero-sub">
-                                  <span class="cpu-pill" id="memUsageBadge" style="background:#fff;border-color:#fde68a;color:#d97706;"><i class="fas fa-chart-pie"></i> --% Used</span>
-                                  <span class="cpu-pill" id="memSlotsBadge" style="background:#fff;border-color:#fde68a;color:#d97706;"><i class="fas fa-grip-horizontal"></i> --/-- Slots</span>
-                              </div>
-                          </div>
-                      </div>
-                      <div class="cpu-hero-right">
-                          <div class="cpu-status-badge" id="memStatusBadge" style="background:#dcfce7;color:#166534;"><span class="cpu-live-dot"></span> Healthy</div>
-                          <div class="cpu-updated" id="memLastUpdated">--</div>
-                          <button id="btnRefreshMemory" class="cpu-refresh-btn" style="color:#d97706;background:#fef3c7;border-color:#fcd34d;" title="Refresh memory data"><i class="fas fa-sync-alt"></i></button>
-                      </div>
-                  </div>
+                <!-- Hero header -->
+                <div class="cpu-hero" style="background:linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);border-color:#fde68a;">
+                    <div class="cpu-hero-left">
+                        <div class="cpu-chip-icon" style="background:#f59e0b;color:#fff;"><i class="fas fa-memory"></i></div>
+                        <div style="min-width:0;">
+                            <div class="cpu-hero-name" id="memTotalCapacity">-- GB Installed</div>
+                            <div class="cpu-hero-sub">
+                                <span class="cpu-pill" id="memUsageBadge" style="background:#fff;border-color:#fde68a;color:#d97706;"><i class="fas fa-chart-pie"></i> --% Used</span>
+                                <span class="cpu-pill" id="memSlotsBadge" style="background:#fff;border-color:#fde68a;color:#d97706;"><i class="fas fa-grip-horizontal"></i> --/-- Slots</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cpu-hero-right">
+                        <div class="cpu-status-badge" id="memStatusBadge" style="background:#dcfce7;color:#166534;"><span class="cpu-live-dot"></span> Healthy</div>
+                        <div class="cpu-updated" id="memLastUpdated">--</div>
+                    </div>
+                </div>
 
-                  <!-- Key specs -->
-                  <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:16px;">
-                      <div class="cs-info-box"><div class="cs-info-box-label">Total Installed</div><div class="cs-info-box-value accent" id="memInstalled">--</div></div>
-                      <div class="cs-info-box"><div class="cs-info-box-label">Max Supported</div><div class="cs-info-box-value" id="memMaxSupported">--</div></div>
-                      <div class="cs-info-box"><div class="cs-info-box-label">Used Memory</div><div class="cs-info-box-value amber" id="memUsed">--</div></div>
-                      <div class="cs-info-box"><div class="cs-info-box-label">Free Memory</div><div class="cs-info-box-value green" id="memFree">--</div></div>
-                      <div class="cs-info-box"><div class="cs-info-box-label">Total Slots</div><div class="cs-info-box-value" id="memTotalSlots">--</div></div>
-                      <div class="cs-info-box"><div class="cs-info-box-label">Used Slots</div><div class="cs-info-box-value" id="memUsedSlots">--</div></div>
-                  </div>
+                <!-- Key specs -->
+                <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:16px;">
+                    <div class="cs-info-box"><div class="cs-info-box-label">Total Installed</div><div class="cs-info-box-value accent" id="memInstalled">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Max Supported</div><div class="cs-info-box-value" id="memMaxSupported">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Used Memory</div><div class="cs-info-box-value amber" id="memUsed">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Free Memory</div><div class="cs-info-box-value green" id="memFree">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Total Slots</div><div class="cs-info-box-value" id="memTotalSlots">--</div></div>
+                    <div class="cs-info-box"><div class="cs-info-box-label">Used Slots</div><div class="cs-info-box-value" id="memUsedSlots">--</div></div>
+                </div>
 
-                  <!-- Modules Table -->
-                  <div class="cpu-section-label"><i class="fas fa-list" style="color:var(--amber);"></i> Physical Memory Modules</div>
-                  <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);overflow:hidden;">
-                      <table id="memoryModulesTable" class="w-full text-left" style="font-size:0.85rem; border-collapse: collapse;">
-                          <thead style="background:var(--slate-50);border-bottom:1px solid var(--slate-200);">
-                              <tr>
-                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Locator</th>
-                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Manufacturer</th>
-                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Capacity</th>
-                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Speed</th>
-                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Type</th>
-                                  <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Form Factor</th>
-                              </tr>
-                          </thead>
-                          <tbody></tbody>
-                      </table>
-                  </div>
+                <!-- Modules Table -->
+                <div class="cpu-section-label"><i class="fas fa-list" style="color:var(--amber);"></i> Physical Memory Modules</div>
+                <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);overflow:hidden;">
+                    <table id="memoryModulesTable" class="w-full text-left" style="font-size:0.85rem; border-collapse: collapse;">
+                        <thead style="background:var(--slate-50);border-bottom:1px solid var(--slate-200);">
+                            <tr>
+                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Locator</th>
+                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Manufacturer</th>
+                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Capacity</th>
+                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Speed</th>
+                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Type</th>
+                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Form Factor</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
 
-                  <!-- Trend charts -->
-                  <div class="cpu-section-label" style="margin-top:20px;"><i class="fas fa-chart-line" style="color:var(--amber);"></i> Live Trend (Recent Samples)</div>
-                  <div class="cpu-chart-grid">
-                      <div class="cpu-chart-card">
-                          <h4>Memory Usage Trend (%)</h4>
-                          <div style="position:relative; height:180px; width:100%;"><canvas id="memUsageTrendChart"></canvas></div>
-                      </div>
-                      <div class="cpu-chart-card">
-                          <h4>Used vs Free Memory (GB)</h4>
-                          <div style="position:relative; height:180px; width:100%;"><canvas id="memCapacityTrendChart"></canvas></div>
-                      </div>
-                  </div>
+                <!-- Trend charts -->
+                <div class="cpu-section-label" style="margin-top:20px;"><i class="fas fa-chart-line" style="color:var(--amber);"></i> Live Trend (Recent Samples)</div>
+                <div class="cpu-chart-grid">
+                    <div class="cpu-chart-card">
+                        <h4>Memory Usage Trend (%)</h4>
+                        <div style="position:relative; height:180px; width:100%;"><canvas id="memUsageTrendChart"></canvas></div>
+                    </div>
+                    <div class="cpu-chart-card">
+                        <h4>Used vs Free Memory (GB)</h4>
+                        <div style="position:relative; height:180px; width:100%;"><canvas id="memCapacityTrendChart"></canvas></div>
+                    </div>
+                </div>
             </div>
 
             <div id="PointingHw" class="tab-pane">
@@ -599,7 +812,6 @@
                     <div class="cpu-hero-right">
                         <div class="cpu-status-badge" id="cpuStatusBadge"><span class="cpu-live-dot"></span> --</div>
                         <div class="cpu-updated" id="cpuLastUpdated">--</div>
-                        <button id="btnRefreshProcessor" class="cpu-refresh-btn" title="Refresh processor data"><i class="fas fa-sync-alt"></i></button>
                     </div>
                 </div>
 
@@ -649,14 +861,14 @@
                 <!-- Trend charts -->
                 <div class="cpu-section-label"><i class="fas fa-chart-line" style="color:var(--cyan);"></i> Live Trend (Recent Samples)</div>
                 <div class="cpu-chart-grid">
-                      <div class="cpu-chart-card">
-                          <h4>Temperature Trend (&deg;C)</h4>
-                          <div style="position:relative; height:180px; width:100%;"><canvas id="cpuTempTrendChart"></canvas></div>
-                      </div>
-                      <div class="cpu-chart-card">
-                          <h4>Clock Speed Trend (MHz)</h4>
-                          <div style="position:relative; height:180px; width:100%;"><canvas id="cpuClockTrendChart"></canvas></div>
-                      </div>
+                    <div class="cpu-chart-card">
+                        <h4>Temperature Trend (&deg;C)</h4>
+                        <div style="position:relative; height:180px; width:100%;"><canvas id="cpuTempTrendChart"></canvas></div>
+                    </div>
+                    <div class="cpu-chart-card">
+                        <h4>Clock Speed Trend (MHz)</h4>
+                        <div style="position:relative; height:180px; width:100%;"><canvas id="cpuClockTrendChart"></canvas></div>
+                    </div>
                 </div>
             </div>
 

@@ -2519,11 +2519,47 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<List<HardDiskDetails>>(content);
-                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null)
+                    {
+                        localDatalist = data
+                            .Where(x => x.UserCode == UCode)
+                            .GroupBy(x => x.SerialNumber)
+                            .Select(g => g.OrderByDescending(x => x.DateTime).First())
+                            .OrderBy(x => x.Model)
+                            .ToList();
+                    }
                 }
             }
-            catch (Exception) { }
-            return Json(localDatalist);
+            catch (Exception ex)
+            {
+                Console.WriteLine($"HardDisk Error: {ex.Message}");
+            }
+            var result = localDatalist.Select(d => new
+            {
+                d.Id,
+                d.Model,
+                d.Manufacturer,
+                d.SerialNumber,
+                d.Description,
+                TotalCapacity = Math.Round(d.TotalCapacity, 3),
+                d.DeviceId,
+                d.PowerOnHours,
+                d.Temperature,
+                d.Wear,
+                d.ReadErrorsTotal,
+                d.WriteErrorsTotal,
+                d.ReadErrorsCorrected,
+                d.UserCode,
+                d.FirmwareVersion,
+                d.InterfaceType,
+                d.HealthStatus,
+                d.PredictFailure,
+                FreeSpaceGB = Math.Round(d.FreeSpaceGB, 3),
+                UsedSpaceGB = Math.Round(d.UsedSpaceGB, 3),
+                d.DateTime
+            });
+
+            return Json(result);
         }
         [HttpGet]
         public async Task<IActionResult> LocalDisk(string domain)
@@ -2813,7 +2849,7 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
-      
+
         [HttpGet]
         public async Task<IActionResult> ProcessorHistory(string domain, int count = 20)
         {

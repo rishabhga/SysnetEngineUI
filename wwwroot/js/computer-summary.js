@@ -81,6 +81,7 @@ function lazyLoadTabData(tabId) {
             loadKeyboardDetails();
             loadMotherboardDetails();
             loadMemoryDetails();
+            loadHardDiskDetails();
             break;
         case '#Restriction':
             loadRestrictionData();
@@ -188,12 +189,12 @@ function initializeAllTables() {
     ]);
 
     window.expandedDriversGroups = window.expandedDriversGroups || {};
-    
+
     function getDeviceIcon(category) {
         let icon = 'fa-microchip'; // default
         if (!category) return icon;
         const g = category.toLowerCase();
-        
+
         if (g.includes('computer')) icon = 'fa-desktop';
         else if (g.includes('display') || g.includes('monitor')) icon = 'fa-tv';
         else if (g.includes('audio') || g.includes('sound') || g.includes('media')) icon = 'fa-volume-up';
@@ -207,15 +208,15 @@ function initializeAllTables() {
         else if (g.includes('hid') || g.includes('human interface')) icon = 'fa-gamepad';
         else if (g.includes('storage') || g.includes('scsi')) icon = 'fa-database';
         else if (g.includes('system') || g.includes('board') || g.includes('ide') || g.includes('hdc')) icon = 'fa-microchip';
-        
+
         return icon;
     }
 
     initTable('#driversTable', `/ComputerSummary/drivers?domain=${domaindata}`, [
-        { data: function(row) { return row.Category || row.category || 'Other Devices'; }, visible: false },
-        { 
-            data: null, 
-            render: function(data, type, row) { 
+        { data: function (row) { return row.Category || row.category || 'Other Devices'; }, visible: false },
+        {
+            data: null,
+            render: function (data, type, row) {
                 let icon = getDeviceIcon(row.Category || row.category);
                 return `<div class="flex items-center relative pl-6">
                             <div class="absolute left-2 top-0 bottom-0 w-px bg-slate-300"></div>
@@ -223,7 +224,7 @@ function initializeAllTables() {
                             <i class="fas ${icon} mr-2 text-slate-500 w-4 text-center z-10 bg-white"></i>
                             <span class="z-10 truncate" title="${flexRender(row, 'DeviceName', 'Name')}">${flexRender(row, 'DeviceName', 'Name')}</span>
                         </div>`;
-            } 
+            }
         },
         { data: null, render: (row) => flexRender(row, 'Manufacturer', 'Description') },
         { data: null, render: (row) => flexRender(row, 'Status') },
@@ -238,17 +239,17 @@ function initializeAllTables() {
             startRender: function (rows, group) {
                 let icon = getDeviceIcon(group);
                 var expanded = !!window.expandedDriversGroups[group];
-                
+
                 rows.nodes().each(function (r) {
                     r.style.display = expanded ? '' : 'none';
                 });
-                
+
                 return $('<tr class="cursor-pointer group-header hover:bg-slate-50 transition-colors" data-name="' + group + '"/>')
                     .append('<td colspan="5" class="bg-white font-bold text-slate-800 border-y border-slate-200 py-2 px-2 shadow-sm">' +
-                            '<i class="fas fa-chevron-' + (expanded ? 'down' : 'right') + ' mr-2 w-4 text-center text-slate-400 text-xs"></i>' +
-                            '<i class="fas ' + icon + ' mr-2 text-cyan-600"></i>' + 
-                            group + 
-                            ' <span class="text-xs text-slate-500 font-normal ml-2">(' + rows.count() + ')</span></td>');
+                        '<i class="fas fa-chevron-' + (expanded ? 'down' : 'right') + ' mr-2 w-4 text-center text-slate-400 text-xs"></i>' +
+                        '<i class="fas ' + icon + ' mr-2 text-cyan-600"></i>' +
+                        group +
+                        ' <span class="text-xs text-slate-500 font-normal ml-2">(' + rows.count() + ')</span></td>');
             }
         }
     });
@@ -261,12 +262,6 @@ function initializeAllTables() {
         }
     });
 
-    initTable('#hardDiskTable', `/ComputerSummary/HardDisk?domain=${domaindata}`, [
-        { data: null, render: (row) => flexRender(row, 'Model') },
-        { data: null, render: (row) => flexRender(row, 'Manufacturer') },
-        { data: null, render: (row) => flexRender(row, 'SerialNumber') },
-        { data: null, render: (row) => flexRender(row, 'TotalCapacity', 'Capacity') }
-    ]);
 
     initTable('#pointingTable', `/ComputerSummary/PointingDevices?domain=${domaindata}`, [
         { data: null, render: (row) => flexRender(row, 'Manufacturer') },
@@ -519,7 +514,7 @@ let memCapacityChartInstance = null;
 
 function renderMemoryTrendChart(history) {
     if (!history || !history.length) return;
-    
+
     var labels = history.map(function (h) {
         var dt = new Date(h.dateTime || h.DateTime);
         return isNaN(dt.getTime()) ? '' : dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -570,11 +565,11 @@ function loadMemoryDetails() {
         if (data) {
             $('#memTotalCapacity').text((data.installedMemoryGB || data.InstalledMemoryGB || 0).toFixed(2) + ' GB Installed');
             $('#memUsageBadge').html(`<i class="fas fa-chart-pie"></i> ${(data.usagePercent || data.UsagePercent || 0).toFixed(1)}% Used`);
-            
+
             let totalSlots = data.totalSlots || data.TotalSlots || 0;
             let usedSlots = data.usedSlots || data.UsedSlots || 0;
             $('#memSlotsBadge').html(`<i class="fas fa-grip-horizontal"></i> ${usedSlots}/${totalSlots} Slots`);
-            
+
             let dt = data.dateTime || data.DateTime;
             if (dt) {
                 var d = new Date(dt);
@@ -587,7 +582,7 @@ function loadMemoryDetails() {
             $('#memFree').text((data.freeMemoryGB || data.FreeMemoryGB || 0).toFixed(2) + ' GB');
             $('#memTotalSlots').text(totalSlots);
             $('#memUsedSlots').text(usedSlots);
-            
+
             var tbody = $('#memoryModulesTable tbody').empty();
             var modules = data.memoryModules || data.MemoryModules || [];
             if (modules.length === 0) {
@@ -665,57 +660,173 @@ function loadDeviceDetails() {
     }).fail(function () { console.error("Failed to load device details"); });
 }
 
+var _logicalDrivesCache = null;
+
 function loadLogicalDrivesDashboard() {
     $.get(`/ComputerSummary/LocalDisk?domain=${domaindata}`, function (res) {
-        var data = res;
-        if (res && res.data) data = res.data;
-
-        var container = $('#summaryLogicalDrivesContainer').empty();
-        if (data && data.length) {
-            data.forEach(function (d) {
-                var driveLetter = d.driveLetter || d.DriveLetter || d.Name || 'Unknown';
-                var fileSystem = d.fileSystem || d.FileSystem || 'Unknown';
-                var total = parseFloat(d.totalCapacity || d.Size || 0).toFixed(2);
-                var free = parseFloat(d.freeSpace || d.FreeSpace || 0).toFixed(2);
-                var used = parseFloat(d.usedSpace || d.UsedSpace || 0).toFixed(2);
-                var usagePct = parseFloat(d.usagePercentage || d.Usage || 0);
-
-                var barColor = 'var(--cyan)';
-                if (usagePct > 90) barColor = 'var(--red)';
-                else if (usagePct > 80) barColor = 'var(--amber)';
-
-                var icon = driveLetter.includes('C:') ? '<i class="fab fa-windows" style="color:var(--cyan); font-size: 1.15rem;"></i>' : '<i class="fas fa-hdd" style="color:var(--slate-400); font-size: 1.15rem;"></i>';
-
-                var dashLen = (usagePct / 100) * 100;
-                var circleColor = barColor;
-
-                container.append(
-                    '<div class="cs-drive-card" style="background: var(--white); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 10px 14px; display: flex; gap: 14px; align-items: center; box-shadow: var(--shadow-sm); cursor: default;">' +
-                    '<div style="position:relative; width: 54px; height: 54px; flex-shrink: 0;">' +
-                    '<svg viewBox="0 0 36 36" style="width:100%; height:100%; transform: rotate(-90deg);">' +
-                    '<path stroke="#a7f3d0" stroke-width="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />' +
-                    '<path stroke="' + circleColor + '" stroke-width="3" stroke-dasharray="' + dashLen + ', 100" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" style="stroke-linecap: round; transition: stroke-dasharray 1s ease-in-out;" />' +
-                    '</svg>' +
-                    '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; color:var(--slate-800);">' + usagePct.toFixed(0) + '%</div>' +
-                    '</div>' +
-                    '<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;">' +
-                    '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">' +
-                    '<div style="font-weight: 800; color: var(--slate-800); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">' + icon + ' ' + escapeHtml(driveLetter) + '</div>' +
-                    '<div style="font-size: 0.65rem; color: var(--slate-500); font-weight: 700; background: var(--slate-100); padding: 2px 5px; border-radius: 4px; letter-spacing: 0.5px;">' + escapeHtml(fileSystem) + '</div>' +
-                    '</div>' +
-                    '<div style="font-size: 0.8rem; color: var(--slate-500); font-weight: 500;">' +
-                    '<span style="color:#10b981; font-weight:700;">' + free + ' GB</span> free of ' + total + ' GB' +
-                    '</div>' +
-                    '</div>' +
-                    '</div>'
-                );
-            });
-        } else {
-            container.html('<div style="text-align:center; padding: 20px; color: var(--slate-400); font-weight: 500; font-size: 0.9rem; grid-column: 1 / -1;"><i class="fas fa-inbox text-2xl mb-2 block"></i>No logical drives found</div>');
-        }
+        var data = (res && res.data) ? res.data : res;
+        _logicalDrivesCache = data;
+        _renderSummaryDrives(data);
     }).fail(function () {
-        $('#summaryLogicalDrivesContainer').html('<div style="text-align:center; padding: 20px; color: var(--red); font-weight: 500; font-size: 0.9rem; grid-column: 1 / -1;"><i class="fas fa-exclamation-triangle text-2xl mb-2 block"></i>Failed to load drive details</div>');
+        $('#summaryLogicalDrivesContainer').html(
+            '<div style="text-align:center; padding: 20px; color: var(--red); font-weight: 500; font-size: 0.9rem; grid-column: 1 / -1;">' +
+            '<i class="fas fa-exclamation-triangle text-2xl mb-2 block"></i>Failed to load drive details</div>'
+        );
     });
+}
+
+function loadHwPartitions() {
+    if (_logicalDrivesCache !== null) {
+        _renderHwPartitions(_logicalDrivesCache);
+        return;
+    }
+    $.get(`/ComputerSummary/LocalDisk?domain=${domaindata}`, function (res) {
+        var data = (res && res.data) ? res.data : res;
+        _logicalDrivesCache = data; _renderHwPartitions(data);
+    }).fail(function () {
+        $('#hwPartitionsContainer').html(
+            '<div style="padding:16px;text-align:center;color:var(--red);font-size:.83rem;">' +
+            '<i class="fas fa-exclamation-triangle"></i> Failed to load partition data</div>'
+        );
+    });
+}
+
+function _renderSummaryDrives(data) {
+    var container = $('#summaryLogicalDrivesContainer').empty();
+    if (!data || !data.length) {
+        container.html('<div style="text-align:center; padding: 20px; color: var(--slate-400); font-weight: 500; font-size: 0.9rem; grid-column: 1 / -1;"><i class="fas fa-inbox text-2xl mb-2 block"></i>No logical drives found</div>');
+        return;
+    }
+    data.forEach(function (d) {
+        var driveLetter = d.driveLetter || d.DriveLetter || d.Name || 'Unknown';
+        var fileSystem = d.fileSystem || d.FileSystem || 'Unknown';
+        var total = parseFloat(d.totalCapacity || d.Size || 0).toFixed(2);
+        var free = parseFloat(d.freeSpace || d.FreeSpace || 0).toFixed(2);
+        var usagePct = parseFloat(d.usagePercentage || d.Usage || 0);
+
+        var barColor = 'var(--cyan)';
+        if (usagePct > 90) barColor = 'var(--red)';
+        else if (usagePct > 80) barColor = 'var(--amber)';
+
+        var icon = driveLetter.includes('C:')
+            ? '<i class="fab fa-windows" style="color:var(--cyan); font-size: 1.15rem;"></i>'
+            : '<i class="fas fa-hdd" style="color:var(--slate-400); font-size: 1.15rem;"></i>';
+
+        var dashLen = (usagePct / 100) * 100;
+
+        container.append(
+            '<div class="cs-drive-card" style="background: var(--white); border: 1px solid var(--slate-200); border-radius: var(--radius-md); padding: 10px 14px; display: flex; gap: 14px; align-items: center; box-shadow: var(--shadow-sm); cursor: default;">' +
+            '<div style="position:relative; width: 54px; height: 54px; flex-shrink: 0;">' +
+            '<svg viewBox="0 0 36 36" style="width:100%; height:100%; transform: rotate(-90deg);">' +
+            '<path stroke="#a7f3d0" stroke-width="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />' +
+            '<path stroke="' + barColor + '" stroke-width="3" stroke-dasharray="' + dashLen + ', 100" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" style="stroke-linecap: round; transition: stroke-dasharray 1s ease-in-out;" />' +
+            '</svg>' +
+            '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; color:var(--slate-800);">' + usagePct.toFixed(0) + '%</div>' +
+            '</div>' +
+            '<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">' +
+            '<div style="font-weight: 800; color: var(--slate-800); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">' + icon + ' ' + escapeHtml(driveLetter) + '</div>' +
+            '<div style="font-size: 0.65rem; color: var(--slate-500); font-weight: 700; background: var(--slate-100); padding: 2px 5px; border-radius: 4px; letter-spacing: 0.5px;">' + escapeHtml(fileSystem) + '</div>' +
+            '</div>' +
+            '<div style="font-size: 0.8rem; color: var(--slate-500); font-weight: 500;">' +
+            '<span style="color:#10b981; font-weight:700;">' + free + ' GB</span> free of ' + total + ' GB' +
+            '</div>' +
+            '</div>' +
+            '</div>'
+        );
+    });
+}
+
+function _renderHwPartitions(data) {
+    var container = $('#hwPartitionsContainer');
+    if (!container.length) return;
+
+    if (!data || !data.length) {
+        container.html('<div style="padding:16px;text-align:center;color:var(--slate-400);font-size:.83rem;">No partition data available</div>');
+        return;
+    }
+
+    function _driveStyle(letter, driveType) {
+        var l = (letter || '').toUpperCase();
+        var t = (driveType || '').toLowerCase();
+        if (l.startsWith('C')) return { bg: '#eff6ff', iconBg: '#3b82f6', icon: 'fab fa-windows', label: 'System', labelBg: '#dbeafe', labelColor: '#1d4ed8' };
+        if (t.includes('cd') || t.includes('dvd') || t.includes('optical') || t.includes('removable'))
+            return { bg: '#faf5ff', iconBg: '#8b5cf6', icon: 'fas fa-compact-disc', label: 'Optical', labelBg: '#ede9fe', labelColor: '#6d28d9' };
+        if (t.includes('network') || t.includes('remote'))
+            return { bg: '#ecfdf5', iconBg: '#10b981', icon: 'fas fa-network-wired', label: 'Network', labelBg: '#d1fae5', labelColor: '#065f46' };
+        if (t.includes('usb') || t.includes('removable'))
+            return { bg: '#fff7ed', iconBg: '#f97316', icon: 'fas fa-usb', label: 'Removable', labelBg: '#fed7aa', labelColor: '#c2410c' };
+        return { bg: '#f8fafc', iconBg: '#475569', icon: 'fas fa-hdd', label: 'Data', labelBg: '#e2e8f0', labelColor: '#334155' };
+    }
+
+    var cardsHtml = '<div class="partition-grid">';
+
+    data.forEach(function (d) {
+        var letter = d.driveLetter || d.DriveLetter || d.Name || '?:';
+        var fs = d.fileSystem || d.FileSystem || 'N/A';
+        var label = d.volumeName || d.VolumeName || d.VolumeLabel || '';
+        var driveType = d.driveType || d.DriveType || '';
+        var total = parseFloat(d.totalCapacity || d.Size || 0);
+        var free = parseFloat(d.freeSpace || d.FreeSpace || 0);
+        var used = parseFloat(d.usedSpace || d.UsedSpace || (total - free) || 0);
+        var pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+
+        var style = _driveStyle(letter, driveType);
+
+        var barColor = '#22c55e';
+        if (pct >= 90) barColor = '#ef4444';
+        else if (pct >= 75) barColor = '#f59e0b';
+
+        var displayName = escapeHtml(letter) + (label ? ' — ' + escapeHtml(label) : '');
+
+        var isOptical = (driveType || '').toLowerCase().includes('cd') ||
+            (driveType || '').toLowerCase().includes('dvd') ||
+            (driveType || '').toLowerCase().includes('optical');
+        var noMedia = (isOptical && total === 0);
+
+        var barSection = noMedia
+            ? '<div style="font-size:.72rem;color:var(--slate-400);padding:4px 0;font-style:italic;">No media inserted</div>'
+            : ('<div class="partition-bar-wrap">' +
+                '<div class="partition-bar-track">' +
+                '<div class="partition-bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + barColor + ';"></div>' +
+                '</div>' +
+                '<div class="partition-bar-labels">' +
+                '<span style="color:' + barColor + ';">' + pct.toFixed(1) + '% used</span>' +
+                '<span style="color:#22c55e;">' + free.toFixed(2) + ' GB free</span>' +
+                '</div>' +
+                '</div>');
+
+        var statsSection = noMedia ? '' :
+            '<div class="partition-stats">' +
+            '<div class="partition-stat"><div class="partition-stat-val">' + total.toFixed(1) + ' GB</div><div class="partition-stat-lbl">Total</div></div>' +
+            '<div class="partition-stat" style="border-left:1px solid var(--slate-100);border-right:1px solid var(--slate-100);">' +
+            '<div class="partition-stat-val" style="color:#f59e0b;">' + used.toFixed(1) + ' GB</div><div class="partition-stat-lbl">Used</div></div>' +
+            '<div class="partition-stat"><div class="partition-stat-val" style="color:#22c55e;">' + free.toFixed(1) + ' GB</div><div class="partition-stat-lbl">Free</div></div>' +
+            '</div>';
+
+        cardsHtml +=
+            '<div class="partition-card" style="background:' + style.bg + ';">' +
+
+            '<div class="partition-card-header">' +
+            '<div class="partition-drive-badge">' +
+            '<div class="partition-drive-icon" style="background:' + style.iconBg + ';color:#fff;">' +
+            '<i class="' + style.icon + '"></i>' +
+            '</div>' +
+            '<div>' +
+            '<div class="partition-drive-letter">' + displayName + '</div>' +
+            '</div>' +
+            '</div>' +
+            '<span class="partition-type-badge" style="background:' + style.labelBg + ';color:' + style.labelColor + ';">' + style.label + '</span>' +
+            '</div>' +
+
+            barSection +
+            statsSection +
+
+            '</div>';
+    });
+
+    cardsHtml += '</div>';
+    container.html(cardsHtml);
 }
 
 function loadBiosDetails() {
@@ -992,20 +1103,6 @@ function renderProcessorTrendCharts(history) {
         });
     }
 }
-
-$(document).on('click', '#btnRefreshProcessor', function (e) {
-    e.preventDefault();
-    var $btn = $(this).addClass('spinning');
-    loadProcessorDetails();
-    setTimeout(function () { $btn.removeClass('spinning'); }, 600);
-});
-
-$(document).on('click', '#btnRefreshMemory', function (e) {
-    e.preventDefault();
-    var $btn = $(this).addClass('spinning');
-    loadMemoryDetails();
-    setTimeout(function () { $btn.removeClass('spinning'); }, 600);
-});
 
 function loadNetworkAdapters() {
     $.get(`/ComputerSummary/NetworkAdapters?domain=${domaindata}`, function (data) {
@@ -1434,11 +1531,11 @@ function renderBatteryAuditPanel(metrics) {
     if (metrics.liveBatteryLevel !== undefined && metrics.liveBatteryLevel !== null) {
         $('#liveBatteryCard').css('display', 'flex');
         $('#liveBatteryLevelText').text(metrics.liveBatteryLevel + '%');
-        
+
         let liveColor = '#10b981'; // green
         if (metrics.liveBatteryLevel <= 20) liveColor = '#ef4444'; // red
         else if (metrics.liveBatteryLevel <= 50) liveColor = '#f59e0b'; // amber
-        
+
         // Setup initial width at 0 for animation, then animate
         setTimeout(() => {
             $('#liveBatteryFill').css({
@@ -1456,7 +1553,7 @@ function renderBatteryAuditPanel(metrics) {
             if (details.toLowerCase() === 'battery') details = 'Discharging';
         }
         $('#liveBatteryDetailsText').text(details);
-        
+
         // Update top-level dashboard if possible
         if (metrics.liveBatteryLevel > 0) {
             $('#batteryLevel').html(`
@@ -1476,7 +1573,7 @@ function renderBatteryAuditPanel(metrics) {
 function renderBatteryUsageTables(batteryUsage, usageHistory) {
     let hasData = false;
     const container = $('#usageHistoryContainer');
-    
+
     if (batteryUsage && batteryUsage.length > 0) {
         let html = '';
         batteryUsage.forEach(r => {
@@ -1574,6 +1671,186 @@ function renderCapacityTrendChart(history) {
             }
         }
     });
+}
+
+function loadHardDiskDetails() {
+    $.get(`/ComputerSummary/HardDisk?domain=${domaindata}`, function (disks) {
+        if (!disks || !Array.isArray(disks) || disks.length === 0) {
+            $('#diskHeroName').text('No disks found');
+            return;
+        }
+        renderHardDiskDashboard(disks);
+    }).fail(function () {
+        $('#diskHeroName').text('Failed to load disk data');
+    });
+
+    // Load partition cards (uses cache if Summary tab already fetched)
+    loadHwPartitions();
+}
+
+function renderHardDiskDashboard(disks) {
+    const d = disks[0]; // primary disk for hero
+
+    const totalCap = parseFloat(d.TotalCapacity || d.totalCapacity || 0).toFixed(1);
+    $('#diskHeroName').text(d.Model || d.model || 'Unknown Disk');
+    $('#diskHeroCapacity').html('<i class="fas fa-database"></i> ' + totalCap + ' GB Total');
+    $('#diskHeroInterface').html('<i class="fas fa-plug"></i> ' + (d.InterfaceType || d.interfaceType || 'N/A'));
+    const powHrs = d.PowerOnHours || d.powerOnHours || 0;
+    $('#diskHeroPowerOn').html('<i class="fas fa-clock"></i> ' + Number(powHrs).toLocaleString() + ' hrs powered');
+
+    const health = (d.HealthStatus || d.healthStatus || '').toString().toUpperCase();
+    const predictFail = d.PredictFailure || d.predictFailure || false;
+    let healthColor = '#22c55e', healthText = health || 'HEALTHY';
+    if (predictFail || health === 'CRITICAL' || health === 'FAILING') {
+        healthColor = '#ef4444'; healthText = 'FAILING';
+        $('#diskHealthBadge').addClass('is-down');
+    } else if (health === 'WARNING' || health === 'CAUTION') {
+        healthColor = '#f59e0b'; healthText = 'WARNING';
+    }
+    $('#diskHealthBadge').css('color', healthColor)
+        .html('<span class="cpu-live-dot" style="background:' + healthColor + ';"></span> ' + healthText);
+
+    const dt = d.DateTime || d.dateTime;
+    if (dt) {
+        try {
+            const parsed = new Date(dt);
+            if (!isNaN(parsed)) $('#diskLastUpdated').text('Updated: ' + parsed.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
+        } catch (e) { }
+    }
+
+    if (disks.length > 1) {
+        $('#diskSelectorWrap').show();
+        let tabHtml = '';
+        disks.forEach(function (disk, idx) {
+            tabHtml += `<li style="cursor:pointer;">
+                <a class="disk-selector-tab cpu-pill${idx === 0 ? ' active' : ''}"
+                   style="${idx === 0 ? 'background:var(--cyan);color:#fff;border-color:var(--cyan);' : ''}"
+                   data-disk-idx="${idx}">
+                   <i class="fas fa-hdd"></i> Disk ${idx + 1}: ${(disk.Model || disk.model || 'Unknown').substring(0, 22)}
+                </a></li>`;
+        });
+        $('#diskSelectorTabs').html(tabHtml);
+        $(document).off('click', '.disk-selector-tab').on('click', '.disk-selector-tab', function () {
+            const idx = parseInt($(this).data('disk-idx'));
+            $('.disk-selector-tab').css({ background: '#fff', color: 'var(--slate-600)', borderColor: 'var(--slate-200)' }).removeClass('active');
+            $(this).css({ background: 'var(--cyan)', color: '#fff', borderColor: 'var(--cyan)' }).addClass('active');
+            renderDiskPanels(disks[idx]);
+        });
+    }
+
+    renderDiskPanels(d);
+
+}
+
+function renderDiskPanels(d) {
+    const totalCap = parseFloat(d.TotalCapacity || d.totalCapacity || 0);
+    const usedGB = parseFloat(d.UsedSpaceGB || d.usedSpaceGB || 0);
+    const freeGB = parseFloat(d.FreeSpaceGB || d.freeSpaceGB || 0);
+    const usedPct = totalCap > 0 ? Math.min(100, (usedGB / totalCap) * 100) : 0;
+    let barColor = '#22c55e';
+    if (usedPct >= 90) barColor = '#ef4444';
+    else if (usedPct >= 75) barColor = '#f59e0b';
+
+    const usageHtml = `
+        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px 18px;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+                <span style="font-size:.82rem;font-weight:700;color:var(--slate-700);flex:1;min-width:0;word-break:break-word;">${d.Model || d.model || 'Disk'}</span>
+                <span style="font-size:.76rem;color:var(--slate-500);white-space:nowrap;">${usedGB.toFixed(2)} GB used of ${totalCap.toFixed(2)} GB</span>
+            </div>
+            <div style="height:12px;border-radius:6px;background:var(--slate-100);overflow:hidden;">
+                <div style="height:100%;width:${usedPct.toFixed(1)}%;background:${barColor};border-radius:6px;transition:width 1s ease;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;">
+                <span style="font-size:.7rem;color:${barColor};font-weight:700;">${usedPct.toFixed(1)}% Used</span>
+                <span style="font-size:.7rem;color:#22c55e;font-weight:700;">${freeGB.toFixed(2)} GB Free</span>
+            </div>
+        </div>`;
+    $('#diskUsageContainer').html(usageHtml);
+
+    const wear = d.Wear || d.wear;
+    const temp = d.Temperature || d.temperature;
+    const specsHtml = `
+        <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));">
+            <div class="cs-info-box"><div class="cs-info-box-label">Model</div><div class="cs-info-box-value accent" style="font-size:.8rem;">${d.Model || d.model || 'N/A'}</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Manufacturer</div><div class="cs-info-box-value">${d.Manufacturer || d.manufacturer || 'N/A'}</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Serial Number</div><div class="cs-info-box-value" style="font-family:var(--font-mono);font-size:.72rem;">${d.SerialNumber || d.serialNumber || 'N/A'}</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Firmware</div><div class="cs-info-box-value" style="font-family:var(--font-mono);font-size:.74rem;">${d.FirmwareVersion || d.firmwareVersion || 'N/A'}</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Interface</div><div class="cs-info-box-value">${d.InterfaceType || d.interfaceType || 'N/A'}</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Description</div><div class="cs-info-box-value" style="font-size:.75rem;font-weight:500;">${d.Description || d.description || 'N/A'}</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Total Capacity</div><div class="cs-info-box-value accent">${parseFloat(d.TotalCapacity || d.totalCapacity || 0).toFixed(2)} GB</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Used Space</div><div class="cs-info-box-value amber">${usedGB.toFixed(2)} GB</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Free Space</div><div class="cs-info-box-value green">${freeGB.toFixed(2)} GB</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Power-On Hours</div><div class="cs-info-box-value">${Number(d.PowerOnHours || d.powerOnHours || 0).toLocaleString()} hrs</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Health Status</div><div class="cs-info-box-value" style="color:${(d.HealthStatus || '').toUpperCase() === 'HEALTHY' ? '#22c55e' : '#f59e0b'};">${d.HealthStatus || d.healthStatus || 'N/A'}</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Predict Failure</div><div class="cs-info-box-value" style="color:${(d.PredictFailure || d.predictFailure) ? '#ef4444' : '#22c55e'};">${(d.PredictFailure || d.predictFailure) ? 'Yes ⚠' : 'No'}</div></div>
+        </div>`;
+    $('#diskSpecsContainer').html(specsHtml);
+
+    const wearVal = (wear !== undefined && wear !== null) ? wear : null;
+    const tempVal = (temp !== undefined && temp !== null) ? temp : null;
+    const wearPct = wearVal !== null ? Math.min(100, wearVal) : 0;
+    const tempNorm = tempVal !== null ? Math.min(100, (tempVal / 70) * 100) : 0;
+
+    let wearColor = '#22c55e';
+    if (wearPct >= 80) wearColor = '#ef4444';
+    else if (wearPct >= 50) wearColor = '#f59e0b';
+
+    let tempColor = '#22c55e';
+    if (tempVal >= 55) tempColor = '#ef4444';
+    else if (tempVal >= 45) tempColor = '#f59e0b';
+
+    const readErr = Number(d.ReadErrorsTotal || d.readErrorsTotal || 0);
+    const writeErr = Number(d.WriteErrorsTotal || d.writeErrorsTotal || 0);
+    const readCorr = Number(d.ReadErrorsCorrected || d.readErrorsCorrected || 0);
+
+    const smartHtml = `
+        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:18px;box-shadow:var(--shadow-sm);">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+
+                ${wearVal !== null ? `
+                <div>
+                    <div style="font-size:.74rem;font-weight:700;color:var(--slate-600);margin-bottom:8px;"><i class="fas fa-tools" style="color:#f59e0b;margin-right:5px;"></i>Wear Level</div>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="flex:1;height:10px;border-radius:6px;background:var(--slate-100);overflow:hidden;">
+                            <div style="height:100%;width:${wearPct}%;background:${wearColor};border-radius:6px;transition:width 1s;"></div>
+                        </div>
+                        <span style="font-size:.8rem;font-weight:800;color:${wearColor};min-width:36px;text-align:right;">${wearPct}%</span>
+                    </div>
+                </div>` : ''}
+
+                ${tempVal !== null ? `
+                <div>
+                    <div style="font-size:.74rem;font-weight:700;color:var(--slate-600);margin-bottom:8px;"><i class="fas fa-thermometer-half" style="color:${tempColor};margin-right:5px;"></i>Temperature</div>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="flex:1;height:10px;border-radius:6px;background:var(--slate-100);overflow:hidden;">
+                            <div style="height:100%;width:${tempNorm.toFixed(1)}%;background:${tempColor};border-radius:6px;transition:width 1s;"></div>
+                        </div>
+                        <span style="font-size:.8rem;font-weight:800;color:${tempColor};min-width:40px;text-align:right;">${tempVal}°C</span>
+                    </div>
+                </div>` : ''}
+
+            </div>
+
+            <div style="margin-top:16px;border-top:1px solid var(--slate-100);padding-top:14px;">
+                <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:10px;">Error Counters &amp; Metadata</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;">
+                    ${_smartMetric('Read Errors (Total)', readErr, readErr > 0 ? '#ef4444' : '#22c55e', 'fas fa-times-circle')}
+                    ${_smartMetric('Write Errors (Total)', writeErr, writeErr > 0 ? '#ef4444' : '#22c55e', 'fas fa-times-circle')}
+                    ${_smartMetric('Read Errors (Corrected)', readCorr, readCorr > 0 ? '#f59e0b' : '#22c55e', 'fas fa-check-circle')}
+                </div>
+            </div>
+        </div>`;
+    $('#diskSmartContainer').html(smartHtml);
+}
+
+function _smartMetric(label, value, color, icon, isText) {
+    const display = isText ? value : Number(value).toLocaleString();
+    return `<div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-sm);padding:10px 12px;">
+                <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--slate-500);margin-bottom:4px;">${label}</div>
+                <div style="font-size:.88rem;font-weight:800;color:${color};display:flex;align-items:center;gap:6px;">
+                    <i class="${icon}" style="font-size:.7rem;"></i>${display}
+                </div>
+            </div>`;
 }
 
 $(document).ready(function () {
