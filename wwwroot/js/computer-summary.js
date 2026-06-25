@@ -511,13 +511,92 @@ function initTablesInPane(paneId) {
 
 let memUsageChartInstance = null;
 let memCapacityChartInstance = null;
+let _fullMemHistory = [];
+let _fullCpuHistory = [];
 
-function renderMemoryTrendChart(history) {
+function formatChartLabel(dt) {
+    if (isNaN(dt.getTime())) return '';
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[dt.getMonth()] + ' ' + dt.getDate() + ' ' + String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+}
+
+function chartScaleXOptions() {
+    return {
+        x: {
+            ticks: { maxRotation: 45, minRotation: 25, font: { size: 9 }, autoSkip: true, maxTicksLimit: 12 }
+        }
+    };
+}
+
+function filterByRange(history, range, dateKey, startDate, endDate) {
+    if (!history || !history.length || range === 'all') return history;
+    var now = new Date();
+    var cutoffStart, cutoffEnd;
+    if (range === 'today') {
+        cutoffStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        cutoffEnd = now;
+    } else if (range === '7d') {
+        cutoffStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        cutoffEnd = now;
+    } else if (range === '30d') {
+        cutoffStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        cutoffEnd = now;
+    } else if (range === '90d') {
+        cutoffStart = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        cutoffEnd = now;
+    } else if (range === 'custom' && startDate && endDate) {
+        cutoffStart = new Date(startDate);
+        cutoffEnd = new Date(endDate);
+        cutoffEnd.setHours(23, 59, 59, 999);
+    } else {
+        return history;
+    }
+    return history.filter(function(h) {
+        var val = h[dateKey] || h['DateTime'] || h['dateTime'];
+        var dt = new Date(val);
+        return !isNaN(dt.getTime()) && dt >= cutoffStart && dt <= cutoffEnd;
+    });
+}
+
+function setActiveFilter(container, btn) {
+    $(container).find('.chart-filter-btn').removeClass('active');
+    if (btn) $(btn).addClass('active');
+}
+
+function filterMemChart(range, btn) {
+    setActiveFilter('#memChartFilters', btn);
+    if (range === 'custom') {
+        var s = $('#memDateStart').val(), e = $('#memDateEnd').val();
+        if (!s || !e) return;
+        var filtered = filterByRange(_fullMemHistory, 'custom', 'dateTime', s, e);
+        renderMemoryTrendChart(filtered, true);
+    } else {
+        $('#memDateStart').val(''); $('#memDateEnd').val('');
+        var filtered = filterByRange(_fullMemHistory, range, 'dateTime');
+        renderMemoryTrendChart(filtered, true);
+    }
+}
+
+function filterCpuChart(range, btn) {
+    setActiveFilter('#cpuChartFilters', btn);
+    if (range === 'custom') {
+        var s = $('#cpuDateStart').val(), e = $('#cpuDateEnd').val();
+        if (!s || !e) return;
+        var filtered = filterByRange(_fullCpuHistory, 'custom', 'dateTime', s, e);
+        renderProcessorTrendCharts(filtered, true);
+    } else {
+        $('#cpuDateStart').val(''); $('#cpuDateEnd').val('');
+        var filtered = filterByRange(_fullCpuHistory, range, 'dateTime');
+        renderProcessorTrendCharts(filtered, true);
+    }
+}
+
+function renderMemoryTrendChart(history, skipStore) {
     if (!history || !history.length) return;
+    if (!skipStore) _fullMemHistory = history;
 
     var labels = history.map(function (h) {
-        var dt = new Date(h.dateTime || h.DateTime);
-        return isNaN(dt.getTime()) ? '' : dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        return formatChartLabel(new Date(h.dateTime || h.DateTime));
     });
 
     var usageCanvas = document.getElementById('memUsageTrendChart');
@@ -528,13 +607,13 @@ function renderMemoryTrendChart(history) {
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Usage %', data: history.map(h => parseFloat(h.usagePercent || h.UsagePercent) || 0), borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, .1)', borderWidth: 2, fill: true, tension: 0, pointRadius: 0 }
+                    { label: 'Usage %', data: history.map(h => parseFloat(h.usagePercent || h.UsagePercent) || 0), borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, .1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { title: { display: true, text: '%' }, min: 0, max: 100 } }
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+                scales: Object.assign({ y: { title: { display: true, text: '%' }, min: 0, max: 100 } }, chartScaleXOptions())
             }
         });
     }
@@ -547,14 +626,14 @@ function renderMemoryTrendChart(history) {
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Used (GB)', data: history.map(h => parseFloat(h.usedMemoryGB || h.UsedMemoryGB) || 0), borderColor: '#0ea5e9', borderWidth: 2, fill: false, tension: 0, pointRadius: 0 },
-                    { label: 'Free (GB)', data: history.map(h => parseFloat(h.freeMemoryGB || h.FreeMemoryGB) || 0), borderColor: '#22c55e', borderWidth: 2, fill: false, tension: 0, pointRadius: 0 }
+                    { label: 'Used (GB)', data: history.map(h => parseFloat(h.usedMemoryGB || h.UsedMemoryGB) || 0), borderColor: '#0ea5e9', borderWidth: 2, fill: false, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 },
+                    { label: 'Free (GB)', data: history.map(h => parseFloat(h.freeMemoryGB || h.FreeMemoryGB) || 0), borderColor: '#22c55e', borderWidth: 2, fill: false, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
-                scales: { y: { title: { display: true, text: 'GB' }, min: 0 } }
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, tooltip: { mode: 'index', intersect: false } },
+                scales: Object.assign({ y: { title: { display: true, text: 'GB' }, min: 0 } }, chartScaleXOptions())
             }
         });
     }
@@ -926,9 +1005,6 @@ function cpuVal(d, ...keys) {
 function loadProcessorDetails() {
     $.get(`/ComputerSummary/Processors?domain=${domaindata}`, function (data) {
         if (!data) return;
-        // TEMP DEBUG: open DevTools console and check this log to see the exact
-        // field names the API actually returns, then compare against the cpuVal(...)
-        // candidate keys used below. Remove this line once everything matches.
         console.log('[Processor API raw payload]', data);
         renderProcessorHero(data);
         renderProcessorSpecs(data);
@@ -969,10 +1045,11 @@ function renderProcessorSpecs(d) {
     $('#cpuCoresThreads').text(cores + ' Cores / ' + threads + ' Threads');
 
     var baseGhz = parseFloat(cpuVal(d, 'baseSpeedGHz', 'BaseSpeedGHz')) || 0;
-    var maxMHz = cpuVal(d, 'maxClockSpeedMHz', 'MaxClockSpeedMHz', 'maxClockSpeed', 'MaxClockSpeed') || 0;
-    $('#cpuBaseClock').text(baseGhz > 0 ? baseGhz.toFixed(2) + ' GHz' : (maxMHz + ' MHz'));
-    $('#cpuCurrentClock').text((cpuVal(d, 'currentClockSpeedMHz', 'CurrentClockSpeedMHz', 'currentClockSpeed', 'CurrentClockSpeed') || 0) + ' MHz');
-    $('#cpuMaxClock').text(maxMHz + ' MHz');
+    var maxMHz = parseFloat(cpuVal(d, 'maxClockSpeedMHz', 'MaxClockSpeedMHz', 'maxClockSpeed', 'MaxClockSpeed')) || 0;
+    var currentMHz = parseFloat(cpuVal(d, 'currentClockSpeedMHz', 'CurrentClockSpeedMHz', 'currentClockSpeed', 'CurrentClockSpeed')) || 0;
+    $('#cpuBaseClock').text(baseGhz > 0 ? baseGhz.toFixed(2) + ' GHz' : (maxMHz > 0 ? (maxMHz / 1000).toFixed(2) + ' GHz' : '--'));
+    $('#cpuCurrentClock').text(currentMHz > 0 ? (currentMHz / 1000).toFixed(2) + ' GHz' : '--');
+    $('#cpuMaxClock').text(maxMHz > 0 ? (maxMHz / 1000).toFixed(2) + ' GHz' : '--');
 
     var bus = parseFloat(cpuVal(d, 'busSpeedMHz', 'BusSpeedMHz', 'extClock', 'ExtClock', 'externalClock', 'ExternalClock'));
     $('#cpuBusSpeed').text(bus > 0 ? bus.toFixed(1) + ' MHz' : 'N/A');
@@ -1052,12 +1129,12 @@ function renderProcessorThermal(d) {
 let cpuTempChartInstance = null;
 let cpuClockChartInstance = null;
 
-function renderProcessorTrendCharts(history) {
+function renderProcessorTrendCharts(history, skipStore) {
     if (!history || !history.length) return;
+    if (!skipStore) _fullCpuHistory = history;
 
     var labels = history.map(function (h) {
-        var dt = new Date(cpuVal(h, 'dateTime', 'DateTime'));
-        return isNaN(dt.getTime()) ? '' : dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        return formatChartLabel(new Date(cpuVal(h, 'dateTime', 'DateTime')));
     });
 
     var tempCanvas = document.getElementById('cpuTempTrendChart');
@@ -1068,17 +1145,17 @@ function renderProcessorTrendCharts(history) {
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Package', data: history.map(h => parseFloat(cpuVal(h, 'cpuPackageTemperature', 'CpuPackageTemperature', 'packageTemperature', 'PackageTemperature')) || 0), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.08)', borderWidth: 2, fill: true, tension: 0, pointRadius: 0 },
-                    { label: 'Core 0', data: history.map(h => parseFloat(cpuVal(h, 'core0Temp', 'Core0Temp', 'coreTemp0', 'CoreTemp0')) || 0), borderColor: '#0ea5e9', borderWidth: 1.5, fill: false, tension: 0, pointRadius: 0 },
-                    { label: 'Core 1', data: history.map(h => parseFloat(cpuVal(h, 'core1Temp', 'Core1Temp', 'coreTemp1', 'CoreTemp1')) || 0), borderColor: '#22c55e', borderWidth: 1.5, fill: false, tension: 0, pointRadius: 0 },
-                    { label: 'Core 2', data: history.map(h => parseFloat(cpuVal(h, 'core2Temp', 'Core2Temp', 'coreTemp2', 'CoreTemp2')) || 0), borderColor: '#f59e0b', borderWidth: 1.5, fill: false, tension: 0, pointRadius: 0 },
-                    { label: 'Core 3', data: history.map(h => parseFloat(cpuVal(h, 'core3Temp', 'Core3Temp', 'coreTemp3', 'CoreTemp3')) || 0), borderColor: '#a855f7', borderWidth: 1.5, fill: false, tension: 0, pointRadius: 0 }
+                    { label: 'Package', data: history.map(h => parseFloat(cpuVal(h, 'cpuPackageTemperature', 'CpuPackageTemperature', 'packageTemperature', 'PackageTemperature')) || 0), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 },
+                    { label: 'Core 0', data: history.map(h => parseFloat(cpuVal(h, 'core0Temp', 'Core0Temp', 'coreTemp0', 'CoreTemp0')) || 0), borderColor: '#0ea5e9', borderWidth: 1.5, fill: false, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 },
+                    { label: 'Core 1', data: history.map(h => parseFloat(cpuVal(h, 'core1Temp', 'Core1Temp', 'coreTemp1', 'CoreTemp1')) || 0), borderColor: '#22c55e', borderWidth: 1.5, fill: false, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 },
+                    { label: 'Core 2', data: history.map(h => parseFloat(cpuVal(h, 'core2Temp', 'Core2Temp', 'coreTemp2', 'CoreTemp2')) || 0), borderColor: '#f59e0b', borderWidth: 1.5, fill: false, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 },
+                    { label: 'Core 3', data: history.map(h => parseFloat(cpuVal(h, 'core3Temp', 'Core3Temp', 'coreTemp3', 'CoreTemp3')) || 0), borderColor: '#a855f7', borderWidth: 1.5, fill: false, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
-                scales: { y: { title: { display: true, text: '°C' } } }
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, tooltip: { mode: 'index', intersect: false } },
+                scales: Object.assign({ y: { title: { display: true, text: '°C' } } }, chartScaleXOptions())
             }
         });
     }
@@ -1091,14 +1168,14 @@ function renderProcessorTrendCharts(history) {
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Current Clock (MHz)', data: history.map(h => cpuVal(h, 'currentClockSpeedMHz', 'CurrentClockSpeedMHz', 'currentClockSpeed', 'CurrentClockSpeed') || 0), borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,.08)', borderWidth: 2, fill: true, tension: 0, pointRadius: 0 },
+                    { label: 'Current Clock (GHz)', data: history.map(h => { var v = parseFloat(cpuVal(h, 'currentClockSpeedMHz', 'CurrentClockSpeedMHz', 'currentClockSpeed', 'CurrentClockSpeed')) || 0; return v > 0 ? (v / 1000) : 0; }), borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5 },
                     { label: 'Bus Speed (MHz)', data: history.map(h => parseFloat(cpuVal(h, 'busSpeedMHz', 'BusSpeedMHz', 'extClock', 'ExtClock')) || 0), borderColor: '#cbd5e1', borderWidth: 1.5, borderDash: [5, 5], fill: false, pointRadius: 0 }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
-                scales: { y: { title: { display: true, text: 'MHz' } } }
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, tooltip: { mode: 'index', intersect: false } },
+                scales: Object.assign({ y: { title: { display: true, text: 'GHz' } } }, chartScaleXOptions())
             }
         });
     }
@@ -1508,7 +1585,7 @@ function renderBatteryAuditPanel(metrics) {
     let status = metrics.status || 'Unknown';
 
     if (!hasValidHealthData) {
-        color = '#94a3b8'; // Slate 400 for N/A
+        color = '#94a3b8'; 
         icon = '<i class="fas fa-question-circle" style="color:#94a3b8;"></i>';
         if (status === 'Unknown' || status === 'Error' || status === 'N/A') {
             status = 'No Data';
@@ -1527,7 +1604,6 @@ function renderBatteryAuditPanel(metrics) {
     circle.css('stroke', color);
     $('#auditStatus').html(icon + ' <span style="color:' + color + ';">' + status + '</span>');
 
-    // LIVE BATTERY WIDGET ANIMATION
     if (metrics.liveBatteryLevel !== undefined && metrics.liveBatteryLevel !== null) {
         $('#liveBatteryCard').css('display', 'flex');
         $('#liveBatteryLevelText').text(metrics.liveBatteryLevel + '%');
@@ -1536,7 +1612,6 @@ function renderBatteryAuditPanel(metrics) {
         if (metrics.liveBatteryLevel <= 20) liveColor = '#ef4444'; // red
         else if (metrics.liveBatteryLevel <= 50) liveColor = '#f59e0b'; // amber
 
-        // Setup initial width at 0 for animation, then animate
         setTimeout(() => {
             $('#liveBatteryFill').css({
                 'width': metrics.liveBatteryLevel + '%',
@@ -1554,7 +1629,6 @@ function renderBatteryAuditPanel(metrics) {
         }
         $('#liveBatteryDetailsText').text(details);
 
-        // Update top-level dashboard if possible
         if (metrics.liveBatteryLevel > 0) {
             $('#batteryLevel').html(`
                 <div style="font-size:1.1rem;font-weight:700;">${metrics.liveBatteryLevel}%</div>
@@ -1684,12 +1758,11 @@ function loadHardDiskDetails() {
         $('#diskHeroName').text('Failed to load disk data');
     });
 
-    // Load partition cards (uses cache if Summary tab already fetched)
     loadHwPartitions();
 }
 
 function renderHardDiskDashboard(disks) {
-    const d = disks[0]; // primary disk for hero
+    const d = disks[0]; 
 
     const totalCap = parseFloat(d.TotalCapacity || d.totalCapacity || 0).toFixed(1);
     $('#diskHeroName').text(d.Model || d.model || 'Unknown Disk');

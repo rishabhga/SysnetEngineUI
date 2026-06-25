@@ -1,4 +1,4 @@
-﻿<style>
+<style>
     .cpu-hero {
         display: flex;
         align-items: center;
@@ -267,6 +267,77 @@
         box-shadow: var(--shadow-sm);
     }
 
+    .chart-filter-pills {
+        display: flex;
+        gap: 4px;
+        background: var(--slate-100);
+        border-radius: 8px;
+        padding: 3px;
+    }
+
+    .chart-filter-btn {
+        border: none;
+        background: transparent;
+        color: var(--slate-500);
+        font-size: .7rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all .2s ease;
+        letter-spacing: .02em;
+    }
+
+    .chart-filter-btn:hover {
+        color: var(--slate-700);
+        background: rgba(255,255,255,.6);
+    }
+
+    .chart-filter-btn.active {
+        background: #fff;
+        color: var(--primary);
+        box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    }
+
+    .chart-date-range {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--slate-100);
+        border-radius: 8px;
+        padding: 3px;
+    }
+
+    .chart-date-input {
+        border: 1px solid transparent;
+        background: #fff;
+        border-radius: 5px;
+        padding: 3px 6px;
+        font-size: .68rem;
+        font-family: inherit;
+        color: var(--slate-700);
+        width: 120px;
+        outline: none;
+        transition: border-color .2s;
+    }
+
+    .chart-date-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(14,165,233,.15);
+    }
+
+    .chart-date-apply {
+        background: var(--primary) !important;
+        color: #fff !important;
+        padding: 4px 10px !important;
+        border-radius: 5px !important;
+        font-size: .7rem;
+    }
+
+    .chart-date-apply:hover {
+        background: var(--primary-dark, #0284c7) !important;
+    }
+
         .cpu-chart-card h4 {
             font-size: .8rem;
             font-weight: 700;
@@ -295,33 +366,30 @@
     }
 
     @@media (max-width: 600px) {
-        #HardDiskHw .cpu-hero
+        #HardDiskHw .cpu-hero {
+            flex-direction: column;
+            align-items: flex-start;
+        }
 
-    {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+        #HardDiskHw .cpu-hero-right {
+            width: 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
 
-    #HardDiskHw .cpu-hero-right {
-        width: 100%;
-        justify-content: flex-start;
-        flex-wrap: wrap;
-    }
+        #HardDiskHw .cpu-hero-sub {
+            flex-wrap: wrap;
+        }
 
-    #HardDiskHw .cpu-hero-sub {
-        flex-wrap: wrap;
-    }
+        #diskUsageContainer > div {
+            padding: 12px !important;
+        }
 
-    #diskUsageContainer > div {
-        padding: 12px !important;
-    }
-
-    #diskUsageContainer .disk-label-row {
-        flex-direction: column;
-        align-items: flex-start !important;
-        gap: 2px;
-    }
-
+        #diskUsageContainer .disk-label-row {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 2px;
+        }
     }
 
     /* ── Partition / Logical Drive cards ────────── */
@@ -612,16 +680,21 @@
 
             <div id="HardDiskHw" class="tab-pane">
 
+                <!-- Disk selector tabs when multiple disks (moved to top) -->
+                <div id="diskSelectorWrap" style="display:none;margin-bottom:14px;">
+                    <ul id="diskSelectorTabs" style="display:flex;gap:6px;list-style:none;padding:0;margin:0;flex-wrap:wrap;"></ul>
+                </div>
+
                 <!-- Hero header -->
-                <div class="cpu-hero" style="background:linear-gradient(135deg,#f1f5f9 0%,#f8fafc 100%);border-color:#cbd5e1;">
+                <div class="cpu-hero" style="background:linear-gradient(135deg,#e0f2fe 0%,#f0fdf4 100%);border-color:#99f6e4;">
                     <div class="cpu-hero-left">
-                        <div class="cpu-chip-icon" style="background:#475569;color:#fff;"><i class="fas fa-hdd"></i></div>
+                        <div class="cpu-chip-icon" style="background:linear-gradient(135deg,var(--primary),#0d9488);color:#fff;"><i class="fas fa-hdd"></i></div>
                         <div style="min-width:0;">
                             <div class="cpu-hero-name" id="diskHeroName">-- Storage Devices</div>
                             <div class="cpu-hero-sub">
-                                <span class="cpu-pill" id="diskHeroCapacity" style="background:#fff;border-color:#cbd5e1;color:#475569;"><i class="fas fa-database"></i> -- GB Total</span>
-                                <span class="cpu-pill" id="diskHeroInterface" style="background:#fff;border-color:#cbd5e1;color:#475569;"><i class="fas fa-plug"></i> --</span>
-                                <span class="cpu-pill" id="diskHeroPowerOn" style="background:#fff;border-color:#cbd5e1;color:#475569;"><i class="fas fa-clock"></i> -- hrs powered</span>
+                                <span class="cpu-pill" id="diskHeroCapacity" style="background:rgba(255,255,255,.85);border-color:#99f6e4;color:#0d9488;"><i class="fas fa-database"></i> -- GB Total</span>
+                                <span class="cpu-pill" id="diskHeroInterface" style="background:rgba(255,255,255,.85);border-color:#99f6e4;color:#0d9488;"><i class="fas fa-plug"></i> --</span>
+                                <span class="cpu-pill" id="diskHeroPowerOn" style="background:rgba(255,255,255,.85);border-color:#99f6e4;color:#0d9488;"><i class="fas fa-clock"></i> -- hrs powered</span>
                             </div>
                         </div>
                     </div>
@@ -632,25 +705,20 @@
                 </div>
 
                 <!-- Storage usage bars per disk -->
-                <div class="cpu-section-label"><i class="fas fa-chart-bar" style="color:#475569;"></i> Storage Usage</div>
+                <div class="cpu-section-label"><i class="fas fa-chart-bar" style="color:var(--primary);"></i> Storage Usage</div>
                 <div id="diskUsageContainer" style="display:flex;flex-direction:column;gap:10px;"></div>
 
                 <!-- Key specs grid -->
-                <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-info-circle" style="color:var(--cyan);"></i> Disk Details</div>
+                <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-info-circle" style="color:var(--primary);"></i> Disk Details</div>
                 <div id="diskSpecsContainer"></div>
 
                 <!-- S.M.A.R.T. / Health metrics -->
-                <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:var(--red);"></i> S.M.A.R.T. Health Metrics</div>
+                <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> S.M.A.R.T. Health Metrics</div>
                 <div id="diskSmartContainer"></div>
-
-                <!-- Disk selector tabs when multiple disks -->
-                <div id="diskSelectorWrap" style="display:none;margin-bottom:14px;">
-                    <ul id="diskSelectorTabs" style="display:flex;gap:6px;list-style:none;padding:0;margin:0;flex-wrap:wrap;"></ul>
-                </div>
 
                 <!-- Partitions / Logical Drives -->
                 <div class="cpu-section-label" style="margin-top:22px;">
-                    <i class="fas fa-sitemap" style="color:#6366f1;"></i> Partitions &amp; Logical Drives
+                    <i class="fas fa-sitemap" style="color:var(--primary);"></i> Partitions &amp; Logical Drives
                 </div>
                 <div id="hwPartitionsContainer">
                     <div style="text-align:center;padding:24px;color:var(--slate-400);font-size:.85rem;">
@@ -759,7 +827,24 @@
                 </div>
 
                 <!-- Trend charts -->
-                <div class="cpu-section-label" style="margin-top:20px;"><i class="fas fa-chart-line" style="color:var(--amber);"></i> Live Trend (Recent Samples)</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:20px;gap:8px;">
+                    <div class="cpu-section-label" style="margin:0;"><i class="fas fa-chart-line" style="color:var(--amber);"></i> Live Trend (Recent Samples)</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <div class="chart-filter-pills" id="memChartFilters">
+                            <button class="chart-filter-btn" data-range="today" onclick="filterMemChart('today',this)">Today</button>
+                            <button class="chart-filter-btn" data-range="7d" onclick="filterMemChart('7d',this)">7D</button>
+                            <button class="chart-filter-btn active" data-range="30d" onclick="filterMemChart('30d',this)">30D</button>
+                            <button class="chart-filter-btn" data-range="90d" onclick="filterMemChart('90d',this)">90D</button>
+                            <button class="chart-filter-btn" data-range="all" onclick="filterMemChart('all',this)">All</button>
+                        </div>
+                        <div class="chart-date-range">
+                            <input type="date" id="memDateStart" class="chart-date-input" title="Start date">
+                            <span style="color:var(--slate-400);font-size:.7rem;">to</span>
+                            <input type="date" id="memDateEnd" class="chart-date-input" title="End date">
+                            <button class="chart-filter-btn chart-date-apply" onclick="filterMemChart('custom',null)"><i class="fas fa-search"></i></button>
+                        </div>
+                    </div>
+                </div>
                 <div class="cpu-chart-grid">
                     <div class="cpu-chart-card">
                         <h4>Memory Usage Trend (%)</h4>
@@ -859,14 +944,31 @@
                 </div>
 
                 <!-- Trend charts -->
-                <div class="cpu-section-label"><i class="fas fa-chart-line" style="color:var(--cyan);"></i> Live Trend (Recent Samples)</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                    <div class="cpu-section-label" style="margin:0;"><i class="fas fa-chart-line" style="color:var(--cyan);"></i> Live Trend (Recent Samples)</div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <div class="chart-filter-pills" id="cpuChartFilters">
+                            <button class="chart-filter-btn" data-range="today" onclick="filterCpuChart('today',this)">Today</button>
+                            <button class="chart-filter-btn" data-range="7d" onclick="filterCpuChart('7d',this)">7D</button>
+                            <button class="chart-filter-btn active" data-range="30d" onclick="filterCpuChart('30d',this)">30D</button>
+                            <button class="chart-filter-btn" data-range="90d" onclick="filterCpuChart('90d',this)">90D</button>
+                            <button class="chart-filter-btn" data-range="all" onclick="filterCpuChart('all',this)">All</button>
+                        </div>
+                        <div class="chart-date-range">
+                            <input type="date" id="cpuDateStart" class="chart-date-input" title="Start date">
+                            <span style="color:var(--slate-400);font-size:.7rem;">to</span>
+                            <input type="date" id="cpuDateEnd" class="chart-date-input" title="End date">
+                            <button class="chart-filter-btn chart-date-apply" onclick="filterCpuChart('custom',null)"><i class="fas fa-search"></i></button>
+                        </div>
+                    </div>
+                </div>
                 <div class="cpu-chart-grid">
                     <div class="cpu-chart-card">
                         <h4>Temperature Trend (&deg;C)</h4>
                         <div style="position:relative; height:180px; width:100%;"><canvas id="cpuTempTrendChart"></canvas></div>
                     </div>
                     <div class="cpu-chart-card">
-                        <h4>Clock Speed Trend (MHz)</h4>
+                        <h4>Clock Speed Trend (GHz)</h4>
                         <div style="position:relative; height:180px; width:100%;"><canvas id="cpuClockTrendChart"></canvas></div>
                     </div>
                 </div>
