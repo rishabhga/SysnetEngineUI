@@ -921,12 +921,40 @@ function loadBiosDetails() {
 
 function loadBatteryDetails() {
     $.get(`/ComputerSummary/Battery?domain=${domaindata}`, function (data) {
-        $('#batteryManufacturer').text(data.manufacturer || 'N/A');
-        $('#batteryStatus').text(data.status || 'N/A');
-        $('#batteryDescription').text(data.description || 'N/A');
-        $('#batteryLevel').text(data.batteryLevel || 'N/A');
-        $('#batterySystemType').text(data.systemType || 'N/A');
+        $('#batteryManufacturer').text(data.manufacturer || data.Manufacturer || 'N/A');
+        $('#batteryStatus').text(data.status || data.Status || 'N/A');
+        $('#batteryDescription').text(data.description || data.Description || 'N/A');
+        $('#batterySystemType').text(data.systemType || data.SystemType || 'N/A');
+        $('#batteryNameDb').text(data.batteryName || data.BatteryName || 'N/A');
+        $('#batterySerialDb').text(data.serialNumber || data.SerialNumber || 'N/A');
+        $('#batteryChemistryDb').text(data.chemistry || data.Chemistry || 'N/A');
+        $('#batteryCycleCountDb').text(
+            (data.cycleCount || data.CycleCount) > 0 ? (data.cycleCount || data.CycleCount) : 'N/A'
+        );
+
+        let scanDate = data.scanDate || data.ScanDate || data.dateTime || data.DateTime;
+        if (scanDate) {
+            try {
+                let d = new Date(scanDate);
+                $('#batteryLastAuditDb').text(d.toLocaleString(undefined, {
+                    year: 'numeric', month: 'short', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                }));
+            } catch (e) { $('#batteryLastAuditDb').text(scanDate); }
+        }
+
+        let lvl = data.batteryPercentage || data.BatteryPercentage || 0;
+        let charging = data.isCharging || data.IsCharging || false;
+        if (lvl > 0) {
+            $('#batteryLevel').html(`<div style="font-size:1rem;font-weight:700;">${lvl}%</div>
+                <div style="font-size:.65rem;color:var(--slate-500);">${charging ? 'Charging' : 'Discharging'}</div>`);
+        } else {
+            $('#batteryLevel').text('N/A');
+        }
     }).fail(function () { console.error("Failed to load battery details"); });
+
+    loadBatteryHistoryCharts();
+    checkBatteryReportExists();
 }
 
 function loadMonitorDetails() {
@@ -1538,39 +1566,29 @@ function renderBatteryAuditPanel(metrics) {
 
     $('#batteryAuditLoading').hide();
     $('#batteryAuditResults').css('display', 'flex');
+    if (metrics.manufacturer) $('#batteryManufacturer').text(metrics.manufacturer);
+    if (metrics.batteryName) $('#batteryNameDb').text(metrics.batteryName);
+    if (metrics.serialNumber) $('#batterySerialDb').text(metrics.serialNumber);
+    if (metrics.chemistry) $('#batteryChemistryDb').text(metrics.chemistry);
+    if (metrics.cycleCount > 0) $('#batteryCycleCountDb').text(metrics.cycleCount);
+    $('#batteryLastAuditDb').text(new Date().toLocaleString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }));
 
-    if (metrics.manufacturer && $('#batteryManufacturer').text() === 'No Battery' || $('#batteryManufacturer').text() === 'N/A') {
-        $('#batteryManufacturer').text(metrics.manufacturer);
-    }
-    if ($('#batteryStatus').text() === 'Error' || $('#batteryStatus').text() === 'N/A') {
-        $('#batteryStatus').text('Online');
-    }
-    if ($('#batteryDescription').text() === 'Not found' || $('#batteryDescription').text() === 'N/A') {
-        $('#batteryDescription').text('Real-time audit active');
-    }
-    if ($('#batteryLevel').text() === '0' || $('#batteryLevel').text() === 'N/A') {
-        $('#batteryLevel').text('--');
-    }
-
-    let healthPercent = metrics.healthPercentage !== undefined ? metrics.healthPercentage : (metrics.batteryHealthPercent || 0);
+    let healthPercent = metrics.healthPercentage !== undefined
+        ? metrics.healthPercentage
+        : (metrics.batteryHealthPercent || 0);
     let hasValidHealthData = (healthPercent > 0 || (metrics.designCapacity && metrics.designCapacity > 0));
 
-    if (hasValidHealthData) {
-        $('#auditHealthPercentText').text(healthPercent + '%');
-    } else {
-        $('#auditHealthPercentText').text('N/A');
-    }
-
+    $('#auditHealthPercentText').text(hasValidHealthData ? healthPercent + '%' : 'N/A');
     $('#auditDesignCap').text(metrics.designCapacity ? metrics.designCapacity.toLocaleString() : '--');
     $('#auditFullCap').text(metrics.fullChargeCapacity ? metrics.fullChargeCapacity.toLocaleString() : '--');
     $('#auditCycleCount').text(metrics.cycleCount > 0 ? metrics.cycleCount : '--');
-
     $('#auditWearRate').text(metrics.wearRatePerMonth !== undefined ? metrics.wearRatePerMonth : '--');
 
     let remainingLife = '--';
     if (metrics.estimatedRemainingMonths !== undefined) {
-        if (metrics.estimatedRemainingMonths === 999) remainingLife = 'Healthy';
-        else remainingLife = metrics.estimatedRemainingMonths;
+        remainingLife = metrics.estimatedRemainingMonths === 999 ? 'Healthy' : metrics.estimatedRemainingMonths;
     }
     $('#auditRemainingLife').text(remainingLife);
 
@@ -1581,28 +1599,22 @@ function renderBatteryAuditPanel(metrics) {
 
     let color = '#4ade80';
     let icon = '<i class="fas fa-check-circle" style="color:#4ade80;"></i>';
-
     let status = metrics.status || 'Unknown';
 
     if (!hasValidHealthData) {
-        color = '#94a3b8'; 
-        icon = '<i class="fas fa-question-circle" style="color:#94a3b8;"></i>';
-        if (status === 'Unknown' || status === 'Error' || status === 'N/A') {
-            status = 'No Data';
-        }
-    } else if (status === 'Aging' || (healthPercent < 80 && healthPercent >= 60)) {
-        color = '#f59e0b';
-        icon = '<i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i>';
-    } else if (status === 'Replacement Recommended' || (healthPercent < 60 && healthPercent >= 50)) {
-        color = '#f97316';
-        icon = '<i class="fas fa-tools" style="color:#f97316;"></i>';
-    } else if (status === 'Critical' || healthPercent < 50) {
-        color = '#ef4444';
-        icon = '<i class="fas fa-times-circle" style="color:#ef4444;"></i>';
+        color = '#94a3b8'; icon = '<i class="fas fa-question-circle" style="color:#94a3b8;"></i>';
+        if (['Unknown', 'Error', 'N/A'].includes(status)) status = 'No Data';
+    } else if (healthPercent < 50) {
+        color = '#ef4444'; icon = '<i class="fas fa-times-circle" style="color:#ef4444;"></i>';
+    } else if (healthPercent < 60) {
+        color = '#f97316'; icon = '<i class="fas fa-tools" style="color:#f97316;"></i>';
+    } else if (healthPercent < 80) {
+        color = '#f59e0b'; icon = '<i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i>';
     }
 
     circle.css('stroke', color);
     $('#auditStatus').html(icon + ' <span style="color:' + color + ';">' + status + '</span>');
+    $('#batteryStatus').text(status);
 
     if (metrics.liveBatteryLevel !== undefined && metrics.liveBatteryLevel !== null) {
         $('#liveBatteryCard').css('display', 'flex');
@@ -1632,8 +1644,7 @@ function renderBatteryAuditPanel(metrics) {
         if (metrics.liveBatteryLevel > 0) {
             $('#batteryLevel').html(`
                 <div style="font-size:1.1rem;font-weight:700;">${metrics.liveBatteryLevel}%</div>
-                <div style="font-size:.65rem;color:var(--slate-500);">${details}</div>
-            `);
+                <div style="font-size:.65rem;color:var(--slate-500);">${details}</div>`);
         }
     } else {
         $('#liveBatteryCard').hide();
@@ -1642,106 +1653,332 @@ function renderBatteryAuditPanel(metrics) {
     renderCapacityTrendChart(metrics.capacityHistory);
     renderBatteryUsageTables(metrics.batteryUsage, metrics.usageHistory);
     checkBatteryReportExists();
+    setTimeout(() => loadBatteryHistoryCharts(), 1500);
+}
+
+let battHistHealthChart = null;
+let battHistCapacityChart = null;
+let battHistCycleChart = null;
+let battHistLiveChart = null;
+
+function loadBatteryHistoryCharts() {
+    $('#batteryHistoryChartLoading').show();
+    $('#batteryHistoryChartWrap').hide();
+    $('#batteryHistoryNoData').hide();
+
+    $.get(`/ComputerSummary/GetBatteryHistory?domain=${domaindata}`, function (rows) {
+        $('#batteryHistoryChartLoading').hide();
+
+        if (!rows || rows.length === 0) {
+            $('#batteryHistoryNoData').show();
+            return;
+        }
+
+        rows.sort((a, b) => new Date(a.scanDate || a.ScanDate) - new Date(b.scanDate || b.ScanDate));
+
+        const labels = rows.map(r => {
+            let d = new Date(r.scanDate || r.ScanDate);
+            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' });
+        });
+
+        const healthData = rows.map(r => parseFloat(r.batteryHealthPercent || r.BatteryHealthPercent) || null);
+        const capacityData = rows.map(r => parseInt(r.fullChargeCapacity || r.FullChargeCapacity) || null);
+        const cycleData = rows.map(r => parseInt(r.cycleCount || r.CycleCount) || null);
+        const liveData = rows.map(r => parseInt(r.batteryPercentage || r.BatteryPercentage) || null);
+
+        $('#battHistAuditCount').text(rows.length + ' audit' + (rows.length === 1 ? '' : 's'));
+        let firstDate = new Date(rows[0].scanDate || rows[0].ScanDate);
+        let lastDate = new Date(rows[rows.length - 1].scanDate || rows[rows.length - 1].ScanDate);
+        $('#battHistFirstAudit').text('First: ' + firstDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }));
+        $('#battHistLastAudit').text('Latest: ' + lastDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }));
+
+        const sharedXAxis = { ticks: { font: { size: 9 }, maxRotation: 45 } };
+        const sharedOptions = {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: sharedXAxis }
+        };
+
+        if (battHistHealthChart) battHistHealthChart.destroy();
+        battHistHealthChart = new Chart(
+            document.getElementById('battHistHealthChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Health %',
+                    data: healthData,
+                    borderColor: '#22c55e',
+                    backgroundColor: 'rgba(34,197,94,0.12)',
+                    borderWidth: 2.5, fill: true, tension: 0.3,
+                    pointRadius: rows.length > 20 ? 2 : 4,
+                    pointBackgroundColor: healthData.map(v =>
+                        v >= 80 ? '#22c55e' : v >= 60 ? '#f59e0b' : '#ef4444'
+                    )
+                }]
+            },
+            options: {
+                ...sharedOptions,
+                scales: {
+                    x: sharedXAxis,
+                    y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 10 } } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `Health: ${ctx.raw}%`,
+                            afterLabel: ctx => {
+                                let r = rows[ctx.dataIndex];
+                                let status = r.status || r.Status || '';
+                                return status ? 'Status: ' + status : '';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (battHistCapacityChart) battHistCapacityChart.destroy();
+        battHistCapacityChart = new Chart(
+            document.getElementById('battHistCapacityChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Full Charge (mWh)',
+                    data: capacityData,
+                    backgroundColor: 'rgba(14,165,233,0.7)',
+                    borderColor: '#0ea5e9',
+                    borderWidth: 1,
+                    borderRadius: 3
+                }, {
+                    label: 'Design (mWh)',
+                    data: rows.map(r => parseInt(r.designCapacity || r.DesignCapacity) || null),
+                    type: 'line',
+                    borderColor: '#94a3b8',
+                    borderWidth: 1.5,
+                    borderDash: [4, 4],
+                    fill: false,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                ...sharedOptions,
+                plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 10 } } } },
+                scales: {
+                    x: sharedXAxis,
+                    y: { ticks: { font: { size: 10 } }, beginAtZero: false }
+                }
+            }
+        });
+
+        if (battHistCycleChart) battHistCycleChart.destroy();
+        battHistCycleChart = new Chart(
+            document.getElementById('battHistCycleChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Cycle Count',
+                    data: cycleData,
+                    borderColor: '#a855f7',
+                    backgroundColor: 'rgba(168,85,247,0.1)',
+                    borderWidth: 2, fill: true, tension: 0.3,
+                    pointRadius: rows.length > 20 ? 2 : 4
+                }]
+            },
+            options: {
+                ...sharedOptions,
+                scales: {
+                    x: sharedXAxis,
+                    y: { ticks: { font: { size: 10 } }, beginAtZero: true }
+                }
+            }
+        });
+
+        if (battHistLiveChart) battHistLiveChart.destroy();
+        battHistLiveChart = new Chart(
+            document.getElementById('battHistLiveChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Battery % at Audit',
+                    data: liveData,
+                    backgroundColor: liveData.map(v =>
+                        !v ? '#e2e8f0' :
+                            v <= 20 ? 'rgba(239,68,68,0.7)' :
+                                v <= 50 ? 'rgba(245,158,11,0.7)' :
+                                    'rgba(16,185,129,0.7)'
+                    ),
+                    borderRadius: 3
+                }]
+            },
+            options: {
+                ...sharedOptions,
+                scales: {
+                    x: sharedXAxis,
+                    y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 10 } } }
+                }
+            }
+        });
+
+        $('#batteryHistoryChartWrap').show();
+
+    }).fail(function () {
+        $('#batteryHistoryChartLoading').hide();
+        $('#batteryHistoryNoData').show();
+    });
+}
+
+let battDrainChart = null;
+let battUsageHistChart = null;
+
+function parseDurationToMinutes(durStr) {
+    if (!durStr || durStr === '-' || durStr === '--') return null;
+    const parts = durStr.trim().split(':').map(Number);
+    if (parts.length === 3) return parts[0] * 60 + parts[1] + parts[2] / 60;
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return null;
 }
 
 function renderBatteryUsageTables(batteryUsage, usageHistory) {
-    let hasData = false;
     const container = $('#usageHistoryContainer');
+    let hasData = false;
 
-    if (batteryUsage && batteryUsage.length > 0) {
-        let html = '';
-        batteryUsage.forEach(r => {
-            html += `<tr>
-                <td>${r.startTime || '-'}</td>
-                <td>${r.state || '-'}</td>
-                <td>${r.duration || '-'}</td>
-                <td>${r.energyDrained || '-'}</td>
-            </tr>`;
-        });
-        $('#batteryUsageTableBody').html(html);
+    const drainCanvas = document.getElementById('battDrainChartCanvas');
+    if (drainCanvas && batteryUsage && batteryUsage.length > 0) {
         hasData = true;
-    } else {
-        $('#batteryUsageTableBody').html('<tr><td colspan="4" class="text-center text-muted">No recent drains found.</td></tr>');
-    }
-
-    if (usageHistory && usageHistory.length > 0) {
-        let html = '';
-        usageHistory.forEach(r => {
-            html += `<tr>
-                <td>${r.period || '-'}</td>
-                <td>${r.batteryActive || '-'}</td>
-                <td>${r.acActive || '-'}</td>
-            </tr>`;
+        const drainLabels = batteryUsage.map(r => r.startTime ? r.startTime.split(' ').slice(-1)[0] : '-');
+        const drainMins = batteryUsage.map(r => parseDurationToMinutes(r.duration));
+        const drainEnergy = batteryUsage.map(r => {
+            if (!r.energyDrained || r.energyDrained === '-' || r.energyDrained === '- -') return null;
+            const m = r.energyDrained.match(/(\d[\d,]*)\s*mWh/i);
+            return m ? parseInt(m[1].replace(/,/g, '')) : null;
         });
-        $('#usageHistoryTableBody').html(html);
-        hasData = true;
-    } else {
-        $('#usageHistoryTableBody').html('<tr><td colspan="3" class="text-center text-muted">No usage history found.</td></tr>');
+
+        if (battDrainChart) battDrainChart.destroy();
+        battDrainChart = new Chart(drainCanvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: drainLabels,
+                datasets: [
+                    {
+                        label: 'Duration (min)',
+                        data: drainMins,
+                        backgroundColor: 'rgba(14,165,233,0.7)',
+                        borderColor: '#0ea5e9',
+                        borderWidth: 1,
+                        borderRadius: 3,
+                        yAxisID: 'yDur'
+                    },
+                    {
+                        label: 'Energy Drained (mWh)',
+                        data: drainEnergy,
+                        type: 'line',
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245,158,11,0.12)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        yAxisID: 'yEng'
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } },
+                scales: {
+                    x: { ticks: { font: { size: 9 }, maxRotation: 45 } },
+                    yDur: { position: 'left', ticks: { font: { size: 9 } }, title: { display: true, text: 'Duration (min)', font: { size: 9 } } },
+                    yEng: { position: 'right', ticks: { font: { size: 9 } }, title: { display: true, text: 'mWh', font: { size: 9 } }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
     }
 
-    if (hasData) {
-        container.show();
-    } else {
-        container.hide();
+    const histCanvas = document.getElementById('battUsageHistChartCanvas');
+    if (histCanvas && usageHistory && usageHistory.length > 0) {
+        hasData = true;
+        const histLabels = usageHistory.map(r => r.period ? r.period.split(' - ').pop() : '-');
+        const batMins = usageHistory.map(r => parseDurationToMinutes(r.batteryActive));
+        const acMins = usageHistory.map(r => parseDurationToMinutes(r.acActive));
+
+        if (battUsageHistChart) battUsageHistChart.destroy();
+        battUsageHistChart = new Chart(histCanvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: histLabels,
+                datasets: [
+                    {
+                        label: 'Battery Active (min)',
+                        data: batMins,
+                        backgroundColor: 'rgba(168,85,247,0.7)',
+                        borderColor: '#a855f7',
+                        borderWidth: 1,
+                        borderRadius: 3
+                    },
+                    {
+                        label: 'AC Active (min)',
+                        data: acMins,
+                        backgroundColor: 'rgba(34,197,94,0.7)',
+                        borderColor: '#22c55e',
+                        borderWidth: 1,
+                        borderRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } },
+                scales: {
+                    x: { stacked: false, ticks: { font: { size: 9 }, maxRotation: 45 } },
+                    y: { ticks: { font: { size: 9 } }, title: { display: true, text: 'Minutes', font: { size: 9 } }, beginAtZero: true }
+                }
+            }
+        });
     }
+
+    container.toggle(hasData);
 }
-
 let capacityChartInstance = null;
 function renderCapacityTrendChart(history) {
     const container = $('#capacityChartContainer');
-    if (!history || history.length < 2) {
-        container.hide();
-        return;
-    }
+    if (!history || history.length < 2) { container.hide(); return; }
     container.show();
 
     const canvas = document.getElementById('capacityTrendChart');
     if (!canvas) return;
-
-    if (capacityChartInstance) {
-        capacityChartInstance.destroy();
-    }
-
-    const labels = history.map(h => h.period);
-    const fullChargeData = history.map(h => h.fullChargeCapacity);
-    const designCapData = history.map(h => h.designCapacity);
+    if (capacityChartInstance) capacityChartInstance.destroy();
 
     capacityChartInstance = new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
-            labels: labels,
+            labels: history.map(h => h.period),
             datasets: [
                 {
                     label: 'Full Charge Capacity (mWh)',
-                    data: fullChargeData,
+                    data: history.map(h => h.fullChargeCapacity),
                     borderColor: '#0ea5e9',
-                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3
+                    backgroundColor: 'rgba(14,165,233,0.1)',
+                    borderWidth: 2, fill: true, tension: 0.3
                 },
                 {
                     label: 'Design Capacity (mWh)',
-                    data: designCapData,
-                    borderColor: '#cbd5e1',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    fill: false,
-                    pointRadius: 0
+                    data: history.map(h => h.designCapacity),
+                    borderColor: '#cbd5e1', borderWidth: 2,
+                    borderDash: [5, 5], fill: false, pointRadius: 0
                 }
             ]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom' }
-            },
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: 'Capacity (mWh)' }
-                }
+                x: { ticks: { font: { size: 9 }, maxRotation: 45 } },
+                y: { ticks: { font: { size: 10 } }, beginAtZero: false }
             }
         }
     });
@@ -1762,7 +1999,7 @@ function loadHardDiskDetails() {
 }
 
 function renderHardDiskDashboard(disks) {
-    const d = disks[0]; 
+    const d = disks[0];
 
     const totalCap = parseFloat(d.TotalCapacity || d.totalCapacity || 0).toFixed(1);
     $('#diskHeroName').text(d.Model || d.model || 'Unknown Disk');
@@ -1773,7 +2010,7 @@ function renderHardDiskDashboard(disks) {
 
     const health = (d.HealthStatus || d.healthStatus || '').toString().toUpperCase();
     const predictFail = d.PredictFailure || d.predictFailure || false;
-    let healthColor = '#22c55e', healthText = health || 'HEALTHY';
+    let healthColor = '#10b981', healthText = health || 'HEALTHY';
     if (predictFail || health === 'CRITICAL' || health === 'FAILING') {
         healthColor = '#ef4444'; healthText = 'FAILING';
         $('#diskHealthBadge').addClass('is-down');
@@ -1795,19 +2032,30 @@ function renderHardDiskDashboard(disks) {
         $('#diskSelectorWrap').show();
         let tabHtml = '';
         disks.forEach(function (disk, idx) {
+            const isActive = idx === 0;
+            const cap = parseFloat(disk.TotalCapacity || disk.totalCapacity || 0).toFixed(0);
             tabHtml += `<li style="cursor:pointer;">
-                <a class="disk-selector-tab cpu-pill${idx === 0 ? ' active' : ''}"
-                   style="${idx === 0 ? 'background:var(--cyan);color:#fff;border-color:var(--cyan);' : ''}"
+                <a class="disk-selector-tab cpu-pill${isActive ? ' active' : ''}"
+                   style="${isActive ? 'background:linear-gradient(135deg,var(--primary),#0d9488);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(14,165,233,.25);' : 'background:#fff;border-color:var(--slate-200);color:var(--slate-600);'}"
                    data-disk-idx="${idx}">
-                   <i class="fas fa-hdd"></i> Disk ${idx + 1}: ${(disk.Model || disk.model || 'Unknown').substring(0, 22)}
+                   <i class="fas fa-hdd" style="margin-right:4px;"></i>
+                   <strong>Disk ${idx + 1}</strong>
+                   <span style="opacity:.7;font-size:.7rem;margin-left:4px;">${cap} GB — ${(disk.Model || disk.model || 'Unknown').substring(0, 20)}</span>
                 </a></li>`;
         });
         $('#diskSelectorTabs').html(tabHtml);
         $(document).off('click', '.disk-selector-tab').on('click', '.disk-selector-tab', function () {
             const idx = parseInt($(this).data('disk-idx'));
-            $('.disk-selector-tab').css({ background: '#fff', color: 'var(--slate-600)', borderColor: 'var(--slate-200)' }).removeClass('active');
-            $(this).css({ background: 'var(--cyan)', color: '#fff', borderColor: 'var(--cyan)' }).addClass('active');
-            renderDiskPanels(disks[idx]);
+            const clickedDisk = disks[idx];
+            $('.disk-selector-tab').css({ background: '#fff', color: 'var(--slate-600)', borderColor: 'var(--slate-200)', boxShadow: 'none' }).removeClass('active');
+            $(this).css({ background: 'linear-gradient(135deg,var(--primary),#0d9488)', color: '#fff', borderColor: 'transparent', boxShadow: '0 2px 8px rgba(14,165,233,.25)' }).addClass('active');
+            // Update hero for selected disk
+            const selCap = parseFloat(clickedDisk.TotalCapacity || clickedDisk.totalCapacity || 0).toFixed(1);
+            $('#diskHeroName').text(clickedDisk.Model || clickedDisk.model || 'Unknown Disk');
+            $('#diskHeroCapacity').html('<i class="fas fa-database"></i> ' + selCap + ' GB Total');
+            $('#diskHeroInterface').html('<i class="fas fa-plug"></i> ' + (clickedDisk.InterfaceType || clickedDisk.interfaceType || 'N/A'));
+            $('#diskHeroPowerOn').html('<i class="fas fa-clock"></i> ' + Number(clickedDisk.PowerOnHours || clickedDisk.powerOnHours || 0).toLocaleString() + ' hrs powered');
+            renderDiskPanels(clickedDisk);
         });
     }
 

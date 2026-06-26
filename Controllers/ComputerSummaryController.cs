@@ -3663,6 +3663,32 @@ namespace ManageEngineWebApp.Controllers
             return Json(localDatalist);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetBatteryHistory(string domain)
+        {
+            if (!await IsDeviceAuthorized(domain))
+            {
+                return Json(new { success = false, message = "Unauthorized" });
+            }
+            string UCode = GetUCodeFromDomain(domain);
+            try
+            {
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/Battery/history/{Uri.EscapeDataString(UCode)}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+                return Json(new List<object>());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"GetBatteryHistory Error: {ex.Message}");
+                return Json(new List<object>());
+            }
+        }
+
         //BatteryInfo
         [HttpGet]
         public async Task<IActionResult> Battery(string domain)
@@ -3685,32 +3711,59 @@ namespace ManageEngineWebApp.Controllers
 
                 if (!localDatalist.Any())
                 {
-                    return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = "0", BatteryPercentage = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
+                    return Json(new
+                    {
+                        Manufacturer = "N/A",
+                        Status = "N/A",
+                        Description = "N/A",
+                        BatteryLevel = "0",
+                        BatteryPercentage = 0,
+                        SystemType = "N/A",
+                        UserCode = UCode,
+                        DateTime = DateTime.Now
+                    });
                 }
 
                 var b = localDatalist[0];
-                var batterydata = new
+                return Json(new
                 {
                     Manufacturer = b.Manufacturer,
                     Status = b.Status,
                     Description = b.Description,
                     BatteryLevel = b.BatteryPercentage.ToString(),
                     BatteryPercentage = b.BatteryPercentage,
+                    LiveBatteryDetails = b.LiveBatteryDetails,
                     SystemType = b.SystemType,
                     UserCode = b.UserCode,
                     DateTime = b.ScanDate,
                     IsCharging = b.IsCharging,
                     DesignCapacity = b.DesignCapacity,
                     FullChargeCapacity = b.FullChargeCapacity,
+                    RemainingCapacity = b.RemainingCapacity,
                     CycleCount = b.CycleCount,
-                    BatteryHealthPercent = b.BatteryHealthPercent
-                };
-
-                return Json(batterydata);
+                    BatteryHealthPercent = b.BatteryHealthPercent,
+                    WearLevelPercent = b.WearLevelPercent,
+                    WearRatePerMonth = b.WearRatePerMonth,
+                    EstimatedRemainingMonths = b.EstimatedRemainingMonths,
+                    BatteryName = b.BatteryName,
+                    SerialNumber = b.SerialNumber,
+                    Chemistry = b.Chemistry,
+                    ScanDate = b.ScanDate
+                });
             }
             catch (Exception)
             {
-                return Json(new { Manufacturer = "N/A", Status = "N/A", Description = "N/A", BatteryLevel = "0", BatteryPercentage = 0, SystemType = "N/A", UserCode = UCode, DateTime = DateTime.Now });
+                return Json(new
+                {
+                    Manufacturer = "N/A",
+                    Status = "N/A",
+                    Description = "N/A",
+                    BatteryLevel = "0",
+                    BatteryPercentage = 0,
+                    SystemType = "N/A",
+                    UserCode = UCode,
+                    DateTime = DateTime.Now
+                });
             }
         }
 
@@ -3746,10 +3799,8 @@ namespace ManageEngineWebApp.Controllers
                         if (data != null && data["lastWriteTimeUtc"] != null)
                         {
                             DateTime lastWriteTime = data["lastWriteTimeUtc"].ToObject<DateTime>().ToUniversalTime();
-                            // Accept any file written within the last 5 minutes to handle extremely slow client uploads gracefully
                             if (lastWriteTime > DateTime.UtcNow.AddMinutes(-5))
                             {
-                                // Return raw JSON string to prevent System.Text.Json from corrupting the JObject
                                 string finalJson = $"{{\"success\":true,\"data\":{content}}}";
                                 return Content(finalJson, "application/json");
                             }
