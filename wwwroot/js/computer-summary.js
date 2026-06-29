@@ -56,7 +56,7 @@ $(document).ready(function () {
     actualDomainName = $('#domainName').val() || domaindata;
 
     if (!domaindata) {
-        console.error("Domain ID not found — skipping data load");
+        console.error("Domain ID not found â€” skipping data load");
         return;
     }
 
@@ -112,6 +112,22 @@ function initTabStyles() {
             lazyLoadTabData(target);
         }
 
+        var firstSubTabMap = {
+            '#Hardware': '#hardwareSubTabs .hardware-tab:first-child a',
+            '#System': '#systemSubTabs .system-tab:first-child a',
+            '#Software': '#softwareSubTabs .software-tab:first-child a',
+            '#Security': '#securitySubTabs .security-tab:first-child a',
+            '#History': '#historySubTabs .history-tab:first-child a'
+        };
+        if (firstSubTabMap[target]) {
+            var $firstSubTab = $(firstSubTabMap[target]);
+            if ($firstSubTab.length) {
+                var $activeSubPane = $(target).find('.tab-pane.active');
+                if ($activeSubPane.length === 0) {
+                    $firstSubTab.trigger('click');
+                }
+            }
+        }
         setTimeout(function () {
             $(window).trigger('resize');
             if ($.fn.DataTable) {
@@ -516,8 +532,8 @@ let _fullCpuHistory = [];
 
 function formatChartLabel(dt) {
     if (isNaN(dt.getTime())) return '';
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return months[dt.getMonth()] + ' ' + dt.getDate() + ' ' + String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[dt.getMonth()] + ' ' + dt.getDate() + ' ' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
 }
 
 function chartScaleXOptions() {
@@ -551,7 +567,7 @@ function filterByRange(history, range, dateKey, startDate, endDate) {
     } else {
         return history;
     }
-    return history.filter(function(h) {
+    return history.filter(function (h) {
         var val = h[dateKey] || h['DateTime'] || h['dateTime'];
         var dt = new Date(val);
         return !isNaN(dt.getTime()) && dt >= cutoffStart && dt <= cutoffEnd;
@@ -856,7 +872,7 @@ function _renderHwPartitions(data) {
         if (pct >= 90) barColor = '#ef4444';
         else if (pct >= 75) barColor = '#f59e0b';
 
-        var displayName = escapeHtml(letter) + (label ? ' — ' + escapeHtml(label) : '');
+        var displayName = escapeHtml(letter) + (label ? ' â€” ' + escapeHtml(label) : '');
 
         var isOptical = (driveType || '').toLowerCase().includes('cd') ||
             (driveType || '').toLowerCase().includes('dvd') ||
@@ -1183,7 +1199,7 @@ function renderProcessorTrendCharts(history, skipStore) {
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, tooltip: { mode: 'index', intersect: false } },
-                scales: Object.assign({ y: { title: { display: true, text: '°C' } } }, chartScaleXOptions())
+                scales: Object.assign({ y: { title: { display: true, text: 'Â°C' } } }, chartScaleXOptions())
             }
         });
     }
@@ -1347,7 +1363,7 @@ function uninstallSoftware(softwareName) {
     }).then(function (result) {
         if (!result.isConfirmed) return;
 
-        sysAlert('Sending uninstall command�', 'info');
+        sysAlert('Sending uninstall commandï¿½', 'info');
 
         $.ajax({
             url: '/ComputerSummary/Uninstallsoftware?domain=' + encodeURIComponent(actualDomainName),
@@ -1356,7 +1372,7 @@ function uninstallSoftware(softwareName) {
             data: JSON.stringify({ softwareName: softwareName }),
             success: function (res) {
                 if (res && res.status === 'success') {
-                    sysAlert('Uninstall command sent. Checking status�', 'info');
+                    sysAlert('Uninstall command sent. Checking statusï¿½', 'info');
                     pollUninstallStatus(softwareName, 0);
                 } else {
                     sysAlert('Uninstall failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
@@ -1409,7 +1425,7 @@ function installSoftware(fileName) {
     }).then(function (result) {
         if (!result.isConfirmed) return;
 
-        sysAlert('Sending install command�', 'info');
+        sysAlert('Sending install commandï¿½', 'info');
 
         $.ajax({
             url: '/ComputerSummary/PatchUpdate?domain=' + encodeURIComponent(actualDomainName),
@@ -1418,7 +1434,7 @@ function installSoftware(fileName) {
             data: JSON.stringify({ softwareName: fileName }),
             success: function (res) {
                 if (res && res.status === 'success') {
-                    sysAlert('Install command sent. Checking status�', 'info');
+                    sysAlert('Install command sent. Checking statusï¿½', 'info');
                     pollInstallStatus(fileName, 0);
                 } else {
                     sysAlert('Install failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
@@ -1475,7 +1491,7 @@ function installPatch(patchId, patchName) {
     }).then(function (result) {
         if (!result.isConfirmed) return;
 
-        sysAlert('Sending patch command�', 'info');
+        sysAlert('Sending patch commandï¿½', 'info');
         $.ajax({
             url: '/ComputerSummary/PatchUpdate?domain=' + encodeURIComponent(actualDomainName),
             type: 'POST',
@@ -1483,7 +1499,7 @@ function installPatch(patchId, patchName) {
             data: JSON.stringify({ softwareName: displayName }),
             success: function (res) {
                 if (res && res.status === 'success') {
-                    sysAlert('Patch command sent. Checking status�', 'info');
+                    sysAlert('Patch command sent. Checking statusï¿½', 'info');
                     pollInstallStatus(displayName, 0);
                 } else {
                     sysAlert('Patch failed: ' + (res && res.message ? res.message : 'Unknown error'), 'error');
@@ -2040,7 +2056,7 @@ function renderHardDiskDashboard(disks) {
                    data-disk-idx="${idx}">
                    <i class="fas fa-hdd" style="margin-right:4px;"></i>
                    <strong>Disk ${idx + 1}</strong>
-                   <span style="opacity:.7;font-size:.7rem;margin-left:4px;">${cap} GB — ${(disk.Model || disk.model || 'Unknown').substring(0, 20)}</span>
+                   <span style="opacity:.7;font-size:.7rem;margin-left:4px;">${cap} GB â€” ${(disk.Model || disk.model || 'Unknown').substring(0, 20)}</span>
                 </a></li>`;
         });
         $('#diskSelectorTabs').html(tabHtml);
@@ -2103,7 +2119,7 @@ function renderDiskPanels(d) {
             <div class="cs-info-box"><div class="cs-info-box-label">Free Space</div><div class="cs-info-box-value green">${freeGB.toFixed(2)} GB</div></div>
             <div class="cs-info-box"><div class="cs-info-box-label">Power-On Hours</div><div class="cs-info-box-value">${Number(d.PowerOnHours || d.powerOnHours || 0).toLocaleString()} hrs</div></div>
             <div class="cs-info-box"><div class="cs-info-box-label">Health Status</div><div class="cs-info-box-value" style="color:${(d.HealthStatus || '').toUpperCase() === 'HEALTHY' ? '#22c55e' : '#f59e0b'};">${d.HealthStatus || d.healthStatus || 'N/A'}</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Predict Failure</div><div class="cs-info-box-value" style="color:${(d.PredictFailure || d.predictFailure) ? '#ef4444' : '#22c55e'};">${(d.PredictFailure || d.predictFailure) ? 'Yes ⚠' : 'No'}</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Predict Failure</div><div class="cs-info-box-value" style="color:${(d.PredictFailure || d.predictFailure) ? '#ef4444' : '#22c55e'};">${(d.PredictFailure || d.predictFailure) ? 'Yes âš ' : 'No'}</div></div>
         </div>`;
     $('#diskSpecsContainer').html(specsHtml);
 
@@ -2146,7 +2162,7 @@ function renderDiskPanels(d) {
                         <div style="flex:1;height:10px;border-radius:6px;background:var(--slate-100);overflow:hidden;">
                             <div style="height:100%;width:${tempNorm.toFixed(1)}%;background:${tempColor};border-radius:6px;transition:width 1s;"></div>
                         </div>
-                        <span style="font-size:.8rem;font-weight:800;color:${tempColor};min-width:40px;text-align:right;">${tempVal}°C</span>
+                        <span style="font-size:.8rem;font-weight:800;color:${tempColor};min-width:40px;text-align:right;">${tempVal}Â°C</span>
                     </div>
                 </div>` : ''}
 
@@ -2217,5 +2233,105 @@ $(document).ready(function () {
             }
         });
     });
+
+    $('#btnAuditMemory').on('click', function (e) {
+        e.preventDefault();
+        let btn = $(this);
+        let originalText = btn.html();
+        btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
+        btn.prop('disabled', true);
+        btn.css('opacity', '0.7');
+        sysAlert('Memory audit requested. Waiting for device to respond...', 'info');
+
+        $.ajax({
+            url: '/ComputerSummary/AuditMemory?domain=' + encodeURIComponent(actualDomainName),
+            type: 'POST',
+            timeout: 90000,
+            success: function (res) {
+                if (res && res.success) {
+                    sysAlert(res.message || 'Memory audit completed!', 'success');
+                    loadMemoryDetails();
+                } else {
+                    sysAlert(res.message || 'Memory audit failed.', 'error');
+                }
+            },
+            error: function (xhr, status) {
+                let msg = status === 'timeout' ? 'Memory audit timed out. The device may still be processing.' : 'Connection error while requesting memory audit.';
+                sysAlert(msg, 'error');
+            },
+            complete: function () {
+                btn.html(originalText);
+                btn.prop('disabled', false);
+                btn.css('opacity', '1');
+            }
+        });
+    });
+
+    $('#btnAuditProcessor').on('click', function (e) {
+        e.preventDefault();
+        let btn = $(this);
+        let originalText = btn.html();
+        btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
+        btn.prop('disabled', true);
+        btn.css('opacity', '0.7');
+        sysAlert('Processor audit requested. Waiting for device to respond...', 'info');
+
+        $.ajax({
+            url: '/ComputerSummary/AuditProcessor?domain=' + encodeURIComponent(actualDomainName),
+            type: 'POST',
+            timeout: 90000,
+            success: function (res) {
+                if (res && res.success) {
+                    sysAlert(res.message || 'Processor audit completed!', 'success');
+                    loadProcessorDetails();
+                } else {
+                    sysAlert(res.message || 'Processor audit failed.', 'error');
+                }
+            },
+            error: function (xhr, status) {
+                let msg = status === 'timeout' ? 'Processor audit timed out. The device may still be processing.' : 'Connection error while requesting processor audit.';
+                sysAlert(msg, 'error');
+            },
+            complete: function () {
+                btn.html(originalText);
+                btn.prop('disabled', false);
+                btn.css('opacity', '1');
+            }
+        });
+    });
+
+    $('#btnAuditHardDisk').on('click', function (e) {
+        e.preventDefault();
+        let btn = $(this);
+        let originalText = btn.html();
+        btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
+        btn.prop('disabled', true);
+        btn.css('opacity', '0.7');
+        sysAlert('Hard Disk audit requested. Waiting for device to respond...', 'info');
+
+        $.ajax({
+            url: '/ComputerSummary/AuditHardDisk?domain=' + encodeURIComponent(actualDomainName),
+            type: 'POST',
+            timeout: 90000,
+            success: function (res) {
+                if (res && res.success) {
+                    sysAlert(res.message || 'Hard Disk audit completed!', 'success');
+                    loadHardDiskDetails();
+                } else {
+                    sysAlert(res.message || 'Hard Disk audit failed.', 'error');
+                }
+            },
+            error: function (xhr, status) {
+                let msg = status === 'timeout' ? 'Hard Disk audit timed out. The device may still be processing.' : 'Connection error while requesting hard disk audit.';
+                sysAlert(msg, 'error');
+            },
+            complete: function () {
+                btn.html(originalText);
+                btn.prop('disabled', false);
+                btn.css('opacity', '1');
+            }
+        });
+    });
+
     checkBatteryReportExists();
 });

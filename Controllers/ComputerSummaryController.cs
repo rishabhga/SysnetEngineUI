@@ -3671,10 +3671,11 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, message = "Unauthorized" });
             }
             string UCode = GetUCodeFromDomain(domain);
+            string searchName = domain.Contains('\\') ? domain.Split('\\')[0].ToUpperInvariant() : domain;
             try
             {
                 using var httpClient = GetClient();
-                var response = await httpClient.GetAsync($"{_baseUrl}/api/Battery/history/{Uri.EscapeDataString(UCode)}");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/Battery/history/{Uri.EscapeDataString(searchName)}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -3696,44 +3697,89 @@ namespace ManageEngineWebApp.Controllers
             if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<BatteryInfo>();
             string UCode = GetUCodeFromDomain(domain);
+            string searchName = domain.Contains('\\') ? domain.Split('\\')[0].ToUpperInvariant() : domain;
             try
             {
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Battery");
-
-                var response = await httpClient.GetAsync("");
-                if (response.IsSuccessStatusCode)
+                
+                var battResponse = await httpClient.GetAsync($"{_baseUrl}/api/Battery/history/{Uri.EscapeDataString(searchName)}");
+                if (battResponse.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
+                    var content = await battResponse.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<List<BatteryInfo>>(content);
-                    if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
+                    if (data != null)
+                        localDatalist = data
+                            .OrderByDescending(x => x.ScanDate)
+                            .ToList();
                 }
+
+                string wmiManufacturer = null;
+                string wmiStatus = null;
+                int wmiBatteryLevel = 0;
+                string wmiSystemType = null;
+                try
+                {
+                    var devResponse = await httpClient.GetAsync($"{_baseUrl}/api/DeviceSummary");
+                    if (devResponse.IsSuccessStatusCode)
+                    {
+                        var devContent = await devResponse.Content.ReadAsStringAsync();
+                        var devList = JsonConvert.DeserializeObject<List<dynamic>>(devContent);
+                        var devRecord = devList?.FirstOrDefault(x =>
+                            (string)x.UserCode == UCode || (string)x.userCode == UCode);
+                        if (devRecord != null)
+                        {
+                            wmiManufacturer = (string)(devRecord.DeviceManufacturer ?? devRecord.deviceManufacturer);
+                            wmiSystemType = (string)(devRecord.DeviceType ?? devRecord.deviceType);
+                            string bl = (string)(devRecord.BatteryLevel ?? devRecord.batteryLevel ?? "");
+                            if (!string.IsNullOrEmpty(bl))
+                                int.TryParse(System.Text.RegularExpressions.Regex.Replace(bl, "[^0-9]", ""), out wmiBatteryLevel);
+                        }
+                    }
+                }
+                catch { }
 
                 if (!localDatalist.Any())
                 {
                     return Json(new
                     {
-                        Manufacturer = "N/A",
-                        Status = "N/A",
-                        Description = "N/A",
-                        BatteryLevel = "0",
-                        BatteryPercentage = 0,
-                        SystemType = "N/A",
+                        Manufacturer = wmiManufacturer ?? "Not found",
+                        Status = wmiStatus ?? "Not found",
+                        Description = "Not found",
+                        BatteryLevel = wmiBatteryLevel > 0 ? wmiBatteryLevel.ToString() : "0",
+                        BatteryPercentage = wmiBatteryLevel,
+                        SystemType = wmiSystemType ?? "Not found",
                         UserCode = UCode,
-                        DateTime = DateTime.Now
+                        DateTime = DateTime.Now,
+                        BatteryName = (string)null,
+                        SerialNumber = (string)null,
+                        Chemistry = (string)null,
+                        CycleCount = (int?)null,
+                        BatteryHealthPercent = (decimal?)null,
+                        WearLevelPercent = (decimal?)null,
+                        WearRatePerMonth = (double?)null,
+                        EstimatedRemainingMonths = (int?)null,
+                        DesignCapacity = (long?)null,
+                        FullChargeCapacity = (long?)null,
+                        ScanDate = (DateTime?)null
                     });
                 }
 
                 var b = localDatalist[0];
+                string manufacturer = !string.IsNullOrWhiteSpace(b.Manufacturer) ? b.Manufacturer : wmiManufacturer ?? "Not found";
+                string status = !string.IsNullOrWhiteSpace(b.Status) ? b.Status : wmiStatus ?? "Not found";
+                string description = !string.IsNullOrWhiteSpace(b.Description) ? b.Description : "Not found";
+                int battPct = b.BatteryPercentage > 0 ? b.BatteryPercentage : wmiBatteryLevel;
+                string systemType = !string.IsNullOrWhiteSpace(b.SystemType) ? b.SystemType : wmiSystemType ?? "Not found";
+
                 return Json(new
                 {
-                    Manufacturer = b.Manufacturer,
-                    Status = b.Status,
-                    Description = b.Description,
-                    BatteryLevel = b.BatteryPercentage.ToString(),
-                    BatteryPercentage = b.BatteryPercentage,
+                    Manufacturer = manufacturer,
+                    Status = status,
+                    Description = description,
+                    BatteryLevel = battPct.ToString(),
+                    BatteryPercentage = battPct,
                     LiveBatteryDetails = b.LiveBatteryDetails,
-                    SystemType = b.SystemType,
+                    SystemType = systemType,
                     UserCode = b.UserCode,
                     DateTime = b.ScanDate,
                     IsCharging = b.IsCharging,
@@ -3751,16 +3797,17 @@ namespace ManageEngineWebApp.Controllers
                     ScanDate = b.ScanDate
                 });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"[Battery GET] Error: {ex.Message}");
                 return Json(new
                 {
-                    Manufacturer = "N/A",
-                    Status = "N/A",
-                    Description = "N/A",
+                    Manufacturer = "Not found",
+                    Status = "Not found",
+                    Description = "Not found",
                     BatteryLevel = "0",
                     BatteryPercentage = 0,
-                    SystemType = "N/A",
+                    SystemType = "Not found",
                     UserCode = UCode,
                     DateTime = DateTime.Now
                 });
@@ -3779,6 +3826,25 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = "Invalid device identifier." });
 
                 using var httpClient = GetClient();
+
+                // 1. Get baseline using the correct searchName!
+                string searchName = domain.Contains('\\') ? domain.Split('\\')[0].ToUpperInvariant() : domain;
+                DateTime? baselineTime = null;
+                try
+                {
+                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/Battery/history/{Uri.EscapeDataString(searchName)}");
+                    if (baseResp.IsSuccessStatusCode)
+                    {
+                        var baseContent = await baseResp.Content.ReadAsStringAsync();
+                        var baseData = JsonConvert.DeserializeObject<List<BatteryInfo>>(baseContent);
+                        var latest = baseData?.OrderByDescending(x => x.ScanDate).FirstOrDefault();
+                        if (latest != null)
+                            baselineTime = latest.ScanDate;
+                    }
+                }
+                catch { }
+
+                // 2. Send the rescan command using cleanDomain (MANISH) so the agent receives it
                 var response = await httpClient.PostAsync(
                     $"{_baseUrl}/api/Battery/batteryFetchDetails?clientId={Uri.EscapeDataString(cleanDomain)}", null);
 
@@ -3788,24 +3854,31 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : $"Server returned {(int)response.StatusCode}" });
                 }
 
+                // 3. Poll for new data in DB
                 for (int i = 0; i < 40; i++)
                 {
                     await Task.Delay(2000);
-                    var metricsResponse = await httpClient.GetAsync($"{_baseUrl}/api/Battery/metrics/{Uri.EscapeDataString(cleanDomain)}");
-                    if (metricsResponse.IsSuccessStatusCode)
+                    try
                     {
-                        var content = await metricsResponse.Content.ReadAsStringAsync();
-                        var data = Newtonsoft.Json.Linq.JObject.Parse(content);
-                        if (data != null && data["lastWriteTimeUtc"] != null)
+                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/Battery/history/{Uri.EscapeDataString(searchName)}");
+                        if (checkResp.IsSuccessStatusCode)
                         {
-                            DateTime lastWriteTime = data["lastWriteTimeUtc"].ToObject<DateTime>().ToUniversalTime();
-                            if (lastWriteTime > DateTime.UtcNow.AddMinutes(-5))
+                            var checkContent = await checkResp.Content.ReadAsStringAsync();
+                            var checkData = JsonConvert.DeserializeObject<List<BatteryInfo>>(checkContent);
+                            var latestNow = checkData?.OrderByDescending(x => x.ScanDate).FirstOrDefault();
+                            
+                            if (latestNow != null)
                             {
-                                string finalJson = $"{{\"success\":true,\"data\":{content}}}";
-                                return Content(finalJson, "application/json");
+                                DateTime currentTime = latestNow.ScanDate;
+                                if (!baselineTime.HasValue || currentTime > baselineTime.Value)
+                                {
+                                    // Found a newer record! Return success so UI reloads
+                                    return Json(new { success = true, message = "Battery audit completed successfully.", data = new { metrics = latestNow } });
+                                }
                             }
                         }
                     }
+                    catch { }
                 }
                 return Json(new { success = false, message = "Live fetch timed out. Showing last known state." });
             }
@@ -4537,6 +4610,213 @@ namespace ManageEngineWebApp.Controllers
             catch
             {
                 return Json(new { items = new List<object>(), count = 0 });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AuditMemory([FromQuery] string domain)
+        {
+            try
+            {
+                var cleanDomain = DeviceNameHelper.Normalize(domain);
+                if (string.IsNullOrEmpty(cleanDomain))
+                    return Json(new { success = false, message = "Invalid device identifier." });
+
+                using var httpClient = GetClient();
+
+                // Get baseline: latest record timestamp before rescan
+                DateTime? baselineTime = null;
+                try
+                {
+                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/PhysicalMemoryDetails");
+                    if (baseResp.IsSuccessStatusCode)
+                    {
+                        var baseContent = await baseResp.Content.ReadAsStringAsync();
+                        var baseData = JsonConvert.DeserializeObject<List<dynamic>>(baseContent);
+                        var latest = baseData?.FirstOrDefault(x => (string)x.UserCode == cleanDomain || (string)x.userCode == cleanDomain);
+                        if (latest != null)
+                            baselineTime = (DateTime?)(latest.DateTime ?? latest.dateTime);
+                    }
+                }
+                catch { }
+
+                // Send the rescan command
+                var response = await httpClient.PostAsync(
+                    $"{_baseUrl}/api/PhysicalMemoryDetails/MemoryRescan?clientId={Uri.EscapeDataString(cleanDomain)}", null);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : "Device not connected or rescan failed." });
+                }
+
+                // Poll for new data
+                for (int i = 0; i < 30; i++)
+                {
+                    await Task.Delay(2000);
+                    try
+                    {
+                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/PhysicalMemoryDetails");
+                        if (checkResp.IsSuccessStatusCode)
+                        {
+                            var checkContent = await checkResp.Content.ReadAsStringAsync();
+                            var checkData = JsonConvert.DeserializeObject<List<dynamic>>(checkContent);
+                            var latestNow = checkData?.FirstOrDefault(x => (string)x.UserCode == cleanDomain || (string)x.userCode == cleanDomain);
+                            if (latestNow != null)
+                            {
+                                DateTime? currentTime = (DateTime?)(latestNow.DateTime ?? latestNow.dateTime);
+                                if (currentTime.HasValue && (!baselineTime.HasValue || currentTime.Value > baselineTime.Value))
+                                {
+                                    return Json(new { success = true, message = "Memory audit completed. Fresh data received!" });
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+                }
+                return Json(new { success = false, message = "Memory audit timed out. The device may still be processing. Try refreshing." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AuditProcessor([FromQuery] string domain)
+        {
+            try
+            {
+                var cleanDomain = DeviceNameHelper.Normalize(domain);
+                if (string.IsNullOrEmpty(cleanDomain))
+                    return Json(new { success = false, message = "Invalid device identifier." });
+
+                using var httpClient = GetClient();
+
+                // Get baseline: latest record timestamp before rescan
+                DateTime? baselineTime = null;
+                try
+                {
+                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/ProcessorDetails/history/{Uri.EscapeDataString(cleanDomain)}?count=1");
+                    if (baseResp.IsSuccessStatusCode)
+                    {
+                        var baseContent = await baseResp.Content.ReadAsStringAsync();
+                        var baseData = JsonConvert.DeserializeObject<List<dynamic>>(baseContent);
+                        var latest = baseData?.LastOrDefault();
+                        if (latest != null)
+                            baselineTime = (DateTime?)(latest.DateTime ?? latest.dateTime);
+                    }
+                }
+                catch { }
+
+                // Send the rescan command
+                var response = await httpClient.PostAsync(
+                    $"{_baseUrl}/api/ProcessorDetails/ProcessorRescan?clientId={Uri.EscapeDataString(cleanDomain)}", null);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : "Device not connected or rescan failed." });
+                }
+
+                // Poll for new data
+                for (int i = 0; i < 30; i++)
+                {
+                    await Task.Delay(2000);
+                    try
+                    {
+                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/ProcessorDetails/history/{Uri.EscapeDataString(cleanDomain)}?count=1");
+                        if (checkResp.IsSuccessStatusCode)
+                        {
+                            var checkContent = await checkResp.Content.ReadAsStringAsync();
+                            var checkData = JsonConvert.DeserializeObject<List<dynamic>>(checkContent);
+                            var latestNow = checkData?.LastOrDefault();
+                            if (latestNow != null)
+                            {
+                                DateTime? currentTime = (DateTime?)(latestNow.DateTime ?? latestNow.dateTime);
+                                if (currentTime.HasValue && (!baselineTime.HasValue || currentTime.Value > baselineTime.Value))
+                                {
+                                    return Json(new { success = true, message = "Processor audit completed. Fresh data received!" });
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+                }
+                return Json(new { success = false, message = "Processor audit timed out. The device may still be processing. Try refreshing." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AuditHardDisk([FromQuery] string domain)
+        {
+            try
+            {
+                var cleanDomain = DeviceNameHelper.Normalize(domain);
+                if (string.IsNullOrEmpty(cleanDomain))
+                    return Json(new { success = false, message = "Invalid device identifier." });
+
+                using var httpClient = GetClient();
+
+                // Get baseline: latest record timestamp before rescan
+                DateTime? baselineTime = null;
+                try
+                {
+                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/history?userCode={Uri.EscapeDataString(cleanDomain)}&take=1");
+                    if (baseResp.IsSuccessStatusCode)
+                    {
+                        var baseContent = await baseResp.Content.ReadAsStringAsync();
+                        var baseData = JsonConvert.DeserializeObject<List<dynamic>>(baseContent);
+                        var latest = baseData?.FirstOrDefault();
+                        if (latest != null)
+                            baselineTime = (DateTime?)(latest.DateTime ?? latest.dateTime);
+                    }
+                }
+                catch { }
+
+                // Send the rescan command
+                var response = await httpClient.PostAsync(
+                    $"{_baseUrl}/api/HardDiskDetails/HarddiskRescan?clientId={Uri.EscapeDataString(cleanDomain)}", null);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : "Device not connected or rescan failed." });
+                }
+
+                // Poll for new data
+                for (int i = 0; i < 30; i++)
+                {
+                    await Task.Delay(2000);
+                    try
+                    {
+                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/history?userCode={Uri.EscapeDataString(cleanDomain)}&take=1");
+                        if (checkResp.IsSuccessStatusCode)
+                        {
+                            var checkContent = await checkResp.Content.ReadAsStringAsync();
+                            var checkData = JsonConvert.DeserializeObject<List<dynamic>>(checkContent);
+                            var latestNow = checkData?.FirstOrDefault();
+                            if (latestNow != null)
+                            {
+                                DateTime? currentTime = (DateTime?)(latestNow.DateTime ?? latestNow.dateTime);
+                                if (currentTime.HasValue && (!baselineTime.HasValue || currentTime.Value > baselineTime.Value))
+                                {
+                                    return Json(new { success = true, message = "Hard Disk audit completed. Fresh data received!" });
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+                }
+                return Json(new { success = false, message = "Hard Disk audit timed out. The device may still be processing. Try refreshing." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
             }
         }
 
