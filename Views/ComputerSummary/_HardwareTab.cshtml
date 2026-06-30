@@ -399,6 +399,33 @@
         }
     }
 
+    /* ── Memory responsive ──────────────────────────── */
+    @@media (max-width: 600px) {
+        #MemoryHw .cpu-hero-right {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        #MemoryHw .battery-gauge-container {
+            flex-direction: column;
+            text-align: center;
+        }
+
+            #MemoryHw .battery-gauge-container > div:last-child {
+                text-align: center;
+            }
+
+        #MemoryHw .cs-info-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+
+    @@media (max-width: 400px) {
+        #MemoryHw .cs-info-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
     /* ── Hard Disk responsive ───────────────────────── */
     .disk-hero-right {
         display: flex;
@@ -974,7 +1001,7 @@
                             <i class="fas fa-stethoscope"></i> Audit Memory
                         </button>
                         <div style="display:flex; flex-direction:column; align-items:flex-end;">
-                            <div class="cpu-status-badge" id="memStatusBadge" style="background:#dcfce7;color:#166534;"><span class="cpu-live-dot"></span> Healthy</div>
+                            <div class="cpu-status-badge" id="memStatusBadge" style="background:var(--slate-100);color:var(--slate-500);"><span class="cpu-live-dot" style="background:var(--slate-400);"></span> Not Audited</div>
                             <div class="cpu-updated" id="memLastUpdated">--</div>
                         </div>
                     </div>
@@ -989,9 +1016,24 @@
                     <div class="cs-info-box"><div class="cs-info-box-label">Total Slots</div><div class="cs-info-box-value" id="memTotalSlots">--</div></div>
                     <div class="cs-info-box"><div class="cs-info-box-label">Used Slots</div><div class="cs-info-box-value" id="memUsedSlots">--</div></div>
                 </div>
-                <div id="memUtilizationSection" style="display:none;">
+
+                <!-- No-audit placeholder — shown until first successful audit -->
+                <div id="memAuditPlaceholder" style="margin-top:18px;padding:28px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;">
+                    <i class="fas fa-memory" style="font-size:1.8rem;display:block;margin-bottom:10px;color:var(--slate-300);"></i>
+                    Run <strong>Audit Memory</strong> above to see live utilization, health score, module details, and trend charts.
+                </div>
+
+                <!-- Audit loading state -->
+                <div id="memAuditLoading" style="display:none;margin-top:18px;padding:22px;text-align:center;color:var(--slate-500);font-size:.82rem;background:var(--slate-50);border-radius:var(--radius-md);border:1px dashed var(--slate-200);">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size:1.5rem;color:var(--cyan);margin-bottom:8px;display:block;"></i>
+                    Fetching live memory diagnostics from device, please wait...
+                </div>
+
+                <!-- ── Everything below is gated: only shown after a successful audit ── -->
+                <div id="memAuditGate" style="display:none;">
+
                     <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-tachometer-alt" style="color:var(--cyan);"></i> Memory Utilization</div>
-                    <div class="battery-gauge-container" style="display:flex;align-items:center;gap:20px;padding:20px;">
+                    <div class="battery-gauge-container" style="display:flex;align-items:center;gap:20px;padding:20px;flex-wrap:wrap;">
                         <div class="battery-gauge-ring">
                             <svg viewBox="0 0 100 100">
                                 <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
@@ -1007,59 +1049,94 @@
                             <p style="font-size:.8rem;color:var(--slate-500);margin:0;font-weight:500;">Memory load at last audit</p>
                         </div>
                     </div>
-                </div>
 
-                <div id="memUtilizationPlaceholder" style="margin-top:18px;padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;">
-                    <i class="fas fa-tachometer-alt" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
-                    Run <strong>Audit Memory</strong> above to see utilization data.
-                </div>
-
-                <div class="cpu-section-label"><i class="fas fa-list" style="color:var(--amber);"></i> Physical Memory Modules</div>
-                <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);overflow:hidden;">
-                    <table id="memoryModulesTable" class="w-full text-left" style="font-size:.85rem;border-collapse:collapse;">
-                        <thead style="background:var(--slate-50);border-bottom:1px solid var(--slate-200);">
-                            <tr>
-                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Locator</th>
-                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Manufacturer</th>
-                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Capacity</th>
-                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Speed</th>
-                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Type</th>
-                                <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Form Factor</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-
-                <!-- Trend charts -->
-                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:20px;gap:8px;">
-                    <div class="cpu-section-label" style="margin:0;"><i class="fas fa-chart-line" style="color:var(--amber);"></i> Live Trend (Recent Samples)</div>
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                        <div class="chart-filter-pills" id="memChartFilters">
-                            <button class="chart-filter-btn" data-range="today" onclick="filterMemChart('today',this)">Today</button>
-                            <button class="chart-filter-btn" data-range="7d" onclick="filterMemChart('7d',this)">7D</button>
-                            <button class="chart-filter-btn active" data-range="30d" onclick="filterMemChart('30d',this)">30D</button>
-                            <button class="chart-filter-btn" data-range="90d" onclick="filterMemChart('90d',this)">90D</button>
-                            <button class="chart-filter-btn" data-range="all" onclick="filterMemChart('all',this)">All</button>
-                        </div>
-                        <div class="chart-date-range">
-                            <input type="date" id="memDateStart" class="chart-date-input" title="Start date">
-                            <span style="color:var(--slate-400);font-size:.7rem;">to</span>
-                            <input type="date" id="memDateEnd" class="chart-date-input" title="End date">
-                            <button class="chart-filter-btn chart-date-apply" onclick="filterMemChart('custom',null)"><i class="fas fa-search"></i></button>
+                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> Memory Health &amp; Smart Checkup</div>
+                    <div class="cpu-thermal-grid" style="margin-bottom:14px;">
+                        <div class="battery-gauge-container" style="border:none;box-shadow:none;padding:0;">
+                            <div class="battery-gauge-ring">
+                                <svg viewBox="0 0 100 100">
+                                    <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
+                                    <circle id="memHealthCircle" class="gauge-fill" cx="50" cy="50" r="45"
+                                            stroke="#22c55e" stroke-dasharray="0,283"></circle>
+                                </svg>
+                                <div class="battery-gauge-percent">
+                                    <div class="gauge-num" id="memHealthScoreText">--%</div>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 style="font-size:1.1rem;font-weight:800;color:var(--slate-900);margin:0 0 3px;">Memory Health Score</h3>
+                                <p style="font-size:.8rem;color:var(--slate-500);margin:0;font-weight:500;" id="memHealthSummaryText">Based on configuration and usage at last audit</p>
+                                <div id="memHealthBadge" style="display:inline-flex;align-items:center;gap:6px;font-size:.74rem;font-weight:800;padding:4px 10px;border-radius:999px;margin-top:8px;">--</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="cpu-chart-grid">
-                    <div class="cpu-chart-card">
-                        <h4>Memory Usage Trend (%)</h4>
-                        <div style="position:relative;height:180px;width:100%;"><canvas id="memUsageTrendChart"></canvas></div>
+
+                    <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:14px;">
+                        <div class="cs-info-box"><div class="cs-info-box-label">Configuration Score</div><div class="cs-info-box-value" id="memConfigScore">--</div></div>
+                        <div class="cs-info-box"><div class="cs-info-box-label">Usage Score</div><div class="cs-info-box-value" id="memUsageScore">--</div></div>
+                        <div class="cs-info-box"><div class="cs-info-box-label">Channel Mode</div><div class="cs-info-box-value" id="memChannelMode">--</div></div>
+                        <div class="cs-info-box"><div class="cs-info-box-label">Empty Slots</div><div class="cs-info-box-value" id="memEmptySlots">--</div></div>
                     </div>
-                    <div class="cpu-chart-card">
-                        <h4>Used vs Free Memory (GB)</h4>
-                        <div style="position:relative;height:180px;width:100%;"><canvas id="memCapacityTrendChart"></canvas></div>
+
+                    <div id="memHealthIssuesContainer" style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:18px;">
+                        <h4 style="font-size:.82rem;font-weight:700;color:var(--slate-700);margin:0 0 10px;"><i class="fas fa-clipboard-list"></i> Diagnostic Findings</h4>
+                        <ul id="memHealthIssuesList" style="margin:0;padding-left:18px;font-size:.82rem;color:var(--slate-600);line-height:1.8;"></ul>
                     </div>
-                </div>
+
+                    <div class="cpu-section-label"><i class="fas fa-list" style="color:var(--amber);"></i> Physical Memory Modules</div>
+                    <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);overflow:hidden;">
+                        <table id="memoryModulesTable" class="w-full text-left" style="font-size:.85rem;border-collapse:collapse;">
+                            <thead style="background:var(--slate-50);border-bottom:1px solid var(--slate-200);">
+                                <tr>
+                                    <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Locator</th>
+                                    <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Manufacturer</th>
+                                    <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Capacity</th>
+                                    <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Speed</th>
+                                    <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Type</th>
+                                    <th style="padding:10px 12px;font-weight:600;color:var(--slate-600);">Form Factor</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Trend charts -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:20px;gap:8px;">
+                        <div class="cpu-section-label" style="margin:0;"><i class="fas fa-chart-line" style="color:var(--amber);"></i> Live Trend (Recent Samples)</div>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <div class="chart-filter-pills" id="memChartFilters">
+                                <button class="chart-filter-btn" data-range="today" onclick="filterMemChart('today',this)">Today</button>
+                                <button class="chart-filter-btn" data-range="7d" onclick="filterMemChart('7d',this)">7D</button>
+                                <button class="chart-filter-btn active" data-range="30d" onclick="filterMemChart('30d',this)">30D</button>
+                                <button class="chart-filter-btn" data-range="90d" onclick="filterMemChart('90d',this)">90D</button>
+                                <button class="chart-filter-btn" data-range="all" onclick="filterMemChart('all',this)">All</button>
+                            </div>
+                            <div class="chart-date-range">
+                                <input type="date" id="memDateStart" class="chart-date-input" title="Start date">
+                                <span style="color:var(--slate-400);font-size:.7rem;">to</span>
+                                <input type="date" id="memDateEnd" class="chart-date-input" title="End date">
+                                <button class="chart-filter-btn chart-date-apply" onclick="filterMemChart('custom',null)"><i class="fas fa-search"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="memTrendChartWrap">
+                        <div class="cpu-chart-grid">
+                            <div class="cpu-chart-card">
+                                <h4>Memory Usage Trend (%)</h4>
+                                <div style="position:relative;height:180px;width:100%;"><canvas id="memUsageTrendChart"></canvas></div>
+                            </div>
+                            <div class="cpu-chart-card">
+                                <h4>Used vs Free Memory (GB)</h4>
+                                <div style="position:relative;height:180px;width:100%;"><canvas id="memCapacityTrendChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="memTrendNoData" style="display:none;text-align:center;padding:24px;color:var(--slate-400);font-size:.82rem;background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);">
+                        <i class="fas fa-chart-line" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>
+                        Not enough audit history yet to chart a trend. Run a few more audits over time.
+                    </div>
+
+                </div><!-- /#memAuditGate -->
 
             </div>
             <div id="PointingHw" class="tab-pane">

@@ -232,7 +232,7 @@ function initializeAllTables() {
     window.expandedDriversGroups = window.expandedDriversGroups || {};
 
     function getDeviceIcon(category) {
-        let icon = 'fa-microchip'; 
+        let icon = 'fa-microchip';
         if (!category) return icon;
         const g = category.toLowerCase();
 
@@ -679,92 +679,217 @@ function renderMemoryTrendChart(history, skipStore) {
         });
     }
 }
+function computeMemoryHealth(data) {
+    var modules = data.memoryModules || data.MemoryModules || [];
+    var totalSlots = data.totalSlots || data.TotalSlots || 0;
+    var usedSlots = data.usedSlots || data.UsedSlots || modules.length || 0;
+    var usagePct = parseFloat(data.usagePercent || data.UsagePercent) || 0;
 
-function loadMemoryDetails() {
-    $.get(`/ComputerSummary/MemorySummary?domain=${domaindata}`, function (data) {
-        if (data) {
-            $('#memTotalCapacity').text((data.installedMemoryGB || data.InstalledMemoryGB || 0).toFixed(2) + ' GB Installed');
-            $('#memUsageBadge').html(`<i class="fas fa-chart-pie"></i> ${(data.usagePercent || data.UsagePercent || 0).toFixed(1)}% Used`);
+    var issues = [];
+    var configScore = 100;
 
-            let totalSlots = data.totalSlots || data.TotalSlots || 0;
-            let usedSlots = data.usedSlots || data.UsedSlots || 0;
-            $('#memSlotsBadge').html(`<i class="fas fa-grip-horizontal"></i> ${usedSlots}/${totalSlots} Slots`);
+    var emptySlots = Math.max(0, totalSlots - usedSlots);
+    if (totalSlots > 0 && emptySlots > 0) {
+        var emptyRatio = emptySlots / totalSlots;
+        configScore -= Math.round(emptyRatio * 15);
+        issues.push(emptySlots + ' of ' + totalSlots + ' slot(s) empty — upgrade headroom available.');
+    }
 
-            let dt = data.dateTime || data.DateTime;
-            if (dt) {
-                var d = new Date(dt);
-                if (!isNaN(d.getTime())) $('#memLastUpdated').text('Updated: ' + d.toLocaleTimeString());
-            }
-
-            $('#memInstalled').text((data.installedMemoryGB || data.InstalledMemoryGB || 0).toFixed(2) + ' GB');
-            $('#memMaxSupported').text((data.maximumSupportedMemoryGB || data.MaximumSupportedMemoryGB || 0).toFixed(2) + ' GB');
-            $('#memUsed').text((data.usedMemoryGB || data.UsedMemoryGB || 0).toFixed(2) + ' GB');
-            $('#memFree').text((data.freeMemoryGB || data.FreeMemoryGB || 0).toFixed(2) + ' GB');
-            $('#memTotalSlots').text(totalSlots);
-            $('#memUsedSlots').text(usedSlots);
-
-            let usagePct = (data.usagePercent || data.UsagePercent || 0);
-            $('#memUtilizationText').text(usagePct.toFixed(1) + '%');
-            let offset = 283 - (283 * (usagePct / 100));
-
-            let color = '#3b82f6';
-            if (usagePct > 90) color = '#ef4444';
-            else if (usagePct > 75) color = '#f59e0b';
-
-            $('#memUtilizationCircle').css({
-                'stroke-dashoffset': offset,
-                'stroke': color,
-                'transition': 'stroke-dashoffset 1.5s ease-in-out, stroke 1s ease'
-            });
-
-            var usedGB = parseFloat(data.usedMemoryGB || data.UsedMemoryGB || 0).toFixed(2);
-            var totalGB = parseFloat(data.installedMemoryGB || data.InstalledMemoryGB || 0).toFixed(2);
-            var freeGB = parseFloat(data.freeMemoryGB || data.FreeMemoryGB || 0).toFixed(2);
-            var totalSlots2 = data.totalSlots || data.TotalSlots || 0;
-            var usedSlots2 = data.usedSlots || data.UsedSlots || 0;
-
-            $('#memHealthUsedTotal').text(usedGB + ' / ' + totalGB + ' GB');
-            $('#memHealthFree').text(freeGB + ' GB').css('color', parseFloat(freeGB) < 1 ? '#ef4444' : '#22c55e');
-            $('#memHealthSlots').text(usedSlots2 + ' / ' + totalSlots2);
-
-            var healthStatusEl = $('#memHealthStatus');
-            if (usagePct > 90) {
-                healthStatusEl.html('<i class="fas fa-exclamation-circle"></i> Critical').css('color', '#ef4444');
-            } else if (usagePct > 75) {
-                healthStatusEl.html('<i class="fas fa-exclamation-triangle"></i> High Usage').css('color', '#f59e0b');
-            } else {
-                healthStatusEl.html('<i class="fas fa-check-circle"></i> Healthy').css('color', '#22c55e');
-            }
-
-            $('#memUtilizationPlaceholder').hide();
-            $('#memUtilizationSection').show();
-
-            var tbody = $('#memoryModulesTable tbody').empty();
-            var modules = data.memoryModules || data.MemoryModules || [];
-            if (modules.length === 0) {
-                tbody.append(`<tr><td colspan="6" style="padding:15px;text-align:center;color:#94a3b8;">No modules found</td></tr>`);
-            } else {
-                modules.forEach(m => {
-                    tbody.append(`
-                        <tr style="border-bottom:1px solid var(--slate-100);">
-                            <td style="padding:10px 12px;font-family:var(--font-mono);font-size:0.8rem;color:var(--slate-700);">${m.deviceLocator || m.DeviceLocator || 'N/A'}</td>
-                            <td style="padding:10px 12px;color:var(--slate-800);">${m.manufacturer || m.Manufacturer || 'N/A'}</td>
-                            <td style="padding:10px 12px;color:var(--slate-800);font-weight:600;">${(m.capacityGB || m.CapacityGB || 0).toFixed(2)} GB</td>
-                            <td style="padding:10px 12px;color:var(--slate-600);">${m.speedMHz || m.SpeedMHz || m.configuredClockSpeedMHz || m.ConfiguredClockSpeedMHz || 0} MHz</td>
-                            <td style="padding:10px 12px;color:var(--slate-600);"><span style="background:var(--slate-100);padding:2px 6px;border-radius:4px;font-size:0.75rem;">${decodeMap(MEM_TYPE_MAP, m.memoryType || m.MemoryType)}</span></td>
-                            <td style="padding:10px 12px;color:var(--slate-600);">${decodeMap(MEM_FORM_FACTOR_MAP, m.formFactor || m.FormFactor)}</td>
-                        </tr>
-                    `);
-                });
-            }
+    var speeds = modules.map(function (m) {
+        return m.speedMHz || m.SpeedMHz || m.configuredClockSpeedMHz || m.ConfiguredClockSpeedMHz || 0;
+    }).filter(function (s) { return s > 0; });
+    var uniqueSpeeds = speeds.filter(function (v, i, a) { return a.indexOf(v) === i; });
+    var channelMode = 'Single Channel';
+    if (usedSlots >= 2) {
+        if (uniqueSpeeds.length > 1) {
+            configScore -= 20;
+            issues.push('Installed modules run at mismatched speeds (' + uniqueSpeeds.join(', ') + ' MHz) — channel performance is limited to the slowest module.');
+            channelMode = 'Mismatched Speed';
+        } else {
+            channelMode = usedSlots >= 4 ? 'Quad Channel' : (usedSlots === 3 ? 'Triple Channel' : 'Dual Channel');
         }
+    }
+
+    var capacities = modules.map(function (m) { return m.capacityGB || m.CapacityGB || 0; }).filter(function (c) { return c > 0; });
+    var uniqueCapacities = capacities.filter(function (v, i, a) { return a.indexOf(v) === i; });
+    if (usedSlots >= 2 && uniqueCapacities.length > 1) {
+        configScore -= 15;
+        issues.push('Module capacities are mismatched (' + uniqueCapacities.map(function (c) { return c.toFixed(0); }).join(' GB, ') + ' GB) — consider matching pairs for best performance.');
+    }
+
+    var badModules = modules.filter(function (m) {
+        var st = (m.status || m.Status || '').toLowerCase();
+        return st && st !== 'ok' && st !== 'enabled' && st !== 'healthy' && st !== '';
+    });
+    if (badModules.length > 0) {
+        configScore -= 25;
+        issues.push(badModules.length + ' module(s) reporting a non-OK status.');
+    }
+
+    configScore = Math.max(0, Math.min(100, configScore));
+
+    var usageScore;
+    if (usagePct <= 60) usageScore = 100;
+    else if (usagePct <= 75) usageScore = 90 - (usagePct - 60) * 1.0;
+    else if (usagePct <= 90) usageScore = 75 - (usagePct - 75) * 2.0;
+    else usageScore = Math.max(0, 45 - (usagePct - 90) * 3.0);
+    usageScore = Math.round(Math.max(0, Math.min(100, usageScore)));
+
+    if (usagePct > 90) issues.push('RAM usage at last audit was critically high (' + usagePct.toFixed(1) + '%) — system may be swapping to disk.');
+    else if (usagePct > 75) issues.push('RAM usage at last audit was elevated (' + usagePct.toFixed(1) + '%) — monitor for slowdowns under load.');
+
+    if (issues.length === 0) issues.push('No issues detected — memory configuration and usage are within healthy ranges.');
+
+    var overall = Math.round(configScore * 0.6 + usageScore * 0.4);
+
+    var status, color;
+    if (overall >= 85) { status = 'Healthy'; color = '#22c55e'; }
+    else if (overall >= 65) { status = 'Fair'; color = '#f59e0b'; }
+    else if (overall >= 40) { status = 'Needs Attention'; color = '#f97316'; }
+    else { status = 'Critical'; color = '#ef4444'; }
+
+    return {
+        overall: overall, configScore: Math.round(configScore), usageScore: usageScore,
+        status: status, color: color, channelMode: channelMode, emptySlots: emptySlots, issues: issues
+    };
+}
+
+function renderMemoryHealth(data) {
+    var health = computeMemoryHealth(data);
+
+    $('#memHealthScoreText').text(health.overall + '%');
+
+    var circumference = 283; // 2 * PI * r45, matches the SVG circle radius
+    var healthDash = Math.max(0, Math.min(100, health.overall)) / 100 * circumference;
+    $('#memHealthCircle').css({
+        'stroke-dasharray': healthDash + ', ' + circumference,
+        'stroke': health.color,
+        'transition': 'stroke-dasharray 1.2s ease-in-out, stroke 1s ease'
     });
 
+    $('#memHealthBadge').text(health.status).css({
+        'background': health.color + '22',
+        'color': health.color
+    });
+
+    $('#memStatusBadge').html('<span class="cpu-live-dot"></span> ' + health.status).css({
+        'background': health.color + '22',
+        'color': health.color
+    });
+
+    $('#memConfigScore').text(health.configScore + '%');
+    $('#memUsageScore').text(health.usageScore + '%');
+    $('#memChannelMode').text(health.channelMode);
+    $('#memEmptySlots').text(health.emptySlots);
+
+    var list = $('#memHealthIssuesList').empty();
+    health.issues.forEach(function (issue) {
+        list.append('<li>' + escapeHtml(issue) + '</li>');
+    });
+}
+
+// Returns true if the payload represents a real audit result (not an empty/default object)
+function hasRealMemoryData(data) {
+    if (!data) return false;
+    var installed = data.installedMemoryGB || data.InstalledMemoryGB || 0;
+    var modules = data.memoryModules || data.MemoryModules || [];
+    var dt = data.dateTime || data.DateTime;
+    return installed > 0 || modules.length > 0 || !!dt;
+}
+
+function renderMemoryPanel(data) {
+    renderMemoryHeaderOnly(data);
+
+    let usagePct = (data.usagePercent || data.UsagePercent || 0);
+    $('#memUtilizationText').text(usagePct.toFixed(1) + '%');
+
+    let utilColor = '#3b82f6';
+    if (usagePct > 90) utilColor = '#ef4444';
+    else if (usagePct > 75) utilColor = '#f59e0b';
+    else if (usagePct > 60) utilColor = '#0ea5e9';
+
+    var circumference = 283; // 2 * PI * r45, matches the SVG circle radius
+    var utilDash = Math.max(0, Math.min(100, usagePct)) / 100 * circumference;
+    $('#memUtilizationCircle').css({
+        'stroke-dasharray': utilDash + ', ' + circumference,
+        'stroke': utilColor,
+        'transition': 'stroke-dasharray 1.2s ease-in-out, stroke 1s ease'
+    });
+
+    renderMemoryHealth(data);
+
+    var tbody = $('#memoryModulesTable tbody').empty();
+    var modules = data.memoryModules || data.MemoryModules || [];
+    if (modules.length === 0) {
+        tbody.append(`<tr><td colspan="6" style="padding:15px;text-align:center;color:#94a3b8;">No modules found</td></tr>`);
+    } else {
+        modules.forEach(m => {
+            tbody.append(`
+                <tr style="border-bottom:1px solid var(--slate-100);">
+                    <td style="padding:10px 12px;font-family:var(--font-mono);font-size:0.8rem;color:var(--slate-700);">${m.deviceLocator || m.DeviceLocator || 'N/A'}</td>
+                    <td style="padding:10px 12px;color:var(--slate-800);">${m.manufacturer || m.Manufacturer || 'N/A'}</td>
+                    <td style="padding:10px 12px;color:var(--slate-800);font-weight:600;">${(m.capacityGB || m.CapacityGB || 0).toFixed(2)} GB</td>
+                    <td style="padding:10px 12px;color:var(--slate-600);">${m.speedMHz || m.SpeedMHz || m.configuredClockSpeedMHz || m.ConfiguredClockSpeedMHz || 0} MHz</td>
+                    <td style="padding:10px 12px;color:var(--slate-600);"><span style="background:var(--slate-100);padding:2px 6px;border-radius:4px;font-size:0.75rem;">${decodeMap(MEM_TYPE_MAP, m.memoryType || m.MemoryType)}</span></td>
+                    <td style="padding:10px 12px;color:var(--slate-600);">${decodeMap(MEM_FORM_FACTOR_MAP, m.formFactor || m.FormFactor)}</td>
+                </tr>
+            `);
+        });
+    }
+
+    // Reveal the gated audit section, hide the placeholder/loading states
+    $('#memAuditPlaceholder').hide();
+    $('#memAuditLoading').hide();
+    $('#memAuditGate').show();
+
+    // Pull trend history alongside the fresh audit result
     $.get(`/ComputerSummary/MemoryHistory?domain=${domaindata}`, function (history) {
         if (history && history.length > 0) {
+            $('#memTrendNoData').hide();
+            $('#memTrendChartWrap').show();
             renderMemoryTrendChart(history);
+        } else {
+            $('#memTrendChartWrap').hide();
+            $('#memTrendNoData').show();
         }
     });
+}
+
+// Populates only the always-visible header stats (hero + key specs) from the last saved
+// record, WITHOUT opening the gated audit section. The gated section (utilization gauge,
+// health score, modules table, charts) only opens when the user actually clicks Audit Memory
+// in this session — see the #btnAuditMemory handler.
+function loadMemoryDetails() {
+    $.get(`/ComputerSummary/MemorySummary?domain=${domaindata}`, function (data) {
+        if (hasRealMemoryData(data)) {
+            renderMemoryHeaderOnly(data);
+        }
+        // else: no data has ever been recorded for this device — leave placeholder visible
+    });
+}
+
+// Renders just the hero header + key-spec boxes (always safe to show — these are simple
+// facts, not an "audit result"). Does NOT touch the gated section.
+function renderMemoryHeaderOnly(data) {
+    $('#memTotalCapacity').text((data.installedMemoryGB || data.InstalledMemoryGB || 0).toFixed(2) + ' GB Installed');
+    $('#memUsageBadge').html(`<i class="fas fa-chart-pie"></i> ${(data.usagePercent || data.UsagePercent || 0).toFixed(1)}% Used`);
+
+    let totalSlots = data.totalSlots || data.TotalSlots || 0;
+    let usedSlots = data.usedSlots || data.UsedSlots || 0;
+    $('#memSlotsBadge').html(`<i class="fas fa-grip-horizontal"></i> ${usedSlots}/${totalSlots} Slots`);
+
+    let dt = data.dateTime || data.DateTime;
+    if (dt) {
+        var d = new Date(dt);
+        if (!isNaN(d.getTime())) $('#memLastUpdated').text('Last audit: ' + d.toLocaleString());
+    }
+
+    $('#memInstalled').text((data.installedMemoryGB || data.InstalledMemoryGB || 0).toFixed(2) + ' GB');
+    $('#memMaxSupported').text((data.maximumSupportedMemoryGB || data.MaximumSupportedMemoryGB || 0).toFixed(2) + ' GB');
+    $('#memUsed').text((data.usedMemoryGB || data.UsedMemoryGB || 0).toFixed(2) + ' GB');
+    $('#memFree').text((data.freeMemoryGB || data.FreeMemoryGB || 0).toFixed(2) + ' GB');
+    $('#memTotalSlots').text(totalSlots);
+    $('#memUsedSlots').text(usedSlots);
 }
 
 function escapeHtml(str) {
@@ -2447,23 +2572,55 @@ $(document).ready(function () {
         btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
         btn.prop('disabled', true);
         btn.css('opacity', '0.7');
-        sysAlert('Memory audit requested. Waiting for device to respond...', 'info');
+
+        $('#memAuditPlaceholder').hide();
+        $('#memAuditGate').hide();
+        $('#memAuditLoading').show();
+
+        function triggerMemoryFallback(reasonMsg) {
+            $.get(`/ComputerSummary/MemorySummary?domain=${domaindata}`, function (data) {
+                if (hasRealMemoryData(data)) {
+                    renderMemoryPanel(data);
+                    sysAlert(reasonMsg || 'Live fetch unavailable. Showing last known state.', 'warning');
+                } else {
+                    $('#memAuditLoading').hide();
+                    $('#memAuditPlaceholder').show();
+                    sysAlert(reasonMsg || 'No memory data available yet for this device.', 'error');
+                }
+            }).fail(function () {
+                $('#memAuditLoading').hide();
+                $('#memAuditPlaceholder').show();
+                sysAlert(reasonMsg || 'Unable to reach the server. Please try again.', 'error');
+            });
+        }
+
+        sysAlert('Memory audit requested. This can take a little while on slower devices — please wait...', 'info');
 
         $.ajax({
             url: '/ComputerSummary/AuditMemory?domain=' + encodeURIComponent(actualDomainName),
             type: 'POST',
-            timeout: 90000,
+            // No client-side timeout — the rescan can legitimately take a long time on slow
+            // devices/networks. We wait for the server's real success/failure response instead
+            // of guessing at an arbitrary clock. The server itself has its own internal
+            // polling window and will always return success:true/false.
+            timeout: 0,
             success: function (res) {
-                if (res && res.success) {
+                if (res && res.success && res.data && res.data.metrics) {
+                    renderMemoryPanel(res.data.metrics);
                     sysAlert(res.message || 'Memory audit completed!', 'success');
-                    loadMemoryDetails();
+                } else if (res && res.success) {
+                    // Audit reported success but no inline metrics — pull fresh state
+                    $.get(`/ComputerSummary/MemorySummary?domain=${domaindata}`, function (data) {
+                        if (hasRealMemoryData(data)) renderMemoryPanel(data);
+                    });
+                    sysAlert(res.message || 'Memory audit completed!', 'success');
                 } else {
-                    sysAlert(res.message || 'Memory audit failed.', 'error');
+                    triggerMemoryFallback(res ? res.message : 'Audit did not complete. Showing last known state.');
                 }
             },
             error: function (xhr, status) {
-                let msg = status === 'timeout' ? 'Memory audit timed out. The device may still be processing.' : 'Connection error while requesting memory audit.';
-                sysAlert(msg, 'error');
+                let msg = 'Connection error while requesting audit. Showing last known state.';
+                triggerMemoryFallback(msg);
             },
             complete: function () {
                 btn.html(originalText);

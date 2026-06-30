@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Controllers\0ahn4slb.h2k~" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="wwwroot\Installersoftware\tools\Examples\MyDll\C#\MyDll.csproj" />
     <None Include="wwwroot\Installersoftware\tools\Examples\MyDll\C#\MyDll.sln" />
     <None Include="wwwroot\js\site.js" />

@@ -4647,20 +4647,20 @@ namespace ManageEngineWebApp.Controllers
                 if (string.IsNullOrEmpty(cleanDomain))
                     return Json(new { success = false, message = "Invalid device identifier." });
 
+                string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
 
-                // Get baseline: latest record timestamp before rescan
                 DateTime? baselineTime = null;
                 try
                 {
-                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/PhysicalMemoryDetails");
+                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/MemorySlotDetails");
                     if (baseResp.IsSuccessStatusCode)
                     {
                         var baseContent = await baseResp.Content.ReadAsStringAsync();
-                        var baseData = JsonConvert.DeserializeObject<List<dynamic>>(baseContent);
-                        var latest = baseData?.FirstOrDefault(x => (string)x.UserCode == cleanDomain || (string)x.userCode == cleanDomain);
+                        var baseData = JsonConvert.DeserializeObject<List<MemorySummary>>(baseContent);
+                        var latest = baseData?.FirstOrDefault(x => x.UserCode == UCode);
                         if (latest != null)
-                            baselineTime = (DateTime?)(latest.DateTime ?? latest.dateTime);
+                            baselineTime = latest.DateTime;
                     }
                 }
                 catch { }
@@ -4675,31 +4675,30 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : "Device not connected or rescan failed." });
                 }
 
-                // Poll for new data
-                for (int i = 0; i < 30; i++)
+                for (int i = 0; i < 90; i++)
                 {
                     await Task.Delay(2000);
                     try
                     {
-                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/PhysicalMemoryDetails");
+                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/MemorySlotDetails");
                         if (checkResp.IsSuccessStatusCode)
                         {
                             var checkContent = await checkResp.Content.ReadAsStringAsync();
-                            var checkData = JsonConvert.DeserializeObject<List<dynamic>>(checkContent);
-                            var latestNow = checkData?.FirstOrDefault(x => (string)x.UserCode == cleanDomain || (string)x.userCode == cleanDomain);
+                            var checkData = JsonConvert.DeserializeObject<List<MemorySummary>>(checkContent);
+                            var latestNow = checkData?.FirstOrDefault(x => x.UserCode == UCode);
                             if (latestNow != null)
                             {
-                                DateTime? currentTime = (DateTime?)(latestNow.DateTime ?? latestNow.dateTime);
-                                if (currentTime.HasValue && (!baselineTime.HasValue || currentTime.Value > baselineTime.Value))
+                                DateTime currentTime = latestNow.DateTime;
+                                if (!baselineTime.HasValue || currentTime > baselineTime.Value)
                                 {
-                                    return Json(new { success = true, message = "Memory audit completed. Fresh data received!" });
+                                    return Json(new { success = true, message = "Memory audit completed. Fresh data received!", data = new { metrics = latestNow } });
                                 }
                             }
                         }
                     }
                     catch { }
                 }
-                return Json(new { success = false, message = "Memory audit timed out. The device may still be processing. Try refreshing." });
+                return Json(new { success = false, message = "The device did not report fresh data in time. It may still be processing — try auditing again shortly." });
             }
             catch (Exception ex)
             {
