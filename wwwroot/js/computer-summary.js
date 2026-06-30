@@ -1641,6 +1641,22 @@ function loadBatteryDetails() {
         var chemReal = chemistry && !noDataValues.includes(chemistry);
         var isBatteryDevice = mfrReal || nameReal || serialReal || chemReal;
 
+        var isDesktop = !isBatteryDevice && (
+            (systemType && systemType.toLowerCase() === 'desktop') ||
+            mfr === 'No Battery'
+        );
+
+        if (isDesktop) {
+            $('#batteryNoBatteryState').show();
+            $('#batteryContentWrap').hide();
+            $('#batteryActionButtons').hide();
+            return;
+        }
+
+        $('#batteryNoBatteryState').hide();
+        $('#batteryContentWrap').show();
+        $('#batteryActionButtons').show();
+
         if (isBatteryDevice) {
             $('#batteryManufacturer').text(mfr || 'N/A');
             $('#batteryStatus').text(status || 'N/A');

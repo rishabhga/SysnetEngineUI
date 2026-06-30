@@ -3771,28 +3771,29 @@ namespace ManageEngineWebApp.Controllers
                 int battPct = b.BatteryPercentage > 0 ? b.BatteryPercentage : wmiBatteryLevel;
                 string systemType = !string.IsNullOrWhiteSpace(b.SystemType) ? b.SystemType : wmiSystemType ?? "Not found";
 
-                object capacityHistoryObj = null;
-                object usageHistoryObj = null;
-                object batteryUsageObj = null;
+
+                List<CapacityHistoryEntryDto> capacityHistoryObj = null;
+                List<UsageHistoryEntryDto> usageHistoryObj = null;
+                List<BatteryUsageEntryDto> batteryUsageObj = null;
 
                 try
                 {
                     if (!string.IsNullOrWhiteSpace(b.CapacityHistoryJson))
-                        capacityHistoryObj = JsonConvert.DeserializeObject(b.CapacityHistoryJson);
+                        capacityHistoryObj = JsonConvert.DeserializeObject<List<CapacityHistoryEntryDto>>(b.CapacityHistoryJson);
                 }
                 catch { }
 
                 try
                 {
                     if (!string.IsNullOrWhiteSpace(b.UsageHistoryJson))
-                        usageHistoryObj = JsonConvert.DeserializeObject(b.UsageHistoryJson);
+                        usageHistoryObj = JsonConvert.DeserializeObject<List<UsageHistoryEntryDto>>(b.UsageHistoryJson);
                 }
                 catch { }
 
                 try
                 {
                     if (!string.IsNullOrWhiteSpace(b.BatteryUsageJson))
-                        batteryUsageObj = JsonConvert.DeserializeObject(b.BatteryUsageJson);
+                        batteryUsageObj = JsonConvert.DeserializeObject<List<BatteryUsageEntryDto>>(b.BatteryUsageJson);
                 }
                 catch { }
 
@@ -4857,5 +4858,26 @@ namespace ManageEngineWebApp.Controllers
 
             return Json(new { success = false, message = "Failed to update VIP settings." });
         }
+    }
+    public class CapacityHistoryEntryDto
+    {
+        public string Period { get; set; }
+        public int FullChargeCapacity { get; set; }
+        public int DesignCapacity { get; set; }
+    }
+
+    public class UsageHistoryEntryDto
+    {
+        public string Period { get; set; }
+        public string BatteryActive { get; set; }
+        public string AcActive { get; set; }
+    }
+
+    public class BatteryUsageEntryDto
+    {
+        public string StartTime { get; set; }
+        public string State { get; set; }
+        public string Duration { get; set; }
+        public string EnergyDrained { get; set; }
     }
 }
