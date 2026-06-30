@@ -803,6 +803,13 @@ function renderMemoryPanel(data) {
     let usagePct = (data.usagePercent || data.UsagePercent || 0);
     $('#memUtilizationText').text(usagePct.toFixed(1) + '%');
 
+    var usedGB = parseFloat(data.usedMemoryGB || data.UsedMemoryGB || 0);
+    var freeGB = parseFloat(data.freeMemoryGB || data.FreeMemoryGB || 0);
+    var totalGB = parseFloat(data.installedMemoryGB || data.InstalledMemoryGB || 0);
+    $('#memUsedGBText').text(usedGB.toFixed(1));
+    $('#memFreeGBText').text(freeGB.toFixed(1));
+    $('#memTotalGBText').text(totalGB.toFixed(1));
+
     let utilColor = '#3b82f6';
     if (usagePct > 90) utilColor = '#ef4444';
     else if (usagePct > 75) utilColor = '#f59e0b';
@@ -1814,8 +1821,12 @@ function loadBatteryDetails() {
         let lvl = data.batteryPercentage || data.BatteryPercentage || 0;
         let charging = data.isCharging || data.IsCharging || false;
         if (lvl > 0) {
-            $('#batteryLevel').html(`<div style="font-size:1rem;font-weight:700;">${lvl}%</div>
-                <div style="font-size:.65rem;color:var(--slate-500);">${charging ? 'Charging' : 'Discharging'}</div>`);
+            var lvlColor = lvl <= 20 ? '#ef4444' : (lvl <= 40 ? '#f59e0b' : '#22c55e');
+            $('#batteryLevel').html(`<div style="display:flex;align-items:center;gap:5px;">
+                    <span style="font-size:1rem;font-weight:700;color:${lvlColor};">${lvl}%</span>
+                    <i class="fas ${charging ? 'fa-bolt' : 'fa-battery-three-quarters'}" style="color:${charging ? '#22c55e' : lvlColor};font-size:.78rem;"></i>
+                </div>
+                <div style="font-size:.65rem;color:var(--slate-500);margin-top:1px;">${charging ? 'Charging' : 'Discharging'}</div>`);
         } else {
             $('#batteryLevel').text('N/A');
         }
@@ -2597,19 +2608,14 @@ $(document).ready(function () {
         sysAlert('Memory audit requested. This can take a little while on slower devices — please wait...', 'info');
 
         $.ajax({
-            url: '/ComputerSummary/AuditMemory?domain=' + encodeURIComponent(actualDomainName),
+            url: '/ComputerSummary/AuditMemory?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName),
             type: 'POST',
-            // No client-side timeout — the rescan can legitimately take a long time on slow
-            // devices/networks. We wait for the server's real success/failure response instead
-            // of guessing at an arbitrary clock. The server itself has its own internal
-            // polling window and will always return success:true/false.
             timeout: 0,
             success: function (res) {
                 if (res && res.success && res.data && res.data.metrics) {
                     renderMemoryPanel(res.data.metrics);
                     sysAlert(res.message || 'Memory audit completed!', 'success');
                 } else if (res && res.success) {
-                    // Audit reported success but no inline metrics — pull fresh state
                     $.get(`/ComputerSummary/MemorySummary?domain=${domaindata}`, function (data) {
                         if (hasRealMemoryData(data)) renderMemoryPanel(data);
                     });
@@ -2640,7 +2646,7 @@ $(document).ready(function () {
         sysAlert('Processor audit requested. Waiting for device to respond...', 'info');
 
         $.ajax({
-            url: '/ComputerSummary/AuditProcessor?domain=' + encodeURIComponent(actualDomainName),
+            url: '/ComputerSummary/AuditProcessor?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName),
             type: 'POST',
             timeout: 90000,
             success: function (res) {
@@ -2673,7 +2679,7 @@ $(document).ready(function () {
         sysAlert('Hard Disk audit requested. Waiting for device to respond...', 'info');
 
         $.ajax({
-            url: '/ComputerSummary/AuditHardDisk?domain=' + encodeURIComponent(actualDomainName),
+            url: '/ComputerSummary/AuditHardDisk?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName),
             type: 'POST',
             timeout: 90000,
             success: function (res) {

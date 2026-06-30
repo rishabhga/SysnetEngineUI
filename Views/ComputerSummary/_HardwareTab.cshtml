@@ -1032,27 +1032,33 @@
                 <!-- ── Everything below is gated: only shown after a successful audit ── -->
                 <div id="memAuditGate" style="display:none;">
 
-                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-tachometer-alt" style="color:var(--cyan);"></i> Memory Utilization</div>
-                    <div class="battery-gauge-container" style="display:flex;align-items:center;gap:20px;padding:20px;flex-wrap:wrap;">
-                        <div class="battery-gauge-ring">
-                            <svg viewBox="0 0 100 100">
-                                <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
-                                <circle id="memUtilizationCircle" class="gauge-fill" cx="50" cy="50" r="45"
-                                        stroke="#3b82f6" stroke-dasharray="0,283"></circle>
-                            </svg>
-                            <div class="battery-gauge-percent">
-                                <div class="gauge-num" id="memUtilizationText">--%</div>
+                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-tachometer-alt" style="color:var(--cyan);"></i> Memory Utilization &amp; Health</div>
+                    <div class="cpu-thermal-grid" style="margin-bottom:14px;align-items:stretch;">
+                        <div style="display:flex;align-items:center;gap:18px;flex:1;min-width:260px;">
+                            <div class="battery-gauge-ring">
+                                <svg viewBox="0 0 100 100">
+                                    <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
+                                    <circle id="memUtilizationCircle" class="gauge-fill" cx="50" cy="50" r="45"
+                                            stroke="#3b82f6" stroke-dasharray="0,283"></circle>
+                                </svg>
+                                <div class="battery-gauge-percent">
+                                    <div class="gauge-num" id="memUtilizationText">--%</div>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 style="font-size:1rem;font-weight:800;color:var(--slate-900);margin:0 0 3px;">RAM Utilization</h3>
+                                <p style="font-size:.76rem;color:var(--slate-500);margin:0 0 7px;font-weight:500;">Memory load at last audit</p>
+                                <div style="display:flex;flex-direction:column;gap:3px;font-size:.74rem;">
+                                    <div><i class="fas fa-circle" style="color:#0ea5e9;font-size:.45rem;"></i> <span style="font-weight:700;color:var(--slate-700);" id="memUsedGBText">--</span> <span style="color:var(--slate-400);">GB used</span></div>
+                                    <div><i class="fas fa-circle" style="color:var(--slate-300);font-size:.45rem;"></i> <span style="font-weight:700;color:var(--slate-700);" id="memFreeGBText">--</span> <span style="color:var(--slate-400);">GB free</span></div>
+                                    <div><i class="fas fa-circle" style="color:var(--slate-200);font-size:.45rem;"></i> <span style="font-weight:700;color:var(--slate-700);" id="memTotalGBText">--</span> <span style="color:var(--slate-400);">GB total</span></div>
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <h3 style="font-size:1.1rem;font-weight:800;color:var(--slate-900);margin:0 0 5px;">RAM Utilization</h3>
-                            <p style="font-size:.8rem;color:var(--slate-500);margin:0;font-weight:500;">Memory load at last audit</p>
-                        </div>
-                    </div>
 
-                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> Memory Health &amp; Smart Checkup</div>
-                    <div class="cpu-thermal-grid" style="margin-bottom:14px;">
-                        <div class="battery-gauge-container" style="border:none;box-shadow:none;padding:0;">
+                        <div style="width:1px;align-self:stretch;background:var(--slate-200);min-height:80px;"></div>
+
+                        <div style="display:flex;align-items:center;gap:18px;flex:1;min-width:260px;">
                             <div class="battery-gauge-ring">
                                 <svg viewBox="0 0 100 100">
                                     <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
@@ -1064,9 +1070,9 @@
                                 </div>
                             </div>
                             <div>
-                                <h3 style="font-size:1.1rem;font-weight:800;color:var(--slate-900);margin:0 0 3px;">Memory Health Score</h3>
-                                <p style="font-size:.8rem;color:var(--slate-500);margin:0;font-weight:500;" id="memHealthSummaryText">Based on configuration and usage at last audit</p>
-                                <div id="memHealthBadge" style="display:inline-flex;align-items:center;gap:6px;font-size:.74rem;font-weight:800;padding:4px 10px;border-radius:999px;margin-top:8px;">--</div>
+                                <h3 style="font-size:1rem;font-weight:800;color:var(--slate-900);margin:0 0 3px;"><i class="fas fa-heartbeat" style="color:#ef4444;font-size:.85rem;"></i> Memory Health Score</h3>
+                                <p style="font-size:.76rem;color:var(--slate-500);margin:0;font-weight:500;" id="memHealthSummaryText">Based on configuration and usage</p>
+                                <div id="memHealthBadge" style="display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:999px;margin-top:7px;">--</div>
                             </div>
                         </div>
                     </div>

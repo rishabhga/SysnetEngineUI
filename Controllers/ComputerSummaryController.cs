@@ -4639,15 +4639,15 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AuditMemory([FromQuery] string domain)
+        public async Task<IActionResult> AuditMemory([FromQuery] string domain, [FromQuery] string hostName = null)
         {
             try
             {
-                var cleanDomain = DeviceNameHelper.Normalize(domain);
+                var cleanDomain = DeviceNameHelper.Normalize(!string.IsNullOrWhiteSpace(hostName) ? hostName : domain);
                 if (string.IsNullOrEmpty(cleanDomain))
                     return Json(new { success = false, message = "Invalid device identifier." });
 
-                string UCode = GetUCodeFromDomain(domain);
+                string UCode = domain;
                 using var httpClient = GetClient();
 
                 DateTime? baselineTime = null;
@@ -4707,21 +4707,20 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AuditProcessor([FromQuery] string domain)
+        public async Task<IActionResult> AuditProcessor([FromQuery] string domain, [FromQuery] string hostName = null)
         {
             try
             {
-                var cleanDomain = DeviceNameHelper.Normalize(domain);
+                var cleanDomain = DeviceNameHelper.Normalize(!string.IsNullOrWhiteSpace(hostName) ? hostName : domain);
                 if (string.IsNullOrEmpty(cleanDomain))
                     return Json(new { success = false, message = "Invalid device identifier." });
 
+                string UCode = domain;
                 using var httpClient = GetClient();
-
-                // Get baseline: latest record timestamp before rescan
                 DateTime? baselineTime = null;
                 try
                 {
-                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/ProcessorDetails/history/{Uri.EscapeDataString(cleanDomain)}?count=1");
+                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/ProcessorDetails/history/{Uri.EscapeDataString(UCode)}?count=1");
                     if (baseResp.IsSuccessStatusCode)
                     {
                         var baseContent = await baseResp.Content.ReadAsStringAsync();
@@ -4733,7 +4732,6 @@ namespace ManageEngineWebApp.Controllers
                 }
                 catch { }
 
-                // Send the rescan command
                 var response = await httpClient.PostAsync(
                     $"{_baseUrl}/api/ProcessorDetails/ProcessorRescan?clientId={Uri.EscapeDataString(cleanDomain)}", null);
 
@@ -4743,13 +4741,12 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : "Device not connected or rescan failed." });
                 }
 
-                // Poll for new data
                 for (int i = 0; i < 30; i++)
                 {
                     await Task.Delay(2000);
                     try
                     {
-                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/ProcessorDetails/history/{Uri.EscapeDataString(cleanDomain)}?count=1");
+                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/ProcessorDetails/history/{Uri.EscapeDataString(UCode)}?count=1");
                         if (checkResp.IsSuccessStatusCode)
                         {
                             var checkContent = await checkResp.Content.ReadAsStringAsync();
@@ -4776,21 +4773,21 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AuditHardDisk([FromQuery] string domain)
+        public async Task<IActionResult> AuditHardDisk([FromQuery] string domain, [FromQuery] string hostName = null)
         {
             try
             {
-                var cleanDomain = DeviceNameHelper.Normalize(domain);
+                var cleanDomain = DeviceNameHelper.Normalize(!string.IsNullOrWhiteSpace(hostName) ? hostName : domain);
                 if (string.IsNullOrEmpty(cleanDomain))
                     return Json(new { success = false, message = "Invalid device identifier." });
 
+                string UCode = domain;
                 using var httpClient = GetClient();
 
-                // Get baseline: latest record timestamp before rescan
                 DateTime? baselineTime = null;
                 try
                 {
-                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/history?userCode={Uri.EscapeDataString(cleanDomain)}&take=1");
+                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/history?userCode={Uri.EscapeDataString(UCode)}&take=1");
                     if (baseResp.IsSuccessStatusCode)
                     {
                         var baseContent = await baseResp.Content.ReadAsStringAsync();
@@ -4802,7 +4799,6 @@ namespace ManageEngineWebApp.Controllers
                 }
                 catch { }
 
-                // Send the rescan command
                 var response = await httpClient.PostAsync(
                     $"{_baseUrl}/api/HardDiskDetails/HarddiskRescan?clientId={Uri.EscapeDataString(cleanDomain)}", null);
 
@@ -4812,13 +4808,12 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : "Device not connected or rescan failed." });
                 }
 
-                // Poll for new data
                 for (int i = 0; i < 30; i++)
                 {
                     await Task.Delay(2000);
                     try
                     {
-                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/history?userCode={Uri.EscapeDataString(cleanDomain)}&take=1");
+                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/history?userCode={Uri.EscapeDataString(UCode)}&take=1");
                         if (checkResp.IsSuccessStatusCode)
                         {
                             var checkContent = await checkResp.Content.ReadAsStringAsync();
