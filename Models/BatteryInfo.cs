@@ -15,9 +15,9 @@ namespace ManageEngineWebApp.Models
         public bool IsCharging { get; set; }
         public string LiveBatteryDetails { get; set; }
         public int? EstimatedRunTime { get; set; }
-        public long? DesignCapacity { get; set; }
-        public long? FullChargeCapacity { get; set; }
-        public long? RemainingCapacity { get; set; }
+        public int? DesignCapacity { get; set; }
+        public int? FullChargeCapacity { get; set; }
+        public int? RemainingCapacity { get; set; }
         public decimal? BatteryHealthPercent { get; set; }
         public decimal? WearLevelPercent { get; set; }
         public double? WearRatePerMonth { get; set; }
@@ -25,8 +25,8 @@ namespace ManageEngineWebApp.Models
         public int? CycleCount { get; set; }
         public string Status { get; set; }
         public string CapacityHistoryJson { get; set; }
+        public string UsageHistoryJson { get; set; }
+        public string BatteryUsageJson { get; set; }
         public DateTime ScanDate { get; set; }
-        public string BatteryLevel { get; set; }
-        public DateTime DateTime { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-using ManageEngineWebApp.Datacontext;
+﻿using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Models;
 using ManageEngineWebApp.UpdatesModels;
@@ -3671,7 +3671,7 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, message = "Unauthorized" });
             }
             string UCode = GetUCodeFromDomain(domain);
-            string searchName = domain.Contains('\\') ? domain.Split('\\')[0].ToUpperInvariant() : domain;
+            string searchName = ManageEngineWebApp.Helpers.DeviceNameHelper.Normalize(domain);
             try
             {
                 using var httpClient = GetClient();
@@ -3697,11 +3697,11 @@ namespace ManageEngineWebApp.Controllers
             if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<BatteryInfo>();
             string UCode = GetUCodeFromDomain(domain);
-            string searchName = domain.Contains('\\') ? domain.Split('\\')[0].ToUpperInvariant() : domain;
+            string searchName = ManageEngineWebApp.Helpers.DeviceNameHelper.Normalize(domain);
             try
             {
                 using var httpClient = GetClient();
-                
+
                 var battResponse = await httpClient.GetAsync($"{_baseUrl}/api/Battery/history/{Uri.EscapeDataString(searchName)}");
                 if (battResponse.IsSuccessStatusCode)
                 {
@@ -3771,6 +3771,31 @@ namespace ManageEngineWebApp.Controllers
                 int battPct = b.BatteryPercentage > 0 ? b.BatteryPercentage : wmiBatteryLevel;
                 string systemType = !string.IsNullOrWhiteSpace(b.SystemType) ? b.SystemType : wmiSystemType ?? "Not found";
 
+                object capacityHistoryObj = null;
+                object usageHistoryObj = null;
+                object batteryUsageObj = null;
+
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(b.CapacityHistoryJson))
+                        capacityHistoryObj = JsonConvert.DeserializeObject(b.CapacityHistoryJson);
+                }
+                catch { }
+
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(b.UsageHistoryJson))
+                        usageHistoryObj = JsonConvert.DeserializeObject(b.UsageHistoryJson);
+                }
+                catch { }
+
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(b.BatteryUsageJson))
+                        batteryUsageObj = JsonConvert.DeserializeObject(b.BatteryUsageJson);
+                }
+                catch { }
+
                 return Json(new
                 {
                     Manufacturer = manufacturer,
@@ -3794,7 +3819,10 @@ namespace ManageEngineWebApp.Controllers
                     BatteryName = b.BatteryName,
                     SerialNumber = b.SerialNumber,
                     Chemistry = b.Chemistry,
-                    ScanDate = b.ScanDate
+                    ScanDate = b.ScanDate,
+                    CapacityHistory = capacityHistoryObj,
+                    UsageHistory = usageHistoryObj,
+                    BatteryUsage = batteryUsageObj
                 });
             }
             catch (Exception ex)
@@ -3827,8 +3855,7 @@ namespace ManageEngineWebApp.Controllers
 
                 using var httpClient = GetClient();
 
-                // 1. Get baseline using the correct searchName!
-                string searchName = domain.Contains('\\') ? domain.Split('\\')[0].ToUpperInvariant() : domain;
+                string searchName = cleanDomain;
                 DateTime? baselineTime = null;
                 try
                 {
@@ -3844,7 +3871,6 @@ namespace ManageEngineWebApp.Controllers
                 }
                 catch { }
 
-                // 2. Send the rescan command using cleanDomain (MANISH) so the agent receives it
                 var response = await httpClient.PostAsync(
                     $"{_baseUrl}/api/Battery/batteryFetchDetails?clientId={Uri.EscapeDataString(cleanDomain)}", null);
 
@@ -3854,7 +3880,6 @@ namespace ManageEngineWebApp.Controllers
                     return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : $"Server returned {(int)response.StatusCode}" });
                 }
 
-                // 3. Poll for new data in DB
                 for (int i = 0; i < 40; i++)
                 {
                     await Task.Delay(2000);
@@ -3866,13 +3891,12 @@ namespace ManageEngineWebApp.Controllers
                             var checkContent = await checkResp.Content.ReadAsStringAsync();
                             var checkData = JsonConvert.DeserializeObject<List<BatteryInfo>>(checkContent);
                             var latestNow = checkData?.OrderByDescending(x => x.ScanDate).FirstOrDefault();
-                            
+
                             if (latestNow != null)
                             {
                                 DateTime currentTime = latestNow.ScanDate;
                                 if (!baselineTime.HasValue || currentTime > baselineTime.Value)
                                 {
-                                    // Found a newer record! Return success so UI reloads
                                     return Json(new { success = true, message = "Battery audit completed successfully.", data = new { metrics = latestNow } });
                                 }
                             }
