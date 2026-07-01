@@ -76,7 +76,7 @@ function lazyLoadTabData(tabId) {
             loadBiosDetails();
             loadBatteryDetails();
             loadMonitorDetails();
-            loadProcessorDetails();
+            loadProcessorDetails(false);   // static specs only; audit sections gated behind Audit Processor click
             loadNetworkAdapters();
             loadKeyboardDetails();
             loadMotherboardDetails();
@@ -185,33 +185,125 @@ function initTabStyles() {
 
 function initializeAllTables() {
     initTable('#servicesTable', `/ComputerSummary/services?domain=${domaindata}`, [
-        { data: null, render: (row) => flexRender(row, 'DisplayName', 'Name') },
-        { data: null, render: (row) => flexRender(row, 'StartupType') },
-        { data: null, render: (row) => flexRender(row, 'State', 'Status') },
+        { data: null, render: (row) => flexRender(row, 'DisplayName') },
+        {
+            data: null, render: (row) => {
+                const st = (row.startupType || row.StartupType || '').toString();
+                let color = '#64748b', bg = '#f1f5f9';
+                const stl = st.toLowerCase();
+                if (stl === 'automatic' || stl === 'auto') { color = '#166534'; bg = '#dcfce7'; }
+                else if (stl === 'manual') { color = '#92400e'; bg = '#fef3c7'; }
+                else if (stl === 'disabled') { color = '#991b1b'; bg = '#fee2e2'; }
+                return `<span style="display:inline-block;font-size:.74rem;font-weight:700;padding:2px 8px;border-radius:999px;background:${bg};color:${color};white-space:nowrap;">${st || 'Unknown'}</span>`;
+            }
+        },
+        {
+            data: null, render: (row) => {
+                const state = (row.state || row.State || row.status || row.Status || '').toString();
+                const running = state.toLowerCase() === 'running';
+                const dot = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${running ? '#22c55e' : '#94a3b8'};margin-right:5px;flex-shrink:0;"></span>`;
+                return `<span style="display:inline-flex;align-items:center;font-size:.78rem;font-weight:600;color:${running ? '#166534' : '#475569'};white-space:nowrap;">${dot}${state || 'Unknown'}</span>`;
+            }
+        },
         { data: null, render: (row) => flexRender(row, 'LogonName') },
         { data: null, render: (row) => flexRender(row, 'DateTime') },
         {
             data: null, render: (row) => {
-                const sName = encodeURIComponent(row.Name || row.DisplayName || '');
-                return `<div style="display:flex;gap:5px;">
-                            <button onclick="controlService('${sName}','start')" class="btn btn-sm" style="background:#22c55e;color:#fff;border:none;padding:3px 8px;border-radius:4px;" title="Start"><i class="fas fa-play"></i></button>
-                            <button onclick="controlService('${sName}','stop')" class="btn btn-sm" style="background:#ef4444;color:#fff;border:none;padding:3px 8px;border-radius:4px;" title="Stop"><i class="fas fa-stop"></i></button>
-                            <button onclick="controlService('${sName}','pause')" class="btn btn-sm" style="background:#f59e0b;color:#fff;border:none;padding:3px 8px;border-radius:4px;" title="Pause"><i class="fas fa-pause"></i></button>
-                            <button onclick="controlService('${sName}','restart')" class="btn btn-sm" style="background:#3b82f6;color:#fff;border:none;padding:3px 8px;border-radius:4px;" title="Restart"><i class="fas fa-redo"></i></button>
-                        </div>`;
+                const sName = (row.displayName || row.DisplayName || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                const state = (row.state || row.State || row.status || row.Status || '').toLowerCase();
+                const stype = (row.startupType || row.StartupType || '').toLowerCase();
+                const disabled = stype === 'disabled';
+
+                // Icon-only buttons — no wrapping text, clear tooltips
+                // Pause removed: Windows service pause is not reliably supported
+                let btns = '';
+                if (disabled) {
+                    btns = `<span style="font-size:.72rem;color:#94a3b8;font-weight:600;padding:3px 8px;background:#f1f5f9;border-radius:6px;">Disabled</span>`;
+                } else if (state === 'running') {
+                    btns = `
+                        <button data-svc="${sName}" data-action="stop" class="svc-btn svc-stop" title="Stop ${sName}"><i class="fas fa-stop"></i></button>
+                        <button data-svc="${sName}" data-action="restart" class="svc-btn svc-restart" title="Restart ${sName}"><i class="fas fa-redo"></i></button>`;
+                } else {
+                    btns = `
+                        <button data-svc="${sName}" data-action="start" class="svc-btn svc-start" title="Start ${sName}"><i class="fas fa-play"></i></button>`;
+                }
+
+                return `<div style="display:flex;align-items:center;gap:5px;">${btns}</div>`;
             }
         }
     ]);
 
-    window.controlService = function (serviceName, action) {
-        if (!confirm(`Are you sure you want to ${action} the service '${decodeURIComponent(serviceName)}'?`)) return;
-        sysAlert(`Sending ${action} command to ${decodeURIComponent(serviceName)}...`, 'info');
-        $.post(`/ComputerSummary/ControlService?domain=${actualDomainName}&serviceName=${serviceName}&action=${action}`, function (res) {
-            sysAlert(`Service command sent successfully.`, 'success');
-        }).fail(function () {
-            sysAlert(`Failed to send command to service.`, 'error');
+    // Inject button styles once
+    if (!document.getElementById('svcBtnStyle')) {
+        const s = document.createElement('style');
+        s.id = 'svcBtnStyle';
+        s.textContent = `
+            .svc-btn { display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:none;border-radius:7px;cursor:pointer;font-size:.72rem;transition:filter .15s,transform .1s;flex-shrink:0; }
+            .svc-btn:hover { filter:brightness(.88);transform:scale(1.08); }
+            .svc-btn:active { transform:scale(.96); }
+            .svc-stop    { background:#fee2e2;color:#991b1b; }
+            .svc-restart { background:#dbeafe;color:#1d4ed8; }
+            .svc-start   { background:#dcfce7;color:#166534; }
+            .svc-btn.loading { opacity:.35;pointer-events:none; }
+            .svc-processing { display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:600;color:var(--cyan,#06b6d4);white-space:nowrap; }
+        `;
+        document.head.appendChild(s);
+    }
+
+    // Event delegation — reads service name & action from data-attributes
+    $(document).off('click.svc').on('click.svc', '.svc-btn', function () {
+        const $btn = $(this);
+        const $row = $btn.closest('tr');
+        const serviceName = $btn.data('svc');
+        const action = $btn.data('action');
+
+        if (!serviceName) {
+            sysAlert('Service name could not be read. Try refreshing the page.', 'error');
+            return;
+        }
+
+        const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
+        if (!confirm(`${actionLabel} the service "${serviceName}"?`)) return;
+
+        // Show processing state on this row's buttons
+        const $actionCell = $btn.closest('div');
+        $actionCell.find('.svc-btn').addClass('loading');
+
+        // Replace buttons with a spinner while we wait for the real response
+        const $spinner = $(`<span class="svc-processing"><i class="fas fa-circle-notch fa-spin"></i> Processing...</span>`);
+        $actionCell.append($spinner);
+
+        sysAlert(`Sending ${actionLabel} command to "${serviceName}"...`, 'info');
+
+        $.ajax({
+            url: `/ComputerSummary/ControlService`,
+            type: 'POST',
+            timeout: 0, // No client timeout — server polls for real confirmation
+            data: {
+                domain: actualDomainName,
+                serviceName: serviceName,
+                action: action
+            },
+            success: function (res) {
+                if (res && res.success) {
+                    sysAlert(res.message || `"${serviceName}" — ${actionLabel} completed.`, 'success');
+                    // Reload table to show updated State and correct buttons
+                    if ($.fn.DataTable.isDataTable('#servicesTable')) {
+                        $('#servicesTable').DataTable().ajax.reload(null, false);
+                    }
+                } else {
+                    sysAlert(res && res.message ? res.message : `Command sent but state not confirmed yet.`, 'warning');
+                    $spinner.remove();
+                    $actionCell.find('.svc-btn').removeClass('loading');
+                }
+            },
+            error: function () {
+                sysAlert(`Could not reach the device. It may be offline.`, 'error');
+                $spinner.remove();
+                $actionCell.find('.svc-btn').removeClass('loading');
+            }
         });
-    };
+    });
 
     initTable('#usersTable', `/ComputerSummary/users?domain=${domaindata}`, [
         { data: null, render: (row) => flexRender(row, 'UserName') },
@@ -1202,19 +1294,34 @@ function cpuVal(d, ...keys) {
     return undefined;
 }
 
-function loadProcessorDetails() {
+function loadProcessorDetails(includeAuditSections) {
+    // Static identity info (name, specs, cache) — always show from latest DB row on page load.
+    // Thermal health + trend charts only show when includeAuditSections=true (i.e. after audit).
     $.get(`/ComputerSummary/Processors?domain=${domaindata}`, function (data) {
         if (!data) return;
-        console.log('[Processor API raw payload]', data);
         renderProcessorHero(data);
         renderProcessorSpecs(data);
         renderProcessorCache(data);
-        renderProcessorThermal(data);
+        if (includeAuditSections) {
+            renderProcessorThermal(data);
+        } else {
+            // Ensure both gated sections stay hidden on page load
+            $('#cpuHealthSection').hide();
+            $('#cpuHealthPlaceholder').show();
+        }
     }).fail(function () { console.error("Failed to load processor details"); });
 
-    $.get(`/ComputerSummary/ProcessorHistory?domain=${domaindata}&count=20`, function (history) {
-        renderProcessorTrendCharts(history);
-    }).fail(function () { console.error("Failed to load processor trend history"); });
+    if (includeAuditSections) {
+        $.get(`/ComputerSummary/ProcessorHistory?domain=${domaindata}&count=20`, function (history) {
+            renderProcessorTrendCharts(history);
+        }).fail(function () {
+            $('#cpuTrendSection').hide();
+            $('#cpuTrendPlaceholder').show();
+        });
+    } else {
+        $('#cpuTrendSection').hide();
+        $('#cpuTrendPlaceholder').show();
+    }
 }
 
 function renderProcessorHero(d) {
@@ -1295,64 +1402,132 @@ function renderProcessorThermal(d) {
     var pkgPower = parseFloat(cpuVal(d, 'cpuPackagePower', 'CpuPackagePower', 'packagePower', 'PackagePower', 'powerDraw', 'PowerDraw')) || 0;
 
     if (pkgTemp <= 0) {
-        $('#cpuThermalSection').hide();
-        $('#cpuThermalPlaceholder').show();
+        $('#cpuHealthSection').hide();
+        $('#cpuHealthPlaceholder').show();
         return;
     }
 
-    $('#cpuThermalPlaceholder').hide();
-    $('#cpuThermalSection').show();
+    $('#cpuHealthPlaceholder').hide();
+    $('#cpuHealthSection').show();
 
+    // ── Health Score calculation ──────────────────────────────────
+    // Based purely on real temperature readings from the audit.
+    // Score degrades as temperature climbs toward unsafe thresholds.
+    // These bands match Intel/AMD published safe-operation guidelines:
+    //   < 50°C: cool/idle — no degradation
+    //   50–70°C: warm/load — mild concern, starts deducting
+    //   70–85°C: hot — moderate concern, significant deduction
+    //   85–95°C: very hot — high risk, heavy deduction
+    //   > 95°C: critical — approaching throttle/shutdown territory
+    var healthScore;
+    var healthStatus, healthColor;
+    if (pkgTemp < 50) { healthScore = 100; healthStatus = 'Cool'; healthColor = '#22c55e'; }
+    else if (pkgTemp < 60) { healthScore = 90 - (pkgTemp - 50) * 0.5; healthStatus = 'Healthy'; healthColor = '#22c55e'; }
+    else if (pkgTemp < 70) { healthScore = 85 - (pkgTemp - 60) * 1.0; healthStatus = 'Warm'; healthColor = '#84cc16'; }
+    else if (pkgTemp < 80) { healthScore = 75 - (pkgTemp - 70) * 2.0; healthStatus = 'Hot'; healthColor = '#f59e0b'; }
+    else if (pkgTemp < 90) { healthScore = 55 - (pkgTemp - 80) * 3.0; healthStatus = 'Very Hot'; healthColor = '#f97316'; }
+    else { healthScore = 25 - (pkgTemp - 90) * 2.0; healthStatus = 'Critical'; healthColor = '#ef4444'; }
+    healthScore = Math.max(0, Math.min(100, Math.round(healthScore)));
+
+    // ── Health circle gauge ───────────────────────────────────────
     var circumference = 2 * Math.PI * 45;
-    var maxTemp = 100;
-    var dashLen = Math.min(100, (pkgTemp / maxTemp) * 100) / 100 * circumference;
-    var color = cpuTempColor(pkgTemp);
+    var healthDash = (healthScore / 100) * circumference;
+    $('#cpuHealthCircle').css({ stroke: healthColor, 'stroke-dasharray': healthDash + ', ' + circumference, transition: 'stroke-dasharray 1.5s ease, stroke 1s ease' });
+    $('#cpuHealthScoreText').text(healthScore + '%');
+    $('#cpuHealthBadge').html('<i class="fas fa-' + (healthScore >= 80 ? 'check-circle' : healthScore >= 55 ? 'exclamation-triangle' : 'fire') + '"></i> ' + healthStatus)
+        .css({ background: healthColor + '22', color: healthColor });
 
-    $('#cpuPackageTempCircle').css({ stroke: color, 'stroke-dasharray': dashLen + ', ' + circumference });
-    $('#cpuPackageTempText').text(pkgTemp > 0 ? pkgTemp.toFixed(0) + '\u00B0C' : 'N/A');
+    // ── Package temp gauge ────────────────────────────────────────
+    var tempDash = Math.min(100, (pkgTemp / 100) * 100) / 100 * circumference;
+    var tempColor = pkgTemp < 60 ? '#22c55e' : pkgTemp < 75 ? '#f59e0b' : '#ef4444';
+    $('#cpuPackageTempCircle').css({ stroke: tempColor, 'stroke-dasharray': tempDash + ', ' + circumference });
+    $('#cpuPackageTempText').text(pkgTemp.toFixed(0) + '\u00B0C');
     $('#cpuPackagePowerText').text('Power draw: ' + (pkgPower > 0 ? pkgPower.toFixed(1) + ' W' : 'N/A'));
+    $('#cpuHealthStatus').html('<i class="fas fa-thermometer-half"></i> ' + healthStatus).css('color', healthColor);
 
-    var healthLabel, healthColor;
-    if (pkgTemp < 50) { healthLabel = '<i class="fas fa-check-circle"></i> Cool'; healthColor = '#22c55e'; }
-    else if (pkgTemp < 70) { healthLabel = '<i class="fas fa-exclamation-triangle"></i> Warm'; healthColor = '#f59e0b'; }
-    else { healthLabel = '<i class="fas fa-fire"></i> Hot'; healthColor = '#ef4444'; }
-    $('#cpuHealthStatus').html(healthLabel).css('color', healthColor);
-    $('#cpuHealthTemp').text(pkgTemp.toFixed(0) + '\u00B0C').css('color', color);
+    // ── Sub-score info boxes ──────────────────────────────────────
+    $('#cpuHealthTemp').text(pkgTemp.toFixed(0) + '\u00B0C').css('color', tempColor);
     var cores = parseInt(cpuVal(d, 'cores', 'Cores', 'numberOfCores', 'NumberOfCores')) || 0;
     var threads = parseInt(cpuVal(d, 'logicalProcessors', 'LogicalProcessors', 'numberOfLogicalProcessors', 'NumberOfLogicalProcessors')) || 0;
     $('#cpuHealthCores').text(cores > 0 ? cores + 'C / ' + threads + 'T' : '--');
     var maxMHz = parseFloat(cpuVal(d, 'maxClockSpeedMHz', 'MaxClockSpeedMHz', 'maxClockSpeed', 'MaxClockSpeed')) || 0;
     $('#cpuHealthClock').text(maxMHz > 0 ? (maxMHz / 1000).toFixed(2) + ' GHz' : '--');
+    $('#cpuHealthPower').text(pkgPower > 0 ? pkgPower.toFixed(1) + ' W' : 'N/A');
 
-    var cores = [
+    // ── Per-core temperature mini-circles ─────────────────────────
+    var maxTemp = 100;
+    var coreReadings = [
         { label: 'Core 0', value: parseFloat(cpuVal(d, 'core0Temp', 'Core0Temp', 'coreTemp0', 'CoreTemp0')) || 0 },
         { label: 'Core 1', value: parseFloat(cpuVal(d, 'core1Temp', 'Core1Temp', 'coreTemp1', 'CoreTemp1')) || 0 },
         { label: 'Core 2', value: parseFloat(cpuVal(d, 'core2Temp', 'Core2Temp', 'coreTemp2', 'CoreTemp2')) || 0 },
         { label: 'Core 3', value: parseFloat(cpuVal(d, 'core3Temp', 'Core3Temp', 'coreTemp3', 'CoreTemp3')) || 0 }
-    ];
+    ].filter(function (c) { return c.value > 0; });   // only show cores with real data
 
-    var html = '';
-    cores.forEach(function (c) {
-        var cColor = cpuTempColor(c.value);
-        var cDash = Math.min(100, (c.value / maxTemp) * 100);
-        html += '<div class="cpu-core-gauge">' +
-            '<svg viewBox="0 0 36 36" style="width:48px;height:48px;transform:rotate(-90deg);">' +
-            '<path stroke="#e2e8f0" stroke-width="3.2" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />' +
-            '<path stroke="' + cColor + '" stroke-width="3.2" stroke-dasharray="' + cDash + ', 100" fill="none" stroke-linecap="round" style="transition:stroke-dasharray 1s ease;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />' +
-            '</svg>' +
-            '<div class="cpu-core-gauge-label">' + c.label + '</div>' +
-            '<div class="cpu-core-gauge-value" style="color:' + cColor + ';">' + (c.value > 0 ? c.value.toFixed(0) + '\u00B0C' : 'N/A') + '</div>' +
-            '</div>';
-    });
-    $('#cpuCoreGaugeContainer').html(html);
+    var coreHtml = '';
+    if (coreReadings.length > 0) {
+        coreReadings.forEach(function (c) {
+            var cColor = c.value < 60 ? '#22c55e' : c.value < 75 ? '#f59e0b' : '#ef4444';
+            var cDash = Math.min(100, (c.value / maxTemp) * 100);
+            coreHtml += '<div class="cpu-core-gauge">' +
+                '<svg viewBox="0 0 36 36" style="width:56px;height:56px;transform:rotate(-90deg);">' +
+                '<path stroke="#e2e8f0" stroke-width="3.2" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />' +
+                '<path stroke="' + cColor + '" stroke-width="3.2" stroke-dasharray="' + cDash + ', 100" fill="none" stroke-linecap="round" style="transition:stroke-dasharray 1s ease;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />' +
+                '</svg>' +
+                '<div class="cpu-core-gauge-label">' + c.label + '</div>' +
+                '<div class="cpu-core-gauge-value" style="color:' + cColor + ';font-weight:700;">' + c.value.toFixed(0) + '\u00B0C</div>' +
+                '</div>';
+        });
+    } else {
+        coreHtml = '<div style="color:var(--slate-400);font-size:.8rem;">Per-core temperature not reported by this device.</div>';
+    }
+    $('#cpuCoreGaugeContainer').html(coreHtml);
+
+    // Also update the hero status badge to reflect thermal health once we have real temp data
+    $('#cpuStatusBadge').html('<span class="cpu-live-dot"></span> ' + healthStatus)
+        .css({ background: healthColor + '22', color: healthColor })
+        .removeClass('is-down')
+        .toggleClass('is-down', healthScore < 40);
+
+    // ── Diagnostic findings ───────────────────────────────────────
+    var findings = [];
+    if (pkgTemp >= 90) findings.push('Package temperature is critically high (' + pkgTemp.toFixed(0) + '°C) — CPU may be thermal-throttling. Check cooling.');
+    else if (pkgTemp >= 80) findings.push('Package temperature is very high (' + pkgTemp.toFixed(0) + '°C) — verify fan speed and thermal paste.');
+    else if (pkgTemp >= 70) findings.push('Package temperature is elevated (' + pkgTemp.toFixed(0) + '°C) — monitor under sustained load.');
+    var hotCores = coreReadings.filter(function (c) { return c.value >= 80; });
+    if (hotCores.length > 0) findings.push(hotCores.length + ' core(s) exceeding 80°C (' + hotCores.map(function (c) { return c.label + ': ' + c.value.toFixed(0) + '°C'; }).join(', ') + ').');
+    if (pkgPower > 45) findings.push('Power draw is high (' + pkgPower.toFixed(1) + ' W) — may contribute to thermal pressure.');
+    if (findings.length === 0) findings.push('No thermal issues detected — processor is operating within healthy temperature ranges.');
+
+    var list = $('#cpuHealthIssuesList').empty();
+    findings.forEach(function (f) { list.append('<li>' + escapeHtml(f) + '</li>'); });
 }
 
 let cpuTempChartInstance = null;
 let cpuClockChartInstance = null;
 
 function renderProcessorTrendCharts(history, skipStore) {
-    if (!history || !history.length) return;
+    if (!history || !history.length) {
+        $('#cpuTrendSection').hide();
+        $('#cpuTrendPlaceholder').show();
+        $('#cpuTrendPlaceholderText').html(skipStore ? 'No samples found in the selected date range.' : 'Run <strong>Audit Processor</strong> above to see temperature and clock trend data.');
+        return;
+    }
     if (!skipStore) _fullCpuHistory = history;
+
+    // Only show the trend section if at least one sample has real temperature data.
+    // Zero-filled history rows produce a meaningless flat chart and should stay hidden.
+    var hasRealTempData = history.some(function (h) {
+        return (parseFloat(cpuVal(h, 'cpuPackageTemperature', 'CpuPackageTemperature', 'packageTemperature', 'PackageTemperature')) || 0) > 0;
+    });
+    if (!hasRealTempData) {
+        $('#cpuTrendSection').hide();
+        $('#cpuTrendPlaceholder').show();
+        $('#cpuTrendPlaceholderText').html(skipStore ? 'No temperature samples in this date range.' : 'Run <strong>Audit Processor</strong> above to see temperature and clock trend data.');
+        return;
+    }
+
+    $('#cpuTrendPlaceholder').hide();
+    $('#cpuTrendSection').show();
 
     var labels = history.map(function (h) {
         return formatChartLabel(new Date(cpuVal(h, 'dateTime', 'DateTime')));
@@ -2652,7 +2827,7 @@ $(document).ready(function () {
             success: function (res) {
                 if (res && res.success) {
                     sysAlert(res.message || 'Processor audit completed!', 'success');
-                    loadProcessorDetails();
+                    loadProcessorDetails(true);   // full refresh including thermal health + trend charts
                 } else {
                     sysAlert(res.message || 'Processor audit failed.', 'error');
                 }

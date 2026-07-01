@@ -2410,6 +2410,127 @@ namespace ManageEngineWebApp.Controllers
             return Json(localDatalist);
         }
 
+        // Sends a service control command to the device via SignalR, then polls until the
+        // device reports back a new record with the expected state change — same pattern as
+        // AuditMemory/AuditProcessor so the UI gets a real success/fail based on what actually
+        // happened on the device, not just whether the command was dispatched.
+        [HttpPost]
+        public async Task<IActionResult> ControlService(string domain, string serviceName, string action)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+
+            if (string.IsNullOrWhiteSpace(serviceName))
+                return Json(new { success = false, message = "Service name is required." });
+
+            var allowed = new[] { "start", "stop", "restart" };
+            if (!allowed.Contains(action?.ToLower()))
+                return Json(new { success = false, message = $"Action '{action}' is not supported." });
+
+            var cleanDomain = DeviceNameHelper.Normalize(domain);
+            string UCode = GetUCodeFromDomain(domain);
+            if (string.IsNullOrEmpty(cleanDomain) || string.IsNullOrEmpty(UCode))
+                return Json(new { success = false, message = "Invalid device identifier." });
+
+            try
+            {
+                using var httpClient = GetClient();
+
+                // Step 1: capture baseline — current State and DateTime for this specific service
+                string baselineState = null;
+                DateTime? baselineDateTime = null;
+                try
+                {
+                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/WindowsService");
+                    if (baseResp.IsSuccessStatusCode)
+                    {
+                        var baseContent = await baseResp.Content.ReadAsStringAsync();
+                        var baseData = JsonConvert.DeserializeObject<List<WindowsService>>(baseContent);
+                        var svc = baseData?
+                            .Where(x => x.UserCode == UCode &&
+                                   string.Equals(x.DisplayName, serviceName, StringComparison.OrdinalIgnoreCase))
+                            .OrderByDescending(x => x.DateTime)
+                            .FirstOrDefault();
+                        if (svc != null)
+                        {
+                            baselineState = svc.State;
+                            baselineDateTime = svc.DateTime;
+                        }
+                    }
+                }
+                catch { }
+
+                // Step 2: determine what state we expect after the action
+                string expectedState = action.ToLower() switch
+                {
+                    "start" => "Running",
+                    "stop" => "Stopped",
+                    "restart" => "Running",
+                    _ => null
+                };
+
+                // Step 3: send the command via SignalR
+                var cmdUrl = $"{_baseUrl}/api/WindowsService/ServicesWorking" +
+                             $"?clientId={Uri.EscapeDataString(cleanDomain)}" +
+                             $"&Servicestype={Uri.EscapeDataString(action.ToLower())}" +
+                             $"&ServiceName={Uri.EscapeDataString(serviceName)}";
+
+                var cmdResp = await httpClient.PostAsync(cmdUrl, null);
+                if (!cmdResp.IsSuccessStatusCode)
+                {
+                    var cmdErr = await cmdResp.Content.ReadAsStringAsync();
+                    return Json(new { success = false, message = !string.IsNullOrWhiteSpace(cmdErr) ? cmdErr : "Device not connected or command rejected." });
+                }
+
+                // Step 4: poll until the service reports a new DateTime (fresh scan) or
+                // the State matches what we expect — up to 60 seconds (30 × 2s)
+                for (int i = 0; i < 30; i++)
+                {
+                    await Task.Delay(2000);
+                    try
+                    {
+                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/WindowsService");
+                        if (!checkResp.IsSuccessStatusCode) continue;
+
+                        var checkContent = await checkResp.Content.ReadAsStringAsync();
+                        var checkData = JsonConvert.DeserializeObject<List<WindowsService>>(checkContent);
+                        var svcNow = checkData?
+                            .Where(x => x.UserCode == UCode &&
+                                   string.Equals(x.DisplayName, serviceName, StringComparison.OrdinalIgnoreCase))
+                            .OrderByDescending(x => x.DateTime)
+                            .FirstOrDefault();
+
+                        if (svcNow == null) continue;
+
+                        bool isNewer = !baselineDateTime.HasValue || svcNow.DateTime > baselineDateTime.Value;
+                        bool stateMatch = expectedState == null ||
+                                          string.Equals(svcNow.State, expectedState, StringComparison.OrdinalIgnoreCase);
+
+                        if (isNewer && stateMatch)
+                        {
+                            return Json(new
+                            {
+                                success = true,
+                                message = $"\"{serviceName}\" is now {svcNow.State}.",
+                                newState = svcNow.State
+                            });
+                        }
+                    }
+                    catch { }
+                }
+
+                // Command was sent but device didn't report back in time
+                return Json(new
+                {
+                    success = false,
+                    message = $"Command sent but device hasn't confirmed the state change yet. The service may still be processing."
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> groups(string domain)
         {
