@@ -1652,9 +1652,25 @@ function loadMotherboardDetails() {
     });
 }
 
-// ═══════════════════════ Motherboard Audit (health, temps, voltages, CPU snapshot) ═══════════════════════
 
-let mbChartInstances = {}; // keyed by canvas id, so re-renders destroy the old chart first
+let mbChartInstances = {}; 
+
+function loadMotherboardHealthLatest() {
+    $('#mbAuditLoading').hide();
+    $.get(`/ComputerSummary/MotherboardHealthLatest?domain=${domaindata}`, function (data) {
+        if (data && (data.health || data.Health)) {
+            renderMotherboardAudit(data);
+            $('#mbAuditPlaceholder').hide();
+            $('#mbAuditGate').show();
+        } else {
+            $('#mbAuditGate').hide();
+            $('#mbAuditPlaceholder').show();
+        }
+    }).fail(function () {
+        $('#mbAuditGate').hide();
+        $('#mbAuditPlaceholder').show();
+    });
+}
 
 $(document).on('click', '#btnAuditMotherboard', function (e) {
     e.preventDefault();
@@ -2926,7 +2942,7 @@ $(document).ready(function () {
         $.ajax({
             url: '/ComputerSummary/AuditBattery?domain=' + encodeURIComponent(actualDomainName),
             type: 'POST',
-            timeout: 60000,
+            timeout: 85000,
             success: function (res) {
                 if (res && res.success && res.data && res.data.metrics) {
                     renderBatteryAuditPanel(res.data.metrics);

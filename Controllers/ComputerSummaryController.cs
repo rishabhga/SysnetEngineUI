@@ -2803,6 +2803,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> AuditMotherboard([FromQuery] string domain, [FromQuery] string hostName = null)
         {
+            if (!await IsDeviceAuthorized(domain))
+                return Json(new { success = false, message = "Unauthorized access to this device." });
             try
             {
                 var cleanDomain = DeviceNameHelper.Normalize(!string.IsNullOrWhiteSpace(hostName) ? hostName : domain);
@@ -2819,9 +2821,9 @@ namespace ManageEngineWebApp.Controllers
                     if (baseResp.IsSuccessStatusCode)
                     {
                         var baseContent = await baseResp.Content.ReadAsStringAsync();
-                        var baseData = JsonConvert.DeserializeObject<dynamic>(baseContent);
+                        var baseData = JsonConvert.DeserializeObject<MotherboardHealthAuditDto>(baseContent);
                         if (baseData != null)
-                            baselineTime = (DateTime?)(baseData.AuditDate ?? baseData.auditDate);
+                            baselineTime = baseData.AuditDate;
                     }
                 }
                 catch { }
@@ -2844,11 +2846,9 @@ namespace ManageEngineWebApp.Controllers
                         if (checkResp.IsSuccessStatusCode)
                         {
                             var checkContent = await checkResp.Content.ReadAsStringAsync();
-                            var checkData = JsonConvert.DeserializeObject<dynamic>(checkContent);
-                            var healthNode = checkData?.health;
-                            DateTime? currentTime = healthNode != null
-                                ? (DateTime?)(healthNode.AuditDate ?? healthNode.auditDate)
-                                : null;
+                            var checkData = JsonConvert.DeserializeObject<MotherboardAuditSnapshotDto>(checkContent);
+                            var healthNode = checkData?.Health;
+                            DateTime? currentTime = healthNode?.AuditDate;
 
                             if (currentTime.HasValue && (!baselineTime.HasValue || currentTime.Value > baselineTime.Value))
                             {
@@ -2856,7 +2856,7 @@ namespace ManageEngineWebApp.Controllers
                                 {
                                     success = true,
                                     message = "Motherboard audit completed. Fresh data received!",
-                                    data = checkData
+                                    data = new { health = healthNode, cpu = checkData.Cpu }
                                 });
                             }
                         }
@@ -2871,11 +2871,12 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
-
+        
 
         [HttpGet]
         public async Task<IActionResult> MotherboardSummary(string domain)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
                 using var httpClient = GetClient();
@@ -2897,6 +2898,7 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> MotherboardHealthHistory(string domain, int take = 50)
         {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
                 using var httpClient = GetClient();
@@ -2916,8 +2918,30 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> MotherboardHealthLatest(string domain)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            try
+            {
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/audit/{Uri.EscapeDataString(domain)}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+                return Json(new { health = (object)null, cpu = (object)null });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"MotherboardHealthLatest Error: {ex.Message}");
+                return Json(new { health = (object)null, cpu = (object)null });
+            }
+        }
+
+        [HttpGet]
         public async Task<IActionResult> NetworkAdapters(string domain)
-        {          
+        {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<NetworkAdapterDetails>();
             try
@@ -2977,7 +3001,7 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
-   
+
         [HttpGet]
         public async Task<IActionResult> MemorySlotDetails(string domain)
         {
@@ -4153,6 +4177,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> ViewBatteryReport(string domain)
         {
+            if (!await IsDeviceAuthorized(domain))
+                return Forbid();
             try
             {
                 string cleanDomain = DeviceNameHelper.Normalize(domain);
@@ -4180,6 +4206,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> BatteryReportExists(string domain)
         {
+            if (!await IsDeviceAuthorized(domain))
+                return Json(new { exists = false });
             try
             {
                 string cleanDomain = DeviceNameHelper.Normalize(domain);
@@ -4207,6 +4235,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> LatestBatteryMetrics(string domain)
         {
+            if (!await IsDeviceAuthorized(domain))
+                return Ok(new { ready = false, message = "Unauthorized access to this device." });
             try
             {
                 string cleanDomain = DeviceNameHelper.Normalize(domain);
@@ -4878,6 +4908,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> AuditMemory([FromQuery] string domain, [FromQuery] string hostName = null)
         {
+            if (!await IsDeviceAuthorized(domain))
+                return Json(new { success = false, message = "Unauthorized access to this device." });
             try
             {
                 var cleanDomain = DeviceNameHelper.Normalize(!string.IsNullOrWhiteSpace(hostName) ? hostName : domain);
@@ -4890,12 +4922,12 @@ namespace ManageEngineWebApp.Controllers
                 DateTime? baselineTime = null;
                 try
                 {
-                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/MemorySlotDetails");
+                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/MemorySlotDetails/history/{Uri.EscapeDataString(UCode)}?count=1");
                     if (baseResp.IsSuccessStatusCode)
                     {
                         var baseContent = await baseResp.Content.ReadAsStringAsync();
                         var baseData = JsonConvert.DeserializeObject<List<MemorySummary>>(baseContent);
-                        var latest = baseData?.FirstOrDefault(x => x.UserCode == UCode);
+                        var latest = baseData?.LastOrDefault();
                         if (latest != null)
                             baselineTime = latest.DateTime;
                     }
@@ -4917,12 +4949,12 @@ namespace ManageEngineWebApp.Controllers
                     await Task.Delay(2000);
                     try
                     {
-                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/MemorySlotDetails");
+                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/MemorySlotDetails/history/{Uri.EscapeDataString(UCode)}?count=1");
                         if (checkResp.IsSuccessStatusCode)
                         {
                             var checkContent = await checkResp.Content.ReadAsStringAsync();
                             var checkData = JsonConvert.DeserializeObject<List<MemorySummary>>(checkContent);
-                            var latestNow = checkData?.FirstOrDefault(x => x.UserCode == UCode);
+                            var latestNow = checkData?.LastOrDefault();
                             if (latestNow != null)
                             {
                                 DateTime currentTime = latestNow.DateTime;
@@ -4946,6 +4978,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> AuditProcessor([FromQuery] string domain, [FromQuery] string hostName = null)
         {
+            if (!await IsDeviceAuthorized(domain))
+                return Json(new { success = false, message = "Unauthorized access to this device." });
             try
             {
                 var cleanDomain = DeviceNameHelper.Normalize(!string.IsNullOrWhiteSpace(hostName) ? hostName : domain);
@@ -5012,6 +5046,8 @@ namespace ManageEngineWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> AuditHardDisk([FromQuery] string domain, [FromQuery] string hostName = null)
         {
+            if (!await IsDeviceAuthorized(domain))
+                return Json(new { success = false, message = "Unauthorized access to this device." });
             try
             {
                 var cleanDomain = DeviceNameHelper.Normalize(!string.IsNullOrWhiteSpace(hostName) ? hostName : domain);
@@ -5090,25 +5126,9 @@ namespace ManageEngineWebApp.Controllers
             return Json(new { success = false, message = "Failed to update VIP settings." });
         }
     }
-    public class CapacityHistoryEntryDto
-    {
-        public string Period { get; set; }
-        public int FullChargeCapacity { get; set; }
-        public int DesignCapacity { get; set; }
-    }
+   
 
-    public class UsageHistoryEntryDto
-    {
-        public string Period { get; set; }
-        public string BatteryActive { get; set; }
-        public string AcActive { get; set; }
-    }
+ 
 
-    public class BatteryUsageEntryDto
-    {
-        public string StartTime { get; set; }
-        public string State { get; set; }
-        public string Duration { get; set; }
-        public string EnergyDrained { get; set; }
-    }
+   
 }
