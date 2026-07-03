@@ -80,6 +80,7 @@ function lazyLoadTabData(tabId) {
             loadNetworkAdapters();
             loadKeyboardDetails();
             loadMotherboardDetails();
+            loadMotherboardHealthHistory();
             loadMemoryDetails();
             loadHardDiskDetails();
             break;
@@ -1648,6 +1649,197 @@ function loadMotherboardDetails() {
         }
     }).fail(function () {
         $('#motherboardContainer').html('<div class="text-center py-8 text-red-400">Failed to load motherboard details</div>');
+    });
+}
+
+// ═══════════════════════ Motherboard Audit (health, temps, voltages, CPU snapshot) ═══════════════════════
+
+let mbChartInstances = {}; // keyed by canvas id, so re-renders destroy the old chart first
+
+$(document).on('click', '#btnAuditMotherboard', function (e) {
+    e.preventDefault();
+    let btn = $(this);
+    let originalText = btn.html();
+    btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
+    btn.prop('disabled', true);
+    btn.css('opacity', '0.7');
+
+    $('#mbAuditPlaceholder').hide();
+    $('#mbAuditGate').hide();
+    $('#mbAuditLoading').show();
+
+    sysAlert('Motherboard audit requested. This can take a little while — please wait...', 'info');
+
+    $.ajax({
+        url: '/ComputerSummary/AuditMotherboard?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName),
+        type: 'POST',
+        timeout: 90000,
+        success: function (res) {
+            $('#mbAuditLoading').hide();
+            if (res && res.success && res.data) {
+                renderMotherboardAudit(res.data);
+                loadMotherboardHealthHistory();
+                $('#mbAuditGate').show();
+                sysAlert(res.message || 'Motherboard audit completed!', 'success');
+            } else {
+                $('#mbAuditPlaceholder').show();
+                sysAlert(res && res.message ? res.message : 'Motherboard audit failed.', 'error');
+            }
+        },
+        error: function (xhr, status) {
+            $('#mbAuditLoading').hide();
+            $('#mbAuditPlaceholder').show();
+            let msg = status === 'timeout' ? 'Motherboard audit timed out. The device may still be processing.' : 'Connection error while requesting motherboard audit.';
+            sysAlert(msg, 'error');
+        },
+        complete: function () {
+            btn.html(originalText);
+            btn.prop('disabled', false);
+            btn.css('opacity', '1');
+        }
+    });
+});
+
+function renderMotherboardAudit(data) {
+    const health = data.health || data.Health;
+    const cpu = data.cpu || data.Cpu;
+    if (!health) return;
+
+    const val = (obj, a, b) => (obj[a] ?? obj[b] ?? 0);
+    const score = val(health, 'healthScore', 'HealthScore');
+    const status = health.status ?? health.Status ?? 'Unknown';
+
+    const circumference = 283; // 2 * PI * r(45), matches the gauge markup used elsewhere
+    const dash = (score / 100) * circumference;
+    const color = score >= 80 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444';
+    $('#mbHealthCircle').attr('stroke-dasharray', `${dash},${circumference}`).attr('stroke', color);
+    $('#mbHealthPercentText').text(score + '%');
+
+    const badgeBg = score >= 80 ? '#dcfce7' : score >= 50 ? '#fef3c7' : '#fee2e2';
+    const badgeColor = score >= 80 ? '#15803d' : score >= 50 ? '#b45309' : '#b91c1c';
+    $('#mbStatusBadge').css({ background: badgeBg, color: badgeColor })
+        .html(`<span class="cpu-live-dot" style="background:${badgeColor};"></span> ${status}`);
+
+    $('#mbBoardTemp').text(fmtMb1(val(health, 'motherboardTemperature', 'MotherboardTemperature')));
+    $('#mbCpuTemp').text(fmtMb1(val(health, 'cpuTemperature', 'CpuTemperature')));
+    $('#mbVolt12').text(fmtMb2(val(health, 'voltage12V', 'Voltage12V')));
+    $('#mbVolt5').text(fmtMb2(val(health, 'voltage5V', 'Voltage5V')));
+    $('#mbVolt33').text(fmtMb2(val(health, 'voltage3V3', 'Voltage3V3')));
+    $('#mbFanRpm').text(Math.round(val(health, 'fanRPM', 'FanRPM')));
+    $('#mbWheaErrors').text(val(health, 'wheaErrors', 'WheaErrors'));
+
+    const auditDate = health.auditDate ?? health.AuditDate;
+    $('#mbLastAudit').text(auditDate ? new Date(auditDate).toLocaleString() : '--');
+
+    const issues = health.issues ?? health.Issues ?? [];
+    if (issues.length > 0) {
+        $('#mbIssuesList').html(issues.map(i => `<li>${escapeHtml(i)}</li>`).join(''));
+        $('#mbIssuesWrap').show();
+    } else {
+        $('#mbIssuesWrap').hide();
+    }
+
+    if (cpu) {
+        const cval = (a, b) => (cpu[a] ?? cpu[b] ?? 0);
+        const cores = [
+            { load: cval('cpuCore1Load', 'CpuCore1Load'), temp: cval('cpuCore1Temp', 'CpuCore1Temp'), clock: cval('cpuCore1Clock', 'CpuCore1Clock') },
+            { load: cval('cpuCore2Load', 'CpuCore2Load'), temp: cval('cpuCore2Temp', 'CpuCore2Temp'), clock: cval('cpuCore2Clock', 'CpuCore2Clock') },
+            { load: cval('cpuCore3Load', 'CpuCore3Load'), temp: cval('cpuCore3Temp', 'CpuCore3Temp'), clock: cval('cpuCore3Clock', 'CpuCore3Clock') },
+            { load: cval('cpuCore4Load', 'CpuCore4Load'), temp: cval('cpuCore4Temp', 'CpuCore4Temp'), clock: cval('cpuCore4Clock', 'CpuCore4Clock') },
+        ];
+        const rows = cores.map((c, idx) =>
+            `<tr style="border-bottom:1px solid var(--slate-100);">
+                <td style="padding:6px 8px;">Core ${idx + 1}</td>
+                <td style="padding:6px 8px;">${fmtMb1(c.load)}%</td>
+                <td style="padding:6px 8px;">${fmtMb1(c.temp)}</td>
+                <td style="padding:6px 8px;">${Math.round(c.clock)}</td>
+            </tr>`
+        ).join('');
+        $('#mbCpuCoreTableBody').html(rows);
+        $('#mbCpuPackagePower').text(fmtMb1(cval('cpuPackagePower', 'CpuPackagePower')));
+        $('#mbCpuBusSpeed').text(fmtMb1(cval('busSpeed', 'BusSpeed')));
+        $('#mbCpuMaxTemp').text(fmtMb1(cval('coreMaxTemp', 'CoreMaxTemp')));
+    }
+}
+
+function fmtMb1(n) { return (typeof n === 'number') ? n.toFixed(1) : n; }
+function fmtMb2(n) { return (typeof n === 'number') ? n.toFixed(2) : n; }
+
+function loadMotherboardHealthHistory() {
+    $.get(`/ComputerSummary/MotherboardHealthHistory?domain=${domaindata}`, function (history) {
+        if (!history || history.length === 0) {
+            $('#mbHistoryChartWrap').hide();
+            $('#mbHistoryEmpty').show();
+            $('#mbHistAuditCount').text('0 audits');
+            return;
+        }
+        $('#mbHistoryChartWrap').show();
+        $('#mbHistoryEmpty').hide();
+        $('#mbHistAuditCount').text(history.length + ' audit' + (history.length === 1 ? '' : 's'));
+        renderMotherboardHistoryCharts(history);
+    }).fail(function () {
+        $('#mbHistoryChartWrap').hide();
+        $('#mbHistoryEmpty').show();
+    });
+}
+
+function renderMotherboardHistoryCharts(history) {
+    const val = (obj, a, b) => (obj[a] ?? obj[b] ?? null);
+    const labels = history.map(h => {
+        const d = val(h, 'auditDate', 'AuditDate');
+        return d ? new Date(d).toLocaleDateString() + ' ' + new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    });
+
+    drawMbLineChart('mbHistHealthChart', labels, [
+        { label: 'Health Score %', data: history.map(h => val(h, 'healthScore', 'HealthScore')), color: '#22c55e' }
+    ]);
+
+    drawMbLineChart('mbHistTempChart', labels, [
+        { label: 'Board °C', data: history.map(h => val(h, 'motherboardTemperature', 'MotherboardTemperature')), color: '#f59e0b' },
+        { label: 'CPU °C', data: history.map(h => val(h, 'cpuTemperature', 'CpuTemperature')), color: '#ef4444' }
+    ]);
+
+    drawMbLineChart('mbHistVoltageChart', labels, [
+        { label: '12V', data: history.map(h => val(h, 'voltage12V', 'Voltage12V')), color: '#3b82f6' },
+        { label: '5V', data: history.map(h => val(h, 'voltage5V', 'Voltage5V')), color: '#8b5cf6' },
+        { label: '3.3V', data: history.map(h => val(h, 'voltage3V3', 'Voltage3V3')), color: '#06b6d4' }
+    ]);
+
+    drawMbLineChart('mbHistFanChart', labels, [
+        { label: 'Fan RPM', data: history.map(h => val(h, 'fanRPM', 'FanRPM')), color: '#0ea5e9' }
+    ]);
+}
+
+function drawMbLineChart(canvasId, labels, series) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    if (mbChartInstances[canvasId]) {
+        mbChartInstances[canvasId].destroy();
+    }
+    mbChartInstances[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: series.map(s => ({
+                label: s.label,
+                data: s.data,
+                borderColor: s.color,
+                backgroundColor: s.color + '22',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 2,
+                fill: series.length === 1
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: series.length > 1, labels: { boxWidth: 10, font: { size: 10 } } } },
+            scales: {
+                x: { ticks: { font: { size: 9 } } },
+                y: { ticks: { font: { size: 9 } }, beginAtZero: false }
+            }
+        }
     });
 }
 

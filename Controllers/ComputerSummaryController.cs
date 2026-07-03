@@ -1,22 +1,23 @@
-﻿using ManageEngineWebApp.Datacontext;
+﻿using ManageEngineWebApp.Attributes;
+using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
+using ManageEngineWebApp.Helpers;
 using ManageEngineWebApp.Models;
 using ManageEngineWebApp.UpdatesModels;
-using ManageEngineWebApp.Attributes;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Text.RegularExpressions;
-using ManageEngineWebApp.Helpers;
 
 namespace ManageEngineWebApp.Controllers
 {
@@ -2799,9 +2800,124 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
+        [HttpPost]
+        public async Task<IActionResult> AuditMotherboard([FromQuery] string domain, [FromQuery] string hostName = null)
+        {
+            try
+            {
+                var cleanDomain = DeviceNameHelper.Normalize(!string.IsNullOrWhiteSpace(hostName) ? hostName : domain);
+                if (string.IsNullOrEmpty(cleanDomain))
+                    return Json(new { success = false, message = "Invalid device identifier." });
+
+                string UCode = domain;
+                using var httpClient = GetClient();
+
+                DateTime? baselineTime = null;
+                try
+                {
+                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/health/latest/{Uri.EscapeDataString(UCode)}");
+                    if (baseResp.IsSuccessStatusCode)
+                    {
+                        var baseContent = await baseResp.Content.ReadAsStringAsync();
+                        var baseData = JsonConvert.DeserializeObject<dynamic>(baseContent);
+                        if (baseData != null)
+                            baselineTime = (DateTime?)(baseData.AuditDate ?? baseData.auditDate);
+                    }
+                }
+                catch { }
+
+                var response = await httpClient.PostAsync(
+                    $"{_baseUrl}/api/MotherboardDetails/MotherboardRescan?clientId={Uri.EscapeDataString(cleanDomain)}", null);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : "Device not connected or rescan failed." });
+                }
+
+                for (int i = 0; i < 30; i++)
+                {
+                    await Task.Delay(2000);
+                    try
+                    {
+                        var checkResp = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/audit/{Uri.EscapeDataString(UCode)}");
+                        if (checkResp.IsSuccessStatusCode)
+                        {
+                            var checkContent = await checkResp.Content.ReadAsStringAsync();
+                            var checkData = JsonConvert.DeserializeObject<dynamic>(checkContent);
+                            var healthNode = checkData?.health;
+                            DateTime? currentTime = healthNode != null
+                                ? (DateTime?)(healthNode.AuditDate ?? healthNode.auditDate)
+                                : null;
+
+                            if (currentTime.HasValue && (!baselineTime.HasValue || currentTime.Value > baselineTime.Value))
+                            {
+                                return Json(new
+                                {
+                                    success = true,
+                                    message = "Motherboard audit completed. Fresh data received!",
+                                    data = checkData
+                                });
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
+                return Json(new { success = false, message = "Motherboard audit timed out. The device may still be processing. Try refreshing." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+
+        [HttpGet]
+        public async Task<IActionResult> MotherboardSummary(string domain)
+        {
+            try
+            {
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/latest/{Uri.EscapeDataString(domain)}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+                return Json(new { });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"MotherboardSummary Error: {ex.Message}");
+                return Json(new { });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> MotherboardHealthHistory(string domain, int take = 50)
+        {
+            try
+            {
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/health/history/{Uri.EscapeDataString(domain)}?take={take}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+                return Json(new List<object>());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"MotherboardHealthHistory Error: {ex.Message}");
+                return Json(new List<object>());
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> NetworkAdapters(string domain)
-        {
+        {          
             if (!await IsDeviceAuthorized(domain)) return Forbid();
             var localDatalist = new List<NetworkAdapterDetails>();
             try
@@ -2861,7 +2977,7 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
-
+   
         [HttpGet]
         public async Task<IActionResult> MemorySlotDetails(string domain)
         {

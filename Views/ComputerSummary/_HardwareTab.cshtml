@@ -970,6 +970,160 @@
                     </div>
                 </div>
                 <div id="motherboardContainer"></div>
+
+                <!-- ═══════ Motherboard Audit (health, temps, voltages, CPU snapshot, trend history) ═══════ -->
+                <div style="margin-top:16px;">
+                    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+                        <button id="btnAuditMotherboard" class="btn btn-sm"
+                                style="background:var(--primary);color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;">
+                            <i class="fas fa-stethoscope"></i> Audit Motherboard
+                        </button>
+                    </div>
+
+                    <!-- No-audit placeholder -->
+                    <div id="mbAuditPlaceholder" style="padding:28px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:16px;">
+                        <i class="fas fa-heartbeat" style="font-size:1.4rem;display:block;margin-bottom:8px;"></i>
+                        Run <strong>Audit Motherboard</strong> above to see live temperatures, voltages, fan health, and hardware error checks.
+                    </div>
+
+                    <!-- Loading state -->
+                    <div id="mbAuditLoading" style="display:none;margin-bottom:16px;padding:22px;text-align:center;color:var(--slate-500);font-size:.82rem;background:var(--slate-50);border-radius:var(--radius-md);border:1px dashed var(--slate-200);">
+                        <i class="fas fa-circle-notch fa-spin"></i> Waiting for the device to complete its audit...
+                    </div>
+
+                    <!-- Gated: only shown after a successful audit -->
+                    <div id="mbAuditGate" style="display:none;">
+
+                        <div class="cs-card" style="margin-bottom:16px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                                <div style="display:flex;align-items:center;gap:20px;">
+                                    <div class="battery-gauge-ring">
+                                        <svg viewBox="0 0 100 100">
+                                            <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
+                                            <circle id="mbHealthCircle" class="gauge-fill" cx="50" cy="50" r="45"
+                                                    stroke="#22c55e" stroke-dasharray="0,283"></circle>
+                                        </svg>
+                                        <div class="battery-gauge-percent">
+                                            <div class="gauge-num" id="mbHealthPercentText">--%</div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 style="font-size:1rem;font-weight:800;color:var(--slate-900);margin:0 0 3px;">Motherboard Health</h3>
+                                        <p style="font-size:.76rem;color:var(--slate-500);margin:0;font-weight:500;">Temperature, voltage, fan &amp; error diagnostics</p>
+                                    </div>
+                                </div>
+                                <div class="cpu-status-badge" id="mbStatusBadge" style="background:var(--slate-100);color:var(--slate-500);">
+                                    <span class="cpu-live-dot" style="background:var(--slate-400);"></span> --
+                                </div>
+                            </div>
+
+                            <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:16px;">
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">Board Temp</div>
+                                    <div class="cs-info-box-value"><span id="mbBoardTemp" style="font-size:1rem;">--</span><span style="font-size:.68rem;color:var(--slate-400);">°C</span></div>
+                                </div>
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">CPU Temp</div>
+                                    <div class="cs-info-box-value"><span id="mbCpuTemp" style="font-size:1rem;">--</span><span style="font-size:.68rem;color:var(--slate-400);">°C</span></div>
+                                </div>
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">12V Rail</div>
+                                    <div class="cs-info-box-value"><span id="mbVolt12" style="font-size:1rem;">--</span><span style="font-size:.68rem;color:var(--slate-400);">V</span></div>
+                                </div>
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">5V Rail</div>
+                                    <div class="cs-info-box-value"><span id="mbVolt5" style="font-size:1rem;">--</span><span style="font-size:.68rem;color:var(--slate-400);">V</span></div>
+                                </div>
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">3.3V Rail</div>
+                                    <div class="cs-info-box-value"><span id="mbVolt33" style="font-size:1rem;">--</span><span style="font-size:.68rem;color:var(--slate-400);">V</span></div>
+                                </div>
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">Fan Speed</div>
+                                    <div class="cs-info-box-value"><span id="mbFanRpm" style="font-size:1rem;">--</span><span style="font-size:.68rem;color:var(--slate-400);">RPM</span></div>
+                                </div>
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">WHEA Errors</div>
+                                    <div class="cs-info-box-value" id="mbWheaErrors" style="font-size:1rem;">--</div>
+                                </div>
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">Last Audit</div>
+                                    <div class="cs-info-box-value" id="mbLastAudit" style="font-size:.78rem;">--</div>
+                                </div>
+                            </div>
+
+                            <div id="mbIssuesWrap" style="display:none;margin-top:14px;padding:12px 14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;">
+                                <div style="font-size:.78rem;font-weight:700;color:#c2410c;margin-bottom:6px;">
+                                    <i class="fas fa-triangle-exclamation"></i> Issues Detected
+                                </div>
+                                <ul id="mbIssuesList" style="margin:0;padding-left:18px;font-size:.78rem;color:#9a3412;"></ul>
+                            </div>
+                        </div>
+
+                        <div class="cs-card" style="margin-bottom:16px;">
+                            <div class="cpu-section-label"><i class="fas fa-microchip" style="color:var(--amber);"></i> CPU Load, Clock &amp; Temperature (per core)</div>
+                            <div style="overflow-x:auto;margin-top:10px;">
+                                <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
+                                    <thead>
+                                        <tr style="text-align:left;color:var(--slate-500);border-bottom:1px solid var(--slate-200);">
+                                            <th style="padding:6px 8px;">Core</th>
+                                            <th style="padding:6px 8px;">Load %</th>
+                                            <th style="padding:6px 8px;">Temp °C</th>
+                                            <th style="padding:6px 8px;">Clock MHz</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mbCpuCoreTableBody"></tbody>
+                                </table>
+                            </div>
+                            <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:14px;">
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">Package Power</div>
+                                    <div class="cs-info-box-value"><span id="mbCpuPackagePower" style="font-size:1rem;">--</span><span style="font-size:.68rem;color:var(--slate-400);">W</span></div>
+                                </div>
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">Bus Speed</div>
+                                    <div class="cs-info-box-value"><span id="mbCpuBusSpeed" style="font-size:1rem;">--</span><span style="font-size:.68rem;color:var(--slate-400);">MHz</span></div>
+                                </div>
+                                <div class="cs-info-box">
+                                    <div class="cs-info-box-label">Max Core Temp</div>
+                                    <div class="cs-info-box-value"><span id="mbCpuMaxTemp" style="font-size:1rem;">--</span><span style="font-size:.68rem;color:var(--slate-400);">°C</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cs-card">
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                                <div class="cpu-section-label" style="margin:0;"><i class="fas fa-chart-line" style="color:var(--cyan);"></i> Health &amp; Audit History</div>
+                                <span id="mbHistAuditCount" style="background:var(--slate-100);padding:3px 10px;border-radius:6px;font-size:.72rem;">-- audits</span>
+                            </div>
+                            <div id="mbHistoryChartWrap">
+                                <div class="cpu-chart-grid" style="margin-bottom:14px;">
+                                    <div class="cpu-chart-card">
+                                        <h4>Health Score % per Audit</h4>
+                                        <div style="position:relative;height:200px;width:100%;"><canvas id="mbHistHealthChart"></canvas></div>
+                                    </div>
+                                    <div class="cpu-chart-card">
+                                        <h4>Temperature per Audit (°C)</h4>
+                                        <div style="position:relative;height:200px;width:100%;"><canvas id="mbHistTempChart"></canvas></div>
+                                    </div>
+                                </div>
+                                <div class="cpu-chart-grid">
+                                    <div class="cpu-chart-card">
+                                        <h4>Voltage Rails per Audit (V)</h4>
+                                        <div style="position:relative;height:160px;width:100%;"><canvas id="mbHistVoltageChart"></canvas></div>
+                                    </div>
+                                    <div class="cpu-chart-card">
+                                        <h4>Fan Speed per Audit (RPM)</h4>
+                                        <div style="position:relative;height:160px;width:100%;"><canvas id="mbHistFanChart"></canvas></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="mbHistoryEmpty" style="display:none;padding:20px;text-align:center;color:var(--slate-400);font-size:.8rem;">
+                                No audit history yet. Run <strong>Audit Motherboard</strong> a few times to build a trend.
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div id="NetworkHw" class="tab-pane">
                 <div class="hw-category-header hw-cat-cyan">
