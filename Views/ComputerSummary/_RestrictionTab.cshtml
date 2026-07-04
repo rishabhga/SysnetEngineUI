@@ -1,69 +1,78 @@
 <div id="Restriction" class="tab-pane">
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">
+    <div class="cs-card">
+        <ul class="cs-subtab-bar" id="restrictionSubTabs" role="tablist">
+            <li class="restriction-tab active"><a href="#RestrictionOverview"><i class="fas fa-ban"></i> Overview</a></li>
+        </ul>
+        <div class="tab-content p-3">
+            <div id="RestrictionOverview" class="tab-pane active">
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">
 
-        <div class="cs-card">
-            <div class="cs-card-header"><i class="fas fa-mobile-alt" style="color:var(--cyan);"></i> Device Restrictions</div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Camera Access</span><span id="tdIsCameraEnabled" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Telemetry</span><span id="tdIsTelemetryEnabled" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Modify Date / Time</span><span id="tdCanModifyDateTime" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Bluetooth</span><span id="tdIsBluetoothEnabled" class="cs-kv-value"></span></div>
-        </div>
+                    <div class="cs-card">
+                        <div class="cs-card-header"><i class="fas fa-mobile-alt" style="color:var(--cyan);"></i> Device Restrictions</div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Camera Access</span><span id="tdIsCameraEnabled" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Telemetry</span><span id="tdIsTelemetryEnabled" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Modify Date / Time</span><span id="tdCanModifyDateTime" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Bluetooth</span><span id="tdIsBluetoothEnabled" class="cs-kv-value"></span></div>
+                    </div>
 
-        <div class="cs-card">
-            <div class="cs-card-header"><i class="fas fa-network-wired" style="color:#22c55e;"></i> Network Restrictions</div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Internet Sharing</span><span id="tdInternetSharing" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">VPN</span><span id="tdVPN" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Wi-Fi</span><span id="tdWiFi" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Wi-Fi Configuration</span><span id="tdAllowWiFiConfiguration" class="cs-kv-value"></span></div>
-        </div>
+                    <div class="cs-card">
+                        <div class="cs-card-header"><i class="fas fa-network-wired" style="color:#22c55e;"></i> Network Restrictions</div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Internet Sharing</span><span id="tdInternetSharing" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">VPN</span><span id="tdVPN" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Wi-Fi</span><span id="tdWiFi" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Wi-Fi Configuration</span><span id="tdAllowWiFiConfiguration" class="cs-kv-value"></span></div>
+                    </div>
 
-        <div class="cs-card">
-            <div class="cs-card-header"><i class="fab fa-bluetooth" style="color:#3b82f6;"></i> Bluetooth Settings</div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Bluetooth Status</span><span id="tdBluetooth" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Discovery</span><span id="tdBluetoothdiscovery" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Pre-pairing</span><span id="tdBluetoothprepairing" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Services Advertising</span><span id="tdBluetoothservicesadvertising" class="cs-kv-value"></span></div>
-        </div>
+                    <div class="cs-card">
+                        <div class="cs-card-header"><i class="fab fa-bluetooth" style="color:#3b82f6;"></i> Bluetooth Settings</div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Bluetooth Status</span><span id="tdBluetooth" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Discovery</span><span id="tdBluetoothdiscovery" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Pre-pairing</span><span id="tdBluetoothprepairing" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Services Advertising</span><span id="tdBluetoothservicesadvertising" class="cs-kv-value"></span></div>
+                    </div>
 
-        <div class="cs-card">
-            <div class="cs-card-header"><i class="fas fa-user-shield" style="color:#a855f7;"></i> Security &amp; Privacy</div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Location Services</span><span id="tdLocationServices" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Microsoft Account</span><span id="tdIsMicrosoftAccountConnected" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Add Non-Microsoft Accounts</span><span id="tdCanAddNonMicrosoftAccounts" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Reset Device</span><span id="tdCanResetDevice" class="cs-kv-value"></span></div>
-        </div>
+                    <div class="cs-card">
+                        <div class="cs-card-header"><i class="fas fa-user-shield" style="color:#a855f7;"></i> Security &amp; Privacy</div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Location Services</span><span id="tdLocationServices" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Microsoft Account</span><span id="tdIsMicrosoftAccountConnected" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Add Non-Microsoft Accounts</span><span id="tdCanAddNonMicrosoftAccounts" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Reset Device</span><span id="tdCanResetDevice" class="cs-kv-value"></span></div>
+                    </div>
 
-        <div class="cs-card">
-            <div class="cs-card-header"><i class="fas fa-box-open" style="color:var(--amber);"></i> Application Settings</div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Install Non-Store Apps</span><span id="tdInstallNonStoreApps" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Install in Memory Only</span><span id="tdInstallAppsOnlyInDeviceMemory" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Store Data in Memory Only</span><span id="tdStoreAppDataOnlyInDeviceMemory" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Auto Update Store Apps</span><span id="tdAutoUpdateStoreApps" class="cs-kv-value"></span></div>
-        </div>
+                    <div class="cs-card">
+                        <div class="cs-card-header"><i class="fas fa-box-open" style="color:var(--amber);"></i> Application Settings</div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Install Non-Store Apps</span><span id="tdInstallNonStoreApps" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Install in Memory Only</span><span id="tdInstallAppsOnlyInDeviceMemory" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Store Data in Memory Only</span><span id="tdStoreAppDataOnlyInDeviceMemory" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Auto Update Store Apps</span><span id="tdAutoUpdateStoreApps" class="cs-kv-value"></span></div>
+                    </div>
 
-        <div class="cs-card">
-            <div class="cs-card-header"><i class="fas fa-search" style="color:var(--cyan);"></i> Social &amp; Search</div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Cortana Enabled</span><span id="tdCortanaEnabled" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Sync Settings</span><span id="tdSyncSettingsEnabled" class="cs-kv-value"></span></div>
-            <div class="cs-kv-row"><span class="cs-kv-label">Search Location</span><span id="tdSearchLocationEnabled" class="cs-kv-value"></span></div>
-        </div>
+                    <div class="cs-card">
+                        <div class="cs-card-header"><i class="fas fa-search" style="color:var(--cyan);"></i> Social &amp; Search</div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Cortana Enabled</span><span id="tdCortanaEnabled" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Sync Settings</span><span id="tdSyncSettingsEnabled" class="cs-kv-value"></span></div>
+                        <div class="cs-kv-row"><span class="cs-kv-label">Search Location</span><span id="tdSearchLocationEnabled" class="cs-kv-value"></span></div>
+                    </div>
 
-        <div class="cs-card">
-            <div class="cs-card-header"><i class="fas fa-usb" style="color:#ef4444;"></i> USB Security</div>
-            <div style="padding:12px 14px;display:flex;gap:8px;">
-                <button onclick="applyUsbBlock()"
-                        style="flex:1;padding:7px 12px;background:#ef4444;color:#fff;font-size:.76rem;font-weight:700;border:none;border-radius:6px;cursor:pointer;transition:background .15s;"
-                        onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
-                    <i class="fas fa-lock"></i> BLOCK USB
-                </button>
-                <button onclick="applyUsbUnblock()"
-                        style="flex:1;padding:7px 12px;background:#22c55e;color:#fff;font-size:.76rem;font-weight:700;border:none;border-radius:6px;cursor:pointer;transition:background .15s;"
-                        onmouseover="this.style.background='#16a34a'" onmouseout="this.style.background='#22c55e'">
-                    <i class="fas fa-unlock"></i> UNBLOCK USB
-                </button>
+                    <div class="cs-card">
+                        <div class="cs-card-header"><i class="fas fa-usb" style="color:#ef4444;"></i> USB Security</div>
+                        <div style="padding:12px 14px;display:flex;gap:8px;">
+                            <button onclick="applyUsbBlock()"
+                                    style="flex:1;padding:7px 12px;background:#ef4444;color:#fff;font-size:.76rem;font-weight:700;border:none;border-radius:6px;cursor:pointer;transition:background .15s;"
+                                    onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+                                <i class="fas fa-lock"></i> BLOCK USB
+                            </button>
+                            <button onclick="applyUsbUnblock()"
+                                    style="flex:1;padding:7px 12px;background:#22c55e;color:#fff;font-size:.76rem;font-weight:700;border:none;border-radius:6px;cursor:pointer;transition:background .15s;"
+                                    onmouseover="this.style.background='#16a34a'" onmouseout="this.style.background='#22c55e'">
+                                <i class="fas fa-unlock"></i> UNBLOCK USB
+                            </button>
+                        </div>
+                        <p style="font-size:.7rem;color:var(--slate-400);text-align:center;padding-bottom:10px;">Requires agent to be online</p>
+                    </div>
+
+                </div>
             </div>
-            <p style="font-size:.7rem;color:var(--slate-400);text-align:center;padding-bottom:10px;">Requires agent to be online</p>
         </div>
-
     </div>
 </div>

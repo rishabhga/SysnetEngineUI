@@ -76,7 +76,7 @@ function lazyLoadTabData(tabId) {
             loadBiosDetails();
             loadBatteryDetails();
             loadMonitorDetails();
-            loadProcessorDetails(false);   // static specs only; audit sections gated behind Audit Processor click
+            loadProcessorDetails(false);  
             loadNetworkAdapters();
             loadKeyboardDetails();
             loadMotherboardDetails();
@@ -151,7 +151,9 @@ function initTabStyles() {
         '.patch-sub-tab a',
         '.usb-tab a',
         '.history-tab a',
-        '.updatelog-tab a'
+        '.updatelog-tab a',
+        '.restriction-tab a',
+        '.usbaudit-tab a'
     ].join(', ');
 
     $(document).on('click', subTabSelector, function (e) {
@@ -215,8 +217,6 @@ function initializeAllTables() {
                 const stype = (row.startupType || row.StartupType || '').toLowerCase();
                 const disabled = stype === 'disabled';
 
-                // Icon-only buttons — no wrapping text, clear tooltips
-                // Pause removed: Windows service pause is not reliably supported
                 let btns = '';
                 if (disabled) {
                     btns = `<span style="font-size:.72rem;color:#94a3b8;font-weight:600;padding:3px 8px;background:#f1f5f9;border-radius:6px;">Disabled</span>`;
@@ -234,7 +234,6 @@ function initializeAllTables() {
         }
     ]);
 
-    // Inject button styles once
     if (!document.getElementById('svcBtnStyle')) {
         const s = document.createElement('style');
         s.id = 'svcBtnStyle';
@@ -251,7 +250,6 @@ function initializeAllTables() {
         document.head.appendChild(s);
     }
 
-    // Event delegation — reads service name & action from data-attributes
     $(document).off('click.svc').on('click.svc', '.svc-btn', function () {
         const $btn = $(this);
         const $row = $btn.closest('tr');
@@ -266,11 +264,9 @@ function initializeAllTables() {
         const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
         if (!confirm(`${actionLabel} the service "${serviceName}"?`)) return;
 
-        // Show processing state on this row's buttons
         const $actionCell = $btn.closest('div');
         $actionCell.find('.svc-btn').addClass('loading');
 
-        // Replace buttons with a spinner while we wait for the real response
         const $spinner = $(`<span class="svc-processing"><i class="fas fa-circle-notch fa-spin"></i> Processing...</span>`);
         $actionCell.append($spinner);
 
@@ -279,7 +275,7 @@ function initializeAllTables() {
         $.ajax({
             url: `/ComputerSummary/ControlService`,
             type: 'POST',
-            timeout: 0, // No client timeout — server polls for real confirmation
+            timeout: 0, 
             data: {
                 domain: actualDomainName,
                 serviceName: serviceName,
@@ -288,7 +284,6 @@ function initializeAllTables() {
             success: function (res) {
                 if (res && res.success) {
                     sysAlert(res.message || `"${serviceName}" — ${actionLabel} completed.`, 'success');
-                    // Reload table to show updated State and correct buttons
                     if ($.fn.DataTable.isDataTable('#servicesTable')) {
                         $('#servicesTable').DataTable().ajax.reload(null, false);
                     }
@@ -908,7 +903,7 @@ function renderMemoryPanel(data) {
     else if (usagePct > 75) utilColor = '#f59e0b';
     else if (usagePct > 60) utilColor = '#0ea5e9';
 
-    var circumference = 283; // 2 * PI * r45, matches the SVG circle radius
+    var circumference = 283; 
     var utilDash = Math.max(0, Math.min(100, usagePct)) / 100 * circumference;
     $('#memUtilizationCircle').css({
         'stroke-dasharray': utilDash + ', ' + circumference,
@@ -1483,13 +1478,11 @@ function renderProcessorThermal(d) {
     }
     $('#cpuCoreGaugeContainer').html(coreHtml);
 
-    // Also update the hero status badge to reflect thermal health once we have real temp data
     $('#cpuStatusBadge').html('<span class="cpu-live-dot"></span> ' + healthStatus)
         .css({ background: healthColor + '22', color: healthColor })
         .removeClass('is-down')
         .toggleClass('is-down', healthScore < 40);
 
-    // ── Diagnostic findings ───────────────────────────────────────
     var findings = [];
     if (pkgTemp >= 90) findings.push('Package temperature is critically high (' + pkgTemp.toFixed(0) + '°C) — CPU may be thermal-throttling. Check cooling.');
     else if (pkgTemp >= 80) findings.push('Package temperature is very high (' + pkgTemp.toFixed(0) + '°C) — verify fan speed and thermal paste.');
@@ -1515,8 +1508,6 @@ function renderProcessorTrendCharts(history, skipStore) {
     }
     if (!skipStore) _fullCpuHistory = history;
 
-    // Only show the trend section if at least one sample has real temperature data.
-    // Zero-filled history rows produce a meaningless flat chart and should stay hidden.
     var hasRealTempData = history.some(function (h) {
         return (parseFloat(cpuVal(h, 'cpuPackageTemperature', 'CpuPackageTemperature', 'packageTemperature', 'PackageTemperature')) || 0) > 0;
     });
@@ -1653,7 +1644,7 @@ function loadMotherboardDetails() {
 }
 
 
-let mbChartInstances = {}; 
+let mbChartInstances = {};
 
 function loadMotherboardHealthLatest() {
     $('#mbAuditLoading').hide();
@@ -1725,7 +1716,7 @@ function renderMotherboardAudit(data) {
     const score = val(health, 'healthScore', 'HealthScore');
     const status = health.status ?? health.Status ?? 'Unknown';
 
-    const circumference = 283; // 2 * PI * r(45), matches the gauge markup used elsewhere
+    const circumference = 283; 
     const dash = (score / 100) * circumference;
     const color = score >= 80 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444';
     $('#mbHealthCircle').attr('stroke-dasharray', `${dash},${circumference}`).attr('stroke', color);
@@ -3035,7 +3026,7 @@ $(document).ready(function () {
             success: function (res) {
                 if (res && res.success) {
                     sysAlert(res.message || 'Processor audit completed!', 'success');
-                    loadProcessorDetails(true);   // full refresh including thermal health + trend charts
+                    loadProcessorDetails(true);  
                 } else {
                     sysAlert(res.message || 'Processor audit failed.', 'error');
                 }
@@ -3087,3 +3078,223 @@ $(document).ready(function () {
 
     checkBatteryReportExists();
 });
+(function () {
+    var CS_NAV_IMAGES = {
+        '#System': '/images/systeminfo/system.png',            
+        '#Hardware': '/images/systeminfo/hardware.png',
+        '#Software': '/images/systeminfo/software.png',
+        '#security': '/images/systeminfo/security.png',
+        '#PatchManagment': '/images/systeminfo/patchManagment.png',
+        '#Restriction': '/images/systeminfo/restriction.png',
+        '#UsbAudit': '/images/systeminfo/usbAudit.png',
+        '#History': '/images/systeminfo/history.png',
+        '#Updatelogs': '/images/systeminfo/updatelogs.png',
+
+        '#BatteryHw': '',
+        '#BIOSHw': '',
+        '#HardDiskHw': '',
+        '#KeyboardHw': '',
+        '#MonitorHw': '',
+        '#MotherboardHw': '',
+        '#NetworkHw': '',
+        '#MemoryHw': '',
+        '#PointingHw': '',
+        '#PrintersHw': '',
+        '#ProcessorsHw': '',
+        '#SoundHw': '',
+        '#VideoHw': '',
+        '#USBHw': '',
+
+        '#ServicesSys': '/images/systeminfo/ServicesSys.png',
+        '#UsersSys': '',
+        '#GroupsSys': '',
+        '#DriversSys': '',
+        '#SharesSys': '',
+
+        '#DesktopAppsSw': '',
+        '#StoreAppsSw': '',
+        '#InstallersSw': '',
+
+        '#AntivirusSec': '',
+        '#FirewallSec': '',
+        '#BitLockerSec': '',
+        '#ExternalDevSec': '',
+
+        '#WindowsListTab': '',
+        '#ThirdPartyTab': '',
+        '#HotfixTab': '',
+
+        '#AuditHistory': '',
+        '#LoginHistory': '',
+
+        '#SummaryLog': '',
+        '#SystemLogs': '',
+        '#HardwareLogs': '',
+        '#SoftwareLogs': '',
+        '#SecurityLogs': '',
+
+        '#RestrictionOverview': '',
+        '#UsbAuditOverview': ''
+    };
+
+    function cardHtml(target, iconClass, label, size) {
+        var sizeClass = size === 'sm' ? ' cs-nav-card-sm' : '';
+        var imgUrl = CS_NAV_IMAGES[target];
+        var hasImgClass = imgUrl ? ' cs-nav-card-has-img' : '';
+        var imgInner = imgUrl
+            ? '<img src="' + imgUrl + '" alt="' + label + '" onerror="this.closest(\'.cs-nav-card-img\').classList.remove(\'cs-img-box\');this.parentElement.innerHTML=\'<i class=&quot;' + (iconClass || 'fas fa-square') + '&quot;></i>\';">'
+            : '<i class="' + (iconClass || 'fas fa-square') + '"></i>';
+        return '<div class="cs-nav-card' + sizeClass + hasImgClass + '" data-target="' + target + '">' +
+            '<div class="cs-nav-card-img' + (imgUrl ? ' cs-img-box' : '') + '">' + imgInner + '</div>' +
+            '<div class="cs-nav-card-label">' + label + '</div>' +
+            '<i class="fas fa-chevron-right cs-nav-card-arrow"></i>' +
+            '</div>';
+    }
+
+    function linkParts($a) {
+        var target = $a.attr('href');
+        var iconClass = $a.find('i').first().attr('class');
+        var label = $.trim($a.clone().children().remove().end().text());
+        return { target: target, iconClass: iconClass, label: label };
+    }
+
+    function buildMainCardGrid() {
+        var $mainList = $('#mainTabList');
+        var $grid = $('#mainTabCardGridInner');
+        if (!$mainList.length || !$grid.length) return;
+
+        $mainList.find('li.main-tab').each(function () {
+            var $a = $(this).find('a').first();
+            var parts = linkParts($a);
+            if (!parts.target || parts.target === '#Summary') return;
+
+            var $card = $(cardHtml(parts.target, parts.iconClass, parts.label));
+            $card.on('click', function () {
+                openMainSection(parts.target);
+            });
+            $grid.append($card);
+        });
+    }
+
+    function buildSubCardGrids() {
+        $('#mainTabContent > .tab-pane').each(function () {
+            var $pane = $(this);
+            var $subBar = $pane.find('> .cs-card > .cs-subtab-bar').first();
+            var $innerContent = $pane.find('> .cs-card > .tab-content').first();
+            if (!$subBar.length || !$innerContent.length) return;
+
+            var $wrap = $('<div class="cs-subtab-card-grid-wrap"></div>');
+            var $backBtn = $('<button type="button" class="cs-back-btn"><i class="fas fa-arrow-left"></i> Back to System Info</button>');
+            $backBtn.on('click', function () { openMainCardGrid(); });
+            var titleText = $.trim($pane.closest('.tab-pane').length ? ($mainLabelFor($pane.attr('id')) || '') : '');
+            var $header = $('<div class="cs-subtab-card-grid-header"></div>').append($backBtn);
+            if (titleText) {
+                $header.append('<h3 class="cs-subtab-card-grid-title">' + titleText + '</h3>');
+            }
+            var $subGrid = $('<div class="cs-card-grid cs-card-grid-sm"></div>');
+
+            $subBar.find('li').each(function () {
+                var $a = $(this).find('a').first();
+                var parts = linkParts($a);
+                if (!parts.target) return;
+
+                var $card = $(cardHtml(parts.target, parts.iconClass, parts.label || 'Overview', 'sm'));
+                $card.on('click', function () {
+                    $a.trigger('click');
+                    showSubContent($pane);
+                });
+                $subGrid.append($card);
+            });
+
+            $wrap.append($header).append($subGrid);
+            $subBar.before($wrap);
+            $subBar.css('display', 'none');
+
+            var $backToCards = $('<button type="button" class="cs-back-btn cs-sub-back-btn"><i class="fas fa-th-large"></i> Back to categories</button>');
+            $backToCards.on('click', function () { showSubCards($pane); });
+            $innerContent.before($backToCards);
+
+            $pane.data('csCardWrap', $wrap);
+            $pane.data('csInnerContent', $innerContent);
+            $pane.data('csBackToCards', $backToCards);
+        });
+    }
+
+    function $mainLabelFor(paneId) {
+        var $link = $('#mainTabList a[href="#' + paneId + '"]');
+        if (!$link.length) return '';
+        return $.trim($link.clone().children().remove().end().text());
+    }
+
+    function openMainCardGrid() {
+        $('#Summary').removeClass('active');
+        $('#mainTabContent > .tab-pane').removeClass('active');
+        $('#csEntryBanner').hide();
+        $('#mainTabCardGrid').show();
+        if ($('#mainTabCardGrid')[0] && $('#mainTabCardGrid')[0].scrollIntoView) {
+            $('#mainTabCardGrid')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function openMainSection(target) {
+        var $link = $('#mainTabList a[href="' + target + '"]');
+        if (!$link.length) return;
+        $link.trigger('click');
+
+        $('#mainTabCardGrid').hide();
+        $('#csEntryBanner').hide();
+
+        var $pane = $(target);
+        showSubCards($pane);
+
+        if ($pane[0] && $pane[0].scrollIntoView) {
+            $pane[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function showSubCards($pane) {
+        var $wrap = $pane.data('csCardWrap');
+        var $inner = $pane.data('csInnerContent');
+        var $backToCards = $pane.data('csBackToCards');
+        if ($wrap && $wrap.length) $wrap.show();
+        if ($inner && $inner.length) $inner.hide();
+        if ($backToCards && $backToCards.length) $backToCards.hide();
+    }
+
+    function showSubContent($pane) {
+        var $wrap = $pane.data('csCardWrap');
+        var $inner = $pane.data('csInnerContent');
+        var $backToCards = $pane.data('csBackToCards');
+        if ($wrap && $wrap.length) $wrap.hide();
+        if ($inner && $inner.length) $inner.show();
+        if ($backToCards && $backToCards.length) $backToCards.show();
+
+        setTimeout(function () {
+            $(window).trigger('resize');
+            if ($.fn.DataTable) {
+                $inner.find('table.dataTable').each(function () {
+                    if ($.fn.DataTable.isDataTable(this)) {
+                        $(this).DataTable().columns.adjust();
+                    }
+                });
+            }
+        }, 150);
+    }
+
+    function backToSummary() {
+        $('#mainTabCardGrid').hide();
+        $('#mainTabContent > .tab-pane').removeClass('active');
+        $('#Summary').addClass('active');
+        $('#csEntryBanner').show();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    $(document).ready(function () {
+        buildMainCardGrid();
+        buildSubCardGrids();
+
+        $('#btnOpenSystemInfo').on('click', function () { openMainCardGrid(); });
+        $('#btnBackToSummary').on('click', function () { backToSummary(); });
+    });
+
+})();

@@ -1,20 +1,27 @@
 <div id="UsbAudit" class="tab-pane">
     <div class="cs-card">
-        <div class="cs-card-header"><i class="fas fa-usb" style="color:var(--cyan);"></i> USB Device Audit</div>
-        <div class="p-3">
-            <table id="usbAuditTable" class="w-full">
-                <thead>
-                    <tr>
-                        <th>Device Name</th>
-                        <th>Username</th>
-                        <th>Device Type</th>
-                        <th>Manufacturer</th>
-                        <th>Connected Time</th>
-                        <th>Duration</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+        <ul class="cs-subtab-bar" id="usbAuditSubTabs" role="tablist">
+            <li class="usbaudit-tab active"><a href="#UsbAuditOverview"><i class="fas fa-usb"></i> Overview</a></li>
+        </ul>
+        <div class="tab-content p-3">
+            <div id="UsbAuditOverview" class="tab-pane active">
+                <div class="cs-card-header"><i class="fas fa-usb" style="color:var(--cyan);"></i> USB Device Audit</div>
+                <div class="p-3">
+                    <table id="usbAuditTable" class="w-full">
+                        <thead>
+                            <tr>
+                                <th>Device Name</th>
+                                <th>Username</th>
+                                <th>Device Type</th>
+                                <th>Manufacturer</th>
+                                <th>Connected Time</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
