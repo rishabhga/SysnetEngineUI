@@ -962,23 +962,25 @@
                 </div>
             </div>
             <div id="MotherboardHw" class="tab-pane">
-                <div class="hw-category-header hw-cat-red">
-                    <div class="hw-category-icon"><i class="fas fa-chess-board"></i></div>
-                    <div class="hw-category-text">
-                        <div class="hw-category-title">Motherboard</div>
-                        <div class="hw-category-desc">Baseboard layout and components</div>
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+                    <div class="hw-category-header hw-cat-red" style="margin-bottom:0;flex:1;min-width:220px;">
+                        <div class="hw-category-icon"><i class="fas fa-chess-board"></i></div>
+                        <div class="hw-category-text">
+                            <div class="hw-category-title">Motherboard</div>
+                            <div class="hw-category-desc">Baseboard layout and components</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button id="btnAuditMotherboard" class="btn btn-sm"
+                                style="background:var(--cyan);color:#fff;border:none;font-weight:700;font-size:.76rem;border-radius:var(--radius-md);padding:8px 16px;transition:all .2s;box-shadow:0 4px 12px rgba(0,188,235,.3);white-space:nowrap;">
+                            <i class="fas fa-stethoscope"></i> Audit Motherboard
+                        </button>
                     </div>
                 </div>
                 <div id="motherboardContainer"></div>
 
                 <!-- ═══════ Motherboard Audit (health, temps, voltages, CPU snapshot, trend history) ═══════ -->
                 <div style="margin-top:16px;">
-                    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-                        <button id="btnAuditMotherboard" class="btn btn-sm"
-                                style="background:var(--primary);color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;">
-                            <i class="fas fa-stethoscope"></i> Audit Motherboard
-                        </button>
-                    </div>
 
                     <!-- No-audit placeholder -->
                     <div id="mbAuditPlaceholder" style="padding:28px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:16px;">

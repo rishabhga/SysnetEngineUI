@@ -76,7 +76,7 @@ function lazyLoadTabData(tabId) {
             loadBiosDetails();
             loadBatteryDetails();
             loadMonitorDetails();
-            loadProcessorDetails(false);  
+            loadProcessorDetails(false);
             loadNetworkAdapters();
             loadKeyboardDetails();
             loadMotherboardDetails();
@@ -275,7 +275,7 @@ function initializeAllTables() {
         $.ajax({
             url: `/ComputerSummary/ControlService`,
             type: 'POST',
-            timeout: 0, 
+            timeout: 0,
             data: {
                 domain: actualDomainName,
                 serviceName: serviceName,
@@ -903,7 +903,7 @@ function renderMemoryPanel(data) {
     else if (usagePct > 75) utilColor = '#f59e0b';
     else if (usagePct > 60) utilColor = '#0ea5e9';
 
-    var circumference = 283; 
+    var circumference = 283;
     var utilDash = Math.max(0, Math.min(100, usagePct)) / 100 * circumference;
     $('#memUtilizationCircle').css({
         'stroke-dasharray': utilDash + ', ' + circumference,
@@ -1716,7 +1716,7 @@ function renderMotherboardAudit(data) {
     const score = val(health, 'healthScore', 'HealthScore');
     const status = health.status ?? health.Status ?? 'Unknown';
 
-    const circumference = 283; 
+    const circumference = 283;
     const dash = (score / 100) * circumference;
     const color = score >= 80 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444';
     $('#mbHealthCircle').attr('stroke-dasharray', `${dash},${circumference}`).attr('stroke', color);
@@ -2296,8 +2296,15 @@ function renderBatteryAuditPanel(metrics) {
     $('#batteryStatus').text(status);
 
     var liveLvl = metrics.liveBatteryLevel !== undefined ? metrics.liveBatteryLevel
-        : (metrics.LiveBatteryLevel !== undefined ? metrics.LiveBatteryLevel : null);
+        : (metrics.LiveBatteryLevel !== undefined ? metrics.LiveBatteryLevel
+            : (metrics.batteryPercentage !== undefined ? metrics.batteryPercentage
+                : (metrics.BatteryPercentage !== undefined ? metrics.BatteryPercentage : null)));
     var liveDetails = metrics.liveBatteryDetails || metrics.LiveBatteryDetails || '';
+    var liveCharging = metrics.isCharging !== undefined ? metrics.isCharging
+        : (metrics.IsCharging !== undefined ? metrics.IsCharging : null);
+    if (!liveDetails && liveCharging !== null) {
+        liveDetails = liveCharging ? 'AC' : 'Battery';
+    }
 
     if (liveLvl !== null && liveLvl !== undefined) {
         $('#liveBatteryCard').css('display', 'flex');
@@ -2321,9 +2328,14 @@ function renderBatteryAuditPanel(metrics) {
         $('#liveBatteryDetailsText').text(liveDetails || 'Unknown');
 
         if (liveLvl > 0) {
+            var auditLvlColor = liveLvl <= 20 ? '#ef4444' : (liveLvl <= 40 ? '#f59e0b' : '#22c55e');
+            var isChargingNow = liveDetails.toLowerCase().indexOf('charg') !== -1;
             $('#batteryLevel').html(`
-                <div style="font-size:1.1rem;font-weight:700;">${liveLvl}%</div>
-                <div style="font-size:.65rem;color:var(--slate-500);">${liveDetails}</div>`);
+            <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-size:1rem;font-weight:700;color:${auditLvlColor};">${liveLvl}%</span>
+                <i class="fas ${isChargingNow ? 'fa-bolt' : 'fa-battery-three-quarters'}" style="color:${isChargingNow ? '#22c55e' : auditLvlColor};font-size:.78rem;"></i>
+            </div>
+            <div style="font-size:.65rem;color:var(--slate-500);margin-top:1px;">${liveDetails || (isChargingNow ? 'Charging' : 'Discharging')}</div>`);
         }
     } else {
         $('#liveBatteryCard').hide();
@@ -3026,7 +3038,7 @@ $(document).ready(function () {
             success: function (res) {
                 if (res && res.success) {
                     sysAlert(res.message || 'Processor audit completed!', 'success');
-                    loadProcessorDetails(true);  
+                    loadProcessorDetails(true);
                 } else {
                     sysAlert(res.message || 'Processor audit failed.', 'error');
                 }
@@ -3080,7 +3092,7 @@ $(document).ready(function () {
 });
 (function () {
     var CS_NAV_IMAGES = {
-        '#System': '/images/systeminfo/system.png',            
+        '#System': '/images/systeminfo/system.png',
         '#Hardware': '/images/systeminfo/hardware.png',
         '#Software': '/images/systeminfo/software.png',
         '#security': '/images/systeminfo/security.png',
