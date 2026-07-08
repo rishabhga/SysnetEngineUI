@@ -847,7 +847,7 @@ function renderMemoryHealth(data) {
 
     $('#memHealthScoreText').text(health.overall + '%');
 
-    var circumference = 283; // 2 * PI * r45, matches the SVG circle radius
+    var circumference = 283; 
     var healthDash = Math.max(0, Math.min(100, health.overall)) / 100 * circumference;
     $('#memHealthCircle').css({
         'stroke-dasharray': healthDash + ', ' + circumference,
@@ -876,7 +876,6 @@ function renderMemoryHealth(data) {
     });
 }
 
-// Returns true if the payload represents a real audit result (not an empty/default object)
 function hasRealMemoryData(data) {
     if (!data) return false;
     var installed = data.installedMemoryGB || data.InstalledMemoryGB || 0;
@@ -932,12 +931,10 @@ function renderMemoryPanel(data) {
         });
     }
 
-    // Reveal the gated audit section, hide the placeholder/loading states
     $('#memAuditPlaceholder').hide();
     $('#memAuditLoading').hide();
     $('#memAuditGate').show();
 
-    // Pull trend history alongside the fresh audit result
     $.get(`/ComputerSummary/MemoryHistory?domain=${domaindata}`, function (history) {
         if (history && history.length > 0) {
             $('#memTrendNoData').hide();
@@ -950,21 +947,14 @@ function renderMemoryPanel(data) {
     });
 }
 
-// Populates only the always-visible header stats (hero + key specs) from the last saved
-// record, WITHOUT opening the gated audit section. The gated section (utilization gauge,
-// health score, modules table, charts) only opens when the user actually clicks Audit Memory
-// in this session — see the #btnAuditMemory handler.
 function loadMemoryDetails() {
     $.get(`/ComputerSummary/MemorySummary?domain=${domaindata}`, function (data) {
         if (hasRealMemoryData(data)) {
             renderMemoryHeaderOnly(data);
         }
-        // else: no data has ever been recorded for this device — leave placeholder visible
     });
 }
 
-// Renders just the hero header + key-spec boxes (always safe to show — these are simple
-// facts, not an "audit result"). Does NOT touch the gated section.
 function renderMemoryHeaderOnly(data) {
     $('#memTotalCapacity').text((data.installedMemoryGB || data.InstalledMemoryGB || 0).toFixed(2) + ' GB Installed');
     $('#memUsageBadge').html(`<i class="fas fa-chart-pie"></i> ${(data.usagePercent || data.UsagePercent || 0).toFixed(1)}% Used`);
@@ -1291,30 +1281,39 @@ function cpuVal(d, ...keys) {
 }
 
 function loadProcessorDetails(includeAuditSections) {
-    // Static identity info (name, specs, cache) — always show from latest DB row on page load.
-    // Thermal health + trend charts only show when includeAuditSections=true (i.e. after audit).
     $.get(`/ComputerSummary/Processors?domain=${domaindata}`, function (data) {
         if (!data) return;
         renderProcessorHero(data);
         renderProcessorSpecs(data);
         renderProcessorCache(data);
         if (includeAuditSections) {
-            renderProcessorThermal(data);
+            $.get(`/ComputerSummary/ProcessorHistory?domain=${domaindata}&count=20`, function (history) {
+                renderProcessorTrendCharts(history);
+                var thermalSource = data;
+                if (history && history.length) {
+                    for (var i = history.length - 1; i >= 0; i--) {
+                        var h = history[i];
+                        var hPkg = parseFloat(cpuVal(h, 'cpuPackageTemperature', 'CpuPackageTemperature', 'packageTemperature', 'PackageTemperature', 'cpuTemperature', 'CpuTemperature')) || 0;
+                        var hC0 = parseFloat(cpuVal(h, 'core0Temp', 'Core0Temp', 'coreTemp0', 'CoreTemp0')) || 0;
+                        if (hPkg > 0 || hC0 > 0) {
+                            thermalSource = Object.assign({}, data, h);
+                            break;
+                        }
+                    }
+                }
+                renderProcessorThermal(thermalSource);
+            }).fail(function () {
+                renderProcessorThermal(data);
+                $('#cpuTrendSection').hide();
+                $('#cpuTrendPlaceholder').show();
+            });
         } else {
-            // Ensure both gated sections stay hidden on page load
             $('#cpuHealthSection').hide();
             $('#cpuHealthPlaceholder').show();
         }
     }).fail(function () { console.error("Failed to load processor details"); });
 
-    if (includeAuditSections) {
-        $.get(`/ComputerSummary/ProcessorHistory?domain=${domaindata}&count=20`, function (history) {
-            renderProcessorTrendCharts(history);
-        }).fail(function () {
-            $('#cpuTrendSection').hide();
-            $('#cpuTrendPlaceholder').show();
-        });
-    } else {
+    if (!includeAuditSections) {
         $('#cpuTrendSection').hide();
         $('#cpuTrendPlaceholder').show();
     }
@@ -1397,24 +1396,9 @@ function renderProcessorThermal(d) {
     var pkgTemp = parseFloat(cpuVal(d, 'cpuPackageTemperature', 'CpuPackageTemperature', 'packageTemperature', 'PackageTemperature', 'cpuTemperature', 'CpuTemperature')) || 0;
     var pkgPower = parseFloat(cpuVal(d, 'cpuPackagePower', 'CpuPackagePower', 'packagePower', 'PackagePower', 'powerDraw', 'PowerDraw')) || 0;
 
-    if (pkgTemp <= 0) {
-        $('#cpuHealthSection').hide();
-        $('#cpuHealthPlaceholder').show();
-        return;
-    }
-
     $('#cpuHealthPlaceholder').hide();
     $('#cpuHealthSection').show();
 
-    // ── Health Score calculation ──────────────────────────────────
-    // Based purely on real temperature readings from the audit.
-    // Score degrades as temperature climbs toward unsafe thresholds.
-    // These bands match Intel/AMD published safe-operation guidelines:
-    //   < 50°C: cool/idle — no degradation
-    //   50–70°C: warm/load — mild concern, starts deducting
-    //   70–85°C: hot — moderate concern, significant deduction
-    //   85–95°C: very hot — high risk, heavy deduction
-    //   > 95°C: critical — approaching throttle/shutdown territory
     var healthScore;
     var healthStatus, healthColor;
     if (pkgTemp < 50) { healthScore = 100; healthStatus = 'Cool'; healthColor = '#22c55e'; }
@@ -1425,7 +1409,6 @@ function renderProcessorThermal(d) {
     else { healthScore = 25 - (pkgTemp - 90) * 2.0; healthStatus = 'Critical'; healthColor = '#ef4444'; }
     healthScore = Math.max(0, Math.min(100, Math.round(healthScore)));
 
-    // ── Health circle gauge ───────────────────────────────────────
     var circumference = 2 * Math.PI * 45;
     var healthDash = (healthScore / 100) * circumference;
     $('#cpuHealthCircle').css({ stroke: healthColor, 'stroke-dasharray': healthDash + ', ' + circumference, transition: 'stroke-dasharray 1.5s ease, stroke 1s ease' });
@@ -1433,7 +1416,6 @@ function renderProcessorThermal(d) {
     $('#cpuHealthBadge').html('<i class="fas fa-' + (healthScore >= 80 ? 'check-circle' : healthScore >= 55 ? 'exclamation-triangle' : 'fire') + '"></i> ' + healthStatus)
         .css({ background: healthColor + '22', color: healthColor });
 
-    // ── Package temp gauge ────────────────────────────────────────
     var tempDash = Math.min(100, (pkgTemp / 100) * 100) / 100 * circumference;
     var tempColor = pkgTemp < 60 ? '#22c55e' : pkgTemp < 75 ? '#f59e0b' : '#ef4444';
     $('#cpuPackageTempCircle').css({ stroke: tempColor, 'stroke-dasharray': tempDash + ', ' + circumference });
@@ -1441,7 +1423,6 @@ function renderProcessorThermal(d) {
     $('#cpuPackagePowerText').text('Power draw: ' + (pkgPower > 0 ? pkgPower.toFixed(1) + ' W' : 'N/A'));
     $('#cpuHealthStatus').html('<i class="fas fa-thermometer-half"></i> ' + healthStatus).css('color', healthColor);
 
-    // ── Sub-score info boxes ──────────────────────────────────────
     $('#cpuHealthTemp').text(pkgTemp.toFixed(0) + '\u00B0C').css('color', tempColor);
     var cores = parseInt(cpuVal(d, 'cores', 'Cores', 'numberOfCores', 'NumberOfCores')) || 0;
     var threads = parseInt(cpuVal(d, 'logicalProcessors', 'LogicalProcessors', 'numberOfLogicalProcessors', 'NumberOfLogicalProcessors')) || 0;
@@ -1450,7 +1431,6 @@ function renderProcessorThermal(d) {
     $('#cpuHealthClock').text(maxMHz > 0 ? (maxMHz / 1000).toFixed(2) + ' GHz' : '--');
     $('#cpuHealthPower').text(pkgPower > 0 ? pkgPower.toFixed(1) + ' W' : 'N/A');
 
-    // ── Per-core temperature mini-circles ─────────────────────────
     var maxTemp = 100;
     var coreReadings = [
         { label: 'Core 0', value: parseFloat(cpuVal(d, 'core0Temp', 'Core0Temp', 'coreTemp0', 'CoreTemp0')) || 0 },
@@ -2700,7 +2680,7 @@ function loadHardDiskDetails() {
         });
 
         if (hasRealData) {
-            renderHardDiskDashboard(disks);
+            renderHardDiskDashboard(disks, false);
             loadHwPartitions();
         } else {
             var d = disks[0];
@@ -2712,12 +2692,8 @@ function loadHardDiskDetails() {
     });
 }
 
-function renderHardDiskDashboard(disks) {
-    $('#diskAuditPlaceholder').hide();
-    $('#diskAuditGate').show();
-
+function renderDiskHeroOnly(disks) {
     const d = disks[0];
-
     const totalCap = parseFloat(d.TotalCapacity || d.totalCapacity || 0).toFixed(1);
     $('#diskHeroName').text(d.Model || d.model || 'Unknown Disk');
     $('#diskHeroCapacity').html('<i class="fas fa-database"></i> ' + totalCap + ' GB Total');
@@ -2744,30 +2720,19 @@ function renderHardDiskDashboard(disks) {
             if (!isNaN(parsed)) $('#diskLastUpdated').text('Updated: ' + parsed.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
         } catch (e) { }
     }
+}
 
-    var temp = parseFloat(d.Temperature || d.temperature) || 0;
-    var wear = parseFloat(d.Wear || d.wear) || 0;
-    var powOnHrs = parseInt(d.PowerOnHours || d.powerOnHours) || 0;
-    var tempColor = temp > 55 ? '#ef4444' : temp > 45 ? '#f59e0b' : '#22c55e';
-    var wearColor = wear > 80 ? '#ef4444' : wear > 50 ? '#f59e0b' : '#22c55e';
+function renderHardDiskDashboard(disks, openGate = true) {
+    if (openGate) {
+        $('#diskAuditLoading').hide();
+        $('#diskAuditPlaceholder').hide();
+        $('#diskAuditGate').show();
+    }
 
-    $('#diskHealthStatusLabel').html(
-        predictFail
-            ? '<i class="fas fa-times-circle"></i> Failing'
-            : health === 'WARNING' || health === 'CAUTION'
-                ? '<i class="fas fa-exclamation-triangle"></i> Warning'
-                : '<i class="fas fa-check-circle"></i> Healthy'
-    ).css('color', predictFail ? '#ef4444' : health === 'WARNING' ? '#f59e0b' : '#22c55e');
+    renderDiskHeroOnly(disks);
 
-    $('#diskHealthTempLabel').text(temp > 0 ? temp.toFixed(0) + '\u00B0C' : 'N/A').css('color', temp > 0 ? tempColor : 'var(--slate-400)');
-    $('#diskHealthWearLabel').text(wear > 0 ? wear.toFixed(1) + '%' : 'N/A').css('color', wear > 0 ? wearColor : 'var(--slate-400)');
-    $('#diskHealthPowerOn').text(powOnHrs > 0 ? Number(powOnHrs).toLocaleString() + ' hrs' : 'N/A');
-    $('#diskHealthPredictFailure').html(
-        predictFail
-            ? '<i class="fas fa-exclamation-circle" style="color:#ef4444;"></i> Yes'
-            : '<i class="fas fa-check-circle" style="color:#22c55e;"></i> No'
-    );
-    $('#diskHealthSummaryCard').show();
+    const d = disks[0];
+
 
     if (disks.length > 1) {
         $('#diskSelectorWrap').show();
@@ -2812,6 +2777,83 @@ function renderDiskPanels(d) {
     if (usedPct >= 90) barColor = '#ef4444';
     else if (usedPct >= 75) barColor = '#f59e0b';
 
+    const wear = d.Wear || d.wear;
+    const temp = d.Temperature || d.temperature;
+    const predictFail = d.PredictFailure || d.predictFailure || false;
+    const readErr = Number(d.ReadErrorsTotal || d.readErrorsTotal || 0);
+    const writeErr = Number(d.WriteErrorsTotal || d.writeErrorsTotal || 0);
+    
+    let healthScore = 100;
+    if (predictFail) healthScore = 0;
+    else {
+        if (temp > 60) healthScore -= 40;
+        else if (temp > 50) healthScore -= 20;
+        else if (temp > 40) healthScore -= 5;
+        if (wear !== null && wear !== undefined) {
+            if (wear > 90) healthScore -= 50;
+            else if (wear > 75) healthScore -= 25;
+            else if (wear > 50) healthScore -= 10;
+        }
+        if (readErr > 0 || writeErr > 0) healthScore -= 15;
+    }
+    healthScore = Math.max(0, Math.min(100, healthScore));
+
+    let healthScoreColor = '#22c55e';
+    let healthScoreText = 'Excellent';
+    if (healthScore < 50) { healthScoreColor = '#ef4444'; healthScoreText = 'Critical'; }
+    else if (healthScore < 80) { healthScoreColor = '#f59e0b'; healthScoreText = 'Warning'; }
+    else if (healthScore < 95) { healthScoreColor = '#10b981'; healthScoreText = 'Good'; }
+
+    $('#diskHealthStatusLabel').text(healthScoreText).css('color', healthScoreColor);
+    let usageScoreText = 'Normal';
+    if (usedPct >= 90) usageScoreText = 'Critical';
+    else if (usedPct >= 75) usageScoreText = 'High';
+    $('#diskUsageStatusLabel').text(usageScoreText).css('color', barColor);
+
+    if (typeof window.diskHealthChartInstance !== 'undefined' && window.diskHealthChartInstance) window.diskHealthChartInstance.destroy();
+    const hlCanvas = document.getElementById('diskHealthChartCanvas');
+    if (hlCanvas) {
+        window.diskHealthChartInstance = new Chart(hlCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Health Score', ''],
+                datasets: [{
+                    data: [healthScore, Math.max(0, 100 - healthScore)],
+                    backgroundColor: [healthScoreColor, '#e2e8f0'],
+                    borderWidth: 0,
+                    cutout: '75%'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            }
+        });
+        $('#diskHealthScoreLabel').text(healthScore.toFixed(0) + '%').css('color', healthScoreColor);
+    }
+
+    if (typeof window.diskUsageChartInstance !== 'undefined' && window.diskUsageChartInstance) window.diskUsageChartInstance.destroy();
+    const usCanvas = document.getElementById('diskUsageChartCanvas');
+    if (usCanvas) {
+        window.diskUsageChartInstance = new Chart(usCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Used', 'Free'],
+                datasets: [{
+                    data: [usedPct, Math.max(0, 100 - usedPct)],
+                    backgroundColor: [barColor, '#e2e8f0'],
+                    borderWidth: 0,
+                    cutout: '75%'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            }
+        });
+        $('#diskUsageScoreLabel').text(usedPct.toFixed(0) + '%').css('color', barColor);
+    }
+
     const usageHtml = `
         <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px 18px;box-shadow:var(--shadow-sm);">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
@@ -2828,8 +2870,6 @@ function renderDiskPanels(d) {
         </div>`;
     $('#diskUsageContainer').html(usageHtml);
 
-    const wear = d.Wear || d.wear;
-    const temp = d.Temperature || d.temperature;
     const specsHtml = `
         <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));">
             <div class="cs-info-box"><div class="cs-info-box-label">Model</div><div class="cs-info-box-value accent" style="font-size:.8rem;">${d.Model || d.model || 'N/A'}</div></div>
@@ -2860,8 +2900,6 @@ function renderDiskPanels(d) {
     if (tempVal >= 55) tempColor = '#ef4444';
     else if (tempVal >= 45) tempColor = '#f59e0b';
 
-    const readErr = Number(d.ReadErrorsTotal || d.readErrorsTotal || 0);
-    const writeErr = Number(d.WriteErrorsTotal || d.writeErrorsTotal || 0);
     const readCorr = Number(d.ReadErrorsCorrected || d.readErrorsCorrected || 0);
 
     const smartHtml = `
@@ -2902,6 +2940,70 @@ function renderDiskPanels(d) {
             </div>
         </div>`;
     $('#diskSmartContainer').html(smartHtml);
+    $('#diskSmartPlaceholder').hide();
+    $('#diskAuditResults').show();
+
+    const dstStatus = d.DstStatus || d.dstStatus;
+    const dstProgress = d.DstProgressPercent || d.dstProgressPercent;
+    const dstTime = d.DstLastExecutionTime || d.dstLastExecutionTime;
+    const dstResult = d.DstResult || d.dstResult;
+
+    if (dstStatus || dstResult) {
+        let statusColor = '#3b82f6'; 
+        let icon = 'fa-spinner fa-spin';
+        if (dstStatus === 'Completed' || dstStatus === 'Passed' || dstResult === 'Passed') {
+            statusColor = '#22c55e'; 
+            icon = 'fa-check-circle';
+        } else if (dstStatus === 'Failed' || dstResult === 'Failed') {
+            statusColor = '#ef4444'; 
+            icon = 'fa-times-circle';
+        } else if (dstStatus === 'Aborted' || dstStatus === 'Stopped') {
+            statusColor = '#f59e0b'; 
+            icon = 'fa-exclamation-circle';
+        }
+
+        let timeStr = 'N/A';
+        if (dstTime) {
+            try {
+                timeStr = new Date(dstTime).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } catch (e) { }
+        }
+
+        const dstHtml = `
+            <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:18px;box-shadow:var(--shadow-sm);">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                    <i class="fas ${icon}" style="font-size:1.8rem;color:${statusColor};"></i>
+                    <div>
+                        <div style="font-size:1rem;font-weight:700;color:var(--slate-800);">${dstStatus || 'Unknown Status'}</div>
+                        <div style="font-size:.75rem;color:var(--slate-500);">Last Executed: ${timeStr}</div>
+                    </div>
+                </div>
+
+                ${(dstProgress !== undefined && dstProgress !== null) ? `
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:.74rem;font-weight:700;color:var(--slate-600);margin-bottom:8px;">Test Progress</div>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="flex:1;height:10px;border-radius:6px;background:var(--slate-100);overflow:hidden;">
+                            <div style="height:100%;width:${dstProgress}%;background:${statusColor};border-radius:6px;transition:width 1s;"></div>
+                        </div>
+                        <span style="font-size:.8rem;font-weight:800;color:${statusColor};min-width:36px;text-align:right;">${dstProgress}%</span>
+                    </div>
+                </div>` : ''}
+
+                <div style="font-size:.74rem;font-weight:700;color:var(--slate-600);margin-bottom:4px;">Diagnostic Result</div>
+                <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-sm);padding:10px 12px;font-family:var(--font-mono);font-size:.75rem;color:var(--slate-700);">
+                    ${dstResult || 'No detailed diagnostic result available.'}
+                </div>
+            </div>`;
+            
+        $('#diskDstContainer').html(dstHtml);
+        $('#diskDstPlaceholder').hide();
+        $('#diskDstResults').show();
+    } else {
+        $('#diskDstContainer').empty();
+        $('#diskDstPlaceholder').show();
+        $('#diskDstResults').hide();
+    }
 }
 
 function _smartMetric(label, value, color, icon, isText) {
@@ -3055,28 +3157,47 @@ $(document).ready(function () {
         });
     });
 
-    $('#btnAuditHardDisk').on('click', function (e) {
+    $('#btnAuditHardDiskQuick').on('click', function (e) {
         e.preventDefault();
         let btn = $(this);
         let originalText = btn.html();
         btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
         btn.prop('disabled', true);
         btn.css('opacity', '0.7');
-        sysAlert('Hard Disk audit requested. Waiting for device to respond...', 'info');
+        sysAlert('Hard Disk quick audit requested. Waiting for device to respond...', 'info');
+
+        $('#diskAuditPlaceholder').hide();
+        $('#diskAuditGate').hide();
+        $('#diskAuditLoading').show();
 
         $.ajax({
-            url: '/ComputerSummary/AuditHardDisk?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName),
+            url: '/ComputerSummary/AuditHardDisk?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName) + '&auditType=quick',
             type: 'POST',
             timeout: 90000,
             success: function (res) {
                 if (res && res.success) {
-                    sysAlert(res.message || 'Hard Disk audit completed!', 'success');
-                    loadHardDiskDetails();
+                    sysAlert(res.message || 'Hard Disk quick audit completed!', 'success');
+                    $.get(`/ComputerSummary/HardDisk?domain=${domaindata}`, function (disks) {
+                        if (disks && Array.isArray(disks) && disks.length > 0) {
+                            renderHardDiskDashboard(disks);
+                        } else {
+                            $('#diskAuditLoading').hide();
+                            $('#diskAuditPlaceholder').show();
+                            sysAlert('No hard disk data available after audit.', 'error');
+                        }
+                    }).fail(function() {
+                        $('#diskAuditLoading').hide();
+                        $('#diskAuditPlaceholder').show();
+                    });
                 } else {
-                    sysAlert(res.message || 'Hard Disk audit failed.', 'error');
+                    $('#diskAuditLoading').hide();
+                    $('#diskAuditPlaceholder').show();
+                    sysAlert(res.message || 'Hard Disk quick audit failed.', 'error');
                 }
             },
             error: function (xhr, status) {
+                $('#diskAuditLoading').hide();
+                $('#diskAuditPlaceholder').show();
                 let msg = status === 'timeout' ? 'Hard Disk audit timed out. The device may still be processing.' : 'Connection error while requesting hard disk audit.';
                 sysAlert(msg, 'error');
             },
@@ -3084,6 +3205,39 @@ $(document).ready(function () {
                 btn.html(originalText);
                 btn.prop('disabled', false);
                 btn.css('opacity', '1');
+            }
+        });
+    });
+
+    $('#btnAuditHardDiskDeep').on('click', function (e) {
+        e.preventDefault();
+        let btn = $(this);
+        let originalText = btn.html();
+        btn.html('<i class="fas fa-check"></i> Initiated');
+        btn.prop('disabled', true);
+        btn.css('opacity', '0.7');
+        sysAlert('Deep Audit (DST) requested. This will take up to 30 minutes in the background.', 'info');
+
+        $.ajax({
+            url: '/ComputerSummary/AuditHardDisk?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName) + '&auditType=deep',
+            type: 'POST',
+            timeout: 10000, 
+            success: function (res) {
+                if (res && res.success) {
+                    sysAlert(res.message || 'Drive Self-Test initiated. Please check back later.', 'success');
+                } else {
+                    sysAlert(res.message || 'Failed to initiate Deep Audit.', 'error');
+                }
+            },
+            error: function (xhr, status) {
+                sysAlert('Connection error while triggering deep audit.', 'error');
+            },
+            complete: function () {
+                setTimeout(function() {
+                    btn.html(originalText);
+                    btn.prop('disabled', false);
+                    btn.css('opacity', '1');
+                }, 3000);
             }
         });
     });
@@ -3203,32 +3357,47 @@ $(document).ready(function () {
             if (titleText) {
                 $header.append('<h3 class="cs-subtab-card-grid-title">' + titleText + '</h3>');
             }
-            var $subGrid = $('<div class="cs-card-grid cs-card-grid-sm"></div>');
+            
+            var numItems = $subBar.find('li').length;
+            $pane.data('csNumItems', numItems);
 
-            $subBar.find('li').each(function () {
-                var $a = $(this).find('a').first();
-                var parts = linkParts($a);
-                if (!parts.target) return;
+            var $subGrid = null;
+            if (numItems > 1) {
+                $subGrid = $('<div class="cs-card-grid cs-card-grid-sm"></div>');
+                $subBar.find('li').each(function () {
+                    var $a = $(this).find('a').first();
+                    var parts = linkParts($a);
+                    if (!parts.target) return;
 
-                var $card = $(cardHtml(parts.target, parts.iconClass, parts.label || 'Overview', 'sm'));
-                $card.on('click', function () {
-                    $a.trigger('click');
-                    showSubContent($pane);
+                    var $card = $(cardHtml(parts.target, parts.iconClass, parts.label || 'Overview', 'sm'));
+                    $card.on('click', function () {
+                        $a.trigger('click');
+                        showSubContent($pane);
+                    });
+                    $subGrid.append($card);
                 });
-                $subGrid.append($card);
-            });
+                $wrap.append($header).append($subGrid);
+            } else {
+                $wrap.append($header);
+                $subBar.find('li a').first().trigger('click');
+            }
 
-            $wrap.append($header).append($subGrid);
             $subBar.before($wrap);
             $subBar.css('display', 'none');
 
-            var $backToCards = $('<button type="button" class="cs-back-btn cs-sub-back-btn"><i class="fas fa-th-large"></i> Back to categories</button>');
-            $backToCards.on('click', function () { showSubCards($pane); });
-            $innerContent.before($backToCards);
+            var $backToCards = null;
+            if (numItems > 1) {
+                $backToCards = $('<button type="button" class="cs-back-btn cs-sub-back-btn"><i class="fas fa-th-large"></i> Back to categories</button>');
+                $backToCards.on('click', function () { showSubCards($pane); });
+                $innerContent.before($backToCards);
+            }
 
             $pane.data('csCardWrap', $wrap);
             $pane.data('csInnerContent', $innerContent);
-            $pane.data('csBackToCards', $backToCards);
+            if ($backToCards) $pane.data('csBackToCards', $backToCards);
+            $pane.data('csSubBar', $subBar);
+            if ($subGrid) $pane.data('csSubGrid', $subGrid);
+            $pane.data('csHeader', $header);
         });
     }
 
@@ -3242,6 +3411,7 @@ $(document).ready(function () {
         $('#Summary').removeClass('active');
         $('#mainTabContent > .tab-pane').removeClass('active');
         $('#csEntryBanner').hide();
+        $('#mainTabCardGridInner').show();
         $('#mainTabCardGrid').show();
         if ($('#mainTabCardGrid')[0] && $('#mainTabCardGrid')[0].scrollIntoView) {
             $('#mainTabCardGrid')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3265,12 +3435,20 @@ $(document).ready(function () {
     }
 
     function showSubCards($pane) {
+        if (!window.isAppCardView) return;
         var $wrap = $pane.data('csCardWrap');
         var $inner = $pane.data('csInnerContent');
         var $backToCards = $pane.data('csBackToCards');
+        var numItems = $pane.data('csNumItems') || 0;
+
         if ($wrap && $wrap.length) $wrap.show();
-        if ($inner && $inner.length) $inner.hide();
-        if ($backToCards && $backToCards.length) $backToCards.hide();
+        
+        if (numItems > 1) {
+            if ($inner && $inner.length) $inner.hide();
+            if ($backToCards && $backToCards.length) $backToCards.hide();
+        } else {
+            if ($inner && $inner.length) $inner.show();
+        }
     }
 
     function showSubContent($pane) {
@@ -3307,6 +3485,70 @@ $(document).ready(function () {
 
         $('#btnOpenSystemInfo').on('click', function () { openMainCardGrid(); });
         $('#btnBackToSummary').on('click', function () { backToSummary(); });
+
+        window.isAppCardView = true;
+        $('#btnUniversalViewToggle').on('click', function() {
+            window.isAppCardView = !window.isAppCardView;
+            if (window.isAppCardView) {
+                $(this).html('<i class="fas fa-list" style="color:var(--cyan);"></i> <span style="font-weight:600;">Tab View</span>');
+                $('.cs-tab-bar').hide();
+                
+                if ($('#Summary').hasClass('active')) {
+                    $('#mainTabCardGridInner').show();
+                    $('#mainTabCardGrid').show();
+                } else {
+                    $('#mainTabCardGridInner').hide();
+                }
+
+                $('#mainTabContent > .tab-pane').each(function() {
+                    var $pane = $(this);
+                    var $subGrid = $pane.data('csSubGrid');
+                    var $subBar = $pane.data('csSubBar');
+                    var $backToCards = $pane.data('csBackToCards');
+                    
+                    if ($subGrid) $subGrid.show();
+                    if ($subBar) $subBar.css('display', 'none');
+                    if ($backToCards) $backToCards.hide();
+                    
+                    if ($pane.hasClass('active')) {
+                        showSubCards($pane);
+                    }
+                });
+
+            } else {
+                $(this).html('<i class="fas fa-th-large" style="color:var(--cyan);"></i> <span style="font-weight:600;">Card View</span>');
+                $('#mainTabCardGridInner').hide();
+                $('#mainTabCardGrid').hide();
+                $('.cs-tab-bar').css('display', 'block');
+                
+                $('#mainTabContent > .tab-pane').each(function() {
+                    var $pane = $(this);
+                    var $wrap = $pane.data('csCardWrap');
+                    var $subGrid = $pane.data('csSubGrid');
+                    var $subBar = $pane.data('csSubBar');
+                    var $backToCards = $pane.data('csBackToCards');
+                    var $innerContent = $pane.data('csInnerContent');
+                    
+                    if ($wrap) $wrap.hide();
+                    if ($subGrid) $subGrid.hide();
+                    if ($backToCards) $backToCards.hide();
+                    if ($subBar) $subBar.css('display', 'flex');
+                    if ($innerContent) $innerContent.show();
+                    
+                    if ($subBar && $subBar.find('a.active').length === 0) {
+                        $subBar.find('a[data-toggle="tab"]').first().trigger('click');
+                    }
+                });
+
+                var activeTarget = $('#mainTabList .main-tab.active a').attr('href');
+                if (activeTarget && activeTarget !== '#Summary') {
+                    $('#mainTabContent').children('.tab-pane').removeClass('active');
+                    $(activeTarget).addClass('active');
+                } else {
+                    $('#mainTabList .main-tab').not('[data-target="#Summary"]').first().find('a').trigger('click');
+                }
+            }
+        });
     });
 
 })();

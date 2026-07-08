@@ -1,4 +1,4 @@
-﻿@model List<WindowsUserDetails>
+@model List<WindowsUserDetails>
 @{
     ViewData["Title"] = "Computer Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -1002,6 +1002,9 @@
             </div>
         </div>
         <div class="cs-meta-pills">
+            <button type="button" id="btnUniversalViewToggle" class="cs-pill" style="cursor:pointer; background:rgba(255,255,255,0.1); color:#fff; border: 1px solid rgba(255,255,255,0.2);">
+                <i class="fas fa-list" style="color:var(--cyan);"></i> <span style="font-weight:600;">Tab View</span>
+            </button>
             <span class="cs-pill"><i class="fas fa-fingerprint"></i> @ViewBag.UserName</span>
             <span class="cs-pill"><i class="fas fa-clock"></i> @ViewBag.scanTime</span>
             <span class="cs-pill"><i class="fas fa-network-wired"></i> @ViewBag.ip</span>
@@ -1026,7 +1029,7 @@
             <button type="button" id="btnBackToSummary" class="cs-back-btn">
                 <i class="fas fa-arrow-left"></i> Back to Summary
             </button>
-            <h3>System Information</h3>
+            <h3 style="margin: 0;">System Information</h3>
         </div>
         <div class="cs-card-grid" id="mainTabCardGridInner"></div>
     </div>

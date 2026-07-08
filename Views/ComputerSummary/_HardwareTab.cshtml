@@ -888,10 +888,16 @@
                         </div>
                     </div>
                     <div class="cpu-hero-right" style="gap:15px;">
-                        <button id="btnAuditHardDisk" class="btn btn-sm"
-                                style="background:var(--cyan);color:#fff;border:none;font-weight:700;font-size:.76rem;border-radius:var(--radius-md);padding:8px 16px;transition:all .2s;box-shadow:0 4px 12px rgba(0,188,235,.3);white-space:nowrap;">
-                            <i class="fas fa-stethoscope"></i> Audit Hard Disk
-                        </button>
+                        <div style="display:flex; gap:8px;">
+                            <button id="btnAuditHardDiskQuick" class="btn btn-sm"
+                                    style="background:var(--cyan);color:#fff;border:none;font-weight:700;font-size:.76rem;border-radius:var(--radius-md);padding:8px 16px;transition:all .2s;box-shadow:0 4px 12px rgba(0,188,235,.3);white-space:nowrap;">
+                                <i class="fas fa-stethoscope"></i> Quick Audit
+                            </button>
+                            <button id="btnAuditHardDiskDeep" class="btn btn-sm"
+                                    style="background:#8b5cf6;color:#fff;border:none;font-weight:700;font-size:.76rem;border-radius:var(--radius-md);padding:8px 16px;transition:all .2s;box-shadow:0 4px 12px rgba(139,92,246,.3);white-space:nowrap;">
+                                <i class="fas fa-microscope"></i> Deep Audit (DST)
+                            </button>
+                        </div>
                         <div style="display:flex; flex-direction:column; align-items:flex-end;">
                             <div class="cpu-status-badge" id="diskHealthBadge"><span class="cpu-live-dot"></span> --</div>
                             <div class="cpu-updated" id="diskLastUpdated">--</div>
@@ -899,27 +905,72 @@
                     </div>
                 </div>
 
+                <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-chart-bar" style="color:var(--primary);"></i> Storage Usage</div>
+                <div id="diskUsageContainer" style="display:flex;flex-direction:column;gap:10px;"></div>
+
+                <!-- Key specs grid -->
+                <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-info-circle" style="color:var(--primary);"></i> Disk Details</div>
+                <div id="diskSpecsContainer"></div>
+
+                <!-- No-audit placeholder -->
                 <div id="diskAuditPlaceholder" style="margin-top:12px;padding:24px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;">
                     <i class="fas fa-hdd" style="font-size:1.6rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
-                    Run <strong>Audit Hard Disk</strong> above to see S.M.A.R.T. data, usage, and health metrics.
+                    Run <strong>Quick Audit</strong> or <strong>Deep Audit</strong> above to fetch live S.M.A.R.T. data, usage, and health metrics.
                 </div>
 
+                <!-- Audit loading state -->
+                <div id="diskAuditLoading" style="display:none;margin-top:12px;padding:24px;text-align:center;color:var(--slate-500);font-size:.82rem;background:var(--slate-50);border-radius:var(--radius-md);border:1px dashed var(--slate-200);">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size:1.5rem;color:var(--cyan);margin-bottom:8px;display:block;"></i>
+                    Fetching live hard disk diagnostics from device, please wait...
+                </div>
+
+                <!-- Gated section -->
                 <div id="diskAuditGate" style="display:none;">
-                    <div class="cpu-section-label"><i class="fas fa-chart-bar" style="color:var(--primary);"></i> Storage Usage</div>
-                    <div id="diskUsageContainer" style="display:flex;flex-direction:column;gap:10px;"></div>
+                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> Health Diagnostics &amp; Analytics</div>
+                    <div class="cpu-thermal-grid" style="margin-bottom:14px;align-items:stretch;">
+                        <!-- Health Score Chart -->
+                        <div style="display:flex;align-items:center;gap:18px;flex:1;min-width:260px;">
+                            <div class="battery-gauge-ring">
+                                <canvas id="diskHealthChartCanvas" width="90" height="90" style="display:block;margin:0 auto;"></canvas>
+                                <div class="battery-gauge-val" id="diskHealthScoreLabel" style="color:var(--slate-700);">--</div>
+                            </div>
+                            <div>
+                                <div style="font-size:1rem;font-weight:700;color:var(--slate-800);margin-bottom:2px;" id="diskHealthStatusLabel">--</div>
+                                <div style="font-size:.7rem;color:var(--slate-500);">Overall Health Score</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Usage Chart -->
+                        <div style="display:flex;align-items:center;gap:18px;flex:1;min-width:260px;">
+                            <div class="battery-gauge-ring">
+                                <canvas id="diskUsageChartCanvas" width="90" height="90" style="display:block;margin:0 auto;"></canvas>
+                                <div class="battery-gauge-val" id="diskUsageScoreLabel" style="color:var(--slate-700);">--</div>
+                            </div>
+                            <div>
+                                <div style="font-size:1rem;font-weight:700;color:var(--slate-800);margin-bottom:2px;" id="diskUsageStatusLabel">--</div>
+                                <div style="font-size:.7rem;color:var(--slate-500);">Storage Utilization</div>
+                            </div>
+                        </div>
+                    </div>
 
-                    <!-- Key specs grid -->
-                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-info-circle" style="color:var(--primary);"></i> Disk Details</div>
-                    <div id="diskSpecsContainer"></div>
-
-                    <!-- S.M.A.R.T. / Health metrics -->
-                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> S.M.A.R.T. Health Metrics</div>
+                    <!-- S.M.A.R.T. / Health metrics (Quick Audit) -->
+                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> S.M.A.R.T. Health Metrics (Quick Audit)</div>
                     <div id="diskAuditResults" style="display:none;margin-bottom:20px;">
                         <div id="diskSmartContainer"></div>
                     </div>
                     <div id="diskSmartPlaceholder" style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:20px;">
                         <i class="fas fa-heartbeat" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
-                        Run <strong>Audit Hard Disk</strong> above to see S.M.A.R.T. health data.
+                        Run <strong>Quick Audit</strong> above to see S.M.A.R.T. health data.
+                    </div>
+
+                    <!-- DST Report (Deep Audit) -->
+                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-microscope" style="color:#8b5cf6;"></i> Drive Self-Test (Deep Audit) Report</div>
+                    <div id="diskDstResults" style="display:none;margin-bottom:20px;">
+                        <div id="diskDstContainer"></div>
+                    </div>
+                    <div id="diskDstPlaceholder" style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:20px;">
+                        <i class="fas fa-microscope" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
+                        Run <strong>Deep Audit (DST)</strong> above to perform a thorough drive self-test. This may take several minutes.
                     </div>
 
                     <!-- Partitions / Logical Drives -->
@@ -1373,17 +1424,17 @@
                 <div class="cpu-cache-card" id="cpuCacheContainer">
                     <div class="cpu-cache-row">
                         <div class="cpu-cache-label">L1</div>
-                        <div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:4%;background:#0ea5e9;"></div></div>
+                        <div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:0%;background:var(--slate-200);transition:width 0.6s ease, background 0.3s ease;"></div></div>
                         <div class="cpu-cache-value">--</div>
                     </div>
                     <div class="cpu-cache-row">
                         <div class="cpu-cache-label">L2</div>
-                        <div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:4%;background:#6366f1;"></div></div>
+                        <div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:0%;background:var(--slate-200);transition:width 0.6s ease, background 0.3s ease;"></div></div>
                         <div class="cpu-cache-value">--</div>
                     </div>
                     <div class="cpu-cache-row">
                         <div class="cpu-cache-label">L3</div>
-                        <div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:4%;background:#f59e0b;"></div></div>
+                        <div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:0%;background:var(--slate-200);transition:width 0.6s ease, background 0.3s ease;"></div></div>
                         <div class="cpu-cache-value">--</div>
                     </div>
                 </div>

@@ -216,8 +216,8 @@
                                 </td>
                                 <td class="px-3 py-2 font-mono text-[10px] text-gray-600 truncate">@item.PatchId</td>
                                 <td class="px-3 py-2 text-[10px] text-gray-500 truncate">@(string.IsNullOrEmpty(item.Bulletin) ? "N/A" : item.Bulletin)</td>
-                                <td class="px-3 py-2 text-[10px] text-gray-500 truncate">@(string.IsNullOrEmpty(item.Vendor) ? "Microsoft" : item.Vendor)</td>
-                                <td class="px-3 py-2 text-[10px] text-gray-500 truncate">@(string.IsNullOrEmpty(item.PatchType) ? "Security Update" : item.PatchType)</td>
+                                <td class="px-3 py-2 text-[10px] text-gray-500 truncate">@(string.IsNullOrEmpty(item.Vendor) ? "N/A" : item.Vendor)</td>
+                                <td class="px-3 py-2 text-[10px] text-gray-500 truncate">@(string.IsNullOrEmpty(item.PatchType) ? "N/A" : item.PatchType)</td>
                                 <td class="px-3 py-2 patch-name-cell">
                                     <div class="text-gray-900 font-medium truncate max-w-md" title="@item.PatchName">@item.PatchName</div>
                                     @if (!string.IsNullOrEmpty(item.PatchDescription))

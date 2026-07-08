@@ -1,4 +1,4 @@
-﻿using ManageEngineWebApp.Attributes;
+using ManageEngineWebApp.Attributes;
 using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Dtos;
 using ManageEngineWebApp.Helpers;
@@ -5044,7 +5044,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AuditHardDisk([FromQuery] string domain, [FromQuery] string hostName = null)
+        public async Task<IActionResult> AuditHardDisk([FromQuery] string domain, [FromQuery] string hostName = null, [FromQuery] string auditType = "quick")
         {
             if (!await IsDeviceAuthorized(domain))
                 return Json(new { success = false, message = "Unauthorized access to this device." });
@@ -5073,7 +5073,7 @@ namespace ManageEngineWebApp.Controllers
                 catch { }
 
                 var response = await httpClient.PostAsync(
-                    $"{_baseUrl}/api/HardDiskDetails/HarddiskRescan?clientId={Uri.EscapeDataString(cleanDomain)}", null);
+                    $"{_baseUrl}/api/HardDiskDetails/HarddiskRescan?clientId={Uri.EscapeDataString(cleanDomain)}&auditType={Uri.EscapeDataString(auditType)}", null);
 
                 if (!response.IsSuccessStatusCode)
                 {
