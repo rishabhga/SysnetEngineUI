@@ -162,7 +162,7 @@ namespace ManageEngineWebApp.Controllers
             if (IsTopLevelAdmin() && !companyId.HasValue && !groupId.HasValue && !locationId.HasValue)
             {
                 var response = await client.GetAsync(
-                    $"{_baseUrl}/api/RamCpuDiskData/notifications/location");
+                    $"{_baseUrl}/api/RamCpuDiskData/notifications/by-location");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -196,7 +196,7 @@ namespace ManageEngineWebApp.Controllers
                 // Build query for the service
                 var query = BuildScopedQuery(companyId, locationId, groupId);
 
-                var url = $"{_baseUrl}/api/RamCpuDiskData/notifications/location{query}";
+                var url = $"{_baseUrl}/api/RamCpuDiskData/notifications/by-location{query}";
                 var response = await client.GetAsync(url);
 
                 if (response.IsSuccessStatusCode)

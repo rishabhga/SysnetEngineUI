@@ -412,7 +412,7 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var client = GetClient();
-                string url = $"api/RamCpuDiskData/notifications/{Uri.EscapeDataString(machineId)}";
+                string url = $"api/RamCpuDiskData/notifications/by-machine/{Uri.EscapeDataString(machineId)}";
 
                 var response = await client.GetAsync($"{_baseUrl}/{url}");
                 if (response != null && response.IsSuccessStatusCode)
@@ -454,7 +454,7 @@ namespace ManageEngineWebApp.Controllers
                 if (locationId.HasValue && locationId > 0) queryParams.Add($"locationId={locationId}");
 
                 string queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
-                string apiUrl = $"api/RamCpuDiskData/notifications/location{queryString}";
+                string apiUrl = $"api/RamCpuDiskData/notifications/by-location{queryString}";
 
                 var response = await client.GetAsync($"{_baseUrl}/{apiUrl}");
                 if (response != null && response.IsSuccessStatusCode)
@@ -4884,7 +4884,7 @@ namespace ManageEngineWebApp.Controllers
                 if (groupId != null && groupId > 0) queryParams.Add($"groupId={groupId}");
                 if (locationId != null && locationId > 0) queryParams.Add($"locationId={locationId}");
 
-                string url = "api/RamCpuDiskData/notifications/location";
+                string url = "api/RamCpuDiskData/notifications/by-location";
                 if (queryParams.Any())
                 {
                     url += "?" + string.Join("&", queryParams);

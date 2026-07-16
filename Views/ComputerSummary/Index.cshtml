@@ -209,8 +209,45 @@
                 font-size: .7rem;
             }
 
+        .cs-view-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 8px 0 0;
+        }
+
+        .cs-view-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--slate-200);
+            background: #fff;
+            color: var(--slate-700);
+            font-size: .78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .18s;
+            box-shadow: var(--shadow-sm);
+        }
+
+            .cs-view-toggle-btn:hover {
+                background: var(--cyan-soft);
+                border-color: var(--cyan);
+                color: var(--cyan-dark);
+            }
+
+            .cs-view-toggle-btn i {
+                font-size: .82rem;
+                color: var(--cyan);
+            }
+
         .cs-tab-bar {
-            display: none;
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border-bottom: 1px solid var(--slate-200);
         }
 
         /* ── Entry banner (shown under Summary) ── */
@@ -1002,9 +1039,6 @@
             </div>
         </div>
         <div class="cs-meta-pills">
-            <button type="button" id="btnUniversalViewToggle" class="cs-pill" style="cursor:pointer; background:rgba(255,255,255,0.1); color:#fff; border: 1px solid rgba(255,255,255,0.2);">
-                <i class="fas fa-list" style="color:var(--cyan);"></i> <span style="font-weight:600;">Tab View</span>
-            </button>
             <span class="cs-pill"><i class="fas fa-fingerprint"></i> @ViewBag.UserName</span>
             <span class="cs-pill"><i class="fas fa-clock"></i> @ViewBag.scanTime</span>
             <span class="cs-pill"><i class="fas fa-network-wired"></i> @ViewBag.ip</span>
@@ -1024,62 +1058,115 @@
         </button>
     </div>
 
-    <div id="mainTabCardGrid" class="cs-card-grid-wrap" style="display:none;">
-        <div class="cs-card-grid-header">
-            <button type="button" id="btnBackToSummary" class="cs-back-btn">
+    <!-- Summary Dashboard Container -->
+    <div id="summaryDashboardContainer">
+        <div class="tab-content">
+            <partial name="_SummaryTab" />
+        </div>
+    </div>
+
+    <!-- System Health Wrapper - Only visible when inside System Info -->
+    <div id="systemHealthWrapper" style="display:none;">
+        <!-- System Health Banner -->
+        <div id="systemHealthBanner" style="display:none; background: #fff; border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); align-items: center; justify-content: space-between; border: 1px solid var(--slate-200);">
+            <div style="display:flex; align-items:center; gap: 16px;">
+                <div id="systemHealthIcon" style="width: 48px; height: 48px; border-radius: 50%; display:flex; align-items:center; justify-content:center; background: #f1f5f9; font-size: 20px;">
+                    <i class="fas fa-heartbeat"></i>
+                </div>
+                <div>
+                    <div style="font-size: 13px; color: var(--slate-500); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">System Health Score</div>
+                    <div style="font-size: 24px; font-weight: 700; color: var(--slate-900); display:flex; align-items:center; gap:8px;">
+                        <span id="systemHealthScoreText">--%</span>
+                        <span id="systemHealthStatusLabel" style="font-size: 13px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: var(--slate-600); font-weight: 600;">Calculating...</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; gap: 32px; color: var(--slate-500); font-size: 12px; font-weight: 500;">
+                <div style="text-align:center;">
+                    <div style="color:var(--slate-400); margin-bottom:4px; text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Storage</div>
+                    <div id="sh-storage" style="color:var(--slate-700); font-weight:600; font-size:16px;">--</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="color:var(--slate-400); margin-bottom:4px; text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Motherboard</div>
+                    <div id="sh-mobo" style="color:var(--slate-700); font-weight:600; font-size:16px;">--</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="color:var(--slate-400); margin-bottom:4px; text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Processor</div>
+                    <div id="sh-cpu" style="color:var(--slate-700); font-weight:600; font-size:16px;">--</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="color:var(--slate-400); margin-bottom:4px; text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Memory</div>
+                    <div id="sh-mem" style="color:var(--slate-700); font-weight:600; font-size:16px;">--</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Unified System Info Header (Only visible inside System Info Section) -->
+    <div id="systemInfoHeader" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-top: 10px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <button type="button" id="btnBackToSummary" class="cs-back-btn" style="margin: 0;">
                 <i class="fas fa-arrow-left"></i> Back to Summary
             </button>
-            <h3 style="margin: 0;">System Information</h3>
+            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--slate-800);">System Information</h3>
         </div>
+        <div class="cs-view-toggle-row" id="viewToggleRow" style="padding: 0;">
+            <button type="button" id="btnUniversalViewToggle" class="cs-view-toggle-btn">
+                <i class="fas fa-th-large"></i> <span>Card View</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="mainTabCardGrid" class="cs-card-grid-wrap" style="display:none;">
         <div class="cs-card-grid" id="mainTabCardGridInner"></div>
     </div>
 
-    <div class="cs-tab-bar">
-        <ul class="cs-tab-list" role="tablist" id="mainTabList">
-            <li class="main-tab active" data-target="#Summary">
-                <a href="#Summary" data-tab="main"><i class="fas fa-chart-pie"></i> Summary</a>
-            </li>
-            <li class="main-tab" data-target="#System">
-                <a href="#System" data-tab="main"><i class="fas fa-cogs"></i> System</a>
-            </li>
-            <li class="main-tab" data-target="#Hardware">
-                <a href="#Hardware" data-tab="main"><i class="fas fa-microchip"></i> Hardware</a>
-            </li>
-            <li class="main-tab" data-target="#Software">
-                <a href="#Software" data-tab="main"><i class="fas fa-laptop-code"></i> Software</a>
-            </li>
-            <li class="main-tab" data-target="#security">
-                <a href="#security" data-tab="main"><i class="fas fa-shield-alt"></i> Security</a>
-            </li>
-            <li class="main-tab" data-target="#PatchManagment">
-                <a href="#PatchManagment" data-tab="main"><i class="fas fa-band-aid"></i> Patches</a>
-            </li>
-            <li class="main-tab" data-target="#Restriction">
-                <a href="#Restriction" data-tab="main"><i class="fas fa-ban"></i> Restrictions</a>
-            </li>
-            <li class="main-tab" data-target="#UsbAudit">
-                <a href="#UsbAudit" data-tab="main"><i class="fas fa-usb"></i> USB Audit</a>
-            </li>
-            <li class="main-tab" data-target="#History">
-                <a href="#History" data-tab="main"><i class="fas fa-history"></i> History</a>
-            </li>
-            <li class="main-tab" data-target="#Updatelogs">
-                <a href="#Updatelogs" data-tab="main"><i class="fas fa-file-alt"></i> Change Logs</a>
-            </li>
-        </ul>
-    </div>
 
-    <div class="tab-content" id="mainTabContent">
-        <partial name="_SummaryTab" />
-        <partial name="_SystemTab" />
-        <partial name="_HardwareTab" />
-        <partial name="_SoftwareTab" />
-        <partial name="_SecurityTab" />
-        <partial name="_PatchTab" />
-        <partial name="_RestrictionTab" />
-        <partial name="_UsbAuditTab" />
-        <partial name="_HistoryTab" />
-        <partial name="_UpdateLogsTab" />
+    <div id="tabViewContainer" style="display: none;">
+        <div class="cs-tab-bar" style="margin-top: 0;">
+            <ul class="cs-tab-list" role="tablist" id="mainTabList">
+                <li class="main-tab active" data-target="#System">
+                    <a href="#System" data-tab="main"><i class="fas fa-cogs"></i> System</a>
+                </li>
+                <li class="main-tab" data-target="#Hardware">
+                    <a href="#Hardware" data-tab="main"><i class="fas fa-microchip"></i> Hardware</a>
+                </li>
+                <li class="main-tab" data-target="#Software">
+                    <a href="#Software" data-tab="main"><i class="fas fa-laptop-code"></i> Software</a>
+                </li>
+                <li class="main-tab" data-target="#security">
+                    <a href="#security" data-tab="main"><i class="fas fa-shield-alt"></i> Security</a>
+                </li>
+                <li class="main-tab" data-target="#PatchManagment">
+                    <a href="#PatchManagment" data-tab="main"><i class="fas fa-band-aid"></i> Patches</a>
+                </li>
+                <li class="main-tab" data-target="#Restriction">
+                    <a href="#Restriction" data-tab="main"><i class="fas fa-ban"></i> Restrictions</a>
+                </li>
+                <li class="main-tab" data-target="#UsbAudit">
+                    <a href="#UsbAudit" data-tab="main"><i class="fas fa-usb"></i> USB Audit</a>
+                </li>
+                <li class="main-tab" data-target="#History">
+                    <a href="#History" data-tab="main"><i class="fas fa-history"></i> History</a>
+                </li>
+                <li class="main-tab" data-target="#Updatelogs">
+                    <a href="#Updatelogs" data-tab="main"><i class="fas fa-file-alt"></i> Change Logs</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="tab-content" id="mainTabContent">
+            <partial name="_SystemTab" />
+            <partial name="_HardwareTab" />
+            <partial name="_SoftwareTab" />
+            <partial name="_SecurityTab" />
+            <partial name="_PatchTab" />
+            <partial name="_RestrictionTab" />
+            <partial name="_UsbAuditTab" />
+            <partial name="_HistoryTab" />
+            <partial name="_UpdateLogsTab" />
+        </div>
     </div>
 
 </div>

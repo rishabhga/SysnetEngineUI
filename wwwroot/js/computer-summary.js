@@ -117,6 +117,32 @@ function initTabStyles() {
             lazyLoadTabData(target);
         }
 
+        let g_SubTabMap = {};
+        window.componentScores = { processor: 100, disk: 100, motherboard: 100, memory: 100 };
+
+        window.updateSystemHealth = function() {
+            let sysHealth = (window.componentScores.disk * 0.40) + (window.componentScores.motherboard * 0.30) + (window.componentScores.processor * 0.20) + (window.componentScores.memory * 0.10);
+            sysHealth = Math.max(0, Math.min(100, sysHealth));
+            let color = sysHealth >= 80 ? '#22c55e' : sysHealth >= 50 ? '#f59e0b' : '#ef4444';
+            let text = sysHealth >= 80 ? 'Healthy' : sysHealth >= 50 ? 'Warning' : 'Critical';
+            let icon = sysHealth >= 80 ? 'fa-heartbeat' : sysHealth >= 50 ? 'fa-exclamation-triangle' : 'fa-skull-crossbones';
+            
+            if (window.hasLiveAuditOccurred) {
+                $('#systemHealthBanner').css('display', 'flex');
+                $('#systemHealthScoreText').text(sysHealth.toFixed(0) + '%').css('color', color);
+                $('#systemHealthStatusLabel').text(text).css('color', color).css('background', color + '22');
+                $('#systemHealthIcon i').attr('class', 'fas ' + icon);
+                $('#systemHealthIcon').css('color', color).css('background', color + '22');
+
+                $('#sh-storage').text(window.componentScores.disk + '%').css('color', window.componentScores.disk >= 80 ? '#22c55e' : (window.componentScores.disk >= 50 ? '#f59e0b' : '#ef4444'));
+                $('#sh-mobo').text(window.componentScores.motherboard + '%').css('color', window.componentScores.motherboard >= 80 ? '#22c55e' : (window.componentScores.motherboard >= 50 ? '#f59e0b' : '#ef4444'));
+                $('#sh-cpu').text(window.componentScores.processor + '%').css('color', window.componentScores.processor >= 80 ? '#22c55e' : (window.componentScores.processor >= 50 ? '#f59e0b' : '#ef4444'));
+                $('#sh-mem').text(window.componentScores.memory + '%').css('color', window.componentScores.memory >= 80 ? '#22c55e' : (window.componentScores.memory >= 50 ? '#f59e0b' : '#ef4444'));
+            }
+        };
+
+
+
         var firstSubTabMap = {
             '#Hardware': '#hardwareSubTabs .hardware-tab:first-child a',
             '#System': '#systemSubTabs .system-tab:first-child a',
@@ -828,17 +854,22 @@ function computeMemoryHealth(data) {
 
     if (issues.length === 0) issues.push('No issues detected — memory configuration and usage are within healthy ranges.');
 
-    var overall = Math.round(configScore * 0.6 + usageScore * 0.4);
+    var overall = data.HealthScore ?? data.healthScore ?? 100;
+    
+    window.componentScores = window.componentScores || { processor: 100, disk: 100, motherboard: 100, memory: 100 };
+    window.componentScores.memory = overall;
+    if (typeof window.updateSystemHealth === 'function') window.updateSystemHealth();
 
-    var status, color;
-    if (overall >= 85) { status = 'Healthy'; color = '#22c55e'; }
-    else if (overall >= 65) { status = 'Fair'; color = '#f59e0b'; }
-    else if (overall >= 40) { status = 'Needs Attention'; color = '#f97316'; }
-    else { status = 'Critical'; color = '#ef4444'; }
+
+    var status = data.HealthStatus || data.healthStatus || 'Healthy';
+    var color;
+    if (overall >= 80) color = '#22c55e';
+    else if (overall >= 50) color = '#f59e0b';
+    else color = '#ef4444';
 
     return {
         overall: overall, configScore: Math.round(configScore), usageScore: usageScore,
-        status: status, color: color, channelMode: channelMode, emptySlots: emptySlots, issues: issues
+        status: status, color: color, channelMode: channelMode, emptySlots: emptySlots, issues: (data.HealthIssues || data.healthIssues || issues)
     };
 }
 
@@ -1399,15 +1430,17 @@ function renderProcessorThermal(d) {
     $('#cpuHealthPlaceholder').hide();
     $('#cpuHealthSection').show();
 
-    var healthScore;
-    var healthStatus, healthColor;
-    if (pkgTemp < 50) { healthScore = 100; healthStatus = 'Cool'; healthColor = '#22c55e'; }
-    else if (pkgTemp < 60) { healthScore = 90 - (pkgTemp - 50) * 0.5; healthStatus = 'Healthy'; healthColor = '#22c55e'; }
-    else if (pkgTemp < 70) { healthScore = 85 - (pkgTemp - 60) * 1.0; healthStatus = 'Warm'; healthColor = '#84cc16'; }
-    else if (pkgTemp < 80) { healthScore = 75 - (pkgTemp - 70) * 2.0; healthStatus = 'Hot'; healthColor = '#f59e0b'; }
-    else if (pkgTemp < 90) { healthScore = 55 - (pkgTemp - 80) * 3.0; healthStatus = 'Very Hot'; healthColor = '#f97316'; }
-    else { healthScore = 25 - (pkgTemp - 90) * 2.0; healthStatus = 'Critical'; healthColor = '#ef4444'; }
-    healthScore = Math.max(0, Math.min(100, Math.round(healthScore)));
+    var healthScore = d.HealthScore || d.healthScore || 100;
+    var healthStatus = d.HealthStatus || d.healthStatus || 'Healthy';
+    var healthColor;
+    if (healthScore >= 80) healthColor = '#22c55e';
+    else if (healthScore >= 50) healthColor = '#f59e0b';
+    else healthColor = '#ef4444';
+
+    window.componentScores = window.componentScores || { processor: 100, disk: 100, motherboard: 100, memory: 100 };
+    window.componentScores.processor = healthScore;
+    if (typeof window.updateSystemHealth === 'function') window.updateSystemHealth();
+
 
     var circumference = 2 * Math.PI * 45;
     var healthDash = (healthScore / 100) * circumference;
@@ -1645,6 +1678,7 @@ function loadMotherboardHealthLatest() {
 
 $(document).on('click', '#btnAuditMotherboard', function (e) {
     e.preventDefault();
+    window.hasLiveAuditOccurred = true;
     let btn = $(this);
     let originalText = btn.html();
     btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
@@ -1695,6 +1729,11 @@ function renderMotherboardAudit(data) {
     const val = (obj, a, b) => (obj[a] ?? obj[b] ?? 0);
     const score = val(health, 'healthScore', 'HealthScore');
     const status = health.status ?? health.Status ?? 'Unknown';
+
+    window.componentScores = window.componentScores || { processor: 100, disk: 100, motherboard: 100, memory: 100 };
+    window.componentScores.motherboard = score;
+    if (typeof window.updateSystemHealth === 'function') window.updateSystemHealth();
+
 
     const circumference = 283;
     const dash = (score / 100) * circumference;
@@ -2782,27 +2821,23 @@ function renderDiskPanels(d) {
     const predictFail = d.PredictFailure || d.predictFailure || false;
     const readErr = Number(d.ReadErrorsTotal || d.readErrorsTotal || 0);
     const writeErr = Number(d.WriteErrorsTotal || d.writeErrorsTotal || 0);
+    const reallocSectors = Number(d.ReallocatedSectorsCount || d.reallocatedSectorsCount || 0);
+    const pendingSectors = Number(d.CurrentPendingSectorCount || d.currentPendingSectorCount || 0);
+    const uncorrSectors = Number(d.UncorrectableSectorCount || d.uncorrectableSectorCount || 0);
+    const auditType = d.AuditType || d.auditType || 'Quick';
     
-    let healthScore = 100;
-    if (predictFail) healthScore = 0;
-    else {
-        if (temp > 60) healthScore -= 40;
-        else if (temp > 50) healthScore -= 20;
-        else if (temp > 40) healthScore -= 5;
-        if (wear !== null && wear !== undefined) {
-            if (wear > 90) healthScore -= 50;
-            else if (wear > 75) healthScore -= 25;
-            else if (wear > 50) healthScore -= 10;
-        }
-        if (readErr > 0 || writeErr > 0) healthScore -= 15;
-    }
-    healthScore = Math.max(0, Math.min(100, healthScore));
+    let healthScore = d.HealthScore ?? d.healthScore ?? 100;
+    
+    window.componentScores = window.componentScores || { processor: 100, disk: 100, motherboard: 100, memory: 100 };
+    window.componentScores.disk = healthScore;
+    if (typeof window.updateSystemHealth === 'function') window.updateSystemHealth();
+
 
     let healthScoreColor = '#22c55e';
-    let healthScoreText = 'Excellent';
-    if (healthScore < 50) { healthScoreColor = '#ef4444'; healthScoreText = 'Critical'; }
-    else if (healthScore < 80) { healthScoreColor = '#f59e0b'; healthScoreText = 'Warning'; }
-    else if (healthScore < 95) { healthScoreColor = '#10b981'; healthScoreText = 'Good'; }
+    let healthScoreText = d.HealthStatus || d.healthStatus || 'Healthy';
+    if (healthScore < 50) { healthScoreColor = '#ef4444'; }
+    else if (healthScore < 80) { healthScoreColor = '#f59e0b'; }
+    else if (healthScore < 95) { healthScoreColor = '#10b981'; }
 
     $('#diskHealthStatusLabel').text(healthScoreText).css('color', healthScoreColor);
     let usageScoreText = 'Normal';
@@ -2936,7 +2971,15 @@ function renderDiskPanels(d) {
                     ${_smartMetric('Read Errors (Total)', readErr, readErr > 0 ? '#ef4444' : '#22c55e', 'fas fa-times-circle')}
                     ${_smartMetric('Write Errors (Total)', writeErr, writeErr > 0 ? '#ef4444' : '#22c55e', 'fas fa-times-circle')}
                     ${_smartMetric('Read Errors (Corrected)', readCorr, readCorr > 0 ? '#f59e0b' : '#22c55e', 'fas fa-check-circle')}
+                    ${_smartMetric('Reallocated Sectors', reallocSectors, reallocSectors > 0 ? '#ef4444' : '#22c55e', 'fas fa-exclamation-triangle')}
+                    ${_smartMetric('Pending Sectors', pendingSectors, pendingSectors > 0 ? '#ef4444' : '#22c55e', 'fas fa-exclamation-circle')}
+                    ${_smartMetric('Uncorrectable Sectors', uncorrSectors, uncorrSectors > 0 ? '#ef4444' : '#22c55e', 'fas fa-skull-crossbones')}
                 </div>
+            </div>
+            <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-400);">Audit Type:</span>
+                <span style="font-size:.72rem;font-weight:800;padding:3px 10px;border-radius:999px;background:${auditType === 'Deep' ? '#ede9fe' : '#ecfdf5'};color:${auditType === 'Deep' ? '#7c3aed' : '#059669'};">${auditType}</span>
+            </div>
             </div>
         </div>`;
     $('#diskSmartContainer').html(smartHtml);
@@ -3027,6 +3070,7 @@ $(document).ready(function () {
 
     $('#btnAuditBattery').on('click', function (e) {
         e.preventDefault();
+        window.hasLiveAuditOccurred = true;
         $('#batteryAuditPlaceholder').hide();
         $('#batteryAuditGate').show();
         $('#batteryAuditResults').hide();
@@ -3066,6 +3110,7 @@ $(document).ready(function () {
 
     $('#btnAuditMemory').on('click', function (e) {
         e.preventDefault();
+        window.hasLiveAuditOccurred = true;
         let btn = $(this);
         let originalText = btn.html();
         btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
@@ -3126,6 +3171,7 @@ $(document).ready(function () {
 
     $('#btnAuditProcessor').on('click', function (e) {
         e.preventDefault();
+        window.hasLiveAuditOccurred = true;
         let btn = $(this);
         let originalText = btn.html();
         btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
@@ -3161,6 +3207,7 @@ $(document).ready(function () {
         e.preventDefault();
         let btn = $(this);
         let originalText = btn.html();
+        window.hasLiveAuditOccurred = true;
         btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
         btn.prop('disabled', true);
         btn.css('opacity', '0.7');
@@ -3216,6 +3263,7 @@ $(document).ready(function () {
         btn.html('<i class="fas fa-check"></i> Initiated');
         btn.prop('disabled', true);
         btn.css('opacity', '0.7');
+        window.hasLiveAuditOccurred = true;
         sysAlert('Deep Audit (DST) requested. This will take up to 30 minutes in the background.', 'info');
 
         $.ajax({
@@ -3407,48 +3455,127 @@ $(document).ready(function () {
         return $.trim($link.clone().children().remove().end().text());
     }
 
-    function openMainCardGrid() {
-        $('#Summary').removeClass('active');
-        $('#mainTabContent > .tab-pane').removeClass('active');
+    var currentSection = '#System';
+
+    function hideAll() {
+        $('#summaryDashboardContainer').hide();
         $('#csEntryBanner').hide();
-        $('#mainTabCardGridInner').show();
+        $('#systemInfoHeader').hide();
+        $('#systemHealthWrapper').hide();
+        $('#mainTabCardGrid').hide();
+        $('#tabViewContainer').hide();
+    }
+
+    function goToSummary() {
+        hideAll();
+        window.isAppCardView = false;
+        updateToggleButton(false);
+
+        $('#csEntryBanner').show();
+        $('#summaryDashboardContainer').show();
+
+        $('#mainTabContent > .tab-pane').removeClass('active');
+        $('#mainTabList .main-tab').removeClass('active');
+        $('#mainTabList .main-tab[data-target="#System"]').addClass('active');
+        currentSection = '#System';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToCardGrid() {
+        hideAll();
+        window.isAppCardView = true;
+        updateToggleButton(true);
+
+        $('#systemInfoHeader').css('display', 'flex');
+        $('#systemHealthWrapper').show();
         $('#mainTabCardGrid').show();
+        $('#mainTabCardGridInner').show();
+
         if ($('#mainTabCardGrid')[0] && $('#mainTabCardGrid')[0].scrollIntoView) {
             $('#mainTabCardGrid')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
 
-    function openMainSection(target) {
+    function goToSection(target, forceTabView) {
+        hideAll();
         var $link = $('#mainTabList a[href="' + target + '"]');
         if (!$link.length) return;
-        $link.trigger('click');
 
-        $('#mainTabCardGrid').hide();
-        $('#csEntryBanner').hide();
+        currentSection = target;
+
+        $('#mainTabList .main-tab').removeClass('active');
+        $link.closest('li').addClass('active');
+
+        $('#mainTabContent > .tab-pane').removeClass('active');
+        $(target).addClass('active');
+
+        $('#systemInfoHeader').css('display', 'flex');
+        $('#tabViewContainer').show();
 
         var $pane = $(target);
-        showSubCards($pane);
+
+        if (window.isAppCardView && !forceTabView) {
+            $('#tabViewContainer > .cs-tab-bar').hide();
+            updateToggleButton(true);
+            enableCardModeForPane($pane);
+        } else {
+            window.isAppCardView = false;
+            $('#tabViewContainer > .cs-tab-bar').show();
+            updateToggleButton(false);
+            enableTabModeForAllPanes();
+        }
+
+        if ($link.length) $link.trigger('click');
 
         if ($pane[0] && $pane[0].scrollIntoView) {
             $pane[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
 
-    function showSubCards($pane) {
-        if (!window.isAppCardView) return;
+    function enableCardModeForPane($pane) {
         var $wrap = $pane.data('csCardWrap');
         var $inner = $pane.data('csInnerContent');
         var $backToCards = $pane.data('csBackToCards');
+        var $subBar = $pane.data('csSubBar');
+        var $subGrid = $pane.data('csSubGrid');
         var numItems = $pane.data('csNumItems') || 0;
 
+        if ($subBar) $subBar.css('display', 'none');
         if ($wrap && $wrap.length) $wrap.show();
-        
+        if ($subGrid) $subGrid.show();
+
         if (numItems > 1) {
             if ($inner && $inner.length) $inner.hide();
             if ($backToCards && $backToCards.length) $backToCards.hide();
         } else {
             if ($inner && $inner.length) $inner.show();
         }
+    }
+
+    function enableTabModeForAllPanes() {
+        $('#mainTabContent > .tab-pane').each(function () {
+            var $pane = $(this);
+            var $wrap = $pane.data('csCardWrap');
+            var $subBar = $pane.data('csSubBar');
+            var $backToCards = $pane.data('csBackToCards');
+            var $innerContent = $pane.data('csInnerContent');
+            var $subGrid = $pane.data('csSubGrid');
+
+            if ($wrap) $wrap.hide();
+            if ($subGrid) $subGrid.hide();
+            if ($backToCards) $backToCards.hide();
+            if ($subBar) $subBar.css('display', 'flex');
+            if ($innerContent) $innerContent.show();
+
+            if ($subBar && $subBar.find('li.active').length === 0) {
+                $subBar.find('li a').first().trigger('click');
+            }
+        });
+    }
+
+    function showSubCards($pane) {
+        enableCardModeForPane($pane);
     }
 
     function showSubContent($pane) {
@@ -3471,84 +3598,47 @@ $(document).ready(function () {
         }, 150);
     }
 
-    function backToSummary() {
-        $('#mainTabCardGrid').hide();
-        $('#mainTabContent > .tab-pane').removeClass('active');
-        $('#Summary').addClass('active');
-        $('#csEntryBanner').show();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    function updateToggleButton(isCardView) {
+        var $btn = $('#btnUniversalViewToggle');
+        if (isCardView) {
+            $btn.html('<i class="fas fa-list"></i> <span>Tab View</span>');
+        } else {
+            $btn.html('<i class="fas fa-th-large"></i> <span>Card View</span>');
+        }
     }
+
+    function openMainCardGrid() {
+        goToCardGrid();
+    }
+
+    function openMainSection(target) {
+        goToSection(target);
+    }
+    function backToSummary() {
+        goToSummary();
+    }
+    function toggleView() {
+        if (window.isAppCardView) {
+            var activeSection = currentSection || '#System';
+            window.isAppCardView = false;
+            goToSection(activeSection, true);
+        } else {
+            window.isAppCardView = true;
+            goToCardGrid();
+        }
+    }
+
 
     $(document).ready(function () {
         buildMainCardGrid();
         buildSubCardGrids();
 
+        window.isAppCardView = false;
+
         $('#btnOpenSystemInfo').on('click', function () { openMainCardGrid(); });
         $('#btnBackToSummary').on('click', function () { backToSummary(); });
-
-        window.isAppCardView = true;
-        $('#btnUniversalViewToggle').on('click', function() {
-            window.isAppCardView = !window.isAppCardView;
-            if (window.isAppCardView) {
-                $(this).html('<i class="fas fa-list" style="color:var(--cyan);"></i> <span style="font-weight:600;">Tab View</span>');
-                $('.cs-tab-bar').hide();
-                
-                if ($('#Summary').hasClass('active')) {
-                    $('#mainTabCardGridInner').show();
-                    $('#mainTabCardGrid').show();
-                } else {
-                    $('#mainTabCardGridInner').hide();
-                }
-
-                $('#mainTabContent > .tab-pane').each(function() {
-                    var $pane = $(this);
-                    var $subGrid = $pane.data('csSubGrid');
-                    var $subBar = $pane.data('csSubBar');
-                    var $backToCards = $pane.data('csBackToCards');
-                    
-                    if ($subGrid) $subGrid.show();
-                    if ($subBar) $subBar.css('display', 'none');
-                    if ($backToCards) $backToCards.hide();
-                    
-                    if ($pane.hasClass('active')) {
-                        showSubCards($pane);
-                    }
-                });
-
-            } else {
-                $(this).html('<i class="fas fa-th-large" style="color:var(--cyan);"></i> <span style="font-weight:600;">Card View</span>');
-                $('#mainTabCardGridInner').hide();
-                $('#mainTabCardGrid').hide();
-                $('.cs-tab-bar').css('display', 'block');
-                
-                $('#mainTabContent > .tab-pane').each(function() {
-                    var $pane = $(this);
-                    var $wrap = $pane.data('csCardWrap');
-                    var $subGrid = $pane.data('csSubGrid');
-                    var $subBar = $pane.data('csSubBar');
-                    var $backToCards = $pane.data('csBackToCards');
-                    var $innerContent = $pane.data('csInnerContent');
-                    
-                    if ($wrap) $wrap.hide();
-                    if ($subGrid) $subGrid.hide();
-                    if ($backToCards) $backToCards.hide();
-                    if ($subBar) $subBar.css('display', 'flex');
-                    if ($innerContent) $innerContent.show();
-                    
-                    if ($subBar && $subBar.find('a.active').length === 0) {
-                        $subBar.find('a[data-toggle="tab"]').first().trigger('click');
-                    }
-                });
-
-                var activeTarget = $('#mainTabList .main-tab.active a').attr('href');
-                if (activeTarget && activeTarget !== '#Summary') {
-                    $('#mainTabContent').children('.tab-pane').removeClass('active');
-                    $(activeTarget).addClass('active');
-                } else {
-                    $('#mainTabList .main-tab').not('[data-target="#Summary"]').first().find('a').trigger('click');
-                }
-            }
-        });
+        $('#btnUniversalViewToggle').on('click', function () { toggleView(); });
     });
 
-})();
+})();
