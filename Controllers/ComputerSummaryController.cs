@@ -1814,16 +1814,21 @@ namespace ManageEngineWebApp.Controllers
             using (var httpClient = GetClient())
             {
                 string url = $"{_baseUrl}/api/RemoteAccess/monitor?domain={domain}";
-                var response = await httpClient.GetAsync(url);
+                try
+                {
+                    var response = await httpClient.GetAsync(url);
 
-                if (!response.IsSuccessStatusCode)
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        ViewBag.Error = "Client not found or no image received.";
+                    }
+                }
+                catch (Exception)
                 {
                     ViewBag.Error = "Client not found or no image received.";
-                    return View();
                 }
-                var content = await response.Content.ReadAsStringAsync();
-                var data = JsonConvert.DeserializeObject<monitordata>(content);
-                return View(data);
+
+                return View();
             }
         }
 
@@ -1942,7 +1947,6 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Remotemonitoring(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
-            ViewBag.Domain = domain;
             try
             {
                 using var client = GetClient();
@@ -1951,17 +1955,15 @@ namespace ManageEngineWebApp.Controllers
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    ViewBag.Error = "Client not found or no image received.";
-                    return View();
+                    return Json(new { image = "", width = 0, height = 0, connected = false });
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
-                var data = JsonConvert.DeserializeObject<monitordata>(content);
-                return Json(data);
+                return Content(content, "application/json");
             }
             catch (Exception)
             {
-                return Json(null);
+                return Json(new { image = "", width = 0, height = 0, connected = false });
             }
         }
 

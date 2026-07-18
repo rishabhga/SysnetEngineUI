@@ -150,7 +150,7 @@
     const REQUEST_TIMEOUT = 30;
     const SESSION_STORAGE_KEY = `LiveSession_${domainLower}`;
 
-    let currentState = 'idle';        
+    let currentState = 'idle';
     let pollingInterval = null;
     let countdownInterval = null;
     let statusCheckInterval = null;
@@ -165,6 +165,8 @@
     let pendingMouseMove = null;
     let liveConnection = null;
     let isDenied = false;
+    let remoteWidth = 0;
+    let remoteHeight = 0;
 
     function saveSessionToStorage() {
         const stateObj = {
@@ -326,7 +328,9 @@
             fetch(`/ComputerSummary/Remotemonitoring?domain=${domain}&_=${Date.now()}`)
                 .then(r => r.json())
                 .then(d => {
-                    const imgData = d.image || d.ImageBase64 || d.imageBase64;
+                    const imgData = d.image || d.Image || d.ImageBase64 || d.imageBase64;
+                    const frameW = d.width || d.Width || 0;
+                    const frameH = d.height || d.Height || 0;
                     if (imgData && imgData.length > 100) {
                         const hash = imgData.substring(0, 50) + imgData.substring(imgData.length - 50);
                         if (hash !== lastImageHash) {
@@ -345,6 +349,10 @@
                         }
                         if (currentState === 'connected' && !isDenied) {
                             document.getElementById('remoteImage').src = "data:image/jpeg;base64," + imgData;
+                            if (frameW > 0 && frameH > 0) {
+                                remoteWidth = frameW;
+                                remoteHeight = frameH;
+                            }
                             document.getElementById('lastUpdateValue').textContent = new Date().toLocaleTimeString();
                             const now = Date.now();
                             if (now - lastFpsUpdate >= 1000) {
@@ -404,7 +412,7 @@
         updateStatus('yellow', 'Requesting...');
 
         await setupLiveSignalR();
-        await new Promise(r => setTimeout(r, 500)); 
+        await new Promise(r => setTimeout(r, 500));
 
         fetch(`/ComputerSummary/RemoteAccess?domain=${domain}`)
             .then(res => {
@@ -465,6 +473,8 @@
         lastImageHash = '';
         remainingSeconds = REQUEST_TIMEOUT;
         frameCount = 0;
+        remoteWidth = 0;
+        remoteHeight = 0;
         stopPolling();
         stopCountdown();
         stopStatusCheck();
@@ -508,26 +518,27 @@
     const img = document.getElementById("remoteImage");
     img.addEventListener("mousemove", function(e) {
         if (currentState !== 'connected') return;
-        
+
         const rect = img.getBoundingClientRect();
-        const nw = img.naturalWidth, nh = img.naturalHeight;
+        const nw = remoteWidth || img.naturalWidth;
+        const nh = remoteHeight || img.naturalHeight;
         if (!nw || !nh) return;
-        
+
         const scale = Math.min(rect.width / nw, rect.height / nh);
         const renderedWidth = nw * scale;
         const renderedHeight = nh * scale;
-        
+
         const offsetX = (rect.width - renderedWidth) / 2;
         const offsetY = (rect.height - renderedHeight) / 2;
-        
+
         const imgX = e.clientX - rect.left - offsetX;
         const imgY = e.clientY - rect.top - offsetY;
-        
+
         if (imgX < 0 || imgX > renderedWidth || imgY < 0 || imgY > renderedHeight) return;
-        
+
         const x = (imgX / renderedWidth) * 100;
         const y = (imgY / renderedHeight) * 100;
-        
+
         pendingMouseMove = { x, y };
         if (!mouseThrottleTimer) {
             mouseThrottleTimer = setTimeout(() => {
