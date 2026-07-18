@@ -4902,6 +4902,112 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new List<object>());
             }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> SendChatMessage([FromBody] ChatSendModel model)
+        {
+            if (model == null || string.IsNullOrEmpty(model.ClientId) || string.IsNullOrEmpty(model.Message))
+                return BadRequest();
+
+            try
+            {
+                using var httpClient = GetClient();
+                var json = JsonConvert.SerializeObject(model);
+                var payload = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await httpClient.PostAsync($"{_baseUrl}/api/WindowsUserDetails/chat/send", payload);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+                return StatusCode((int)response.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SendChatMessage Error: {ex.Message}");
+                return StatusCode(500);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> MarkChatAsRead([FromBody] ChatClientIdModel model)
+        {
+            if (model == null || string.IsNullOrEmpty(model.ClientId))
+                return BadRequest();
+
+            try
+            {
+                using var httpClient = GetClient();
+                var json = JsonConvert.SerializeObject(model);
+                var payload = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await httpClient.PostAsync($"{_baseUrl}/api/WindowsUserDetails/chat/mark-read", payload);
+
+                return response.IsSuccessStatusCode ? Ok() : StatusCode((int)response.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"MarkChatAsRead Error: {ex.Message}");
+                return StatusCode(500);
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUnreadChatCounts()
+        {
+            try
+            {
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails/chat/unread-counts");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+                return Json(new { });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"GetUnreadChatCounts Error: {ex.Message}");
+                return Json(new { });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUnreadChatDetails()
+        {
+            try
+            {
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/WindowsUserDetails/chat/unread-details");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+                return Json(new List<object>());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"GetUnreadChatDetails Error: {ex.Message}");
+                return Json(new List<object>());
+            }
+        }
+
+        public class ChatSendModel
+        {
+            public string ClientId { get; set; }
+            public string Message { get; set; }
+            public bool IsClient { get; set; }
+        }
+
+        public class ChatClientIdModel
+        {
+            public string ClientId { get; set; }
+        }
+
         [HttpGet]
         public IActionResult Notifications()
         {

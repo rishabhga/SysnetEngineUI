@@ -1191,6 +1191,45 @@
             var activeChatClientId = null;
             var unreadChatCounts = {};
 
+            window.markChatReadServer = function(clientId) {
+                if (!clientId) return;
+                return fetch('/ComputerSummary/MarkChatAsRead', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientId: clientId })
+                }).catch(function () {});
+            };
+
+            window.sendChatMessageToServer = async function(clientId, message, isClient) {
+                const response = await fetch('/ComputerSummary/SendChatMessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientId: clientId, message: message, isClient: !!isClient })
+                });
+                if (!response.ok) throw new Error('Send failed: ' + response.status);
+                return response.json();
+            };
+
+            window.refreshUnreadChatState = async function() {
+                try {
+                    const countsResp = await fetch('/ComputerSummary/GetUnreadChatCounts');
+                    if (countsResp.ok) {
+                        const counts = await countsResp.json();
+                        if (counts) {
+                            unreadChatCounts = counts;
+                            for (var cid in counts) { if (typeof window.updateDeviceBadge === "function") window.updateDeviceBadge(cid, counts[cid]); }
+                        }
+                    }
+                } catch (e) {}
+                try {
+                    const detailsResp = await fetch('/ComputerSummary/GetUnreadChatDetails');
+                    if (detailsResp.ok) {
+                        const details = await detailsResp.json();
+                        if (details && details.length) details.slice(0, 5).forEach(function (d) { showChatToast(d.clientId, d.message); });
+                    }
+                } catch (e) {}
+            };
+
             window.setupChatSignalR = async function() {
                 if (chatConnection && chatConnection.state === signalR.HubConnectionState.Connected) return;
                 try {
@@ -1208,19 +1247,12 @@
 
                             if (normalizedActive && normalizedClient === normalizedActive) {
                                 appendMessageToUI(message, isClient, time);
-                                if (isClient && chatConnection && chatConnection.state === signalR.HubConnectionState.Connected)
-                                    chatConnection.invoke("MarkChatAsRead", clientId).catch(e => {});
+                                if (isClient) window.markChatReadServer(clientId);
                             } else if (isClient) {
                                 markDeviceWithNewMessage(clientId, message);
                             }
                         });
-                        chatConnection.on("ReceiveUnreadCounts", function(counts) {
-                            if (counts) { unreadChatCounts = counts; for (var cid in counts) { if (typeof window.updateDeviceBadge === "function") window.updateDeviceBadge(cid, counts[cid]); } }
-                        });
-                        chatConnection.on("ReceiveUnreadChatDetails", function(details) {
-                            if (details && details.length) details.slice(0,5).forEach(d => showChatToast(d.clientId, d.message));
-                        });
-                        chatConnection.onreconnected(async() => { try { await chatConnection.invoke("GetUnreadChatCounts"); await chatConnection.invoke("GetUnreadChatDetails"); } catch(e){} });
+                        chatConnection.onreconnected(async() => { await window.refreshUnreadChatState(); });
                         window.updateDeviceBadge = function(cid, count) {
                             if (!cid) return;
                             var lCid = cid.toLowerCase();
@@ -1234,8 +1266,7 @@
                     }
                     if (chatConnection.state === signalR.HubConnectionState.Disconnected) {
                         await chatConnection.start();
-                        await chatConnection.invoke("GetUnreadChatCounts");
-                        await chatConnection.invoke("GetUnreadChatDetails");
+                        await window.refreshUnreadChatState();
                     }
                 } catch (err) { }
             };
@@ -1261,7 +1292,7 @@
                 var existing=container.querySelector(`.chat-toast[data-client-id="${clientId}"]`); if(existing) existing.remove();
                 var userName=clientId; if(window.getUserNameFromDomain) userName=window.getUserNameFromDomain(clientId)||clientId;
                 var preview=message?(message.length>50?message.substring(0,50)+'...':message):'New message';
-                
+
                 var locBadge = "";
                 if (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.isDashboard && window.SYSNET_CONTEXT.locationId > 0) {
                     var locName = $('#locationFilter option:selected').text() || 'Location';
@@ -1294,8 +1325,7 @@
 
                 activeChatClientId = clientId; unreadChatCounts[clientId] = 0;
                 if (typeof window.updateDeviceBadge === "function") window.updateDeviceBadge(clientId, 0);
-                if (chatConnection && chatConnection.state === signalR.HubConnectionState.Connected)
-                    chatConnection.invoke("MarkChatAsRead", clientId).catch(err => {});
+                window.markChatReadServer(clientId);
 
                 $('#chatClientName').text(userName);
                 if (isOnline) {
@@ -1339,8 +1369,11 @@
             window.sendChatMessage = async function() {
                 const message = $('#chatInput').val().trim();
                 if (!message || !activeChatClientId) return;
-                if (!chatConnection || chatConnection.state !== signalR.HubConnectionState.Connected) await window.setupChatSignalR();
-                try { $('#chatInput').val('').focus(); await chatConnection.invoke("SendMessagechat", message, activeChatClientId, false); } catch(err) { console.error("Send failed:", err); }
+                const clientId = activeChatClientId;
+                try {
+                    $('#chatInput').val('').focus();
+                    await window.sendChatMessageToServer(clientId, message, false);
+                } catch(err) { console.error("Send failed:", err); }
             };
 
             $(document).on('keydown', '#chatInput', function(e) { if (e.which===13&&!e.shiftKey){e.preventDefault();sendChatMessage();} });

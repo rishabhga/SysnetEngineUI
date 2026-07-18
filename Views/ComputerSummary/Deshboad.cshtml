@@ -895,12 +895,12 @@
         var domainUserMap = {
         @foreach (var item in Model)
         {
-                        var domainKey = item.DomainName?.Trim().ToUpper() ?? "";
-                        var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
-                        if (!string.IsNullOrEmpty(domainKey))
-                        {
-                                        @: "@domainKey": "@name",
-                        }
+                            var domainKey = item.DomainName?.Trim().ToUpper() ?? "";
+                            var name = string.IsNullOrEmpty(item.UserName) ? "Unknown" : item.UserName;
+                            if (!string.IsNullOrEmpty(domainKey))
+                            {
+                                                @: "@domainKey": "@name",
+                            }
         }
         };
 
@@ -1651,7 +1651,7 @@
 
         $(document).on('click', '.open-chat-btn', function (e) {
             e.preventDefault(); e.stopPropagation();
-            var domain = $(this).data('domain');
+            var domain = $(this).data('chat-domain');
             if (domain) window.openChatModal(domain);
         });
     </script>
