@@ -2411,10 +2411,7 @@ namespace ManageEngineWebApp.Controllers
             return Json(localDatalist);
         }
 
-        // Sends a service control command to the device via SignalR, then polls until the
-        // device reports back a new record with the expected state change — same pattern as
-        // AuditMemory/AuditProcessor so the UI gets a real success/fail based on what actually
-        // happened on the device, not just whether the command was dispatched.
+
         [HttpPost]
         public async Task<IActionResult> ControlService(string domain, string serviceName, string action)
         {
@@ -2871,7 +2868,7 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
-        
+
 
         [HttpGet]
         public async Task<IActionResult> MotherboardSummary(string domain)
@@ -3072,13 +3069,50 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception) { }
             return Json(localDatalist);
         }
+        //[HttpGet]
+        //public async Task<IActionResult> Processors(string domain)
+        //{
+        //    if (!await IsDeviceAuthorized(domain)) return Forbid();
+
+        //    var empty = new ProcessorInfo { Name = "N/A", Manufacturer = "N/A", Status = "N/A", DateTime = DateTime.Now };
+
+        //    try
+        //    {
+        //        string UCode = GetUCodeFromDomain(domain);
+        //        using var httpClient = GetClient();
+        //        httpClient.BaseAddress = new Uri($"{_baseUrl}/api/ProcessorDetails");
+
+        //        var response = await httpClient.GetAsync("");
+        //        if (!response.IsSuccessStatusCode)
+        //        {
+        //            return Json(empty);
+        //        }
+
+        //        var content = await response.Content.ReadAsStringAsync();
+        //        var data = JsonConvert.DeserializeObject<List<ProcessorInfo>>(content);
+
+        //        var localDatalist = data?.Where(x => x.UserCode == UCode)
+        //                                  .OrderByDescending(x => x.DateTime)
+        //                                  .ToList() ?? new List<ProcessorInfo>();
+
+        //        if (!localDatalist.Any())
+        //        {
+        //            return Json(empty);
+        //        }
+        //        return Json(localDatalist[0]);
+        //    }
+        //    catch (Exception)
+        //    {
+        //        return Json(empty);
+        //    }
+        //}
+
         [HttpGet]
         public async Task<IActionResult> Processors(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
-
-            var empty = new ProcessorInfo { Name = "N/A", Manufacturer = "N/A", Status = "N/A", DateTime = DateTime.Now };
-
+            var localDatalist = new List<ProcessorDetails>();
+            var empty = new { ProcessorSpeed = "N/A", Manufacturer = "N/A", Stepping = "N/A", Family = "N/A", NumberOfCores = 0, SocketDesignation = "N/A", Voltage = "N/A", Version = "N/A", DeviceStatus = "N/A", Description = "N/A", DateTime = DateTime.Now };
             try
             {
                 string UCode = GetUCodeFromDomain(domain);
@@ -3092,17 +3126,28 @@ namespace ManageEngineWebApp.Controllers
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
-                var data = JsonConvert.DeserializeObject<List<ProcessorInfo>>(content);
-
-                var localDatalist = data?.Where(x => x.UserCode == UCode)
-                                          .OrderByDescending(x => x.DateTime)
-                                          .ToList() ?? new List<ProcessorInfo>();
+                var data = JsonConvert.DeserializeObject<List<ProcessorDetails>>(content);
+                if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
 
                 if (!localDatalist.Any())
                 {
                     return Json(empty);
                 }
-                return Json(localDatalist[0]);
+                var processerdata = new
+                {
+                    ProcessorSpeed = localDatalist[0].ProcessorSpeed,
+                    Manufacturer = localDatalist[0].Manufacturer,
+                    Stepping = localDatalist[0].stepping,
+                    Family = localDatalist[0].Family,
+                    NumberOfCores = localDatalist[0].NumberOfCores,
+                    SocketDesignation = localDatalist[0].SocketDesignation,
+                    Voltage = localDatalist[0].Voltage,
+                    Version = localDatalist[0].Version,
+                    DeviceStatus = localDatalist[0].DeviceStatus,
+                    Description = localDatalist[0].Description,
+                    DateTime = localDatalist[0].DateTime
+                };
+                return Json(processerdata);
             }
             catch (Exception)
             {
@@ -5126,9 +5171,9 @@ namespace ManageEngineWebApp.Controllers
             return Json(new { success = false, message = "Failed to update VIP settings." });
         }
     }
-   
 
- 
 
-   
+
+
+
 }

@@ -65,7 +65,7 @@ namespace ManageEngineWebApp.Controllers
                     if (!string.IsNullOrEmpty(d.UserName)) activeIdentifiers.Add(d.UserName.Trim());
                 }
 
-                var onlineCount = allDevices.Count(d => 
+                var onlineCount = allDevices.Count(d =>
                     (!string.IsNullOrEmpty(d.UserCode) && activeIdentifiers.Contains(d.UserCode.Trim())) ||
                     (!string.IsNullOrEmpty(d.DomainName) && activeIdentifiers.Contains(d.DomainName.Trim()))
                 );
@@ -249,6 +249,56 @@ namespace ManageEngineWebApp.Controllers
             catch
             {
                 return Content(JsonConvert.SerializeObject(new { items = new List<object>(), count = 0 }), "application/json");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetLiveResourceUsage()
+        {
+            if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
+                return Content("[]", "application/json");
+
+            try
+            {
+                var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}/api/RamCpuDiskData/live-usage");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+
+                return Content("[]", "application/json");
+            }
+            catch
+            {
+                return Content("[]", "application/json");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetLiveResourceHistory()
+        {
+            if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
+                return Content("[]", "application/json");
+
+            try
+            {
+                var client = GetClient();
+                var response = await client.GetAsync($"{_baseUrl}/api/RamCpuDiskData/live-usage-history");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+
+                return Content("[]", "application/json");
+            }
+            catch
+            {
+                return Content("[]", "application/json");
             }
         }
 

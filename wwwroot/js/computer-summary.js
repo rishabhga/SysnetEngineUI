@@ -120,13 +120,13 @@ function initTabStyles() {
         let g_SubTabMap = {};
         window.componentScores = { processor: 100, disk: 100, motherboard: 100, memory: 100 };
 
-        window.updateSystemHealth = function() {
+        window.updateSystemHealth = function () {
             let sysHealth = (window.componentScores.disk * 0.40) + (window.componentScores.motherboard * 0.30) + (window.componentScores.processor * 0.20) + (window.componentScores.memory * 0.10);
             sysHealth = Math.max(0, Math.min(100, sysHealth));
             let color = sysHealth >= 80 ? '#22c55e' : sysHealth >= 50 ? '#f59e0b' : '#ef4444';
             let text = sysHealth >= 80 ? 'Healthy' : sysHealth >= 50 ? 'Warning' : 'Critical';
             let icon = sysHealth >= 80 ? 'fa-heartbeat' : sysHealth >= 50 ? 'fa-exclamation-triangle' : 'fa-skull-crossbones';
-            
+
             if (window.hasLiveAuditOccurred) {
                 $('#systemHealthBanner').css('display', 'flex');
                 $('#systemHealthScoreText').text(sysHealth.toFixed(0) + '%').css('color', color);
@@ -855,7 +855,7 @@ function computeMemoryHealth(data) {
     if (issues.length === 0) issues.push('No issues detected — memory configuration and usage are within healthy ranges.');
 
     var overall = data.HealthScore ?? data.healthScore ?? 100;
-    
+
     window.componentScores = window.componentScores || { processor: 100, disk: 100, motherboard: 100, memory: 100 };
     window.componentScores.memory = overall;
     if (typeof window.updateSystemHealth === 'function') window.updateSystemHealth();
@@ -878,7 +878,7 @@ function renderMemoryHealth(data) {
 
     $('#memHealthScoreText').text(health.overall + '%');
 
-    var circumference = 283; 
+    var circumference = 283;
     var healthDash = Math.max(0, Math.min(100, health.overall)) / 100 * circumference;
     $('#memHealthCircle').css({
         'stroke-dasharray': healthDash + ', ' + circumference,
@@ -1317,48 +1317,21 @@ function loadProcessorDetails(includeAuditSections) {
         renderProcessorHero(data);
         renderProcessorSpecs(data);
         renderProcessorCache(data);
-        if (includeAuditSections) {
-            $.get(`/ComputerSummary/ProcessorHistory?domain=${domaindata}&count=20`, function (history) {
-                renderProcessorTrendCharts(history);
-                var thermalSource = data;
-                if (history && history.length) {
-                    for (var i = history.length - 1; i >= 0; i--) {
-                        var h = history[i];
-                        var hPkg = parseFloat(cpuVal(h, 'cpuPackageTemperature', 'CpuPackageTemperature', 'packageTemperature', 'PackageTemperature', 'cpuTemperature', 'CpuTemperature')) || 0;
-                        var hC0 = parseFloat(cpuVal(h, 'core0Temp', 'Core0Temp', 'coreTemp0', 'CoreTemp0')) || 0;
-                        if (hPkg > 0 || hC0 > 0) {
-                            thermalSource = Object.assign({}, data, h);
-                            break;
-                        }
-                    }
-                }
-                renderProcessorThermal(thermalSource);
-            }).fail(function () {
-                renderProcessorThermal(data);
-                $('#cpuTrendSection').hide();
-                $('#cpuTrendPlaceholder').show();
-            });
-        } else {
-            $('#cpuHealthSection').hide();
-            $('#cpuHealthPlaceholder').show();
-        }
+       
+        $('#cpuHealthPlaceholder').hide();
+        $('#cpuHealthSection').hide();
     }).fail(function () { console.error("Failed to load processor details"); });
 
-    if (!includeAuditSections) {
-        $('#cpuTrendSection').hide();
-        $('#cpuTrendPlaceholder').show();
-    }
+    $('#cpuTrendPlaceholder').hide();
+    $('#cpuTrendSection').hide();
 }
 
 function renderProcessorHero(d) {
-    $('#cpuName').text(cpuVal(d, 'name', 'Name', 'processorName', 'ProcessorName') || 'Unknown Processor');
+    $('#cpuName').text(cpuVal(d, 'description', 'Description') || cpuVal(d, 'manufacturer', 'Manufacturer') || 'Unknown Processor');
     $('#cpuManufacturerBadge').html('<i class="fas fa-industry"></i> ' + (cpuVal(d, 'manufacturer', 'Manufacturer') || 'N/A'));
-    $('#cpuArchBadge').html('<i class="fas fa-layer-group"></i> ' + cpuDecode(CPU_ARCH_MAP, cpuVal(d, 'architecture', 'Architecture')));
-    $('#cpuTypeBadge').html('<i class="fas fa-tag"></i> ' + cpuDecode(CPU_TYPE_MAP, cpuVal(d, 'processorType', 'ProcessorType')));
 
-    var status = cpuVal(d, 'status', 'Status') || 'Unknown';
-    var cpuStatusLabel = cpuDecode(CPU_STATUS_MAP, cpuVal(d, 'cpuStatus', 'CpuStatus'));
-    var isOk = String(status).toUpperCase() === 'OK' || cpuStatusLabel.indexOf('Enabled') > -1;
+    var status = cpuVal(d, 'deviceStatus', 'DeviceStatus') || 'Unknown';
+    var isOk = String(status).toUpperCase() === 'OK';
     var $badge = $('#cpuStatusBadge');
     $badge.toggleClass('is-down', !isOk);
     $badge.html('<span class="cpu-live-dot"></span> ' + (isOk ? 'Operational' : status));
@@ -1373,54 +1346,19 @@ function renderProcessorHero(d) {
 }
 
 function renderProcessorSpecs(d) {
-    var cores = cpuVal(d, 'cores', 'Cores', 'numberOfCores', 'NumberOfCores') || 0;
-    var threads = cpuVal(d, 'logicalProcessors', 'LogicalProcessors', 'numberOfLogicalProcessors', 'NumberOfLogicalProcessors', 'threadCount', 'ThreadCount') || 0;
-    $('#cpuCoresThreads').text(cores + ' Cores / ' + threads + ' Threads');
+    var cores = cpuVal(d, 'numberOfCores', 'NumberOfCores') || 0;
+    $('#cpuCoresThreads').text(cores + ' Cores');
 
-    var baseGhz = parseFloat(cpuVal(d, 'baseSpeedGHz', 'BaseSpeedGHz')) || 0;
-    var maxMHz = parseFloat(cpuVal(d, 'maxClockSpeedMHz', 'MaxClockSpeedMHz', 'maxClockSpeed', 'MaxClockSpeed')) || 0;
-    var currentMHz = parseFloat(cpuVal(d, 'currentClockSpeedMHz', 'CurrentClockSpeedMHz', 'currentClockSpeed', 'CurrentClockSpeed')) || 0;
-    $('#cpuBaseClock').text(baseGhz > 0 ? baseGhz.toFixed(2) + ' GHz' : (maxMHz > 0 ? (maxMHz / 1000).toFixed(2) + ' GHz' : '--'));
-    $('#cpuCurrentClock').text(currentMHz > 0 ? (currentMHz / 1000).toFixed(2) + ' GHz' : '--');
-    $('#cpuMaxClock').text(maxMHz > 0 ? (maxMHz / 1000).toFixed(2) + ' GHz' : '--');
-
-    var bus = parseFloat(cpuVal(d, 'busSpeedMHz', 'BusSpeedMHz', 'extClock', 'ExtClock', 'externalClock', 'ExternalClock'));
-    $('#cpuBusSpeed').text(bus > 0 ? bus.toFixed(1) + ' MHz' : 'N/A');
+    $('#cpuCurrentClock').text(cpuVal(d, 'processorSpeed', 'ProcessorSpeed') || '--');
 
     $('#cpuSocket').text(cpuVal(d, 'socketDesignation', 'SocketDesignation') || 'N/A');
-    $('#cpuUpgradeMethod').text(cpuDecode(CPU_SOCKET_MAP, cpuVal(d, 'upgradeMethod', 'UpgradeMethod')));
 
-    var aw = cpuVal(d, 'addressWidth', 'AddressWidth');
-    var dw = cpuVal(d, 'dataWidth', 'DataWidth');
-    $('#cpuWidth').text((aw || '?') + '-bit / ' + (dw || '?') + '-bit');
-
-    $('#cpuVoltage').text(cpuDecodeVoltage(cpuVal(d, 'voltage', 'Voltage', 'currentVoltage', 'CurrentVoltage')));
-    $('#cpuProcessorId').text(cpuVal(d, 'processorId', 'ProcessorId', 'processorID', 'ProcessorID') || 'N/A');
+    $('#cpuVoltage').text(cpuDecodeVoltage(cpuVal(d, 'voltage', 'Voltage')));
 }
 
 function renderProcessorCache(d) {
-    var l1 = parseFloat(cpuVal(d, 'l1CacheKB', 'L1CacheKB', 'l1CacheSize', 'L1CacheSize')) || 0;
-    var l2 = parseFloat(cpuVal(d, 'l2CacheKB', 'L2CacheKB', 'l2CacheSize', 'L2CacheSize')) || 0;
-    var l3 = parseFloat(cpuVal(d, 'l3CacheKB', 'L3CacheKB', 'l3CacheSize', 'L3CacheSize')) || 0;
-    var max = Math.max(l1, l2, l3, 1);
-
-    var rows = [
-        { label: 'L1', value: l1, color: '#0ea5e9' },
-        { label: 'L2', value: l2, color: '#6366f1' },
-        { label: 'L3', value: l3, color: '#f59e0b' }
-    ];
-
-    var html = '';
-    rows.forEach(function (r) {
-        var pct = Math.max(4, (r.value / max) * 100);
-        var displayVal = r.value >= 1024 ? (r.value / 1024).toFixed(1) + ' MB' : (r.value > 0 ? r.value + ' KB' : 'N/A');
-        html += '<div class="cpu-cache-row">' +
-            '<div class="cpu-cache-label">' + r.label + '</div>' +
-            '<div class="cpu-cache-track"><div class="cpu-cache-fill" style="width:' + pct + '%;background:' + r.color + ';"></div></div>' +
-            '<div class="cpu-cache-value">' + displayVal + '</div>' +
-            '</div>';
-    });
-    $('#cpuCacheContainer').html(html);
+    // ProcessorDetails has no cache data, and #cpuCacheContainer's section is hidden in the HTML.
+    // Left as a no-op (rather than removed) so the loadProcessorDetails() call site doesn't need touching.
 }
 
 function renderProcessorThermal(d) {
@@ -2825,9 +2763,9 @@ function renderDiskPanels(d) {
     const pendingSectors = Number(d.CurrentPendingSectorCount || d.currentPendingSectorCount || 0);
     const uncorrSectors = Number(d.UncorrectableSectorCount || d.uncorrectableSectorCount || 0);
     const auditType = d.AuditType || d.auditType || 'Quick';
-    
+
     let healthScore = d.HealthScore ?? d.healthScore ?? 100;
-    
+
     window.componentScores = window.componentScores || { processor: 100, disk: 100, motherboard: 100, memory: 100 };
     window.componentScores.disk = healthScore;
     if (typeof window.updateSystemHealth === 'function') window.updateSystemHealth();
@@ -2992,16 +2930,16 @@ function renderDiskPanels(d) {
     const dstResult = d.DstResult || d.dstResult;
 
     if (dstStatus || dstResult) {
-        let statusColor = '#3b82f6'; 
+        let statusColor = '#3b82f6';
         let icon = 'fa-spinner fa-spin';
         if (dstStatus === 'Completed' || dstStatus === 'Passed' || dstResult === 'Passed') {
-            statusColor = '#22c55e'; 
+            statusColor = '#22c55e';
             icon = 'fa-check-circle';
         } else if (dstStatus === 'Failed' || dstResult === 'Failed') {
-            statusColor = '#ef4444'; 
+            statusColor = '#ef4444';
             icon = 'fa-times-circle';
         } else if (dstStatus === 'Aborted' || dstStatus === 'Stopped') {
-            statusColor = '#f59e0b'; 
+            statusColor = '#f59e0b';
             icon = 'fa-exclamation-circle';
         }
 
@@ -3038,7 +2976,7 @@ function renderDiskPanels(d) {
                     ${dstResult || 'No detailed diagnostic result available.'}
                 </div>
             </div>`;
-            
+
         $('#diskDstContainer').html(dstHtml);
         $('#diskDstPlaceholder').hide();
         $('#diskDstResults').show();
@@ -3232,7 +3170,7 @@ $(document).ready(function () {
                             $('#diskAuditPlaceholder').show();
                             sysAlert('No hard disk data available after audit.', 'error');
                         }
-                    }).fail(function() {
+                    }).fail(function () {
                         $('#diskAuditLoading').hide();
                         $('#diskAuditPlaceholder').show();
                     });
@@ -3269,7 +3207,7 @@ $(document).ready(function () {
         $.ajax({
             url: '/ComputerSummary/AuditHardDisk?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName) + '&auditType=deep',
             type: 'POST',
-            timeout: 10000, 
+            timeout: 10000,
             success: function (res) {
                 if (res && res.success) {
                     sysAlert(res.message || 'Drive Self-Test initiated. Please check back later.', 'success');
@@ -3281,7 +3219,7 @@ $(document).ready(function () {
                 sysAlert('Connection error while triggering deep audit.', 'error');
             },
             complete: function () {
-                setTimeout(function() {
+                setTimeout(function () {
                     btn.html(originalText);
                     btn.prop('disabled', false);
                     btn.css('opacity', '1');
@@ -3405,7 +3343,7 @@ $(document).ready(function () {
             if (titleText) {
                 $header.append('<h3 class="cs-subtab-card-grid-title">' + titleText + '</h3>');
             }
-            
+
             var numItems = $subBar.find('li').length;
             $pane.data('csNumItems', numItems);
 
@@ -3641,4 +3579,4 @@ $(document).ready(function () {
         $('#btnUniversalViewToggle').on('click', function () { toggleView(); });
     });
 
-})();
+})();
