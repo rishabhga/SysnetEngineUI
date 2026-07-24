@@ -1,4 +1,4 @@
-﻿namespace ManageEngineWebApp.Models
+namespace ManageEngineWebApp.Models
 {
     public class HardDiskDetails
     {
@@ -23,5 +23,9 @@
         public double FreeSpaceGB { get; set; }
         public double UsedSpaceGB { get; set; }
         public DateTime DateTime { get; set; }
+        public int? HealthScore { get; set; }
+        public string HealthLevel { get; set; }
+        public double UsedPercent { get; set; }
+        public string UsageLevel { get; set; }
     }
 }

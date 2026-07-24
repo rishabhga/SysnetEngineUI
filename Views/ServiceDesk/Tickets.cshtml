@@ -18,10 +18,25 @@
                     <p class="text-gray-600 text-sm mt-0.5">Manage all service tickets</p>
                 </div>
                 <div class="flex items-center gap-2">
+                    <!-- View toggle: list / card grid -->
+                    <div id="viewToggle" class="flex items-center bg-white border border-gray-200 rounded-lg p-0.5 shadow-sm">
+                        <button type="button" onclick="setView('list')" id="viewListBtn"
+                                class="view-toggle-btn px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all"
+                                title="List view">
+                            <i class="fas fa-list text-[11px]"></i>
+                            <span class="hidden sm:inline">List</span>
+                        </button>
+                        <button type="button" onclick="setView('grid')" id="viewGridBtn"
+                                class="view-toggle-btn px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all"
+                                title="Card view">
+                            <i class="fas fa-grip-horizontal text-[11px]"></i>
+                            <span class="hidden sm:inline">Cards</span>
+                        </button>
+                    </div>
                     @if (canCreate)
                     {
                         <a href="@Url.Action("CreateTicket", "ServiceDesk")"
-                           class="px-3 py-1.5 text-white" style="background:linear-gradient(135deg,#00BCEB,#0096BE);" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'" text-sm font-medium rounded flex items-center">
+                           class="px-4 py-1.5 text-white text-sm font-medium rounded-lg flex items-center shadow-sm transition-transform hover:-translate-y-0.5" style="background:linear-gradient(135deg,#00BCEB,#0096BE);" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
                             <i class="fas fa-plus mr-1.5 text-xs"></i>
                             New Ticket
                         </a>
@@ -37,7 +52,7 @@
                     <div class="relative">
                         <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
                         <input type="text" id="searchInput" placeholder="Search by ID or Subject..."
-                               class="w-full h-8 pl-8 pr-3 text-sm border border-gray-300 rounded outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'" outline-none">
+                               class="w-full h-8 pl-8 pr-3 text-sm border border-gray-300 rounded outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'">
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -52,8 +67,8 @@
             </div>
         </div>
 
-        <!-- Tickets Table -->
-        <div class="bg-white rounded border border-gray-200">
+        <!-- Tickets: List view -->
+        <div id="listViewWrapper" class="bg-white rounded border border-gray-200">
             <div class="overflow-x-auto">
                 <table class="w-full text-left min-w-[720px]">
                     <thead>
@@ -79,8 +94,91 @@
                 </table>
             </div>
         </div>
+
+        <!-- Tickets: Card / grid view -->
+        <div id="gridViewWrapper" class="hidden">
+            <div id="ticketsGrid" class="tickets-grid">
+                <div class="col-span-full flex items-center justify-center py-10 text-gray-400 text-sm">
+                    <i class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i> Loading tickets...
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<style>
+    .view-toggle-btn {
+        color: #6b7280;
+    }
+
+        .view-toggle-btn.active {
+            color: #fff;
+            background: linear-gradient(135deg,#00BCEB,#0096BE);
+            box-shadow: 0 1px 3px rgba(0,150,190,.35);
+        }
+
+        .view-toggle-btn:not(.active):hover {
+            background: #f0f9fc;
+            color: #0096BE;
+        }
+
+    .tickets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 14px;
+    }
+
+    .ticket-card {
+        position: relative;
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid #e9edf2;
+        padding: 14px 14px 12px 16px;
+        box-shadow: 0 1px 2px rgba(16,24,40,.04);
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+        overflow: hidden;
+    }
+
+        .ticket-card::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--accent, #94a3b8);
+        }
+
+        .ticket-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px -8px rgba(16,24,40,.16);
+            border-color: #d7ecf3;
+        }
+
+        .ticket-card.is-breached {
+            background: linear-gradient(180deg, #fff5f5 0%, #ffffff 70px);
+        }
+
+        .ticket-card .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .ticket-card .card-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+</style>
 
 <!-- Approve Modal -->
 <div id="approveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
@@ -97,13 +195,13 @@
             <div id="approveTriageFields" class="grid grid-cols-2 gap-2 mb-2">
                 <div>
                     <label class="block text-xs text-gray-700 mb-1">Set Priority <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
-                    <select id="approvePriority" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'" outline-none">
+                    <select id="approvePriority" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'">
                         <option value="">-- Keep Current --</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs text-gray-700 mb-1">Set Category <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
-                    <select id="approveCategory" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'" outline-none">
+                    <select id="approveCategory" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'">
                         <option value="">-- Keep Current --</option>
                     </select>
                 </div>
@@ -112,7 +210,7 @@
             <textarea id="approveRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Any remarks..."></textarea>
             <div class="flex gap-2">
                 <button onclick="closeModal('approveModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Cancel</button>
-                <button onclick="submitApprove()" class="flex-1 py-1.5 text-white text-sm font-medium rounded" style="background:linear-gradient(135deg,#B4D334,#8FB829);" ">
+                <button onclick="submitApprove()" class="flex-1 py-1.5 text-white text-sm font-medium rounded" style="background:linear-gradient(135deg,#B4D334,#8FB829);">
                     <i class="fas fa-check mr-1 text-xs"></i> Approve
                 </button>
             </div>
@@ -147,7 +245,7 @@
 <!-- Assign Modal -->
 <div id="assignModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded w-full max-w-xs">
-        <div class="p-3 border-b" style="background:#E0F7FD; border-color:#b3edfb;" flex items-center">
+        <div class="p-3 border-b flex items-center" style="background:#E0F7FD; border-color:#b3edfb;">
             <i class="fas fa-user-tag text-blue-500 mr-2 text-sm"></i>
             <h3 class="font-medium text-blue-800 text-sm">Assign Engineer</h3>
             <button onclick="closeModal('assignModal')" class="ml-auto text-gray-400 hover:text-blue-400">
@@ -227,7 +325,7 @@
         </div>
         <div class="p-3 bg-gray-50 border-t border-gray-200 flex gap-2">
             <button onclick="closeModal('partsModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Close</button>
-            <button onclick="submitAddPart()" class="flex-1 py-1.5 text-white" style="background:linear-gradient(135deg,#00BCEB,#0096BE);" text-sm font-medium rounded">
+            <button onclick="submitAddPart()" class="flex-1 py-1.5 text-white text-sm font-medium rounded" style="background:linear-gradient(135deg,#00BCEB,#0096BE);">
                 <i class="fas fa-plus mr-1 text-xs"></i> Add Part
             </button>
         </div>
@@ -322,6 +420,16 @@
         let allTickets = [];
         let statusColorMap = {};   // statusCode -> colorCode from DB
         let priorityColorMap = {}; // priorityName -> colorCode from DB
+        let currentView = localStorage.getItem('ticketsViewMode') || 'grid'; // 'list' | 'grid'
+
+        // Avatar background colors, cycled by name so each requester gets a consistent color
+        const avatarPalette = ['#0096BE', '#7C3AED', '#DB2777', '#059669', '#D97706', '#DC2626', '#4F46E5'];
+        function avatarColor(name) {
+            const str = (name || 'U');
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            return avatarPalette[Math.abs(hash) % avatarPalette.length];
+        }
         const username = '@Context.Session.GetString("username")' || 'Admin';
         const userId = '@Context.Session.GetString("userId")' || '1';
 
@@ -335,8 +443,22 @@
         const closedStatuses = @Html.Raw(ViewBag.ClosedStatusesJson ?? "[]");
         const approvedSortOrder = @(ViewBag.ApprovedStatusSortOrder ?? 2);
 
+        // ==================== VIEW TOGGLE (list / card grid) ====================
+        function setView(mode) {
+            currentView = mode;
+            localStorage.setItem('ticketsViewMode', mode);
+
+            $('#viewListBtn').toggleClass('active', mode === 'list');
+            $('#viewGridBtn').toggleClass('active', mode === 'grid');
+
+            $('#listViewWrapper').toggleClass('hidden', mode !== 'list');
+            $('#gridViewWrapper').toggleClass('hidden', mode !== 'grid');
+        }
+
         // ==================== INITIALIZATION ====================
         $(document).ready(function () {
+            setView(currentView);
+
             // Auto-seed ServiceDesk permissions (ensures engineers appear in assign dropdown)
             $.ajax({
                 url: '@Url.Action("SeedServiceDeskPermissions", "ServiceDesk")',
@@ -398,8 +520,8 @@
 
         // ==================== LOAD & RENDER DATA ====================
         function loadTickets(status = null, pageNumber = 1) {
-            const tbody = $('#ticketsTableBody');
-            tbody.html('<tr><td colspan="8" class="text-center py-8 text-blue-500"><i class="fas fa-circle-notch fa-spin mb-2 text-xl"></i><br/>Loading tickets...</td></tr>');
+            $('#ticketsTableBody').html('<tr><td colspan="8" class="text-center py-8 text-blue-500"><i class="fas fa-circle-notch fa-spin mb-2 text-xl"></i><br/>Loading tickets...</td></tr>');
+            $('#ticketsGrid').html('<div class="col-span-full flex items-center justify-center py-10 text-gray-400 text-sm"><i class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i> Loading tickets...</div>');
 
             let url = `@Url.Action("GetTickets", "ServiceDesk")?pageNumber=${pageNumber}&pageSize=50`;
 
@@ -407,80 +529,7 @@
                 const tickets = response.items || response; // support both paginated and legacy arrays
                 allTickets = tickets;
 
-                tbody.empty();
-                $('#ticketCount').text(response.totalItems || tickets.length || 0);
-
-                if (!tickets || tickets.length === 0) {
-                    tbody.html('<tr><td colspan="8" class="px-3 py-4 text-center text-gray-500 text-sm">No tickets found</td></tr>');
-                    $('#paginationControls').empty();
-                    return;
-                }
-
-                tickets.forEach(t => {
-                    const isOverdue = t.isSLABreached;
-                    const createdDate = new Date(t.createdOn);
-                    const ticketStatus = t.status || 'Open';
-
-                    const row = `
-                        <tr class="border-b border-gray-50 hover:bg-gray-50 ${isOverdue ? 'bg-red-50/30' : ''}">
-                            <td class="px-3 py-2 font-medium text-gray-700 text-sm">
-                                <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;" class="hover:text-[#0096BE]">
-                                    #${t.ticketNo || t.id}
-                                </a>
-                            </td>
-                            <td class="px-3 py-2">
-                                <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;" class="text-gray-800 hover:text-[#0096BE] font-medium text-sm block">
-                                    ${escapeHtml(t.subject || 'No Subject')}
-                                </a>
-                                <div class="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">${escapeHtml(t.category || 'General')}</div>
-                            </td>
-                            <td class="px-3 py-2">
-                                <div class="flex items-center">
-                                    <div class="w-6 h-6 rounded-full bg-[#E0F7FD] text-blue-600 text-xs flex items-center justify-center font-bold mr-1.5">
-                                        ${(t.requesterName || 'U').charAt(0).toUpperCase()}
-                                    </div>
-                                    <span class="text-gray-700 text-sm truncate max-w-[120px]" title="${t.requesterName || 'Unknown'}">${t.requesterName || 'Unknown'}</span>
-                                </div>
-                            </td>
-                            <td class="px-3 py-2 text-gray-600 text-sm">
-                                ${t.assignedToName ?
-                                    `<span class="flex items-center text-xs bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
-                                        <i class="fas fa-user-tag mr-1 text-gray-400 text-[10px]"></i>
-                                        ${escapeHtml(t.assignedToName)}
-                                    </span>`
-                                    : '<span class="text-gray-400 text-xs italic">Unassigned</span>'}
-                            </td>
-                            <td class="px-3 py-2">
-                                ${!t.priority || !t.category ?
-                                    `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
-                                        <i class="fas fa-exclamation-triangle mr-1 text-[9px]"></i> NEEDS TRIAGE
-                                    </span>` :
-                                    `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
-                                          style="color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}; border-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}80; background-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}10">
-                                        ${t.priority || 'Medium'}
-                                    </span>`
-                                }
-                            </td>
-                            <td class="px-3 py-2">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
-                                      style="color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}; border-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}80; background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}10">
-                                    <span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}"></span>
-                                    ${ticketStatus}
-                                </span>
-                            </td>
-                            <td class="px-3 py-2 text-gray-500 text-xs">
-                                <div>${createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                                <div class="text-gray-400">${createdDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                            </td>
-                            <td class="px-3 py-2 text-right">
-                                <div class="flex justify-end gap-1">
-                                    ${getActionButtons(t)}
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                    tbody.append(row);
-                });
+                displayTickets(tickets);
 
                 if (response.totalPages) {
                     renderPagination(response.totalPages, response.currentPage);
@@ -497,9 +546,157 @@
                 }
 
             }).fail(function () {
-                tbody.html('<tr><td colspan="8" class="text-center py-8 text-red-500"><i class="fas fa-exclamation-triangle mb-2 text-xl"></i><br/>Failed to load tickets</td></tr>');
+                $('#ticketsTableBody').html('<tr><td colspan="8" class="text-center py-8 text-red-500"><i class="fas fa-exclamation-triangle mb-2 text-xl"></i><br/>Failed to load tickets</td></tr>');
+                $('#ticketsGrid').html('<div class="col-span-full text-center py-10 text-red-500 text-sm"><i class="fas fa-exclamation-triangle mb-2 text-xl block"></i>Failed to load tickets</div>');
                 $('#paginationControls').empty();
             });
+        }
+
+        // Single source of truth for rendering tickets into BOTH the table and the card grid,
+        // used by loadTickets() and filterTickets() alike (previously this logic was duplicated).
+        function displayTickets(tickets) {
+            const tbody = $('#ticketsTableBody');
+            const grid = $('#ticketsGrid');
+
+            $('#ticketCount').text(tickets ? tickets.length : 0);
+
+            if (!tickets || tickets.length === 0) {
+                tbody.html('<tr><td colspan="8" class="px-3 py-4 text-center text-gray-500 text-sm">No tickets found</td></tr>');
+                grid.html('<div class="col-span-full flex flex-col items-center justify-center py-14 text-gray-400"><i class="fas fa-inbox text-3xl mb-2"></i><span class="text-sm">No tickets found</span></div>');
+                return;
+            }
+
+            const rowsHtml = tickets.map(buildTicketRow).join('');
+            const cardsHtml = tickets.map(buildTicketCard).join('');
+
+            tbody.html(rowsHtml);
+            grid.html(cardsHtml);
+        }
+
+        function buildTicketRow(t) {
+            const isOverdue = t.isSLABreached;
+            const createdDate = new Date(t.createdOn);
+            const ticketStatus = t.status || 'Open';
+
+            return `
+                <tr class="border-b border-gray-50 hover:bg-gray-50 ${isOverdue ? 'bg-red-50/30' : ''}">
+                    <td class="px-3 py-2 font-medium text-gray-700 text-sm">
+                        <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;" class="hover:text-[#0096BE]">
+                            #${t.ticketNo || t.id}
+                        </a>
+                    </td>
+                    <td class="px-3 py-2">
+                        <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;" class="text-gray-800 hover:text-[#0096BE] font-medium text-sm block">
+                            ${escapeHtml(t.subject || 'No Subject')}
+                        </a>
+                        <div class="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">${escapeHtml(t.category || 'General')}</div>
+                    </td>
+                    <td class="px-3 py-2">
+                        <div class="flex items-center">
+                            <div class="w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-bold mr-1.5" style="background:${avatarColor(t.requesterName)}">
+                                ${(t.requesterName || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <span class="text-gray-700 text-sm truncate max-w-[120px]" title="${t.requesterName || 'Unknown'}">${t.requesterName || 'Unknown'}</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 text-gray-600 text-sm">
+                        ${t.assignedToName ?
+                            `<span class="flex items-center text-xs bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                                <i class="fas fa-user-tag mr-1 text-gray-400 text-[10px]"></i>
+                                ${escapeHtml(t.assignedToName)}
+                            </span>`
+                            : '<span class="text-gray-400 text-xs italic">Unassigned</span>'}
+                    </td>
+                    <td class="px-3 py-2">
+                        ${!t.priority || !t.category ?
+                            `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                <i class="fas fa-exclamation-triangle mr-1 text-[9px]"></i> NEEDS TRIAGE
+                            </span>` :
+                            `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                                  style="color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}; border-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}80; background-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}10">
+                                ${t.priority || 'Medium'}
+                            </span>`
+                        }
+                    </td>
+                    <td class="px-3 py-2">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                              style="color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}; border-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}80; background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}10">
+                            <span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}"></span>
+                            ${ticketStatus}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2 text-gray-500 text-xs">
+                        <div>${createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                        <div class="text-gray-400">${createdDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    </td>
+                    <td class="px-3 py-2 text-right">
+                        <div class="flex justify-end gap-1">
+                            ${getActionButtons(t)}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function buildTicketCard(t) {
+            const isOverdue = t.isSLABreached;
+            const createdDate = new Date(t.createdOn);
+            const ticketStatus = t.status || 'Open';
+            const needsTriage = !t.priority || !t.category;
+            const accent = isOverdue ? '#DC2626' : (priorityColorMap[(t.priority || '').toLowerCase()] || '#0096BE');
+            const avatarBg = avatarColor(t.requesterName);
+
+            return `
+                <div class="ticket-card ${isOverdue ? 'is-breached' : ''}" style="--accent:${accent}">
+                    <div class="flex items-start justify-between mb-2">
+                        <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;"
+                           class="text-xs font-semibold text-gray-400 hover:text-[#0096BE] tracking-wide">#${t.ticketNo || t.id}</a>
+                        ${isOverdue ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded"><i class="fas fa-bolt text-[9px]"></i> SLA BREACH</span>` : ''}
+                    </div>
+
+                    <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;"
+                       class="block text-sm font-semibold text-gray-800 hover:text-[#0096BE] leading-snug mb-1 line-clamp-2">
+                        ${escapeHtml(t.subject || 'No Subject')}
+                    </a>
+                    <div class="text-xs text-gray-400 mb-3 truncate">${escapeHtml(t.category || 'General')}</div>
+
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="card-avatar" style="background:${avatarBg}">${(t.requesterName || 'U').charAt(0).toUpperCase()}</div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-medium text-gray-700 truncate" title="${t.requesterName || 'Unknown'}">${t.requesterName || 'Unknown'}</div>
+                            <div class="text-[11px] text-gray-400 truncate">
+                                ${t.assignedToName ? `<i class="fas fa-user-tag mr-1"></i>${escapeHtml(t.assignedToName)}` : '<span class="italic">Unassigned</span>'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center flex-wrap gap-1.5 mb-3">
+                        ${needsTriage ?
+                            `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                <i class="fas fa-exclamation-triangle mr-1 text-[9px]"></i> NEEDS TRIAGE
+                            </span>` :
+                            `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                                  style="color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}; border-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}80; background-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}10">
+                                ${t.priority || 'Medium'}
+                            </span>`
+                        }
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                              style="color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}; border-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}80; background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}10">
+                            <span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}"></span>
+                            ${ticketStatus}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <span class="text-[11px] text-gray-400">
+                            <i class="far fa-clock mr-1"></i>${createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${createdDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                        <div class="flex gap-0.5">
+                            ${getActionButtons(t)}
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function renderPagination(totalPages, currentPage) {
@@ -698,22 +895,18 @@
                 return buttons;
             }
 
-            // Professional workflow: show only the NEXT logical action
-            const isOpen = status === 'OPEN' || status === 'NEW' || status === 'PENDING';
-            const isApproved = status === 'APPROVED';
-            const isAssigned = status === 'ASSIGNED';
-            const isInProgress = status === 'INPROGRESS' || status === 'IN_PROGRESS' || status === 'WORKING';
-            const isRejected = status === 'REJECTED';
-
-            if (isOpen && canApprove) {
+            // Professional workflow: show only the NEXT logical action based on SystemAction
+            const sysAction = (systemActions[status] || '').toUpperCase();
+            
+            if (sysAction === 'OPEN' && canApprove) {
                 buttons += `<button onclick="openApproveModal(${id})" class="p-1.5 text-green-500 hover:text-green-700 hover:bg-green-50 rounded" title="Approve"><i class="fas fa-check text-xs"></i></button>`;
-            } else if (isApproved && canAssign) {
+            } else if (sysAction === 'APPROVE' && canAssign) {
                 buttons += `<button onclick="openAssignModal(${id}, '${ticket.ticketNo || id}')" class="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded" title="Assign Engineer"><i class="fas fa-user-tag text-xs"></i></button>`;
-            } else if (isAssigned) {
+            } else if (sysAction === 'ASSIGN') {
                 buttons += `<button onclick="startWork(${id})" class="p-1.5 text-cyan-500 hover:text-cyan-700 hover:bg-cyan-50 rounded" title="Start Work"><i class="fas fa-play text-xs"></i></button>`;
-            } else if (isInProgress) {
+            } else if (sysAction === 'STARTWORK') {
                 buttons += `<button onclick="openResolveModal(${id})" class="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded" title="Resolve"><i class="fas fa-check-circle text-xs"></i></button>`;
-            } else if (isRejected && (canApprove || canBypassWorkflow)) {
+            } else if (sysAction === 'REJECT' && (canApprove || canBypassWorkflow)) {
                 buttons += `<button onclick="openApproveModal(${id})" class="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded" title="Re-Approve"><i class="fas fa-undo text-xs"></i></button>`;
             }
 
@@ -757,81 +950,15 @@
         }
 
         // ==================== RENDER TICKETS (used by filterTickets) ====================
+        // Delegates to the shared displayTickets() renderer so table & card views never drift out of sync.
         function renderTickets(tickets) {
-            const tbody = $('#ticketsTableBody');
-            tbody.empty();
-            $('#ticketCount').text(tickets.length);
-
             if (!tickets || tickets.length === 0) {
-                tbody.html('<tr><td colspan="8" class="px-3 py-4 text-center text-gray-500 text-sm">No tickets match the current filter</td></tr>');
+                $('#ticketCount').text(0);
+                $('#ticketsTableBody').html('<tr><td colspan="8" class="px-3 py-4 text-center text-gray-500 text-sm">No tickets match the current filter</td></tr>');
+                $('#ticketsGrid').html('<div class="col-span-full flex flex-col items-center justify-center py-14 text-gray-400"><i class="fas fa-filter-circle-xmark text-3xl mb-2"></i><span class="text-sm">No tickets match the current filter</span></div>');
                 return;
             }
-
-            tickets.forEach(t => {
-                const isOverdue = t.isSLABreached;
-                const createdDate = new Date(t.createdOn);
-                const ticketStatus = t.status || 'Open';
-
-                const row = `
-                    <tr class="border-b border-gray-50 hover:bg-gray-50 ${isOverdue ? 'bg-red-50/30' : ''}">
-                        <td class="px-3 py-2 font-medium text-gray-700 text-sm">
-                            <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;" class="hover:text-[#0096BE]">
-                                #${t.ticketNo || t.id}
-                            </a>
-                        </td>
-                        <td class="px-3 py-2">
-                            <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;" class="text-gray-800 hover:text-[#0096BE] font-medium text-sm block">
-                                ${escapeHtml(t.subject || 'No Subject')}
-                            </a>
-                            <div class="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">${escapeHtml(t.category || 'General')}</div>
-                        </td>
-                        <td class="px-3 py-2">
-                            <div class="flex items-center">
-                                <div class="w-6 h-6 rounded-full bg-[#E0F7FD] text-blue-600 text-xs flex items-center justify-center font-bold mr-1.5">
-                                    ${(t.requesterName || 'U').charAt(0).toUpperCase()}
-                                </div>
-                                <span class="text-gray-700 text-sm truncate max-w-[120px]" title="${t.requesterName || 'Unknown'}">${t.requesterName || 'Unknown'}</span>
-                            </div>
-                        </td>
-                        <td class="px-3 py-2 text-gray-600 text-sm">
-                            ${t.assignedToName ?
-                                `<span class="flex items-center text-xs bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
-                                    <i class="fas fa-user-tag mr-1 text-gray-400 text-[10px]"></i>
-                                    ${escapeHtml(t.assignedToName)}
-                                </span>`
-                                : '<span class="text-gray-400 text-xs italic">Unassigned</span>'}
-                        </td>
-                        <td class="px-3 py-2">
-                            ${!t.priority || !t.category ?
-                                `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
-                                    <i class="fas fa-exclamation-triangle mr-1 text-[9px]"></i> NEEDS TRIAGE
-                                </span>` :
-                                `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
-                                      style="color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}; border-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}80; background-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}10">
-                                    ${t.priority || 'Medium'}
-                                </span>`
-                            }
-                        </td>
-                        <td class="px-3 py-2">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
-                                  style="color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}; border-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}80; background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}10">
-                                <span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}"></span>
-                                ${ticketStatus}
-                            </span>
-                        </td>
-                        <td class="px-3 py-2 text-gray-500 text-xs">
-                            <div>${createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                            <div class="text-gray-400">${createdDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                        </td>
-                        <td class="px-3 py-2 text-right">
-                            <div class="flex justify-end gap-1">
-                                ${getActionButtons(t)}
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                tbody.append(row);
-            });
+            displayTickets(tickets);
         }
 
         // ==================== STYLE HELPERS ====================

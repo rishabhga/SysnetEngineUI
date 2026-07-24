@@ -20,6 +20,10 @@ namespace ManageEngineWebApp.Models
         public DateTime DateTime { get; set; }
 
         public List<PhysicalMemoryInfo> MemoryModules { get; set; }
+        
+        public int? HealthScore { get; set; }
+        public string HealthLevel { get; set; }
+        public string UsageLevel { get; set; }
     }
     public class PhysicalMemoryInfo
     {

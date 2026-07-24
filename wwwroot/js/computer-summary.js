@@ -121,24 +121,7 @@ function initTabStyles() {
         window.componentScores = { processor: 100, disk: 100, motherboard: 100, memory: 100 };
 
         window.updateSystemHealth = function () {
-            let sysHealth = (window.componentScores.disk * 0.40) + (window.componentScores.motherboard * 0.30) + (window.componentScores.processor * 0.20) + (window.componentScores.memory * 0.10);
-            sysHealth = Math.max(0, Math.min(100, sysHealth));
-            let color = sysHealth >= 80 ? '#22c55e' : sysHealth >= 50 ? '#f59e0b' : '#ef4444';
-            let text = sysHealth >= 80 ? 'Healthy' : sysHealth >= 50 ? 'Warning' : 'Critical';
-            let icon = sysHealth >= 80 ? 'fa-heartbeat' : sysHealth >= 50 ? 'fa-exclamation-triangle' : 'fa-skull-crossbones';
-
-            if (window.hasLiveAuditOccurred) {
-                $('#systemHealthBanner').css('display', 'flex');
-                $('#systemHealthScoreText').text(sysHealth.toFixed(0) + '%').css('color', color);
-                $('#systemHealthStatusLabel').text(text).css('color', color).css('background', color + '22');
-                $('#systemHealthIcon i').attr('class', 'fas ' + icon);
-                $('#systemHealthIcon').css('color', color).css('background', color + '22');
-
-                $('#sh-storage').text(window.componentScores.disk + '%').css('color', window.componentScores.disk >= 80 ? '#22c55e' : (window.componentScores.disk >= 50 ? '#f59e0b' : '#ef4444'));
-                $('#sh-mobo').text(window.componentScores.motherboard + '%').css('color', window.componentScores.motherboard >= 80 ? '#22c55e' : (window.componentScores.motherboard >= 50 ? '#f59e0b' : '#ef4444'));
-                $('#sh-cpu').text(window.componentScores.processor + '%').css('color', window.componentScores.processor >= 80 ? '#22c55e' : (window.componentScores.processor >= 50 ? '#f59e0b' : '#ef4444'));
-                $('#sh-mem').text(window.componentScores.memory + '%').css('color', window.componentScores.memory >= 80 ? '#22c55e' : (window.componentScores.memory >= 50 ? '#f59e0b' : '#ef4444'));
-            }
+            // System health banner removed — health is shown per-component
         };
 
 
@@ -793,83 +776,23 @@ function renderMemoryTrendChart(history, skipStore) {
         });
     }
 }
-function computeMemoryHealth(data) {
-    var modules = data.memoryModules || data.MemoryModules || [];
-    var totalSlots = data.totalSlots || data.TotalSlots || 0;
-    var usedSlots = data.usedSlots || data.UsedSlots || modules.length || 0;
-    var usagePct = parseFloat(data.usagePercent || data.UsagePercent) || 0;
-
-    var issues = [];
-    var configScore = 100;
-
-    var emptySlots = Math.max(0, totalSlots - usedSlots);
-    if (totalSlots > 0 && emptySlots > 0) {
-        var emptyRatio = emptySlots / totalSlots;
-        configScore -= Math.round(emptyRatio * 15);
-        issues.push(emptySlots + ' of ' + totalSlots + ' slot(s) empty — upgrade headroom available.');
-    }
-
-    var speeds = modules.map(function (m) {
-        return m.speedMHz || m.SpeedMHz || m.configuredClockSpeedMHz || m.ConfiguredClockSpeedMHz || 0;
-    }).filter(function (s) { return s > 0; });
-    var uniqueSpeeds = speeds.filter(function (v, i, a) { return a.indexOf(v) === i; });
-    var channelMode = 'Single Channel';
-    if (usedSlots >= 2) {
-        if (uniqueSpeeds.length > 1) {
-            configScore -= 20;
-            issues.push('Installed modules run at mismatched speeds (' + uniqueSpeeds.join(', ') + ' MHz) — channel performance is limited to the slowest module.');
-            channelMode = 'Mismatched Speed';
-        } else {
-            channelMode = usedSlots >= 4 ? 'Quad Channel' : (usedSlots === 3 ? 'Triple Channel' : 'Dual Channel');
-        }
-    }
-
-    var capacities = modules.map(function (m) { return m.capacityGB || m.CapacityGB || 0; }).filter(function (c) { return c > 0; });
-    var uniqueCapacities = capacities.filter(function (v, i, a) { return a.indexOf(v) === i; });
-    if (usedSlots >= 2 && uniqueCapacities.length > 1) {
-        configScore -= 15;
-        issues.push('Module capacities are mismatched (' + uniqueCapacities.map(function (c) { return c.toFixed(0); }).join(' GB, ') + ' GB) — consider matching pairs for best performance.');
-    }
-
-    var badModules = modules.filter(function (m) {
-        var st = (m.status || m.Status || '').toLowerCase();
-        return st && st !== 'ok' && st !== 'enabled' && st !== 'healthy' && st !== '';
-    });
-    if (badModules.length > 0) {
-        configScore -= 25;
-        issues.push(badModules.length + ' module(s) reporting a non-OK status.');
-    }
-
-    configScore = Math.max(0, Math.min(100, configScore));
-
-    var usageScore;
-    if (usagePct <= 60) usageScore = 100;
-    else if (usagePct <= 75) usageScore = 90 - (usagePct - 60) * 1.0;
-    else if (usagePct <= 90) usageScore = 75 - (usagePct - 75) * 2.0;
-    else usageScore = Math.max(0, 45 - (usagePct - 90) * 3.0);
-    usageScore = Math.round(Math.max(0, Math.min(100, usageScore)));
-
-    if (usagePct > 90) issues.push('RAM usage at last audit was critically high (' + usagePct.toFixed(1) + '%) — system may be swapping to disk.');
-    else if (usagePct > 75) issues.push('RAM usage at last audit was elevated (' + usagePct.toFixed(1) + '%) — monitor for slowdowns under load.');
-
-    if (issues.length === 0) issues.push('No issues detected — memory configuration and usage are within healthy ranges.');
-
-    var overall = data.HealthScore ?? data.healthScore ?? 100;
-
+   function computeMemoryHealth(data) {
+    var overall = data.healthScore ?? data.HealthScore ?? 100;
+    
     window.componentScores = window.componentScores || { processor: 100, disk: 100, motherboard: 100, memory: 100 };
     window.componentScores.memory = overall;
     if (typeof window.updateSystemHealth === 'function') window.updateSystemHealth();
 
-
-    var status = data.HealthStatus || data.healthStatus || 'Healthy';
-    var color;
-    if (overall >= 80) color = '#22c55e';
-    else if (overall >= 50) color = '#f59e0b';
-    else color = '#ef4444';
+    var backendLevel = (data.healthLevel || data.HealthLevel || 'HEALTHY').toUpperCase();
+    var status = data.healthLevel || data.HealthLevel || 'Healthy';
+    
+    var color = '#10b981';
+    if (backendLevel === 'CRITICAL') color = '#ef4444';
+    else if (backendLevel === 'WARNING') color = '#f59e0b';
 
     return {
-        overall: overall, configScore: Math.round(configScore), usageScore: usageScore,
-        status: status, color: color, channelMode: channelMode, emptySlots: emptySlots, issues: (data.HealthIssues || data.healthIssues || issues)
+        overall: overall, configScore: overall, usageScore: overall,
+        status: status, color: color, channelMode: 'Auto', emptySlots: 0, issues: (data.HealthIssues || data.healthIssues || [])
     };
 }
 
@@ -928,10 +851,11 @@ function renderMemoryPanel(data) {
     $('#memFreeGBText').text(freeGB.toFixed(1));
     $('#memTotalGBText').text(totalGB.toFixed(1));
 
+    let utilLevel = (data.UsageLevel || data.usageLevel || 'Normal').toUpperCase();
     let utilColor = '#3b82f6';
-    if (usagePct > 90) utilColor = '#ef4444';
-    else if (usagePct > 75) utilColor = '#f59e0b';
-    else if (usagePct > 60) utilColor = '#0ea5e9';
+    if (utilLevel === 'CRITICAL') utilColor = '#ef4444';
+    else if (utilLevel === 'HIGH') utilColor = '#f59e0b';
+    else if (utilLevel === 'WARNING') utilColor = '#0ea5e9';
 
     var circumference = 283;
     var utilDash = Math.max(0, Math.min(100, usagePct)) / 100 * circumference;
@@ -1101,9 +1025,10 @@ function _renderSummaryDrives(data) {
         var free = parseFloat(d.freeSpace || d.FreeSpace || 0).toFixed(2);
         var usagePct = parseFloat(d.usagePercentage || d.Usage || 0);
 
+        var usageLevel = (d.UsageLevel || d.usageLevel || 'Healthy').toUpperCase();
         var barColor = 'var(--cyan)';
-        if (usagePct > 90) barColor = 'var(--red)';
-        else if (usagePct > 80) barColor = 'var(--amber)';
+        if (usageLevel === 'CRITICAL') barColor = 'var(--red)';
+        else if (usageLevel === 'WARNING') barColor = 'var(--amber)';
 
         var icon = driveLetter.includes('C:')
             ? '<i class="fab fa-windows" style="color:var(--cyan); font-size: 1.15rem;"></i>'
@@ -1166,13 +1091,14 @@ function _renderHwPartitions(data) {
         var total = parseFloat(d.totalCapacity || d.Size || 0);
         var free = parseFloat(d.freeSpace || d.FreeSpace || 0);
         var used = parseFloat(d.usedSpace || d.UsedSpace || (total - free) || 0);
-        var pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+        var pct = d.UsagePercentage || d.usagePercentage || 0;
+        var usageLvl = (d.UsageLevel || d.usageLevel || 'Healthy').toUpperCase();
 
         var style = _driveStyle(letter, driveType);
 
         var barColor = '#22c55e';
-        if (pct >= 90) barColor = '#ef4444';
-        else if (pct >= 75) barColor = '#f59e0b';
+        if (usageLvl === 'CRITICAL') barColor = '#ef4444';
+        else if (usageLvl === 'WARNING') barColor = '#f59e0b';
 
         var displayName = escapeHtml(letter) + (label ? ' â€” ' + escapeHtml(label) : '');
 
@@ -1369,11 +1295,12 @@ function renderProcessorThermal(d) {
     $('#cpuHealthSection').show();
 
     var healthScore = d.HealthScore || d.healthScore || 100;
-    var healthStatus = d.HealthStatus || d.healthStatus || 'Healthy';
+    var healthStatus = d.HealthLevel || d.healthLevel || d.HealthStatus || d.healthStatus || 'Healthy';
     var healthColor;
-    if (healthScore >= 80) healthColor = '#22c55e';
-    else if (healthScore >= 50) healthColor = '#f59e0b';
-    else healthColor = '#ef4444';
+    var upperLevel = healthStatus.toUpperCase();
+    if (upperLevel === 'CRITICAL') healthColor = '#ef4444';
+    else if (upperLevel === 'WARNING') healthColor = '#f59e0b';
+    else healthColor = '#22c55e';
 
     window.componentScores = window.componentScores || { processor: 100, disk: 100, motherboard: 100, memory: 100 };
     window.componentScores.processor = healthScore;
@@ -1434,13 +1361,7 @@ function renderProcessorThermal(d) {
         .removeClass('is-down')
         .toggleClass('is-down', healthScore < 40);
 
-    var findings = [];
-    if (pkgTemp >= 90) findings.push('Package temperature is critically high (' + pkgTemp.toFixed(0) + '°C) — CPU may be thermal-throttling. Check cooling.');
-    else if (pkgTemp >= 80) findings.push('Package temperature is very high (' + pkgTemp.toFixed(0) + '°C) — verify fan speed and thermal paste.');
-    else if (pkgTemp >= 70) findings.push('Package temperature is elevated (' + pkgTemp.toFixed(0) + '°C) — monitor under sustained load.');
-    var hotCores = coreReadings.filter(function (c) { return c.value >= 80; });
-    if (hotCores.length > 0) findings.push(hotCores.length + ' core(s) exceeding 80°C (' + hotCores.map(function (c) { return c.label + ': ' + c.value.toFixed(0) + '°C'; }).join(', ') + ').');
-    if (pkgPower > 45) findings.push('Power draw is high (' + pkgPower.toFixed(1) + ' W) — may contribute to thermal pressure.');
+    var findings = d.Issues || d.issues || [];
     if (findings.length === 0) findings.push('No thermal issues detected — processor is operating within healthy temperature ranges.');
 
     var list = $('#cpuHealthIssuesList').empty();
@@ -1675,12 +1596,13 @@ function renderMotherboardAudit(data) {
 
     const circumference = 283;
     const dash = (score / 100) * circumference;
-    const color = score >= 80 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444';
+    const upperStatus = (status || '').toUpperCase();
+    const color = upperStatus === 'CRITICAL' ? '#ef4444' : upperStatus === 'WARNING' ? '#f59e0b' : '#22c55e';
     $('#mbHealthCircle').attr('stroke-dasharray', `${dash},${circumference}`).attr('stroke', color);
     $('#mbHealthPercentText').text(score + '%');
 
-    const badgeBg = score >= 80 ? '#dcfce7' : score >= 50 ? '#fef3c7' : '#fee2e2';
-    const badgeColor = score >= 80 ? '#15803d' : score >= 50 ? '#b45309' : '#b91c1c';
+    const badgeBg = upperStatus === 'CRITICAL' ? '#fee2e2' : upperStatus === 'WARNING' ? '#fef3c7' : '#dcfce7';
+    const badgeColor = upperStatus === 'CRITICAL' ? '#b91c1c' : upperStatus === 'WARNING' ? '#b45309' : '#15803d';
     $('#mbStatusBadge').css({ background: badgeBg, color: badgeColor })
         .html(`<span class="cpu-live-dot" style="background:${badgeColor};"></span> ${status}`);
 
@@ -2152,7 +2074,8 @@ function loadBatteryDetails() {
         let lvl = data.batteryPercentage || data.BatteryPercentage || 0;
         let charging = data.isCharging || data.IsCharging || false;
         if (lvl > 0) {
-            var lvlColor = lvl <= 20 ? '#ef4444' : (lvl <= 40 ? '#f59e0b' : '#22c55e');
+            var lvlStatus = (data.BatteryLevelStatus || data.batteryLevelStatus || 'Healthy').toUpperCase();
+            var lvlColor = lvlStatus === 'CRITICAL' ? '#ef4444' : (lvlStatus === 'WARNING' ? '#f59e0b' : '#22c55e');
             $('#batteryLevel').html(`<div style="display:flex;align-items:center;gap:5px;">
                     <span style="font-size:1rem;font-weight:700;color:${lvlColor};">${lvl}%</span>
                     <i class="fas ${charging ? 'fa-bolt' : 'fa-battery-three-quarters'}" style="color:${charging ? '#22c55e' : lvlColor};font-size:.78rem;"></i>
@@ -2234,16 +2157,15 @@ function renderBatteryAuditPanel(metrics) {
     let color = '#4ade80';
     let icon = '<i class="fas fa-check-circle" style="color:#4ade80;"></i>';
 
-    if (!hasValidHealthData) {
+    var backendHealthLevel = (metrics.healthLevel || metrics.HealthLevel || '').toUpperCase();
+
+    if (!hasValidHealthData || backendHealthLevel === 'UNKNOWN' || backendHealthLevel === '') {
         color = '#94a3b8'; icon = '<i class="fas fa-question-circle" style="color:#94a3b8;"></i>';
         status = 'No Data';
-    } else if (healthPercent < 50) {
+    } else if (backendHealthLevel === 'CRITICAL') {
         color = '#ef4444'; icon = '<i class="fas fa-times-circle" style="color:#ef4444;"></i>';
         status = status || 'Critical';
-    } else if (healthPercent < 60) {
-        color = '#f97316'; icon = '<i class="fas fa-tools" style="color:#f97316;"></i>';
-        status = status || 'Replacement Recommended';
-    } else if (healthPercent < 80) {
+    } else if (backendHealthLevel === 'WARNING') {
         color = '#f59e0b'; icon = '<i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i>';
         status = status || 'Aging';
     }
@@ -2678,14 +2600,13 @@ function renderDiskHeroOnly(disks) {
     const powHrs = d.PowerOnHours || d.powerOnHours || 0;
     $('#diskHeroPowerOn').html('<i class="fas fa-clock"></i> ' + Number(powHrs).toLocaleString() + ' hrs powered');
 
-    const health = (d.HealthStatus || d.healthStatus || '').toString().toUpperCase();
-    const predictFail = d.PredictFailure || d.predictFailure || false;
-    let healthColor = '#10b981', healthText = health || 'HEALTHY';
-    if (predictFail || health === 'CRITICAL' || health === 'FAILING') {
-        healthColor = '#ef4444'; healthText = 'FAILING';
+    const backendLevel = (d.HealthLevel || d.healthLevel || 'HEALTHY').toUpperCase();
+    let healthColor = '#10b981', healthText = d.HealthLevel || d.healthLevel || 'Healthy';
+    if (backendLevel === 'CRITICAL') {
+        healthColor = '#ef4444';
         $('#diskHealthBadge').addClass('is-down');
-    } else if (health === 'WARNING' || health === 'CAUTION') {
-        healthColor = '#f59e0b'; healthText = 'WARNING';
+    } else if (backendLevel === 'WARNING') {
+        healthColor = '#f59e0b';
     }
     $('#diskHealthBadge').css('color', healthColor)
         .html('<span class="cpu-live-dot" style="background:' + healthColor + ';"></span> ' + healthText);
@@ -2749,10 +2670,11 @@ function renderDiskPanels(d) {
     const totalCap = parseFloat(d.TotalCapacity || d.totalCapacity || 0);
     const usedGB = parseFloat(d.UsedSpaceGB || d.usedSpaceGB || 0);
     const freeGB = parseFloat(d.FreeSpaceGB || d.freeSpaceGB || 0);
-    const usedPct = totalCap > 0 ? Math.min(100, (usedGB / totalCap) * 100) : 0;
+    const usedPct = d.UsedPercent || d.usedPercent || 0;
+    const usageLvl = (d.UsageLevel || d.usageLevel || 'Normal').toUpperCase();
     let barColor = '#22c55e';
-    if (usedPct >= 90) barColor = '#ef4444';
-    else if (usedPct >= 75) barColor = '#f59e0b';
+    if (usageLvl === 'CRITICAL') barColor = '#ef4444';
+    else if (usageLvl === 'HIGH') barColor = '#f59e0b';
 
     const wear = d.Wear || d.wear;
     const temp = d.Temperature || d.temperature;
@@ -2772,15 +2694,14 @@ function renderDiskPanels(d) {
 
 
     let healthScoreColor = '#22c55e';
-    let healthScoreText = d.HealthStatus || d.healthStatus || 'Healthy';
-    if (healthScore < 50) { healthScoreColor = '#ef4444'; }
-    else if (healthScore < 80) { healthScoreColor = '#f59e0b'; }
-    else if (healthScore < 95) { healthScoreColor = '#10b981'; }
+    let healthScoreText = d.healthLevel || d.HealthLevel || d.HealthStatus || 'Healthy';
+    
+    if (healthScoreText.toUpperCase() === 'CRITICAL') { healthScoreColor = '#ef4444'; }
+    else if (healthScoreText.toUpperCase() === 'WARNING') { healthScoreColor = '#f59e0b'; }
+    else if (healthScoreText.toUpperCase() === 'HEALTHY') { healthScoreColor = '#10b981'; }
 
     $('#diskHealthStatusLabel').text(healthScoreText).css('color', healthScoreColor);
-    let usageScoreText = 'Normal';
-    if (usedPct >= 90) usageScoreText = 'Critical';
-    else if (usedPct >= 75) usageScoreText = 'High';
+    let usageScoreText = d.UsageLevel || d.usageLevel || 'Normal';
     $('#diskUsageStatusLabel').text(usageScoreText).css('color', barColor);
 
     if (typeof window.diskHealthChartInstance !== 'undefined' && window.diskHealthChartInstance) window.diskHealthChartInstance.destroy();
@@ -3399,7 +3320,6 @@ $(document).ready(function () {
         $('#summaryDashboardContainer').hide();
         $('#csEntryBanner').hide();
         $('#systemInfoHeader').hide();
-        $('#systemHealthWrapper').hide();
         $('#mainTabCardGrid').hide();
         $('#tabViewContainer').hide();
     }
@@ -3426,7 +3346,6 @@ $(document).ready(function () {
         updateToggleButton(true);
 
         $('#systemInfoHeader').css('display', 'flex');
-        $('#systemHealthWrapper').show();
         $('#mainTabCardGrid').show();
         $('#mainTabCardGridInner').show();
 

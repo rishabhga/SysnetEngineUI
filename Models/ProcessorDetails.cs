@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 namespace ManageEngineWebApp.Models
 {
     public class ProcessorDetails
@@ -10,6 +10,9 @@ namespace ManageEngineWebApp.Models
         public string Family { get; set; }
         public string NumberOfCores { get; set; }
         public string SocketDesignation { get; set; }
+        public int? HealthScore { get; set; }
+        public string HealthLevel { get; set; }
+        public List<string> Issues { get; set; } = new List<string>();
         public string Voltage { get; set; }
         public string Version { get; set; }
         public string DeviceStatus { get; set; }

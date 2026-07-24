@@ -1,4 +1,4 @@
-﻿namespace ManageEngineWebApp.Models
+namespace ManageEngineWebApp.Models
 {
     public class LogicalDiskDetails
     {
@@ -11,5 +11,6 @@
         public double UsagePercentage { get; set; }
         public string UserCode { get; set; }
         public DateTime DateTime { get; set; }
+        public string UsageLevel { get; set; }
     }
 }

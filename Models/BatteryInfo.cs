@@ -28,5 +28,9 @@ namespace ManageEngineWebApp.Models
         public string UsageHistoryJson { get; set; }
         public string BatteryUsageJson { get; set; }
         public DateTime ScanDate { get; set; }
+
+        public int? HealthScore { get; set; }
+        public string HealthLevel { get; set; }
+        public string BatteryLevelStatus { get; set; }
     }
 }

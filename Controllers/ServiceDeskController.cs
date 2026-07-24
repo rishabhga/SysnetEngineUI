@@ -231,8 +231,8 @@ namespace ManageEngineWebApp.Controllers
                     var actionMappings = statuses
                         .Where(s => s != null && !string.IsNullOrEmpty((string)s.systemAction))
                         .ToDictionary(
-                            s => ((string)s.systemAction).ToUpperInvariant(),
-                            s => (int)(s.sortOrder ?? 0)
+                            s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
+                            s => ((string)s.systemAction).ToUpperInvariant()
                         );
 
                     ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);
@@ -425,8 +425,8 @@ namespace ManageEngineWebApp.Controllers
                     var actionMappings = statuses
                         .Where(s => s != null && !string.IsNullOrEmpty((string)s.systemAction))
                         .ToDictionary(
-                            s => ((string)s.systemAction).ToUpperInvariant(),
-                            s => (int)(s.sortOrder ?? 0)
+                            s => ((string)s.statusCode ?? (string)s.statusName).ToUpperInvariant(),
+                            s => ((string)s.systemAction).ToUpperInvariant()
                         );
 
                     ViewBag.StatusOrdersJson = Newtonsoft.Json.JsonConvert.SerializeObject(statusOrders);

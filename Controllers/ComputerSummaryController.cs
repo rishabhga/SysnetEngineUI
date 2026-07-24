@@ -3197,24 +3197,20 @@ namespace ManageEngineWebApp.Controllers
 
             try
             {
-                string UCode = GetUCodeFromDomain(domain);
+                string searchName = ManageEngineWebApp.Helpers.DeviceNameHelper.Normalize(domain);
                 using var httpClient = GetClient();
                 httpClient.BaseAddress = new Uri($"{_baseUrl}");
 
-                var response = await httpClient.GetAsync($"api/MemorySlotDetails");
+                var response = await httpClient.GetAsync($"api/MemorySlotDetails/history/{Uri.EscapeDataString(searchName)}?count=1");
                 if (!response.IsSuccessStatusCode)
                 {
                     return Json(empty);
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
-                var data = JsonConvert.DeserializeObject<List<MemorySummary>>(content);
+                var localDatalist = JsonConvert.DeserializeObject<List<MemorySummary>>(content);
 
-                var localDatalist = data?.Where(x => x.UserCode == UCode)
-                                          .OrderByDescending(x => x.DateTime)
-                                          .ToList() ?? new List<MemorySummary>();
-
-                if (!localDatalist.Any())
+                if (localDatalist == null || !localDatalist.Any())
                 {
                     return Json(empty);
                 }
@@ -4129,6 +4125,9 @@ namespace ManageEngineWebApp.Controllers
                     SerialNumber = b.SerialNumber,
                     Chemistry = b.Chemistry,
                     ScanDate = b.ScanDate,
+                    HealthScore = b.HealthScore,
+                    HealthLevel = b.HealthLevel,
+                    BatteryLevelStatus = b.BatteryLevelStatus,
                     CapacityHistory = capacityHistoryObj,
                     UsageHistory = usageHistoryObj,
                     BatteryUsage = batteryUsageObj
@@ -4206,7 +4205,43 @@ namespace ManageEngineWebApp.Controllers
                                 DateTime currentTime = latestNow.ScanDate;
                                 if (!baselineTime.HasValue || currentTime > baselineTime.Value)
                                 {
-                                    return Json(new { success = true, message = "Battery audit completed successfully.", data = new { metrics = latestNow } });
+                                    List<CapacityHistoryEntryDto> capacityHistoryObj = null;
+                                    List<UsageHistoryEntryDto> usageHistoryObj = null;
+                                    List<BatteryUsageEntryDto> batteryUsageObj = null;
+                                    try { if (!string.IsNullOrWhiteSpace(latestNow.CapacityHistoryJson)) capacityHistoryObj = JsonConvert.DeserializeObject<List<CapacityHistoryEntryDto>>(latestNow.CapacityHistoryJson); } catch { }
+                                    try { if (!string.IsNullOrWhiteSpace(latestNow.UsageHistoryJson)) usageHistoryObj = JsonConvert.DeserializeObject<List<UsageHistoryEntryDto>>(latestNow.UsageHistoryJson); } catch { }
+                                    try { if (!string.IsNullOrWhiteSpace(latestNow.BatteryUsageJson)) batteryUsageObj = JsonConvert.DeserializeObject<List<BatteryUsageEntryDto>>(latestNow.BatteryUsageJson); } catch { }
+
+                                    return Json(new { success = true, message = "Battery audit completed successfully.", data = new { metrics = new {
+                                        Manufacturer = latestNow.Manufacturer,
+                                        Status = latestNow.Status,
+                                        Description = latestNow.Description,
+                                        BatteryLevel = latestNow.BatteryPercentage.ToString(),
+                                        BatteryPercentage = latestNow.BatteryPercentage,
+                                        LiveBatteryDetails = latestNow.LiveBatteryDetails,
+                                        SystemType = latestNow.SystemType,
+                                        UserCode = latestNow.UserCode,
+                                        DateTime = latestNow.ScanDate,
+                                        IsCharging = latestNow.IsCharging,
+                                        DesignCapacity = latestNow.DesignCapacity,
+                                        FullChargeCapacity = latestNow.FullChargeCapacity,
+                                        RemainingCapacity = latestNow.RemainingCapacity,
+                                        CycleCount = latestNow.CycleCount,
+                                        BatteryHealthPercent = latestNow.BatteryHealthPercent,
+                                        WearLevelPercent = latestNow.WearLevelPercent,
+                                        WearRatePerMonth = latestNow.WearRatePerMonth,
+                                        EstimatedRemainingMonths = latestNow.EstimatedRemainingMonths,
+                                        BatteryName = latestNow.BatteryName,
+                                        SerialNumber = latestNow.SerialNumber,
+                                        Chemistry = latestNow.Chemistry,
+                                        ScanDate = latestNow.ScanDate,
+                                        HealthScore = latestNow.HealthScore,
+                                        HealthLevel = latestNow.HealthLevel,
+                                        BatteryLevelStatus = latestNow.BatteryLevelStatus,
+                                        CapacityHistory = capacityHistoryObj,
+                                        UsageHistory = usageHistoryObj,
+                                        BatteryUsage = batteryUsageObj
+                                    } } });
                                 }
                             }
                         }
@@ -5277,6 +5312,26 @@ namespace ManageEngineWebApp.Controllers
             }
 
             return Json(new { success = false, message = "Failed to update VIP settings." });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SystemHealth(string domain)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/SystemHealth/{Uri.EscapeDataString(UCode)}");
+                var response = await httpClient.GetAsync("");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+            }
+            catch (Exception) { }
+            return Json(new { });
         }
     }
 

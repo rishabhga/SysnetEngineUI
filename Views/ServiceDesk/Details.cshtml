@@ -760,31 +760,26 @@
             return;
         }
 
-        const isOpen = status === 'OPEN' || status === 'NEW' || status === 'PENDING';
-        const isApproved = status === 'APPROVED';
-        const isAssigned = status === 'ASSIGNED';
-        const isInProgress = status === 'INPROGRESS' || status === 'IN_PROGRESS' || status === 'WORKING';
-        const isRejected = status === 'REJECTED';
-        const isResolved = status === 'RESOLVED';
+        const sysAction = (systemActions[currentStatus] || '').toUpperCase();
 
-        if (isOpen) {
+        if (sysAction === 'OPEN') {
             if (canApprove) {
                 container.append(`<button onclick="openApproveModal()" class="px-3.5 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check text-[9px]"></i> Approve</button>`);
                 container.append(`<button onclick="openModal('rejectModal')" class="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-white/30 text-white hover:bg-red-500/30 transition-colors"><i class="fas fa-times text-[9px]"></i> Reject</button>`);
             }
-        } else if (isApproved) {
+        } else if (sysAction === 'APPROVE') {
             if (canAssign) {
                 container.append(`<button onclick="openModal('assignModal')" class="px-3.5 py-1.5 btn-cyan text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-user-tag text-[9px]"></i> Assign Engineer</button>`);
             }
-        } else if (isAssigned) {
+        } else if (sysAction === 'ASSIGN') {
             container.append(`<button onclick="startWork()" class="px-3.5 py-1.5 btn-cyan text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-play text-[9px]"></i> Start Work</button>`);
-        } else if (isInProgress) {
+        } else if (sysAction === 'STARTWORK') {
             container.append(`<button onclick="openModal('resolveModal')" class="px-3.5 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-check-circle text-[9px]"></i> Resolve</button>`);
-        } else if (isRejected) {
+        } else if (sysAction === 'REJECT') {
             if (canApprove || canBypassWorkflow) {
                 container.append(`<button onclick="openApproveModal()" class="px-3.5 py-1.5 btn-lime text-xs font-bold rounded-lg flex items-center gap-1.5"><i class="fas fa-undo text-[9px]"></i> Re-Approve</button>`);
             }
-        } else if (isResolved) {
+        } else if (sysAction === 'RESOLVE') {
 
         }
 
