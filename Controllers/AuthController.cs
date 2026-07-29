@@ -1163,6 +1163,13 @@ namespace ManageEngineWebApp.Controllers
 
         [HttpPost]
         [AuthFilter]
+        public async Task<IActionResult> ScanPermissions()
+        {
+            return await SeedPermissions();
+        }
+
+        [HttpPost]
+        [AuthFilter]
         [DynamicPermission("Auth.SeedPermissions", "Seed/Reset Permissions")]
         public async Task<IActionResult> SeedPermissions()
         {

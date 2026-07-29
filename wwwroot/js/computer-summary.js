@@ -778,21 +778,72 @@ function renderMemoryTrendChart(history, skipStore) {
 }
    function computeMemoryHealth(data) {
     var overall = data.healthScore ?? data.HealthScore ?? 100;
-    
+
     window.componentScores = window.componentScores || { processor: 100, disk: 100, motherboard: 100, memory: 100 };
     window.componentScores.memory = overall;
     if (typeof window.updateSystemHealth === 'function') window.updateSystemHealth();
 
+    var usagePct = parseFloat(data.usagePercent || data.UsagePercent || 0);
+    var freeGB = parseFloat(data.freeMemoryGB || data.FreeMemoryGB || 0);
+    var totalGB = parseFloat(data.installedMemoryGB || data.InstalledMemoryGB || 0);
+    var modules = data.memoryModules || data.MemoryModules || [];
+    var totalSlots = parseInt(data.totalSlots || data.TotalSlots || (modules.length > 0 ? Math.max(2, modules.length) : 2)) || 2;
+    var usedSlots = parseInt(data.usedSlots || data.UsedSlots || modules.length) || modules.length;
+    var emptySlots = Math.max(0, totalSlots - usedSlots);
+
+    var usageScore = 100;
+    if (usagePct > 90) usageScore = Math.max(20, Math.round(100 - (usagePct - 90) * 5));
+    else if (usagePct > 75) usageScore = Math.round(100 - (usagePct - 75) * 2.5);
+    else if (usagePct > 60) usageScore = Math.round(100 - (usagePct - 60) * 1.2);
+
+    var configScore = overall;
+    var issues = [];
+
+    var rawIssues = data.healthIssues || data.HealthIssues;
+    if (rawIssues && Array.isArray(rawIssues) && rawIssues.length > 0) {
+        issues = rawIssues.slice();
+    } else {
+        if (usagePct > 90) {
+            issues.push("Critical Memory Load: High RAM utilization at " + usagePct.toFixed(1) + "%. System may experience performance throttling.");
+        } else if (usagePct > 75) {
+            issues.push("Elevated Memory Usage: Memory utilization is high at " + usagePct.toFixed(1) + "%.");
+        }
+
+        if (freeGB > 0 && freeGB < 1.5 && totalGB >= 4) {
+            issues.push("Low Free Memory: Only " + freeGB.toFixed(2) + " GB of available memory remains.");
+        }
+
+        if (modules.length >= 2) {
+            var speeds = modules.map(m => m.speedMHz || m.SpeedMHz || m.configuredClockSpeedMHz || m.ConfiguredClockSpeedMHz || 0).filter(s => s > 0);
+            var uniqueSpeeds = Array.from(new Set(speeds));
+            if (uniqueSpeeds.length > 1) {
+                issues.push("RAM Speed Mismatch: Modules operate at different speeds (" + uniqueSpeeds.join(" MHz, ") + " MHz). System will run at lowest clock speed.");
+            }
+        }
+
+        if (emptySlots > 0) {
+            issues.push("Expansion Capacity: " + emptySlots + " unpopulated RAM slot(s) available for RAM expansion.");
+        }
+    }
+
     var backendLevel = (data.healthLevel || data.HealthLevel || 'HEALTHY').toUpperCase();
     var status = data.healthLevel || data.HealthLevel || 'Healthy';
-    
+
     var color = '#10b981';
     if (backendLevel === 'CRITICAL') color = '#ef4444';
     else if (backendLevel === 'WARNING') color = '#f59e0b';
 
+    var channelMode = (usedSlots >= 2) ? 'Dual Channel' : 'Single Channel';
+
     return {
-        overall: overall, configScore: overall, usageScore: overall,
-        status: status, color: color, channelMode: 'Auto', emptySlots: 0, issues: (data.HealthIssues || data.healthIssues || [])
+        overall: overall,
+        configScore: Math.min(100, Math.max(0, configScore)),
+        usageScore: Math.min(100, Math.max(0, usageScore)),
+        status: status,
+        color: color,
+        channelMode: channelMode,
+        emptySlots: emptySlots,
+        issues: issues
     };
 }
 
@@ -825,9 +876,13 @@ function renderMemoryHealth(data) {
     $('#memEmptySlots').text(health.emptySlots);
 
     var list = $('#memHealthIssuesList').empty();
-    health.issues.forEach(function (issue) {
-        list.append('<li>' + escapeHtml(issue) + '</li>');
-    });
+    if (!health.issues || health.issues.length === 0) {
+        list.append('<li style="color:var(--slate-500);list-style:none;margin-left:-18px;"><i class="fas fa-check-circle" style="color:#22c55e;margin-right:6px;"></i>No diagnostic issues found. Memory is operating normally.</li>');
+    } else {
+        health.issues.forEach(function (issue) {
+            list.append('<li style="margin-bottom:4px;"><i class="fas fa-info-circle" style="color:var(--slate-400);margin-right:6px;"></i>' + escapeHtml(issue) + '</li>');
+        });
+    }
 }
 
 function hasRealMemoryData(data) {
@@ -2581,6 +2636,8 @@ function loadHardDiskDetails() {
         if (hasRealData) {
             renderHardDiskDashboard(disks, false);
             loadHwPartitions();
+            loadSmartDataDetails();
+            loadDeepDiskReportDetails();
         } else {
             var d = disks[0];
             var model = d.Model || d.model || 'Unknown Disk';
@@ -2643,8 +2700,7 @@ function renderHardDiskDashboard(disks, openGate = true) {
                    style="${isActive ? 'background:linear-gradient(135deg,var(--primary),#0d9488);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(14,165,233,.25);' : 'background:#fff;border-color:var(--slate-200);color:var(--slate-600);'}"
                    data-disk-idx="${idx}">
                    <i class="fas fa-hdd" style="margin-right:4px;"></i>
-                   <strong>Disk ${idx + 1}</strong>
-                   <span style="opacity:.7;font-size:.7rem;margin-left:4px;">${cap} GB â€” ${(disk.Model || disk.model || 'Unknown').substring(0, 20)}</span>
+                               <span style="opacity:.7;font-size:.7rem;margin-left:4px;">${cap} GB &mdash; ${(disk.Model || disk.model || 'Unknown').substring(0, 20)}</span>
                 </a></li>`;
         });
         $('#diskSelectorTabs').html(tabHtml);
@@ -2777,7 +2833,7 @@ function renderDiskPanels(d) {
             <div class="cs-info-box"><div class="cs-info-box-label">Free Space</div><div class="cs-info-box-value green">${freeGB.toFixed(2)} GB</div></div>
             <div class="cs-info-box"><div class="cs-info-box-label">Power-On Hours</div><div class="cs-info-box-value">${Number(d.PowerOnHours || d.powerOnHours || 0).toLocaleString()} hrs</div></div>
             <div class="cs-info-box"><div class="cs-info-box-label">Health Status</div><div class="cs-info-box-value" style="color:${(d.HealthStatus || '').toUpperCase() === 'HEALTHY' ? '#22c55e' : '#f59e0b'};">${d.HealthStatus || d.healthStatus || 'N/A'}</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Predict Failure</div><div class="cs-info-box-value" style="color:${(d.PredictFailure || d.predictFailure) ? '#ef4444' : '#22c55e'};">${(d.PredictFailure || d.predictFailure) ? 'Yes âš ' : 'No'}</div></div>
+            <div class="cs-info-box"><div class="cs-info-box-label">Predict Failure</div><div class="cs-info-box-value" style="color:${(d.PredictFailure || d.predictFailure) ? '#ef4444' : '#22c55e'};">${(d.PredictFailure || d.predictFailure) ? 'Yes <i class="fas fa-exclamation-triangle"></i>' : 'No'}</div></div>
         </div>`;
     $('#diskSpecsContainer').html(specsHtml);
 
@@ -2845,67 +2901,8 @@ function renderDiskPanels(d) {
     $('#diskSmartPlaceholder').hide();
     $('#diskAuditResults').show();
 
-    const dstStatus = d.DstStatus || d.dstStatus;
-    const dstProgress = d.DstProgressPercent || d.dstProgressPercent;
-    const dstTime = d.DstLastExecutionTime || d.dstLastExecutionTime;
-    const dstResult = d.DstResult || d.dstResult;
-
-    if (dstStatus || dstResult) {
-        let statusColor = '#3b82f6';
-        let icon = 'fa-spinner fa-spin';
-        if (dstStatus === 'Completed' || dstStatus === 'Passed' || dstResult === 'Passed') {
-            statusColor = '#22c55e';
-            icon = 'fa-check-circle';
-        } else if (dstStatus === 'Failed' || dstResult === 'Failed') {
-            statusColor = '#ef4444';
-            icon = 'fa-times-circle';
-        } else if (dstStatus === 'Aborted' || dstStatus === 'Stopped') {
-            statusColor = '#f59e0b';
-            icon = 'fa-exclamation-circle';
-        }
-
-        let timeStr = 'N/A';
-        if (dstTime) {
-            try {
-                timeStr = new Date(dstTime).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-            } catch (e) { }
-        }
-
-        const dstHtml = `
-            <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:18px;box-shadow:var(--shadow-sm);">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-                    <i class="fas ${icon}" style="font-size:1.8rem;color:${statusColor};"></i>
-                    <div>
-                        <div style="font-size:1rem;font-weight:700;color:var(--slate-800);">${dstStatus || 'Unknown Status'}</div>
-                        <div style="font-size:.75rem;color:var(--slate-500);">Last Executed: ${timeStr}</div>
-                    </div>
-                </div>
-
-                ${(dstProgress !== undefined && dstProgress !== null) ? `
-                <div style="margin-bottom:16px;">
-                    <div style="font-size:.74rem;font-weight:700;color:var(--slate-600);margin-bottom:8px;">Test Progress</div>
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <div style="flex:1;height:10px;border-radius:6px;background:var(--slate-100);overflow:hidden;">
-                            <div style="height:100%;width:${dstProgress}%;background:${statusColor};border-radius:6px;transition:width 1s;"></div>
-                        </div>
-                        <span style="font-size:.8rem;font-weight:800;color:${statusColor};min-width:36px;text-align:right;">${dstProgress}%</span>
-                    </div>
-                </div>` : ''}
-
-                <div style="font-size:.74rem;font-weight:700;color:var(--slate-600);margin-bottom:4px;">Diagnostic Result</div>
-                <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-sm);padding:10px 12px;font-family:var(--font-mono);font-size:.75rem;color:var(--slate-700);">
-                    ${dstResult || 'No detailed diagnostic result available.'}
-                </div>
-            </div>`;
-
-        $('#diskDstContainer').html(dstHtml);
-        $('#diskDstPlaceholder').hide();
-        $('#diskDstResults').show();
-    } else {
-        $('#diskDstContainer').empty();
-        $('#diskDstPlaceholder').show();
-        $('#diskDstResults').hide();
-    }
+    // DST/Deep Audit data comes from DeepDiskHealthReport (separate model)
+    // Quick Audit does NOT populate DST fields - leave placeholders for Deep Audit
 }
 
 function _smartMetric(label, value, color, icon, isText) {
@@ -2916,6 +2913,123 @@ function _smartMetric(label, value, color, icon, isText) {
                     <i class="${icon}" style="font-size:.7rem;"></i>${display}
                 </div>
             </div>`;
+}
+
+function loadSmartDataDetails() {
+    $.get(`/ComputerSummary/GetSmartData?domain=${domaindata}`, function (smart) {
+        if (!smart || smart.success === false) return;
+        renderSmartDataPanel(smart);
+    });
+}
+
+function renderSmartDataPanel(smart) {
+    const attrs = smart.smartAttributes || smart.SmartAttributes;
+    if (!attrs || !Array.isArray(attrs) || attrs.length === 0) return;
+
+    let rows = attrs.map(a => {
+        let stColor = '#22c55e';
+        let stText = a.status || a.Status || 'OK';
+        if (stText.toUpperCase() !== 'OK' && stText.toUpperCase() !== 'GOOD' && stText.toUpperCase() !== 'HEALTHY') {
+            stColor = '#ef4444';
+        }
+        return `<tr>
+            <td style="padding:6px 10px;font-weight:600;color:var(--slate-700);">${a.name || a.Name || 'N/A'}</td>
+            <td style="padding:6px 10px;text-align:center;">${a.currentValue ?? a.CurrentValue ?? '-'}</td>
+            <td style="padding:6px 10px;text-align:center;">${a.worstValue ?? a.WorstValue ?? '-'}</td>
+            <td style="padding:6px 10px;text-align:center;">${a.threshold ?? a.Threshold ?? '-'}</td>
+            <td style="padding:6px 10px;font-family:var(--font-mono);text-align:right;">${a.rawValue ?? a.RawValue ?? 0}</td>
+            <td style="padding:6px 10px;text-align:center;"><span style="color:${stColor};font-weight:700;">${stText}</span></td>
+        </tr>`;
+    }).join('');
+
+    let tableHtml = `
+        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+            <div style="font-size:.82rem;font-weight:700;color:var(--slate-800);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+                <span><i class="fas fa-list-alt" style="color:var(--cyan);margin-right:6px;"></i>S.M.A.R.T. Raw Attributes (${attrs.length} Parameters)</span>
+                <span style="font-size:.7rem;color:var(--slate-400);">Status: ${smart.smartStatus || smart.SmartStatus || 'PASSED'}</span>
+            </div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%;font-size:.76rem;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:var(--slate-50);border-bottom:1px solid var(--slate-200);color:var(--slate-500);text-align:left;">
+                            <th style="padding:6px 10px;">Attribute Name</th>
+                            <th style="padding:6px 10px;text-align:center;">Value</th>
+                            <th style="padding:6px 10px;text-align:center;">Worst</th>
+                            <th style="padding:6px 10px;text-align:center;">Thresh</th>
+                            <th style="padding:6px 10px;text-align:right;">Raw Value</th>
+                            <th style="padding:6px 10px;text-align:center;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody style="divide-y divide-slate-100;">
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+
+    $('#diskSmartContainer').html(tableHtml);
+    $('#diskSmartPlaceholder').hide();
+    $('#diskAuditResults').show();
+}
+
+function loadDeepDiskReportDetails() {
+    $.get(`/ComputerSummary/GetDeepDiskReport?domain=${domaindata}`, function (report) {
+        if (!report || report.success === false) return;
+        renderDeepDiskReportPanel(report);
+    });
+}
+
+function renderDeepDiskReportPanel(report) {
+    if (!report) return;
+
+    const seqRead = report.sequentialRead || report.SequentialRead;
+    const seqWrite = report.sequentialWrite || report.SequentialWrite;
+    const rndRead = report.randomRead || report.RandomRead;
+    const rndWrite = report.randomWrite || report.RandomWrite;
+    const dst = report.dstResult || report.DstResult;
+    const surf = report.surfaceRead || report.SurfaceRead;
+
+    let benchmarkHtml = `
+        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+            <div style="font-size:.82rem;font-weight:700;color:var(--slate-800);margin-bottom:12px;"><i class="fas fa-tachometer-alt" style="color:#8b5cf6;margin-right:6px;"></i>Drive Benchmark Performance Metrics</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+                ${_benchCard('Seq Read', seqRead?.speedMBps || seqRead?.SpeedMBps, '#8b5cf6', 'fa-arrow-down')}
+                ${_benchCard('Seq Write', seqWrite?.speedMBps || seqWrite?.SpeedMBps, '#ec4899', 'fa-arrow-up')}
+                ${_benchCard('Random Read', rndRead?.speedMBps || rndRead?.SpeedMBps, '#3b82f6', 'fa-random')}
+                ${_benchCard('Random Write', rndWrite?.speedMBps || rndWrite?.SpeedMBps, '#10b981', 'fa-pencil-alt')}
+            </div>
+        </div>`;
+
+    let dstHtml = '';
+    if (dst) {
+        let stColor = (dst.status || dst.Status || 'Passed').toUpperCase() === 'PASSED' ? '#22c55e' : '#ef4444';
+        dstHtml = `
+            <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                    <span style="font-size:.82rem;font-weight:700;color:var(--slate-800);"><i class="fas fa-microscope" style="color:#8b5cf6;margin-right:6px;"></i>Drive Self-Test (DST) Report</span>
+                    <span style="font-size:.74rem;font-weight:800;color:${stColor};">${dst.status || dst.Status || 'Passed'}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:.76rem;">
+                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Test Type: <strong>${dst.testType || dst.TestType || 'Full DST'}</strong></div>
+                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Duration: <strong>${(dst.durationMinutes || dst.DurationMinutes || 0).toFixed(1)} mins</strong></div>
+                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Total Errors: <strong style="color:${(dst.totalErrors || dst.TotalErrors) > 0 ? '#ef4444' : '#22c55e'};">${dst.totalErrors ?? dst.TotalErrors ?? 0}</strong></div>
+                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Surface Read: <strong>${(surf?.errorCount || surf?.ErrorCount) > 0 ? 'Errors Detected' : 'Clean'}</strong></div>
+                </div>
+            </div>`;
+    }
+
+    $('#diskDstContainer').html(benchmarkHtml + dstHtml);
+    $('#diskDstPlaceholder').hide();
+    $('#diskDstResults').show();
+}
+
+function _benchCard(title, speed, color, icon) {
+    let spdVal = speed ? parseFloat(speed).toFixed(1) + ' MB/s' : 'N/A';
+    return `
+        <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-sm);padding:12px;text-align:center;">
+            <div style="font-size:.68rem;font-weight:700;color:var(--slate-500);text-transform:uppercase;margin-bottom:4px;"><i class="fas ${icon}" style="color:${color};margin-right:4px;"></i>${title}</div>
+            <div style="font-size:1.1rem;font-weight:800;color:${color};">${spdVal}</div>
+        </div>`;
 }
 
 $(document).ready(function () {
@@ -3119,11 +3233,15 @@ $(document).ready(function () {
         e.preventDefault();
         let btn = $(this);
         let originalText = btn.html();
-        btn.html('<i class="fas fa-check"></i> Initiated');
+        btn.html('<i class="fas fa-circle-notch fa-spin"></i> Running DST...');
         btn.prop('disabled', true);
         btn.css('opacity', '0.7');
         window.hasLiveAuditOccurred = true;
-        sysAlert('Deep Audit (DST) requested. This will take up to 30 minutes in the background.', 'info');
+        sysAlert('Deep Audit (DST) requested. Sending command to device...', 'info');
+
+        // Open the gate so Deep Audit sections are visible
+        $('#diskAuditPlaceholder').hide();
+        $('#diskAuditGate').show();
 
         $.ajax({
             url: '/ComputerSummary/AuditHardDisk?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName) + '&auditType=deep',
@@ -3131,13 +3249,19 @@ $(document).ready(function () {
             timeout: 10000,
             success: function (res) {
                 if (res && res.success) {
-                    sysAlert(res.message || 'Drive Self-Test initiated. Please check back later.', 'success');
+                    sysAlert(res.message || 'Deep Audit initiated! Loading existing deep diagnostics...', 'success');
                 } else {
                     sysAlert(res.message || 'Failed to initiate Deep Audit.', 'error');
                 }
+                // Always try to load existing deep data from DB
+                loadSmartDataDetails();
+                loadDeepDiskReportDetails();
             },
             error: function (xhr, status) {
-                sysAlert('Connection error while triggering deep audit.', 'error');
+                sysAlert('Connection error. Loading last known deep data...', 'warning');
+                // Still try to load existing data from DB
+                loadSmartDataDetails();
+                loadDeepDiskReportDetails();
             },
             complete: function () {
                 setTimeout(function () {

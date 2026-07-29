@@ -82,6 +82,10 @@
             background: linear-gradient(90deg, #8b5cf6, #7c3aed);
         }
 
+        .stat-card.orange::before {
+            background: linear-gradient(90deg, #f97316, #ea580c);
+        }
+
         .stat-icon {
             width: 32px;
             height: 32px;
@@ -109,6 +113,11 @@
 
             .stat-icon.violet {
                 background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+                color: #fff;
+            }
+
+            .stat-icon.orange {
+                background: linear-gradient(135deg, #f97316, #ea580c);
                 color: #fff;
             }
 
@@ -328,11 +337,11 @@
     </div>
 
     @* ── STATS ROW ── *@
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4" id="statsRow">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4" id="statsRow">
         <div class="stat-card cyan">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Network Devices</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Managed Devices</p>
                     <div class="flex items-baseline gap-2 mt-1">
                         <p class="text-2xl font-black text-slate-800" id="statTotal">
                             <span class="skeleton inline-block w-12 h-7">&nbsp;</span>
@@ -343,6 +352,22 @@
                     </div>
                 </div>
                 <div class="stat-icon cyan"><i class="fas fa-desktop"></i></div>
+            </div>
+        </div>
+        <div class="stat-card orange">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remote Devices</p>
+                    <div class="flex items-baseline gap-2 mt-1">
+                        <p class="text-2xl font-black text-slate-800" id="statRemoteConnected">
+                            <span class="skeleton inline-block w-12 h-7">&nbsp;</span>
+                        </p>
+                        <span class="text-xs font-semibold text-orange-500" id="statRemoteDetail">
+                            <i class="fas fa-signal text-[8px] animate-pulse"></i> connected
+                        </span>
+                    </div>
+                </div>
+                <div class="stat-icon orange"><i class="fas fa-plug"></i></div>
             </div>
         </div>
         <div class="stat-card lime">
@@ -362,7 +387,7 @@
         <div class="stat-card amber">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Switches</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Network Devices</p>
                     <div class="flex items-baseline gap-2 mt-1">
                         <p class="text-2xl font-black text-slate-800" id="statSwitches">
                             <span class="skeleton inline-block w-12 h-7">&nbsp;</span>
@@ -401,9 +426,9 @@
             <div class="chart-header">
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full" style="background: #00BCEB;"></div>
-                    <h3 class="text-sm font-bold text-slate-700">Network Status</h3>
+                    <h3 class="text-sm font-bold text-slate-700">Device Status</h3>
                 </div>
-                <span class="text-[10px] text-slate-400 font-medium">DEVICES</span>
+                <span class="text-[10px] text-slate-400 font-medium">MANAGED</span>
             </div>
             <div class="chart-body flex items-center justify-center">
                 <canvas id="networkChart" style="max-height:120px;"></canvas>
@@ -429,9 +454,9 @@
             <div class="chart-header">
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full" style="background: #f59e0b;"></div>
-                    <h3 class="text-sm font-bold text-slate-700">Switch Status</h3>
+                    <h3 class="text-sm font-bold text-slate-700">Network Infrastructure</h3>
                 </div>
-                <span class="text-[10px] text-slate-400 font-medium">INFRASTRUCTURE</span>
+                <span class="text-[10px] text-slate-400 font-medium">SWITCHES / ROUTERS</span>
             </div>
             <div class="chart-body flex items-center justify-center">
                 <canvas id="switchChart" style="max-height:120px;"></canvas>
@@ -521,11 +546,12 @@
             if (lid) query += (query ? "&" : "?") + "locationId=" + lid;
 
             $.get('@Url.Action("GetNetworkStats", "Home")' + query, function(data) {
-                if (data.error) { $('#statTotal').text('—'); return; }
+                if (data.error) { $('#statTotal').text('—'); $('#statRemoteConnected').text('—'); return; }
                 animateNumber('statTotal', data.total);
                 $('#statOnline').text(data.online);
+                animateNumber('statRemoteConnected', data.remoteConnected || 0);
                 renderNetworkChart(data.online, data.offline);
-            }).fail(() => $('#statTotal').text('—'));
+            }).fail(() => { $('#statTotal').text('—'); $('#statRemoteConnected').text('—'); });
 
             $.get('@Url.Action("GetPatchOverview", "Home")' + query, function(data) {
                 if (data.error) { $('#statPatches').text('—'); return; }
@@ -540,6 +566,12 @@
                 $('#statSwitchUp').html(`<i class="fas fa-arrow-up text-[8px]"></i> ${data.up} UP`);
                 renderSwitchChart(data.up, data.down);
             }).fail(() => $('#statSwitches').text('—'));
+
+            $.get('@Url.Action("GetNotifications", "Home")' + query, function(data) {
+                if (!data || data.count === undefined) { $('#statAlerts').text('0'); return; }
+                animateNumber('statAlerts', data.count);
+                $('#statAlertLabel').text(data.count === 1 ? '1 active alert' : `${data.count} active alerts`);
+            }).fail(() => $('#statAlerts').text('0'));
 
             loadLiveResources();
         }

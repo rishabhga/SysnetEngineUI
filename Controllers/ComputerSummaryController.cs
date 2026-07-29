@@ -132,6 +132,26 @@ namespace ManageEngineWebApp.Controllers
                             .Select(d => d.UserName)
                             .ToList();
                     }
+
+                    try
+                    {
+                        string remoteUrl = $"api/RemoteAccess/ActiveSessionsCount?locationId={locationId}&companyId={comId}&groupId={groupid}";
+                        var remoteResponse = await httpClient.GetAsync(remoteUrl);
+                        if (remoteResponse.IsSuccessStatusCode)
+                        {
+                            var remoteContent = await remoteResponse.Content.ReadAsStringAsync();
+                            var remoteObj = JsonConvert.DeserializeObject<dynamic>(remoteContent);
+                            ViewBag.RemoteSessions = (int)(remoteObj?.activeCount ?? 0);
+                        }
+                        else
+                        {
+                            ViewBag.RemoteSessions = 0;
+                        }
+                    }
+                    catch
+                    {
+                        ViewBag.RemoteSessions = 0;
+                    }
                 }
                 var companyResponse = await companyTask;
                 if (companyResponse.IsSuccessStatusCode)
@@ -1018,6 +1038,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
+        [DynamicPermission("ComputerSummary.Scan", "Rescan Computer Patches")]
         public async Task<IActionResult> ReScanPatches([FromBody] ReScanRequestDto dto)
         {
             if (dto == null || string.IsNullOrWhiteSpace(dto.ClientId))
@@ -2633,21 +2654,15 @@ namespace ManageEngineWebApp.Controllers
             {
                 string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/HardDiskDetails");
 
-                var response = await httpClient.GetAsync("");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/byUser/{Uri.EscapeDataString(UCode)}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     var data = JsonConvert.DeserializeObject<List<HardDiskDetails>>(content);
                     if (data != null)
                     {
-                        localDatalist = data
-                            .Where(x => x.UserCode == UCode)
-                            .GroupBy(x => x.SerialNumber)
-                            .Select(g => g.OrderByDescending(x => x.DateTime).First())
-                            .OrderBy(x => x.Model)
-                            .ToList();
+                        localDatalist = data;
                     }
                 }
             }
@@ -2677,10 +2692,75 @@ namespace ManageEngineWebApp.Controllers
                 d.PredictFailure,
                 FreeSpaceGB = Math.Round(d.FreeSpaceGB, 3),
                 UsedSpaceGB = Math.Round(d.UsedSpaceGB, 3),
-                d.DateTime
+                d.DateTime,
+                d.HealthScore,
+                d.HealthLevel,
+                UsedPercent = Math.Round(d.UsedPercent, 1),
+                d.UsageLevel,
+                d.DstStatus,
+                d.DstProgressPercent,
+                d.DstLastExecutionTime,
+                d.DstResult
             });
 
             return Json(result);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDeepDiskReport(string domain)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/deep-report/{Uri.EscapeDataString(UCode)}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+            }
+            catch (Exception) { }
+            return Json(new { success = false, message = "No deep report available" });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetSmartData(string domain)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/smart-data/{Uri.EscapeDataString(UCode)}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+            }
+            catch (Exception) { }
+            return Json(new { success = false, message = "No SMART data available" });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDiskInfo(string domain)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/disk-info/{Uri.EscapeDataString(UCode)}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+            }
+            catch (Exception) { }
+            return Json(new List<object>());
         }
         [HttpGet]
         public async Task<IActionResult> LocalDisk(string domain)
@@ -5232,6 +5312,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
+        [DynamicPermission("ComputerSummary.Scan", "Audit Hard Disk")]
         public async Task<IActionResult> AuditHardDisk([FromQuery] string domain, [FromQuery] string hostName = null, [FromQuery] string auditType = "quick")
         {
             if (!await IsDeviceAuthorized(domain))

@@ -49,14 +49,24 @@ namespace ManageEngineWebApp.Controllers
                 var query = BuildScopedQuery(companyId, locationId, groupId);
                 var totalTask = client.GetAsync($"{_baseUrl}/api/WindowsUserDetails/allUser{query}");
                 var activeTask = client.GetAsync($"{_baseUrl}/api/Command/GetConnectedDevices");
+                var remoteTask = client.GetAsync($"{_baseUrl}/api/RemoteAccess/ActiveSessionsCount{query}");
 
-                await Task.WhenAll(totalTask, activeTask);
+                await Task.WhenAll(totalTask, activeTask, remoteTask);
 
                 var totalContent = await totalTask.Result.Content.ReadAsStringAsync();
                 var allDevices = JsonConvert.DeserializeObject<List<WindowsUserDetails>>(totalContent) ?? new List<WindowsUserDetails>();
 
                 var activeContent = await activeTask.Result.Content.ReadAsStringAsync();
                 var activeDevices = JsonConvert.DeserializeObject<List<ConnectedClientDto>>(activeContent) ?? new List<ConnectedClientDto>();
+
+                int remoteActiveCount = 0;
+                var remoteResp = await remoteTask;
+                if (remoteResp.IsSuccessStatusCode)
+                {
+                    var remoteContent = await remoteResp.Content.ReadAsStringAsync();
+                    var remoteObj = JsonConvert.DeserializeObject<dynamic>(remoteContent);
+                    remoteActiveCount = (int)(remoteObj?.activeCount ?? 0);
+                }
 
                 var activeIdentifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var d in activeDevices)
@@ -74,7 +84,8 @@ namespace ManageEngineWebApp.Controllers
                 {
                     total = allDevices.Count,
                     online = onlineCount,
-                    offline = Math.Max(0, allDevices.Count - onlineCount)
+                    offline = Math.Max(0, allDevices.Count - onlineCount),
+                    remoteConnected = remoteActiveCount
                 });
             }
             catch (Exception ex)
@@ -235,14 +246,14 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetNotifications()
+        public async Task<IActionResult> GetNotifications(int? companyId = null, int? groupId = null, int? locationId = null)
         {
             if (!IsTopLevelAdmin() && !HasPermission("ComputerSummary.VIP"))
                 return Content(JsonConvert.SerializeObject(new { items = new List<object>(), count = 0 }), "application/json");
 
             try
             {
-                var notifications = await FetchNotificationsForCurrentUser();
+                var notifications = await FetchNotificationsForCurrentUser(companyId, groupId, locationId);
                 var json = JsonConvert.SerializeObject(new { items = notifications, count = notifications.Count });
                 return Content(json, "application/json");
             }

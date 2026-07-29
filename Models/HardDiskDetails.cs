@@ -27,5 +27,9 @@ namespace ManageEngineWebApp.Models
         public string HealthLevel { get; set; }
         public double UsedPercent { get; set; }
         public string UsageLevel { get; set; }
+        public string DstStatus { get; set; }
+        public int? DstProgressPercent { get; set; }
+        public DateTime? DstLastExecutionTime { get; set; }
+        public string DstResult { get; set; }
     }
 }

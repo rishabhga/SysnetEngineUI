@@ -1385,12 +1385,64 @@
 
         function renderMenuTree(modules) {
             if (!modules?.length) { $('#menuTree').html('<p class="text-gray-400 text-center py-4 text-xs">No menus</p>'); return; }
+            
             $('#menuTree').html(modules.map(m => {
-                const mid = (m.moduleName||'').replace(/\s+/g,'')+'_m';
-                return `<div class="mb-3"><label class="flex items-center gap-1.5 mb-1.5 cursor-pointer"><input type="checkbox" id="mod_menu_${mid}" class="rounded accent-sky-500" onchange="toggleModuleMenus('${mid}')"><span class="text-[10px] font-semibold text-gray-700">${m.moduleName||'Unknown'}</span></label><div class="ml-5 space-y-0.5" id="menu_container_${mid}">${(m.menus||m.Menus||[]).map(mn => `<label class="flex items-center gap-1.5 text-[10px] text-gray-600 hover:bg-sky-50 px-1.5 py-0.5 rounded cursor-pointer"><input type="checkbox" class="menu-checkbox rounded accent-sky-500" name="menuIds" value="${mn.id||mn.Id}"><span>${mn.menuName||mn.MenuName}</span></label>`).join('')}</div></div>`;
+                const mid = (m.moduleName || '').replace(/\s+/g, '') + '_m';
+                const menusList = m.menus || m.Menus || [];
+                
+                // Separate top-level parent menus and child submenus
+                const topMenus = menusList.filter(mn => !mn.parentId && !mn.ParentId);
+                const childMenus = menusList.filter(mn => mn.parentId || mn.ParentId);
+                const childrenByParent = {};
+                childMenus.forEach(c => {
+                    const pid = c.parentId || c.ParentId;
+                    if (!childrenByParent[pid]) childrenByParent[pid] = [];
+                    childrenByParent[pid].push(c);
+                });
+                
+                let menusHtml = '';
+                topMenus.forEach(p => {
+                    const pId = p.id || p.Id;
+                    const children = childrenByParent[pId] || [];
+                    
+                    menusHtml += `<div class="mb-1.5">
+                        <label class="flex items-center gap-1.5 text-[11px] font-bold text-gray-700 hover:bg-sky-50 px-1.5 py-1 rounded cursor-pointer">
+                            <input type="checkbox" class="menu-checkbox parent-menu-cb rounded accent-sky-500" name="menuIds" value="${pId}" data-parent-id="${pId}" onchange="toggleParentChildren(${pId}, this.checked)">
+                            <span><i class="${p.menuIcon || 'fas fa-folder'} text-sky-500 mr-1 text-[10px]"></i>${p.menuName || p.MenuName}</span>
+                        </label>`;
+                    
+                    if (children.length > 0) {
+                        menusHtml += `<div class="ml-4 pl-2 border-l-2 border-sky-100 space-y-0.5 mt-0.5">
+                            ${children.map(c => `
+                                <label class="flex items-center gap-1.5 text-[10px] text-gray-600 hover:bg-sky-50 px-1.5 py-0.5 rounded cursor-pointer">
+                                    <input type="checkbox" class="menu-checkbox child-menu-cb rounded accent-sky-500" name="menuIds" value="${c.id || c.Id}" data-child-of="${pId}">
+                                    <span>└─ ${c.menuName || c.MenuName}</span>
+                                </label>
+                            `).join('')}
+                        </div>`;
+                    }
+                    menusHtml += `</div>`;
+                });
+
+                // Render orphaned child menus whose parents aren't in this module
+                const allTopIds = new Set(topMenus.map(t => t.id || t.Id));
+                const orphaned = childMenus.filter(c => !allTopIds.has(c.parentId || c.ParentId));
+                if (orphaned.length) {
+                    menusHtml += orphaned.map(c => `
+                        <label class="flex items-center gap-1.5 text-[10px] text-gray-600 hover:bg-sky-50 px-1.5 py-0.5 rounded cursor-pointer">
+                            <input type="checkbox" class="menu-checkbox rounded accent-sky-500" name="menuIds" value="${c.id || c.Id}">
+                            <span>${c.menuName || c.MenuName}</span>
+                        </label>
+                    `).join('');
+                }
+
+                return `<div class="mb-3"><label class="flex items-center gap-1.5 mb-1.5 cursor-pointer"><input type="checkbox" id="mod_menu_${mid}" class="rounded accent-sky-500" onchange="toggleModuleMenus('${mid}')"><span class="text-[10px] font-semibold text-gray-700">${m.moduleName||'Unknown'}</span></label><div class="ml-5 space-y-0.5" id="menu_container_${mid}">${menusHtml}</div></div>`;
             }).join(''));
         }
 
+        function toggleParentChildren(parentId, checked) {
+            $(`input.child-menu-cb[data-child-of="${parentId}"]`).prop('checked', checked);
+        }
         function toggleModuleMenus(mid) { const v=$('#mod_menu_'+mid).is(':checked'); $('#menu_container_'+mid+' input').prop('checked',v); }
         function selectAllMenus() { $('#menuTree input').prop('checked',true); }
         function clearAllMenus()  { $('#menuTree input').prop('checked',false); }
