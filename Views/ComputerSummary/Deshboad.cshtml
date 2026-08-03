@@ -799,6 +799,7 @@
                                 <button class="remote-link"
                                         style="flex:1;height:24px;background:linear-gradient(135deg,#00BCEB,#0096BE);color:#fff;border:none;border-radius:6px;font-size:8px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;transition:opacity .15s;"
                                         data-domain="@item.DomainName"
+                                        data-q="@ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(item.DomainName)"
                                         @(isActive ? "" : "disabled style=\"opacity:.45;cursor:not-allowed;\"")>
                                     <span class="remote-text" style="display:flex;align-items:center;gap:3px;">
                                         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="13" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="16" x2="12" y2="21" /></svg>
@@ -1646,7 +1647,14 @@
         }
 
         $('.remote-link').on('click', function () {
-            if (!$(this).prop('disabled')) window.location.href = '@Url.Action("Live", "ComputerSummary")?domain=' + $(this).data('domain');
+            if (!$(this).prop('disabled')) {
+                var token = $(this).data('q');
+                if (token) {
+                    window.location.href = '@Url.Action("Live", "ComputerSummary")?q=' + encodeURIComponent(token);
+                } else {
+                    window.location.href = '@Url.Action("Live", "ComputerSummary")?domain=' + encodeURIComponent($(this).data('domain'));
+                }
+            }
         });
 
         $(document).on('click', '.open-chat-btn', function (e) {

@@ -1779,9 +1779,28 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
-        [DynamicPermission("ComputerSummary.RemoteAccess", "Remote Control")]
-        public async Task<IActionResult> RemoteAccess(string domain)
+        private string ResolveDomain(string domain, string q = null)
         {
+            if (!string.IsNullOrEmpty(q))
+            {
+                var dec = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(q);
+                if (!string.IsNullOrEmpty(dec)) return dec.Trim();
+            }
+            if (!string.IsNullOrEmpty(domain))
+            {
+                var dec = ManageEngineWebApp.Helpers.EncryptionHelper.Decrypt(domain);
+                if (!string.IsNullOrEmpty(dec)) return dec.Trim();
+                return domain.Trim();
+            }
+            return string.Empty;
+        }
+
+        [DynamicPermission("ComputerSummary.RemoteAccess", "Remote Control")]
+        public async Task<IActionResult> RemoteAccess(string domain = null, string q = null)
+        {
+            domain = ResolveDomain(domain, q);
+            if (string.IsNullOrEmpty(domain)) return RedirectToAction("Deshboad");
+
             using (var client = GetClient())
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/" + domain + "");
@@ -1794,8 +1813,9 @@ namespace ManageEngineWebApp.Controllers
 
         }
 
-        public async Task<IActionResult> Remotestatus(string domain)
+        public async Task<IActionResult> Remotestatus(string domain = null, string q = null)
         {
+            domain = ResolveDomain(domain, q);
             using (var httpClient = GetClient())
             {
                 httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
@@ -1810,8 +1830,9 @@ namespace ManageEngineWebApp.Controllers
 
             }
         }
-        public async Task<IActionResult> CheckAccessStatus(string domain)
+        public async Task<IActionResult> CheckAccessStatus(string domain = null, string q = null)
         {
+            domain = ResolveDomain(domain, q);
             using (var httpClient = GetClient())
             {
                 string url = $"{_baseUrl}/api/RemoteAccess/CheckStatus?domain={domain}";
@@ -1829,8 +1850,9 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { denied = false, accepted = false });
             }
         }
-        public async Task<IActionResult> Live(string domain)
+        public async Task<IActionResult> Live(string domain = null, string q = null)
         {
+            domain = ResolveDomain(domain, q);
             ViewBag.Domain = domain;
             using (var httpClient = GetClient())
             {
@@ -1854,8 +1876,9 @@ namespace ManageEngineWebApp.Controllers
         }
 
 
-        public async Task<IActionResult> SendMouseMove(string domain, double x, double y)
+        public async Task<IActionResult> SendMouseMove(string domain = null, double x = 0, double y = 0, string q = null)
         {
+            domain = ResolveDomain(domain, q);
             var Mousedata = new MouseResponse
             {
                 X = x,
@@ -1881,8 +1904,9 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
-        public async Task<IActionResult> SendLeftClick(string domain)
+        public async Task<IActionResult> SendLeftClick(string domain = null, string q = null)
         {
+            domain = ResolveDomain(domain, q);
             using var client = GetClient();
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseLeftClick/" + domain + "");
@@ -1901,8 +1925,9 @@ namespace ManageEngineWebApp.Controllers
             }
         }
 
-        public async Task<IActionResult> SendRightClick(string domain)
+        public async Task<IActionResult> SendRightClick(string domain = null, string q = null)
         {
+            domain = ResolveDomain(domain, q);
             using var client = GetClient();
             {
                 client.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/MouseRightClick/" + domain + "");
@@ -1923,8 +1948,9 @@ namespace ManageEngineWebApp.Controllers
 
         }
 
-        public async Task<IActionResult> SendKeyPress(string domain, string key)
+        public async Task<IActionResult> SendKeyPress(string domain = null, string key = null, string q = null)
         {
+            domain = ResolveDomain(domain, q);
             using var client = GetClient();
             {
 
@@ -1950,8 +1976,9 @@ namespace ManageEngineWebApp.Controllers
 
 
         [DynamicPermission("ComputerSummary.RemoteAccess", "Stop Remote Session")]
-        public async Task<IActionResult> Livestop(string domain)
+        public async Task<IActionResult> Livestop(string domain = null, string q = null)
         {
+            domain = ResolveDomain(domain, q);
             try
             {
                 using var client = GetClient();
@@ -1965,8 +1992,9 @@ namespace ManageEngineWebApp.Controllers
                 return Json(new { success = false });
             }
         }
-        public async Task<IActionResult> Remotemonitoring(string domain)
+        public async Task<IActionResult> Remotemonitoring(string domain = null, string q = null)
         {
+            domain = ResolveDomain(domain, q);
             if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
@@ -2762,6 +2790,26 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception) { }
             return Json(new List<object>());
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetHardDiskHistory(string domain, int take = 20)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/history?userCode={Uri.EscapeDataString(UCode)}&take={take}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+            }
+            catch (Exception) { }
+            return Json(new List<object>());
+        }
+
         [HttpGet]
         public async Task<IActionResult> LocalDisk(string domain)
         {
@@ -4292,36 +4340,45 @@ namespace ManageEngineWebApp.Controllers
                                     try { if (!string.IsNullOrWhiteSpace(latestNow.UsageHistoryJson)) usageHistoryObj = JsonConvert.DeserializeObject<List<UsageHistoryEntryDto>>(latestNow.UsageHistoryJson); } catch { }
                                     try { if (!string.IsNullOrWhiteSpace(latestNow.BatteryUsageJson)) batteryUsageObj = JsonConvert.DeserializeObject<List<BatteryUsageEntryDto>>(latestNow.BatteryUsageJson); } catch { }
 
-                                    return Json(new { success = true, message = "Battery audit completed successfully.", data = new { metrics = new {
-                                        Manufacturer = latestNow.Manufacturer,
-                                        Status = latestNow.Status,
-                                        Description = latestNow.Description,
-                                        BatteryLevel = latestNow.BatteryPercentage.ToString(),
-                                        BatteryPercentage = latestNow.BatteryPercentage,
-                                        LiveBatteryDetails = latestNow.LiveBatteryDetails,
-                                        SystemType = latestNow.SystemType,
-                                        UserCode = latestNow.UserCode,
-                                        DateTime = latestNow.ScanDate,
-                                        IsCharging = latestNow.IsCharging,
-                                        DesignCapacity = latestNow.DesignCapacity,
-                                        FullChargeCapacity = latestNow.FullChargeCapacity,
-                                        RemainingCapacity = latestNow.RemainingCapacity,
-                                        CycleCount = latestNow.CycleCount,
-                                        BatteryHealthPercent = latestNow.BatteryHealthPercent,
-                                        WearLevelPercent = latestNow.WearLevelPercent,
-                                        WearRatePerMonth = latestNow.WearRatePerMonth,
-                                        EstimatedRemainingMonths = latestNow.EstimatedRemainingMonths,
-                                        BatteryName = latestNow.BatteryName,
-                                        SerialNumber = latestNow.SerialNumber,
-                                        Chemistry = latestNow.Chemistry,
-                                        ScanDate = latestNow.ScanDate,
-                                        HealthScore = latestNow.HealthScore,
-                                        HealthLevel = latestNow.HealthLevel,
-                                        BatteryLevelStatus = latestNow.BatteryLevelStatus,
-                                        CapacityHistory = capacityHistoryObj,
-                                        UsageHistory = usageHistoryObj,
-                                        BatteryUsage = batteryUsageObj
-                                    } } });
+                                    return Json(new
+                                    {
+                                        success = true,
+                                        message = "Battery audit completed successfully.",
+                                        data = new
+                                        {
+                                            metrics = new
+                                            {
+                                                Manufacturer = latestNow.Manufacturer,
+                                                Status = latestNow.Status,
+                                                Description = latestNow.Description,
+                                                BatteryLevel = latestNow.BatteryPercentage.ToString(),
+                                                BatteryPercentage = latestNow.BatteryPercentage,
+                                                LiveBatteryDetails = latestNow.LiveBatteryDetails,
+                                                SystemType = latestNow.SystemType,
+                                                UserCode = latestNow.UserCode,
+                                                DateTime = latestNow.ScanDate,
+                                                IsCharging = latestNow.IsCharging,
+                                                DesignCapacity = latestNow.DesignCapacity,
+                                                FullChargeCapacity = latestNow.FullChargeCapacity,
+                                                RemainingCapacity = latestNow.RemainingCapacity,
+                                                CycleCount = latestNow.CycleCount,
+                                                BatteryHealthPercent = latestNow.BatteryHealthPercent,
+                                                WearLevelPercent = latestNow.WearLevelPercent,
+                                                WearRatePerMonth = latestNow.WearRatePerMonth,
+                                                EstimatedRemainingMonths = latestNow.EstimatedRemainingMonths,
+                                                BatteryName = latestNow.BatteryName,
+                                                SerialNumber = latestNow.SerialNumber,
+                                                Chemistry = latestNow.Chemistry,
+                                                ScanDate = latestNow.ScanDate,
+                                                HealthScore = latestNow.HealthScore,
+                                                HealthLevel = latestNow.HealthLevel,
+                                                BatteryLevelStatus = latestNow.BatteryLevelStatus,
+                                                CapacityHistory = capacityHistoryObj,
+                                                UsageHistory = usageHistoryObj,
+                                                BatteryUsage = batteryUsageObj
+                                            }
+                                        }
+                                    });
                                 }
                             }
                         }
@@ -5348,6 +5405,11 @@ namespace ManageEngineWebApp.Controllers
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
                     return Json(new { success = false, message = !string.IsNullOrEmpty(errorContent) ? errorContent : "Device not connected or rescan failed." });
+                }
+
+                if (string.Equals(auditType, "deep", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Json(new { success = true, message = "Deep Audit (DST) request sent to device! Self-test initiated." });
                 }
 
                 for (int i = 0; i < 30; i++)

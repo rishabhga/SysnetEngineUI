@@ -905,6 +905,7 @@
                     </div>
                 </div>
 
+                <div id="diskRiskBannerContainer"></div>
                 <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-chart-bar" style="color:var(--primary);"></i> Storage Usage</div>
                 <div id="diskUsageContainer" style="display:flex;flex-direction:column;gap:10px;"></div>
 
@@ -953,7 +954,11 @@
                         </div>
                     </div>
 
-                    <!-- S.M.A.R.T. / Health metrics (Quick Audit) -->
+                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-chart-line" style="color:var(--primary);"></i> Health &amp; Usage Trend (Last 20 Scans)</div>
+                    <div style="width:100%;height:220px;background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow-sm);margin-bottom:14px;">
+                        <canvas id="diskTrendChartCanvas"></canvas>
+                    </div>
+                    <div id="diskForecastContainer" style="margin-bottom:20px;"></div>
                     <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> S.M.A.R.T. Health Metrics (Quick Audit)</div>
                     <div id="diskAuditResults" style="display:none;margin-bottom:20px;">
                         <div id="diskSmartContainer"></div>
@@ -963,7 +968,8 @@
                         Run <strong>Quick Audit</strong> above to see S.M.A.R.T. health data.
                     </div>
 
-                    <!-- DST Report (Deep Audit) -->
+                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-list-alt" style="color:var(--cyan);"></i> S.M.A.R.T. Full Detail (Deep Audit)</div>
+                    <div id="diskSmartSummaryContainer" style="margin-bottom:20px;"></div>
                     <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-microscope" style="color:#8b5cf6;"></i> Drive Self-Test (Deep Audit) Report</div>
                     <div id="diskDstResults" style="display:none;margin-bottom:20px;">
                         <div id="diskDstContainer"></div>
@@ -973,7 +979,14 @@
                         Run <strong>Deep Audit (DST)</strong> above to perform a thorough drive self-test. This may take several minutes.
                     </div>
 
-                    <!-- Partitions / Logical Drives -->
+                    <div class="cpu-section-label" style="margin-top:22px;"><i class="fas fa-layer-group" style="color:var(--primary);"></i> Disk &amp; Volume Inventory (Deep Scan)</div>
+                    <div id="diskInfoResults" style="display:none;margin-bottom:20px;">
+                        <div id="diskInfoContainer"></div>
+                    </div>
+                    <div id="diskInfoPlaceholder" style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:20px;">
+                        <i class="fas fa-layer-group" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
+                        Run <strong>Deep Audit</strong> above to see the per-partition volume breakdown for each physical disk.
+                    </div>
                     <div class="cpu-section-label" style="margin-top:22px;">
                         <i class="fas fa-sitemap" style="color:var(--primary);"></i> Partitions &amp; Logical Drives
                     </div>
