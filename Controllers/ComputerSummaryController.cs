@@ -2724,25 +2724,23 @@ namespace ManageEngineWebApp.Controllers
                 d.HealthScore,
                 d.HealthLevel,
                 UsedPercent = Math.Round(d.UsedPercent, 1),
-                d.UsageLevel,
-                d.DstStatus,
-                d.DstProgressPercent,
-                d.DstLastExecutionTime,
-                d.DstResult
+                d.UsageLevel
             });
 
             return Json(result);
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDeepDiskReport(string domain)
+        public async Task<IActionResult> GetDeepDiskReport(string domain, string serial = null)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
                 string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
-                var response = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/deep-report/{Uri.EscapeDataString(UCode)}");
+                var url = $"{_baseUrl}/api/HardDiskDetails/deep-report/{Uri.EscapeDataString(UCode)}";
+                if (!string.IsNullOrWhiteSpace(serial)) url += $"?serial={Uri.EscapeDataString(serial)}";
+                var response = await httpClient.GetAsync(url);
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -2754,14 +2752,16 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetSmartData(string domain)
+        public async Task<IActionResult> GetSmartData(string domain, string serial = null)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
                 string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
-                var response = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/smart-data/{Uri.EscapeDataString(UCode)}");
+                var url = $"{_baseUrl}/api/HardDiskDetails/smart-data/{Uri.EscapeDataString(UCode)}";
+                if (!string.IsNullOrWhiteSpace(serial)) url += $"?serial={Uri.EscapeDataString(serial)}";
+                var response = await httpClient.GetAsync(url);
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -2800,6 +2800,27 @@ namespace ManageEngineWebApp.Controllers
                 string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
                 var response = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/history?userCode={Uri.EscapeDataString(UCode)}&take={take}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+            }
+            catch (Exception) { }
+            return Json(new List<object>());
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetHardDiskBenchmark(string domain, string serial = null)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                var url = $"{_baseUrl}/api/HardDiskDetails/benchmark/{Uri.EscapeDataString(UCode)}";
+                if (!string.IsNullOrWhiteSpace(serial)) url += $"?serial={Uri.EscapeDataString(serial)}";
+                var response = await httpClient.GetAsync(url);
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -5380,20 +5401,22 @@ namespace ManageEngineWebApp.Controllers
                 if (string.IsNullOrEmpty(cleanDomain))
                     return Json(new { success = false, message = "Invalid device identifier." });
 
-                string UCode = domain;
+                string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
 
-                DateTime? baselineTime = null;
+                int? baselineId = null;
                 try
                 {
-                    var baseResp = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/history?userCode={Uri.EscapeDataString(UCode)}&take=1");
-                    if (baseResp.IsSuccessStatusCode)
+                    var baselineResp = await httpClient.GetAsync($"{_baseUrl}/api/HardDiskDetails/history?userCode={Uri.EscapeDataString(UCode)}&take=1");
+                    if (baselineResp.IsSuccessStatusCode)
                     {
-                        var baseContent = await baseResp.Content.ReadAsStringAsync();
-                        var baseData = JsonConvert.DeserializeObject<List<dynamic>>(baseContent);
-                        var latest = baseData?.FirstOrDefault();
-                        if (latest != null)
-                            baselineTime = (DateTime?)(latest.DateTime ?? latest.dateTime);
+                        var baselineContent = await baselineResp.Content.ReadAsStringAsync();
+                        var baselineData = JsonConvert.DeserializeObject<List<dynamic>>(baselineContent);
+                        var baselineLatest = baselineData?.FirstOrDefault();
+                        if (baselineLatest != null)
+                        {
+                            baselineId = (int?)(baselineLatest.Id ?? baselineLatest.id);
+                        }
                     }
                 }
                 catch { }
@@ -5409,7 +5432,7 @@ namespace ManageEngineWebApp.Controllers
 
                 if (string.Equals(auditType, "deep", StringComparison.OrdinalIgnoreCase))
                 {
-                    return Json(new { success = true, message = "Deep Audit (DST) request sent to device! Self-test initiated." });
+                    return Json(new { success = true, message = "Deep Audit (DST) command accepted by device. Self-test is starting - this can take several minutes." });
                 }
 
                 for (int i = 0; i < 30; i++)
@@ -5425,8 +5448,8 @@ namespace ManageEngineWebApp.Controllers
                             var latestNow = checkData?.FirstOrDefault();
                             if (latestNow != null)
                             {
-                                DateTime? currentTime = (DateTime?)(latestNow.DateTime ?? latestNow.dateTime);
-                                if (currentTime.HasValue && (!baselineTime.HasValue || currentTime.Value > baselineTime.Value))
+                                int? currentId = (int?)(latestNow.Id ?? latestNow.id);
+                                if (currentId.HasValue && (!baselineId.HasValue || currentId.Value > baselineId.Value))
                                 {
                                     return Json(new { success = true, message = "Hard Disk audit completed. Fresh data received!" });
                                 }

@@ -32,6 +32,130 @@ const commonLogColumns = [
     { data: null, render: (row) => flexRender(row, 'ChangeDate', 'ChangeDateTime') }
 ];
 
+function diskFreshnessBadge(dateVal, opts) {
+    opts = opts || {};
+    const staleHours = opts.staleHours ?? 24;
+    const veryStaleHours = opts.veryStaleHours ?? 24 * 7;
+    const label = opts.label || 'Captured';
+
+    if (!dateVal) {
+        return '<span class="disk-fresh-badge disk-fresh-unknown"><i class="fas fa-question-circle"></i> No scan data yet</span>';
+    }
+    let d;
+    try { d = new Date(dateVal); } catch (e) { d = null; }
+    if (!d || isNaN(d.getTime())) {
+        return '<span class="disk-fresh-badge disk-fresh-unknown"><i class="fas fa-question-circle"></i> Unknown time</span>';
+    }
+
+    const ageMs = Date.now() - d.getTime();
+    const ageHours = ageMs / 36e5;
+    let cls = 'disk-fresh-ok';
+    let icon = 'fa-check-circle';
+    if (ageHours >= veryStaleHours) { cls = 'disk-fresh-stale'; icon = 'fa-exclamation-triangle'; }
+    else if (ageHours >= staleHours) { cls = 'disk-fresh-warn'; icon = 'fa-clock'; }
+
+    let rel;
+    if (ageHours < 1) rel = Math.max(1, Math.round(ageMs / 60000)) + ' min ago';
+    else if (ageHours < 48) rel = Math.round(ageHours) + ' hr ago';
+    else rel = Math.round(ageHours / 24) + ' days ago';
+
+    const abs = d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const staleNote = cls !== 'disk-fresh-ok' ? ' &middot; may be from a previous audit' : '';
+
+    return `<span class="disk-fresh-badge ${cls}" title="${abs}"><i class="fas ${icon}"></i> ${label}: ${rel}${staleNote}</span>`;
+}
+
+(function injectDiskAnimCss() {
+    if (document.getElementById('disk-audit-anim-css')) return;
+    const style = document.createElement('style');
+    style.id = 'disk-audit-anim-css';
+    style.textContent = `
+        @keyframes diskPanelFadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+        .disk-anim-in { animation: diskPanelFadeIn .35s ease both; }
+        .disk-stale-banner { display:flex; align-items:center; gap:10px; background:#fffbeb; border:1px solid #fde68a; border-radius:var(--radius-md); padding:10px 14px; margin-bottom:14px; animation: diskPanelFadeIn .35s ease both; }
+
+        /* Modern scanning state for Quick/Deep Audit — replaces the plain spinner text */
+        @keyframes diskScanPulse { 0%,100% { opacity:1; } 50% { opacity:.55; } }
+        @keyframes diskScanShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+        @keyframes diskScanBarMove { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+        .disk-scan-shell { position:relative; overflow:hidden; }
+        .disk-scan-icon { animation: diskScanPulse 1.6s ease-in-out infinite; }
+        .disk-scan-track { position:relative; height:6px; border-radius:999px; background:var(--slate-100); overflow:hidden; margin:14px auto 0; max-width:260px; }
+        .disk-scan-track::after {
+            content:''; position:absolute; top:0; left:0; height:100%; width:30%; border-radius:999px;
+            background:linear-gradient(90deg, transparent, var(--primary), #0d9488, transparent);
+            animation: diskScanBarMove 1.4s ease-in-out infinite;
+        }
+        .disk-scan-shimmer-text {
+            background:linear-gradient(90deg, var(--slate-500) 0%, var(--slate-500) 40%, var(--primary) 50%, var(--slate-500) 60%, var(--slate-500) 100%);
+            background-size: 800px 100%;
+            -webkit-background-clip:text; background-clip:text; color:transparent;
+            animation: diskScanShimmer 2.2s linear infinite;
+        }
+
+        /* Audit buttons: soft glow pulse while a request is in flight */
+        @keyframes diskBtnGlow { 0%,100% { box-shadow:0 4px 12px rgba(14,165,233,.3); } 50% { box-shadow:0 4px 20px rgba(14,165,233,.55); } }
+        #btnAuditHardDiskQuick.disk-audit-running, #btnAuditHardDiskDeep.disk-audit-running {
+            animation: diskBtnGlow 1.3s ease-in-out infinite;
+        }
+
+        /* Benchmark DataTable polish, matching the app's card/teal styling */
+        #diskBenchmarkTable.dataTable { border-collapse:separate !important; border-spacing:0; }
+        #diskBenchmarkTable.dataTable thead th {
+            font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; color:var(--slate-500);
+            border-bottom:1px solid var(--slate-200); padding:10px 12px; background:var(--slate-50);
+        }
+        #diskBenchmarkTable.dataTable tbody td {
+            font-size:.8rem; padding:10px 12px; border-bottom:1px solid var(--slate-100); color:var(--slate-700);
+            transition: background-color .15s ease;
+        }
+        #diskBenchmarkTable.dataTable tbody tr:hover td { background:#f0fdfa; }
+        #diskBenchmarkTable.dataTable tbody tr:nth-child(even) td { background:var(--slate-50); }
+        #diskBenchmarkTable.dataTable tbody tr:nth-child(even):hover td { background:#f0fdfa; }
+    `;
+    document.head.appendChild(style);
+})();
+
+function deepStalenessBanner(deepDateVal, sectionLabel) {
+    if (!deepDateVal) return '';
+    let deepTime;
+    try { deepTime = new Date(deepDateVal); } catch (e) { return ''; }
+    if (isNaN(deepTime.getTime())) return '';
+
+    const quickTime = window.lastQuickAuditTime ? new Date(window.lastQuickAuditTime) : null;
+    const isOlderThanQuick = quickTime && !isNaN(quickTime.getTime()) && deepTime < quickTime;
+    const ageHours = (Date.now() - deepTime.getTime()) / 36e5;
+
+    if (ageHours < 24 && !isOlderThanQuick) return '';
+
+    const when = deepTime.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return `<div class="disk-stale-banner">
+        <i class="fas fa-triangle-exclamation" style="color:#d97706;font-size:1rem;flex-shrink:0;"></i>
+        <div style="font-size:.78rem;color:#92400e;line-height:1.4;">
+            <strong>${sectionLabel} data is not current.</strong> Last captured ${when}.
+            Quick Audit does not refresh this section — run <strong>Deep Audit (DST)</strong> above to update it.
+        </div>
+    </div>`;
+}
+
+function setDiskTabDot(dotId, dateVal, opts) {
+    opts = opts || {};
+    const staleHours = opts.staleHours ?? 24;
+    const veryStaleHours = opts.veryStaleHours ?? 24 * 7;
+    const $dot = $('#' + dotId);
+    if (!$dot.length) return;
+
+    if (!dateVal) { $dot.css('background', 'var(--slate-300)'); return; }
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) { $dot.css('background', 'var(--slate-300)'); return; }
+
+    const ageHours = (Date.now() - d.getTime()) / 36e5;
+    let color = '#22c55e';
+    if (ageHours >= veryStaleHours) color = '#ef4444';
+    else if (ageHours >= staleHours) color = '#f59e0b';
+    $dot.css('background', color);
+}
+
 window.sysAlert = function (msg, type) {
     if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -2689,6 +2813,7 @@ function renderHardDiskDashboard(disks, openGate = true) {
     renderDiskHeroOnly(disks);
 
     const d = disks[0];
+    window.currentDiskSerial = d.SerialNumber || d.serialNumber || null;
 
 
     if (disks.length > 1) {
@@ -2717,6 +2842,10 @@ function renderHardDiskDashboard(disks, openGate = true) {
             $('#diskHeroInterface').html('<i class="fas fa-plug"></i> ' + (clickedDisk.InterfaceType || clickedDisk.interfaceType || 'N/A'));
             $('#diskHeroPowerOn').html('<i class="fas fa-clock"></i> ' + Number(clickedDisk.PowerOnHours || clickedDisk.powerOnHours || 0).toLocaleString() + ' hrs powered');
             renderDiskPanels(clickedDisk);
+            window.currentDiskSerial = clickedDisk.SerialNumber || clickedDisk.serialNumber || null;
+            loadSmartDataDetails();
+            loadDeepDiskReportDetails();
+            loadDiskInfoDetails();
         });
     }
 
@@ -2775,6 +2904,7 @@ function renderDiskRiskBanner(d, extra) {
 }
 
 function renderDiskPanels(d) {
+    window.lastQuickAuditTime = d.DateTime || d.dateTime || window.lastQuickAuditTime;
     const totalCap = parseFloat(d.TotalCapacity || d.totalCapacity || 0);
     const usedGB = parseFloat(d.UsedSpaceGB || d.usedSpaceGB || 0);
     const freeGB = parseFloat(d.FreeSpaceGB || d.freeSpaceGB || 0);
@@ -2793,10 +2923,6 @@ function renderDiskPanels(d) {
     const auditType = d.AuditType || d.auditType || 'Quick';
     const deviceId = d.DeviceId ?? d.deviceId;
     const lastScanned = d.DateTime || d.dateTime;
-    const dstStatus = d.DstStatus || d.dstStatus;
-    const dstProgress = d.DstProgressPercent ?? d.dstProgressPercent;
-    const dstLastRun = d.DstLastExecutionTime || d.dstLastExecutionTime;
-    const dstResultText = d.DstResult || d.dstResult;
 
     let healthScore = d.HealthScore ?? d.healthScore ?? 100;
 
@@ -2954,25 +3080,16 @@ function renderDiskPanels(d) {
                 </div>
             </div>
 
-            ${(dstStatus || dstResultText || dstLastRun || dstProgress !== undefined) ? `
-            <div style="margin-top:16px;border-top:1px solid var(--slate-100);padding-top:14px;">
-                <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:10px;">Last DST Snapshot (from Quick record)</div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;">
-                    ${_smartMetric('DST Status', dstStatus || 'N/A', (dstStatus || '').toUpperCase() === 'PASSED' ? '#22c55e' : '#f59e0b', 'fas fa-microscope', true)}
-                    ${_smartMetric('DST Progress', (dstProgress ?? 0) + '%', '#0ea5e9', 'fas fa-spinner', true)}
-                    ${_smartMetric('DST Result', dstResultText || 'N/A', '#64748b', 'fas fa-flag-checkered', true)}
-                    ${_smartMetric('Last DST Run', dstLastRun ? new Date(dstLastRun).toLocaleString() : 'N/A', '#64748b', 'fas fa-clock', true)}
-                </div>
-            </div>` : ''}
-
-            <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
+            <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-400);">Audit Type:</span>
                 <span style="font-size:.72rem;font-weight:800;padding:3px 10px;border-radius:999px;background:${auditType === 'Deep' ? '#ede9fe' : '#ecfdf5'};color:${auditType === 'Deep' ? '#7c3aed' : '#059669'};">${auditType}</span>
+                ${diskFreshnessBadge(lastScanned, { label: 'Quick data' })}
             </div>
         </div>`;
     $('#diskSmartContainer').html(smartHtml);
     $('#diskSmartPlaceholder').hide();
     $('#diskAuditResults').show();
+    setDiskTabDot('dotSmartQuick', lastScanned);
 
 }
 
@@ -2987,7 +3104,8 @@ function _smartMetric(label, value, color, icon, isText) {
 }
 
 function loadSmartDataDetails() {
-    $.get(`/ComputerSummary/GetSmartData?domain=${domaindata}`, function (smart) {
+    const serialParam = window.currentDiskSerial ? `&serial=${encodeURIComponent(window.currentDiskSerial)}` : '';
+    $.get(`/ComputerSummary/GetSmartData?domain=${domaindata}${serialParam}`, function (smart) {
         if (!smart || smart.success === false) return;
         renderSmartDataPanel(smart);
     });
@@ -3035,10 +3153,16 @@ function renderSmartDataPanel(smart) {
         });
     }
 
+    const staleBanner = deepStalenessBanner(scanTime, 'S.M.A.R.T. Full Detail (Deep Audit)');
+
     const summaryHtml = `
-        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
-            <div style="font-size:.82rem;font-weight:700;color:var(--slate-800);margin-bottom:4px;">
-                <i class="fas fa-heartbeat" style="color:var(--cyan);margin-right:6px;"></i>S.M.A.R.T. Summary
+        ${staleBanner}
+        <div class="disk-anim-in" style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px;">
+                <div style="font-size:.82rem;font-weight:700;color:var(--slate-800);">
+                    <i class="fas fa-heartbeat" style="color:var(--cyan);margin-right:6px;"></i>S.M.A.R.T. Summary <span style="font-weight:500;color:var(--slate-400);">(Deep Audit)</span>
+                </div>
+                ${diskFreshnessBadge(scanTime, { label: 'Deep scan' })}
             </div>
             <div style="font-size:.72rem;color:var(--slate-400);margin-bottom:12px;">${model} &middot; ${serial} &middot; ${computerName}</div>
 
@@ -3128,34 +3252,76 @@ function renderSmartDataPanel(smart) {
     }
 
     $('#diskSmartSummaryContainer').html(summaryHtml + tableHtml);
+    setDiskTabDot('dotSmartFull', scanTime);
 }
 
 function loadDeepDiskReportDetails() {
-    $.get(`/ComputerSummary/GetDeepDiskReport?domain=${domaindata}`, function (report) {
+    const serialParam = window.currentDiskSerial ? `&serial=${encodeURIComponent(window.currentDiskSerial)}` : '';
+    $.get(`/ComputerSummary/GetDeepDiskReport?domain=${domaindata}${serialParam}`, function (report) {
         if (!report || report.success === false) return;
         renderDeepDiskReportPanel(report);
     });
+    loadBenchmarkTable();
+}
+
+function loadBenchmarkTable() {
+    const serialParam = window.currentDiskSerial ? `&serial=${encodeURIComponent(window.currentDiskSerial)}` : '';
+    initTable('#diskBenchmarkTable', `/ComputerSummary/GetHardDiskBenchmark?domain=${domaindata}${serialParam}`, [
+        { data: null, render: (row) => flexRender(row, 'TestName') },
+        {
+            data: null, render: (row) => {
+                const success = row.Success ?? row.success;
+                const status = row.Status || row.status;
+                const ok = success !== false;
+                return '<span style="font-weight:700;color:' + (ok ? '#22c55e' : '#ef4444') + ';"><i class="fas ' +
+                    (ok ? 'fa-check-circle' : 'fa-times-circle') + '"></i> ' + (status || (ok ? 'Passed' : 'Failed')) + '</span>';
+            }
+        },
+        {
+            data: null, render: (row) => {
+                const speed = row.SpeedMBps ?? row.speedMBps;
+                return (speed !== undefined && speed !== null) ? Number(speed).toFixed(1) : 'N/A';
+            }
+        },
+        {
+            data: null, render: (row) => {
+                const dur = row.DurationSeconds ?? row.durationSeconds;
+                return (dur !== undefined && dur !== null) ? Number(dur).toFixed(1) : 'N/A';
+            }
+        },
+        {
+            data: null, render: (row) => {
+                const processed = Number(row.ProcessedBytes ?? row.processedBytes ?? 0);
+                const total = Number(row.TotalBytes ?? row.totalBytes ?? 0);
+                const bytes = processed || total;
+                return bytes ? (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB' : 'N/A';
+            }
+        },
+        { data: null, render: (row) => flexRender(row, 'ErrorCount') }
+    ]);
 }
 
 function renderDeepDiskReportPanel(report) {
     if (!report) return;
 
-    const seqRead = report.sequentialRead || report.SequentialRead;
-    const seqWrite = report.sequentialWrite || report.SequentialWrite;
-    const rndRead = report.randomRead || report.RandomRead;
-    const rndWrite = report.randomWrite || report.RandomWrite;
     const dst = report.dstResult || report.DstResult;
-    const surf = report.surfaceRead || report.SurfaceRead;
 
     const overallStatus = report.overallStatus || report.OverallStatus || 'Unknown';
     const errMsg = report.errorMessage || report.ErrorMessage;
     const statusColor = overallStatus.toUpperCase() === 'PASSED' || overallStatus.toUpperCase() === 'HEALTHY' ? '#22c55e' : (overallStatus.toUpperCase() === 'WARNING' ? '#f59e0b' : '#ef4444');
 
+    const deepDateForStaleness = report.endTime || report.EndTime || report.startTime || report.StartTime;
+    const staleBanner = deepStalenessBanner(deepDateForStaleness, 'Deep Scan (SMART / Benchmark / DST)');
+
     const summaryHeaderHtml = `
-        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+        ${staleBanner}
+        <div class="disk-anim-in" style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
                 <span style="font-size:.82rem;font-weight:700;color:var(--slate-800);"><i class="fas fa-clipboard-check" style="color:var(--primary);margin-right:6px;"></i>Deep Scan Summary</span>
-                <span style="font-size:.72rem;font-weight:800;padding:3px 10px;border-radius:999px;background:${statusColor}22;color:${statusColor};">${overallStatus}</span>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    ${diskFreshnessBadge(report.endTime || report.EndTime || report.startTime || report.StartTime, { label: 'Deep scan' })}
+                    <span style="font-size:.72rem;font-weight:800;padding:3px 10px;border-radius:999px;background:${statusColor}22;color:${statusColor};">${overallStatus}</span>
+                </div>
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;">
                 ${_smartMetric('Disk Index', report.diskIndex ?? report.DiskIndex ?? 'N/A', '#64748b', 'fas fa-hashtag', true)}
@@ -3171,24 +3337,23 @@ function renderDeepDiskReportPanel(report) {
             ${errMsg && errMsg !== 'No error' ? `<div style="margin-top:10px;font-size:.74rem;color:#ef4444;background:#fef2f2;padding:8px 12px;border-radius:6px;">${errMsg}</div>` : ''}
         </div>`;
 
-    let benchmarkHtml = `
-        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
-            <div style="font-size:.82rem;font-weight:700;color:var(--slate-800);margin-bottom:12px;"><i class="fas fa-tachometer-alt" style="color:#8b5cf6;margin-right:6px;"></i>Drive Benchmark Performance Metrics</div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;">
-                ${_benchCard('Seq Read', seqRead, '#8b5cf6', 'fa-arrow-down')}
-                ${_benchCard('Seq Write', seqWrite, '#ec4899', 'fa-arrow-up')}
-                ${_benchCard('Random Read', rndRead, '#3b82f6', 'fa-random')}
-                ${_benchCard('Random Write', rndWrite, '#10b981', 'fa-pencil-alt')}
-                ${_benchCard('Surface Read', surf, '#f59e0b', 'fa-search')}
-            </div>
-            <div style="height:200px;">
-                <canvas id="diskBenchmarkChartCanvas"></canvas>
-            </div>
-        </div>`;
-
     let dstHtml = '';
     if (dst) {
-        let stColor = (dst.status || dst.Status || 'Passed').toUpperCase() === 'PASSED' ? '#22c55e' : '#ef4444';
+        const dstStart = dst.startTime || dst.StartTime;
+        const dstEnd = dst.endTime || dst.EndTime;
+        const dstErrMsg = dst.errorMessage || dst.ErrorMessage;
+
+        const endDate = dstEnd ? new Date(dstEnd) : null;
+        const startDate = dstStart ? new Date(dstStart) : null;
+        const isUnfinished = !endDate || endDate.getFullYear() <= 1 || (startDate && endDate < startDate);
+
+        const rawStatus = dst.status || dst.Status || 'Passed';
+        const displayStatus = isUnfinished ? 'In Progress' : rawStatus;
+        let stColor = isUnfinished ? '#0ea5e9' : (displayStatus.toUpperCase() === 'PASSED' ? '#22c55e' : '#ef4444');
+
+        const durationDisplay = isUnfinished ? 'In progress…' : (Number(dst.durationMinutes || dst.DurationMinutes || 0).toFixed(1) + ' mins');
+        const endedDisplay = isUnfinished ? 'Still running' : (endDate ? endDate.toLocaleString() : 'N/A');
+
         const subTests = [
             { label: 'Sequential Read', ok: dst.sequentialReadSuccess ?? dst.SequentialReadSuccess },
             { label: 'Sequential Write', ok: dst.sequentialWriteSuccess ?? dst.SequentialWriteSuccess },
@@ -3196,28 +3361,27 @@ function renderDeepDiskReportPanel(report) {
             { label: 'Random Write', ok: dst.randomWriteSuccess ?? dst.RandomWriteSuccess },
             { label: 'Surface Read', ok: dst.surfaceReadSuccess ?? dst.SurfaceReadSuccess }
         ];
-        const subTestHtml = subTests.map(t => `
+        const subTestHtml = isUnfinished
+            ? '<div style="font-size:.76rem;color:var(--slate-400);grid-column:1/-1;">Sub-test results will appear once the self-test finishes.</div>'
+            : subTests.map(t => `
             <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--slate-50);border-radius:6px;">
                 <span style="font-size:.74rem;color:var(--slate-600);">${t.label}</span>
                 <span style="font-size:.72rem;font-weight:700;color:${t.ok ? '#22c55e' : '#ef4444'};"><i class="fas ${t.ok ? 'fa-check-circle' : 'fa-times-circle'}"></i> ${t.ok ? 'Pass' : 'Fail'}</span>
             </div>`).join('');
 
-        const dstStart = dst.startTime || dst.StartTime;
-        const dstEnd = dst.endTime || dst.EndTime;
-        const dstErrMsg = dst.errorMessage || dst.ErrorMessage;
-
         dstHtml = `
-            <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);">
+            <div class="disk-anim-in" style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                     <span style="font-size:.82rem;font-weight:700;color:var(--slate-800);"><i class="fas fa-microscope" style="color:#8b5cf6;margin-right:6px;"></i>Drive Self-Test (DST) Report</span>
-                    <span style="font-size:.74rem;font-weight:800;color:${stColor};">${dst.status || dst.Status || 'Passed'}</span>
+                    <span style="font-size:.74rem;font-weight:800;color:${stColor};">${isUnfinished ? '<i class="fas fa-circle-notch fa-spin"></i> ' : ''}${displayStatus}</span>
                 </div>
+                ${isUnfinished ? `<div style="font-size:.74rem;color:#0369a1;background:#f0f9ff;padding:8px 12px;border-radius:6px;margin-bottom:12px;">This drive self-test hasn't finished on the device yet. Results below are from the last completed test.</div>` : ''}
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:.76rem;margin-bottom:12px;">
                     <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Test Type: <strong>${dst.testType || dst.TestType || 'Full DST'}</strong></div>
-                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Duration: <strong>${(dst.durationMinutes || dst.DurationMinutes || 0).toFixed(1)} mins</strong></div>
+                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Duration: <strong>${durationDisplay}</strong></div>
                     <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Total Errors: <strong style="color:${(dst.totalErrors || dst.TotalErrors) > 0 ? '#ef4444' : '#22c55e'};">${dst.totalErrors ?? dst.TotalErrors ?? 0}</strong></div>
                     <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Started: <strong>${dstStart ? new Date(dstStart).toLocaleString() : 'N/A'}</strong></div>
-                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Ended: <strong>${dstEnd ? new Date(dstEnd).toLocaleString() : 'N/A'}</strong></div>
+                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Ended: <strong>${endedDisplay}</strong></div>
                 </div>
                 <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:8px;">Sub-Test Breakdown</div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:${dstErrMsg && dstErrMsg !== 'No error' ? '10px' : '0'};">
@@ -3230,67 +3394,10 @@ function renderDeepDiskReportPanel(report) {
     const nvme = report.nvmeResult || report.NvmeResult;
     const nvmeHtml = (report.isNVMe || report.IsNVMe) ? _nvmeCard(nvme) : '';
 
-    $('#diskDstContainer').html(summaryHeaderHtml + nvmeHtml + benchmarkHtml + dstHtml);
+    $('#diskDstContainer').html(summaryHeaderHtml + nvmeHtml + dstHtml);
     $('#diskDstPlaceholder').hide();
     $('#diskDstResults').show();
-
-    renderBenchmarkChart(seqRead, seqWrite, rndRead, rndWrite, surf);
-}
-
-function renderBenchmarkChart(seqRead, seqWrite, rndRead, rndWrite, surf) {
-    const canvas = document.getElementById('diskBenchmarkChartCanvas');
-    if (!canvas) return;
-    if (window.diskBenchmarkChartInstance) window.diskBenchmarkChartInstance.destroy();
-
-    const speedOf = t => t ? parseFloat(t.speedMBps ?? t.SpeedMBps ?? 0) : 0;
-
-    window.diskBenchmarkChartInstance = new Chart(canvas.getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: ['Sequential', 'Random', 'Surface'],
-            datasets: [
-                { label: 'Read (MB/s)', data: [speedOf(seqRead), speedOf(rndRead), speedOf(surf)], backgroundColor: '#8b5cf6', borderRadius: 4 },
-                { label: 'Write (MB/s)', data: [speedOf(seqWrite), speedOf(rndWrite), null], backgroundColor: '#ec4899', borderRadius: 4 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } }, title: { display: false } },
-            scales: {
-                x: { ticks: { font: { size: 10 } } },
-                y: { beginAtZero: true, ticks: { font: { size: 10 } }, title: { display: true, text: 'MB/s', font: { size: 9 } } }
-            }
-        }
-    });
-}
-
-function _benchCard(title, test, color, icon) {
-    if (!test) {
-        return `
-        <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-sm);padding:12px;text-align:center;opacity:.5;">
-            <div style="font-size:.68rem;font-weight:700;color:var(--slate-500);text-transform:uppercase;margin-bottom:4px;"><i class="fas ${icon}" style="color:${color};margin-right:4px;"></i>${title}</div>
-            <div style="font-size:1.1rem;font-weight:800;color:var(--slate-400);">N/A</div>
-        </div>`;
-    }
-    const speed = test.speedMBps ?? test.SpeedMBps;
-    const success = test.success ?? test.Success;
-    const durationSec = test.durationSeconds ?? test.DurationSeconds;
-    const errCount = Number(test.errorCount ?? test.ErrorCount ?? 0);
-    const testName = test.testName ?? test.TestName;
-    const totalBytes = Number(test.totalBytes ?? test.TotalBytes ?? 0);
-    const processedBytes = Number(test.processedBytes ?? test.ProcessedBytes ?? 0);
-    const spdVal = speed ? parseFloat(speed).toFixed(1) + ' MB/s' : 'N/A';
-    const gbTransferred = (processedBytes || totalBytes) ? ((processedBytes || totalBytes) / (1024 * 1024 * 1024)).toFixed(2) + ' GB' : null;
-
-    return `
-        <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-sm);padding:12px;text-align:center;" title="${testName || title}">
-            <div style="font-size:.68rem;font-weight:700;color:var(--slate-500);text-transform:uppercase;margin-bottom:4px;"><i class="fas ${icon}" style="color:${color};margin-right:4px;"></i>${title}</div>
-            <div style="font-size:1.1rem;font-weight:800;color:${color};">${spdVal}</div>
-            <div style="font-size:.66rem;color:${success === false ? '#ef4444' : '#94a3b8'};margin-top:4px;">
-                ${success === false ? 'Failed' : 'Passed'}${durationSec ? ' &middot; ' + Number(durationSec).toFixed(1) + 's' : ''}${errCount > 0 ? ' &middot; ' + errCount + ' err' : ''}
-            </div>
-            ${gbTransferred ? `<div style="font-size:.64rem;color:var(--slate-400);margin-top:2px;">${gbTransferred} transferred</div>` : ''}
-        </div>`;
+    setDiskTabDot('dotBenchmark', report.endTime || report.EndTime || report.startTime || report.StartTime);
 }
 
 function _nvmeCard(nvme) {
@@ -3463,6 +3570,15 @@ function loadDiskInfoDetails() {
 }
 
 function renderDiskInfoPanel(infoList) {
+    const scanTimes = infoList
+        .map(info => info.scanTime || info.ScanTime)
+        .filter(Boolean)
+        .map(t => new Date(t))
+        .filter(d => !isNaN(d.getTime()));
+    const latestScan = scanTimes.length ? new Date(Math.max.apply(null, scanTimes)) : null;
+    const freshnessHtml = `<div style="margin-bottom:10px;">${diskFreshnessBadge(latestScan, { label: 'Deep scan' })}</div>`;
+    const staleBanner = deepStalenessBanner(latestScan, 'Disk & Volume Inventory (Deep Scan)');
+
     const cards = infoList.map(info => {
         const g = (camel, pascal, fallback) => info[camel] ?? info[pascal] ?? fallback;
         const volumes = info.volumes || info.Volumes || [];
@@ -3496,7 +3612,7 @@ function renderDiskInfoPanel(infoList) {
         const serial = g('serialNumber', 'SerialNumber', 'N/A');
 
         return `
-        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:14px;">
+        <div class="disk-anim-in" style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
                 <span style="font-size:.82rem;font-weight:700;color:var(--slate-800);"><i class="fas fa-hdd" style="color:var(--primary);margin-right:6px;"></i>${info.model || info.Model || ('Disk ' + (info.diskIndex ?? info.DiskIndex ?? ''))}</span>
                 <span style="font-size:.72rem;color:var(--slate-400);">${(info.capacityGB ?? info.CapacityGB ?? 0).toFixed(0)} GB &middot; ${info.mediaType || info.MediaType || 'N/A'}</span>
@@ -3513,9 +3629,10 @@ function renderDiskInfoPanel(infoList) {
         </div>`;
     }).join('');
 
-    $('#diskInfoContainer').html(cards);
+    $('#diskInfoContainer').html(staleBanner + freshnessHtml + cards);
     $('#diskInfoPlaceholder').hide();
     $('#diskInfoResults').show();
+    setDiskTabDot('dotVolumes', latestScan);
 }
 
 $(document).ready(function () {
@@ -3670,6 +3787,7 @@ $(document).ready(function () {
         btn.html('<i class="fas fa-circle-notch fa-spin"></i> Processing...');
         btn.prop('disabled', true);
         btn.css('opacity', '0.7');
+        btn.addClass('disk-audit-running');
         sysAlert('Hard Disk quick audit requested. Waiting for device to respond...', 'info');
 
         $('#diskAuditPlaceholder').hide();
@@ -3687,6 +3805,8 @@ $(document).ready(function () {
                         if (disks && Array.isArray(disks) && disks.length > 0) {
                             renderHardDiskDashboard(disks);
                             loadHardDiskHistoryChart();
+                            loadSmartDataDetails();
+                            loadDeepDiskReportDetails();
                             loadDiskInfoDetails();
                         } else {
                             $('#diskAuditLoading').hide();
@@ -3713,9 +3833,81 @@ $(document).ready(function () {
                 btn.html(originalText);
                 btn.prop('disabled', false);
                 btn.css('opacity', '1');
+                btn.removeClass('disk-audit-running');
             }
         });
     });
+
+    function setDeepAuditPendingUI(message) {
+        $('#diskDstResults').hide();
+        $('#diskDstPlaceholder').show().html(
+            '<i class="fas fa-circle-notch fa-spin" style="font-size:1.4rem;display:block;margin-bottom:8px;color:#8b5cf6;"></i>' + message
+        );
+        $('#diskSmartSummaryContainer').html(
+            '<div style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;">' +
+            '<i class="fas fa-circle-notch fa-spin" style="font-size:1.2rem;display:block;margin-bottom:8px;color:var(--cyan);"></i>' + message + '</div>'
+        );
+        $('#diskInfoResults').hide();
+        $('#diskInfoPlaceholder').show().html(
+            '<i class="fas fa-circle-notch fa-spin" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--primary);"></i>' + message
+        );
+    }
+
+    function resetDeepAuditButton(btn, originalText) {
+        btn.html(originalText);
+        btn.prop('disabled', false);
+        btn.css('opacity', '1');
+        btn.removeClass('disk-audit-running');
+    }
+
+    function refreshQuickDiskSection() {
+        $.get(`/ComputerSummary/HardDisk?domain=${domaindata}`, function (disks) {
+            if (disks && Array.isArray(disks) && disks.length > 0) {
+                renderHardDiskDashboard(disks, false);
+                loadHwPartitions();
+            }
+        });
+    }
+
+    function pollDeepAuditCompletion(baselineDate, attempt, btn, originalText) {
+        const MAX_ATTEMPTS = 40;      // ~10 minutes total at 15s intervals
+        const POLL_INTERVAL_MS = 15000;
+
+        $.get(`/ComputerSummary/GetDeepDiskReport?domain=${domaindata}`, function (report) {
+            const endRaw = report && report.success !== false ? (report.endTime || report.EndTime) : null;
+            const endDate = endRaw ? new Date(endRaw) : null;
+            const isFreshAndFinished = endDate && endDate.getFullYear() > 1 && (!baselineDate || endDate > baselineDate);
+
+            if (isFreshAndFinished) {
+                sysAlert('Deep Audit (DST) completed! Loading fresh diagnostics...', 'success');
+                refreshQuickDiskSection();
+                loadSmartDataDetails();
+                loadDeepDiskReportDetails();
+                loadDiskInfoDetails();
+                loadHardDiskHistoryChart();
+                resetDeepAuditButton(btn, originalText);
+                return;
+            }
+
+            if (attempt >= MAX_ATTEMPTS) {
+                sysAlert('Deep Audit is taking longer than expected and may still be running on the device. Showing the last completed results — refresh later to check again.', 'warning');
+                refreshQuickDiskSection();
+                loadSmartDataDetails();
+                loadDeepDiskReportDetails();
+                loadDiskInfoDetails();
+                resetDeepAuditButton(btn, originalText);
+                return;
+            }
+
+            setTimeout(function () { pollDeepAuditCompletion(baselineDate, attempt + 1, btn, originalText); }, POLL_INTERVAL_MS);
+        }).fail(function () {
+            if (attempt >= MAX_ATTEMPTS) {
+                resetDeepAuditButton(btn, originalText);
+                return;
+            }
+            setTimeout(function () { pollDeepAuditCompletion(baselineDate, attempt + 1, btn, originalText); }, POLL_INTERVAL_MS);
+        });
+    }
 
     $('#btnAuditHardDiskDeep').on('click', function (e) {
         e.preventDefault();
@@ -3724,46 +3916,82 @@ $(document).ready(function () {
         btn.html('<i class="fas fa-circle-notch fa-spin"></i> Running DST...');
         btn.prop('disabled', true);
         btn.css('opacity', '0.7');
+        btn.addClass('disk-audit-running');
         window.hasLiveAuditOccurred = true;
-        sysAlert('Deep Audit (DST) requested. Sending command to device...', 'info');
+        sysAlert('Deep Audit (DST) requested. This is a thorough self-test and can take several minutes — sending command to device...', 'info');
 
-        // Open the gate so Deep Audit sections are visible
         $('#diskAuditPlaceholder').hide();
         $('#diskAuditGate').show();
 
-        $.ajax({
-            url: '/ComputerSummary/AuditHardDisk?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName) + '&auditType=deep',
-            type: 'POST',
-            timeout: 10000,
-            success: function (res) {
-                if (res && res.success) {
-                    sysAlert(res.message || 'Deep Audit initiated! Loading existing deep diagnostics...', 'success');
-                } else {
-                    sysAlert(res.message || 'Failed to initiate Deep Audit.', 'error');
+        function proceedWithBaseline(baselineDate) {
+            setDeepAuditPendingUI('Deep Audit (DST) running on the device. This can take several minutes for a full self-test…');
+
+            $.ajax({
+                url: '/ComputerSummary/AuditHardDisk?domain=' + encodeURIComponent(domaindata) + '&hostName=' + encodeURIComponent(actualDomainName) + '&auditType=deep',
+                type: 'POST',
+                timeout: 15000,
+                success: function (res) {
+                    if (res && res.success) {
+                        sysAlert(res.message || 'Deep Audit (DST) started on the device. This will refresh automatically once it finishes.', 'success');
+                        pollDeepAuditCompletion(baselineDate, 0, btn, originalText);
+                    } else {
+                        sysAlert(res.message || 'Failed to initiate Deep Audit.', 'error');
+                        refreshQuickDiskSection();
+                        loadSmartDataDetails();
+                        loadDeepDiskReportDetails();
+                        loadDiskInfoDetails();
+                        resetDeepAuditButton(btn, originalText);
+                    }
+                },
+                error: function () {
+                    sysAlert('Connection error while starting Deep Audit. Please try again.', 'error');
+                    refreshQuickDiskSection();
+                    loadSmartDataDetails();
+                    loadDeepDiskReportDetails();
+                    loadDiskInfoDetails();
+                    resetDeepAuditButton(btn, originalText);
                 }
-                loadSmartDataDetails();
-                loadDeepDiskReportDetails();
-                loadDiskInfoDetails();
-                loadHardDiskHistoryChart();
-            },
-            error: function (xhr, status) {
-                sysAlert('Connection error. Loading last known deep data...', 'warning');
-                loadSmartDataDetails();
-                loadDeepDiskReportDetails();
-                loadDiskInfoDetails();
-                loadHardDiskHistoryChart();
-            },
-            complete: function () {
-                setTimeout(function () {
-                    btn.html(originalText);
-                    btn.prop('disabled', false);
-                    btn.css('opacity', '1');
-                }, 3000);
-            }
-        });
+            });
+        }
+
+        $.get(`/ComputerSummary/GetDeepDiskReport?domain=${domaindata}`)
+            .done(function (existing) {
+                const baselineRaw = existing && existing.success !== false ? (existing.endTime || existing.EndTime) : null;
+                proceedWithBaseline(baselineRaw ? new Date(baselineRaw) : null);
+            })
+            .fail(function () {
+                proceedWithBaseline(null);
+            });
     });
 
     checkBatteryReportExists();
+    $(document).on('click', '#diskDataTabBar .disk-data-tab', function () {
+        const key = $(this).data('disktab');
+        if ($(this).hasClass('active')) return;
+
+        $('#diskDataTabBar .disk-data-tab').removeClass('active');
+        $(this).addClass('active');
+
+        const $panels = $('#diskDataTabPanels .disk-data-panel');
+        const $current = $panels.filter('.active');
+        const $next = $panels.filter('[data-diskpanel="' + key + '"]');
+        if (!$next.length || $current.is($next)) return;
+
+        $current.removeClass('disk-panel-visible');
+        setTimeout(function () {
+            $current.removeClass('active');
+            $next.addClass('active');
+            void $next[0].offsetHeight;
+            $next.addClass('disk-panel-visible');
+
+            setTimeout(function () {
+                $(window).trigger('resize');
+                if (window.diskTrendChartInstance) window.diskTrendChartInstance.resize();
+                if (window.diskHealthChartInstance) window.diskHealthChartInstance.resize();
+                if (window.diskUsageChartInstance) window.diskUsageChartInstance.resize();
+            }, 60);
+        }, 180);
+    });
 });
 (function () {
     var CS_NAV_IMAGES = {

@@ -920,9 +920,10 @@
                 </div>
 
                 <!-- Audit loading state -->
-                <div id="diskAuditLoading" style="display:none;margin-top:12px;padding:24px;text-align:center;color:var(--slate-500);font-size:.82rem;background:var(--slate-50);border-radius:var(--radius-md);border:1px dashed var(--slate-200);">
-                    <i class="fas fa-circle-notch fa-spin" style="font-size:1.5rem;color:var(--cyan);margin-bottom:8px;display:block;"></i>
-                    Fetching live hard disk diagnostics from device, please wait...
+                <div id="diskAuditLoading" class="disk-scan-shell" style="display:none;margin-top:12px;padding:28px;text-align:center;color:var(--slate-500);font-size:.82rem;background:var(--slate-50);border-radius:var(--radius-md);border:1px dashed var(--slate-200);">
+                    <i class="fas fa-hdd disk-scan-icon" style="font-size:1.6rem;display:block;margin-bottom:10px;color:var(--cyan);"></i>
+                    <span class="disk-scan-shimmer-text" style="font-weight:600;">Fetching live hard disk diagnostics from device, please wait&hellip;</span>
+                    <div class="disk-scan-track"></div>
                 </div>
 
                 <!-- Gated section -->
@@ -977,6 +978,23 @@
                     <div id="diskDstPlaceholder" style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:20px;">
                         <i class="fas fa-microscope" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
                         Run <strong>Deep Audit (DST)</strong> above to perform a thorough drive self-test. This may take several minutes.
+                    </div>
+
+                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-tachometer-alt" style="color:#8b5cf6;"></i> Drive Benchmark Results (Deep Audit)</div>
+                    <div style="overflow-x:auto;background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow-sm);margin-bottom:20px;">
+                        <table id="diskBenchmarkTable" class="display cs-datatable" style="width:100%;">
+                            <thead>
+                                <tr>
+                                    <th>Test</th>
+                                    <th>Status</th>
+                                    <th>Speed (MB/s)</th>
+                                    <th>Duration (s)</th>
+                                    <th>Data Transferred</th>
+                                    <th>Errors</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
 
                     <div class="cpu-section-label" style="margin-top:22px;"><i class="fas fa-layer-group" style="color:var(--primary);"></i> Disk &amp; Volume Inventory (Deep Scan)</div>
