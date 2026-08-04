@@ -928,91 +928,131 @@
 
                 <!-- Gated section -->
                 <div id="diskAuditGate" style="display:none;">
-                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> Health Diagnostics &amp; Analytics</div>
-                    <div class="cpu-thermal-grid" style="margin-bottom:14px;align-items:stretch;">
-                        <!-- Health Score Chart -->
-                        <div style="display:flex;align-items:center;gap:18px;flex:1;min-width:260px;">
-                            <div class="battery-gauge-ring">
-                                <canvas id="diskHealthChartCanvas" width="90" height="90" style="display:block;margin:0 auto;"></canvas>
-                                <div class="battery-gauge-val" id="diskHealthScoreLabel" style="color:var(--slate-700);">--</div>
+
+                    <div class="disk-subtab-nav">
+                        <button type="button" class="disk-subtab-btn active" data-subtab="overview">
+                            <i class="fas fa-chart-pie"></i> Overview
+                        </button>
+                        <button type="button" class="disk-subtab-btn" data-subtab="quick">
+                            <i class="fas fa-stethoscope"></i> Quick Audit
+                        </button>
+                        <button type="button" class="disk-subtab-btn" data-subtab="deep">
+                            <i class="fas fa-microscope"></i> Deep Audit
+                        </button>
+                    </div>
+
+                    <!-- ============ OVERVIEW ============ -->
+                    <div class="disk-subtab-panel active" id="diskSubtabOverview">
+                        <div class="cpu-section-label" style="margin-top:6px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> Health Diagnostics &amp; Analytics</div>
+                        <div class="cpu-thermal-grid" style="margin-bottom:14px;align-items:stretch;">
+                            <!-- Health Score Chart -->
+                            <div style="display:flex;align-items:center;gap:18px;flex:1;min-width:260px;">
+                                <div class="battery-gauge-ring">
+                                    <canvas id="diskHealthChartCanvas" width="90" height="90" style="display:block;margin:0 auto;"></canvas>
+                                    <div class="battery-gauge-val" id="diskHealthScoreLabel" style="color:var(--slate-700);">--</div>
+                                </div>
+                                <div>
+                                    <div style="font-size:1rem;font-weight:700;color:var(--slate-800);margin-bottom:2px;" id="diskHealthStatusLabel">--</div>
+                                    <div style="font-size:.7rem;color:var(--slate-500);">Overall Health Score</div>
+                                </div>
                             </div>
-                            <div>
-                                <div style="font-size:1rem;font-weight:700;color:var(--slate-800);margin-bottom:2px;" id="diskHealthStatusLabel">--</div>
-                                <div style="font-size:.7rem;color:var(--slate-500);">Overall Health Score</div>
+
+                            <!-- Usage Chart -->
+                            <div style="display:flex;align-items:center;gap:18px;flex:1;min-width:260px;">
+                                <div class="battery-gauge-ring">
+                                    <canvas id="diskUsageChartCanvas" width="90" height="90" style="display:block;margin:0 auto;"></canvas>
+                                    <div class="battery-gauge-val" id="diskUsageScoreLabel" style="color:var(--slate-700);">--</div>
+                                </div>
+                                <div>
+                                    <div style="font-size:1rem;font-weight:700;color:var(--slate-800);margin-bottom:2px;" id="diskUsageStatusLabel">--</div>
+                                    <div style="font-size:.7rem;color:var(--slate-500);">Storage Utilization</div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Usage Chart -->
-                        <div style="display:flex;align-items:center;gap:18px;flex:1;min-width:260px;">
-                            <div class="battery-gauge-ring">
-                                <canvas id="diskUsageChartCanvas" width="90" height="90" style="display:block;margin:0 auto;"></canvas>
-                                <div class="battery-gauge-val" id="diskUsageScoreLabel" style="color:var(--slate-700);">--</div>
-                            </div>
-                            <div>
-                                <div style="font-size:1rem;font-weight:700;color:var(--slate-800);margin-bottom:2px;" id="diskUsageStatusLabel">--</div>
-                                <div style="font-size:.7rem;color:var(--slate-500);">Storage Utilization</div>
+                        <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-chart-line" style="color:var(--primary);"></i> Health &amp; Usage Trend (Last 20 Scans)</div>
+                        <div style="width:100%;height:220px;background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow-sm);margin-bottom:14px;">
+                            <canvas id="diskTrendChartCanvas"></canvas>
+                        </div>
+                        <div id="diskForecastContainer" style="margin-bottom:20px;"></div>
+
+                        <div class="cpu-section-label" style="margin-top:22px;"><i class="fas fa-layer-group" style="color:var(--primary);"></i> Disk &amp; Volume Inventory (Deep Scan)</div>
+                        <div id="diskInfoResults" style="display:none;margin-bottom:20px;">
+                            <div id="diskInfoContainer"></div>
+                        </div>
+                        <div id="diskInfoPlaceholder" style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:20px;">
+                            <i class="fas fa-layer-group" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
+                            Run <strong>Deep Audit</strong> above to see the per-partition volume breakdown for each physical disk.
+                        </div>
+                        <div class="cpu-section-label" style="margin-top:22px;">
+                            <i class="fas fa-sitemap" style="color:var(--primary);"></i> Partitions &amp; Logical Drives
+                        </div>
+                        <div id="hwPartitionsContainer">
+                            <div style="text-align:center;padding:24px;color:var(--slate-400);font-size:.85rem;">
+                                <i class="fas fa-circle-notch fa-spin"></i> Loading partitions...
                             </div>
                         </div>
                     </div>
 
-                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-chart-line" style="color:var(--primary);"></i> Health &amp; Usage Trend (Last 20 Scans)</div>
-                    <div style="width:100%;height:220px;background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow-sm);margin-bottom:14px;">
-                        <canvas id="diskTrendChartCanvas"></canvas>
-                    </div>
-                    <div id="diskForecastContainer" style="margin-bottom:20px;"></div>
-                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> S.M.A.R.T. Health Metrics (Quick Audit)</div>
-                    <div id="diskAuditResults" style="display:none;margin-bottom:20px;">
-                        <div id="diskSmartContainer"></div>
-                    </div>
-                    <div id="diskSmartPlaceholder" style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:20px;">
-                        <i class="fas fa-heartbeat" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
-                        Run <strong>Quick Audit</strong> above to see S.M.A.R.T. health data.
-                    </div>
-
-                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-list-alt" style="color:var(--cyan);"></i> S.M.A.R.T. Full Detail (Deep Audit)</div>
-                    <div id="diskSmartSummaryContainer" style="margin-bottom:20px;"></div>
-                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-microscope" style="color:#8b5cf6;"></i> Drive Self-Test (Deep Audit) Report</div>
-                    <div id="diskDstResults" style="display:none;margin-bottom:20px;">
-                        <div id="diskDstContainer"></div>
-                    </div>
-                    <div id="diskDstPlaceholder" style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:20px;">
-                        <i class="fas fa-microscope" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
-                        Run <strong>Deep Audit (DST)</strong> above to perform a thorough drive self-test. This may take several minutes.
-                    </div>
-
-                    <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-tachometer-alt" style="color:#8b5cf6;"></i> Drive Benchmark Results (Deep Audit)</div>
-                    <div style="overflow-x:auto;background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow-sm);margin-bottom:20px;">
-                        <table id="diskBenchmarkTable" class="display cs-datatable" style="width:100%;">
-                            <thead>
-                                <tr>
-                                    <th>Test</th>
-                                    <th>Status</th>
-                                    <th>Speed (MB/s)</th>
-                                    <th>Duration (s)</th>
-                                    <th>Data Transferred</th>
-                                    <th>Errors</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
-                    <div class="cpu-section-label" style="margin-top:22px;"><i class="fas fa-layer-group" style="color:var(--primary);"></i> Disk &amp; Volume Inventory (Deep Scan)</div>
-                    <div id="diskInfoResults" style="display:none;margin-bottom:20px;">
-                        <div id="diskInfoContainer"></div>
-                    </div>
-                    <div id="diskInfoPlaceholder" style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:20px;">
-                        <i class="fas fa-layer-group" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
-                        Run <strong>Deep Audit</strong> above to see the per-partition volume breakdown for each physical disk.
-                    </div>
-                    <div class="cpu-section-label" style="margin-top:22px;">
-                        <i class="fas fa-sitemap" style="color:var(--primary);"></i> Partitions &amp; Logical Drives
-                    </div>
-                    <div id="hwPartitionsContainer">
-                        <div style="text-align:center;padding:24px;color:var(--slate-400);font-size:.85rem;">
-                            <i class="fas fa-circle-notch fa-spin"></i> Loading partitions...
+                    <div class="disk-subtab-panel" id="diskSubtabQuick">
+                        <div class="cpu-section-label" style="margin-top:6px;"><i class="fas fa-heartbeat" style="color:#ef4444;"></i> S.M.A.R.T. Health Metrics (Quick Audit)</div>
+                        <div id="diskAuditResults" style="display:none;margin-bottom:20px;">
+                            <div id="diskSmartContainer"></div>
+                        </div>
+                        <div id="diskSmartPlaceholder" style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:20px;">
+                            <i class="fas fa-heartbeat" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
+                            Run <strong>Quick Audit</strong> above to see S.M.A.R.T. health data.
                         </div>
                     </div>
+
+                    <div class="disk-subtab-panel" id="diskSubtabDeep">
+                        <div class="cpu-section-label" style="margin-top:6px;"><i class="fas fa-list-alt" style="color:var(--cyan);"></i> S.M.A.R.T. Full Detail (Deep Audit)</div>
+                        <div id="diskSmartSummaryContainer" style="margin-bottom:20px;"></div>
+
+                        <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-table" style="color:var(--cyan);"></i> S.M.A.R.T. Raw Attributes (Deep Audit)</div>
+                        <div class="disk-modern-card disk-anim-in" style="overflow-x:auto;padding:12px;margin-bottom:20px;">
+                            <table id="diskSmartAttributesTable" class="display cs-datatable" style="width:100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Attribute Name</th>
+                                        <th>Value</th>
+                                        <th>Worst</th>
+                                        <th>Threshold</th>
+                                        <th>Raw Value</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                        <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-microscope" style="color:#8b5cf6;"></i> Drive Self-Test (Deep Audit) Report</div>
+                        <div id="diskDstResults" style="display:none;margin-bottom:20px;">
+                            <div id="diskDstContainer"></div>
+                        </div>
+                        <div id="diskDstPlaceholder" style="padding:20px;background:var(--slate-50);border:1px dashed var(--slate-200);border-radius:var(--radius-md);text-align:center;color:var(--slate-400);font-size:.82rem;margin-bottom:20px;">
+                            <i class="fas fa-microscope" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>
+                            Run <strong>Deep Audit (DST)</strong> above to perform a thorough drive self-test. This may take several minutes.
+                        </div>
+
+                        <div class="cpu-section-label" style="margin-top:18px;"><i class="fas fa-tachometer-alt" style="color:#8b5cf6;"></i> Drive Benchmark Results (Deep Audit)</div>
+                        <div class="disk-modern-card disk-anim-in" style="overflow-x:auto;padding:12px;margin-bottom:20px;">
+                            <table id="diskBenchmarkTable" class="display cs-datatable" style="width:100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Test</th>
+                                        <th>Status</th>
+                                        <th>Speed (MB/s)</th>
+                                        <th>Duration (s)</th>
+                                        <th>Data Transferred</th>
+                                        <th>Errors</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
 
             </div>

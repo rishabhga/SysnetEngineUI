@@ -65,6 +65,34 @@ function diskFreshnessBadge(dateVal, opts) {
     return `<span class="disk-fresh-badge ${cls}" title="${abs}"><i class="fas ${icon}"></i> ${label}: ${rel}${staleNote}</span>`;
 }
 
+(function initDiskSubtabs() {
+    $(document).on('click', '.disk-subtab-btn', function () {
+        const target = $(this).data('subtab');
+        if ($(this).hasClass('active')) return;
+
+        $('.disk-subtab-btn').removeClass('active');
+        $(this).addClass('active');
+
+        $('.disk-subtab-panel').removeClass('active').hide();
+        const $panel = $('#diskSubtab' + target.charAt(0).toUpperCase() + target.slice(1));
+        $panel.show().addClass('active');
+
+        if (target === 'deep') {
+            ensureDeepAuditDataLoaded(false);
+            setTimeout(function () {
+                if ($.fn.DataTable.isDataTable('#diskSmartAttributesTable')) $('#diskSmartAttributesTable').DataTable().columns.adjust();
+                if ($.fn.DataTable.isDataTable('#diskBenchmarkTable')) $('#diskBenchmarkTable').DataTable().columns.adjust();
+            }, 50);
+        } else if (target === 'overview') {
+            setTimeout(function () {
+                if (window.diskHealthChartInstance) window.diskHealthChartInstance.resize();
+                if (window.diskUsageChartInstance) window.diskUsageChartInstance.resize();
+                if (window.diskTrendChartInstance) window.diskTrendChartInstance.resize();
+            }, 50);
+        }
+    });
+})();
+
 (function injectDiskAnimCss() {
     if (document.getElementById('disk-audit-anim-css')) return;
     const style = document.createElement('style');
@@ -99,19 +127,80 @@ function diskFreshnessBadge(dateVal, opts) {
             animation: diskBtnGlow 1.3s ease-in-out infinite;
         }
 
-        /* Benchmark DataTable polish, matching the app's card/teal styling */
-        #diskBenchmarkTable.dataTable { border-collapse:separate !important; border-spacing:0; }
-        #diskBenchmarkTable.dataTable thead th {
+        /* Benchmark & SMART-attributes DataTable polish, matching the app's card/teal styling */
+        #diskBenchmarkTable.dataTable, #diskSmartAttributesTable.dataTable { border-collapse:separate !important; border-spacing:0; }
+        #diskBenchmarkTable.dataTable thead th, #diskSmartAttributesTable.dataTable thead th {
             font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; color:var(--slate-500);
             border-bottom:1px solid var(--slate-200); padding:10px 12px; background:var(--slate-50);
         }
-        #diskBenchmarkTable.dataTable tbody td {
+        #diskBenchmarkTable.dataTable tbody td, #diskSmartAttributesTable.dataTable tbody td {
             font-size:.8rem; padding:10px 12px; border-bottom:1px solid var(--slate-100); color:var(--slate-700);
             transition: background-color .15s ease;
         }
-        #diskBenchmarkTable.dataTable tbody tr:hover td { background:#f0fdfa; }
-        #diskBenchmarkTable.dataTable tbody tr:nth-child(even) td { background:var(--slate-50); }
-        #diskBenchmarkTable.dataTable tbody tr:nth-child(even):hover td { background:#f0fdfa; }
+        #diskBenchmarkTable.dataTable tbody tr:hover td, #diskSmartAttributesTable.dataTable tbody tr:hover td { background:#f0fdfa; }
+        #diskBenchmarkTable.dataTable tbody tr:nth-child(even) td, #diskSmartAttributesTable.dataTable tbody tr:nth-child(even) td { background:var(--slate-50); }
+        #diskBenchmarkTable.dataTable tbody tr:nth-child(even):hover td, #diskSmartAttributesTable.dataTable tbody tr:nth-child(even):hover td { background:#f0fdfa; }
+        /* Grouped sub-tabs (Overview / Quick Audit / Deep Audit) */
+        .disk-subtab-nav {
+            display:flex; gap:4px; margin:18px 0 18px; border-bottom:2px solid var(--slate-100);
+            overflow-x:auto;
+        }
+        .disk-subtab-btn {
+            display:flex; align-items:center; gap:7px; white-space:nowrap;
+            padding:10px 18px; border:none; background:transparent; cursor:pointer;
+            font-size:.8rem; font-weight:700; color:var(--slate-500);
+            border-bottom:2px solid transparent; margin-bottom:-2px;
+            transition: color .18s ease, border-color .18s ease;
+        }
+        .disk-subtab-btn i { font-size:.78rem; }
+        .disk-subtab-btn:hover { color:var(--slate-700); }
+        .disk-subtab-btn.active {
+            color:var(--primary);
+            border-bottom-color:var(--primary);
+            background:linear-gradient(180deg, transparent 60%, rgba(14,165,233,.08) 60%);
+            border-radius:6px 6px 0 0;
+        }
+        .disk-subtab-panel { display:none; }
+        .disk-subtab-panel.active { display:block; animation: diskPanelFadeIn .3s ease both; }
+
+        /* Skeleton shimmer for initial disk load (before any data has arrived) */
+        @keyframes diskSkeletonShimmer { 0% { background-position:-450px 0; } 100% { background-position:450px 0; } }
+        .disk-skeleton-block {
+            border-radius:8px; height:16px; margin-bottom:8px;
+            background:linear-gradient(90deg, var(--slate-100) 25%, var(--slate-200) 37%, var(--slate-100) 63%);
+            background-size:800px 100%;
+            animation: diskSkeletonShimmer 1.4s linear infinite;
+        }
+        .disk-skeleton-card {
+            background:#fff; border:1px solid var(--slate-200); border-radius:var(--radius-md);
+            padding:16px 18px; box-shadow:var(--shadow-sm);
+        }
+
+        /* Shared hover-lift for the modern disk cards */
+        .disk-modern-card {
+            background:#fff; border:1px solid var(--slate-200); border-radius:var(--radius-md);
+            box-shadow:var(--shadow-sm); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+        .disk-modern-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(15,23,42,.08);
+            border-color: #99f6e4;
+        }
+
+        /* Hero: pulsing icon ring + subtle animated gradient sheen */
+        @keyframes diskHeroIconPulse { 0%,100% { box-shadow:0 0 0 0 rgba(13,148,136,.35); } 50% { box-shadow:0 0 0 8px rgba(13,148,136,0); } }
+        @keyframes diskHeroSheen { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+        #HardDiskHw .cpu-hero { position:relative; overflow:hidden; }
+        #HardDiskHw .cpu-hero::before {
+            content:''; position:absolute; inset:0; pointer-events:none;
+            background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,.35) 45%, transparent 60%);
+            background-size:200% 100%;
+            animation: diskHeroSheen 6s ease-in-out infinite;
+        }
+        #HardDiskHw .cpu-chip-icon { animation: diskHeroIconPulse 2.4s ease-in-out infinite; }
+
+        /* Count-up number transition */
+        .disk-count-val { transition: color .3s ease; }
     `;
     document.head.appendChild(style);
 })();
@@ -245,7 +334,6 @@ function initTabStyles() {
         window.componentScores = { processor: 100, disk: 100, motherboard: 100, memory: 100 };
 
         window.updateSystemHealth = function () {
-            // System health banner removed — health is shown per-component
         };
 
 
@@ -1462,8 +1550,7 @@ function renderProcessorSpecs(d) {
 }
 
 function renderProcessorCache(d) {
-    // ProcessorDetails has no cache data, and #cpuCacheContainer's section is hidden in the HTML.
-    // Left as a no-op (rather than removed) so the loadProcessorDetails() call site doesn't need touching.
+
 }
 
 function renderProcessorThermal(d) {
@@ -2743,7 +2830,70 @@ function renderCapacityTrendChart(history) {
     });
 }
 
+function animateDiskCountUp($el, target, suffix) {
+    suffix = suffix || '%';
+    const start = parseFloat($el.text()) || 0;
+    const end = parseFloat(target) || 0;
+    const duration = 600;
+    const startTime = performance.now();
+    function tick(now) {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const val = start + (end - start) * eased;
+        $el.text(val.toFixed(0) + suffix);
+        if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+
+function diskSkeletonCards(count, height) {
+    let html = '';
+    for (let i = 0; i < count; i++) {
+        html += `<div class="disk-skeleton-card"><div class="disk-skeleton-block" style="width:${60 + (i % 3) * 10}%;"></div><div class="disk-skeleton-block" style="height:${height || 22}px;width:90%;margin-bottom:0;"></div></div>`;
+    }
+    return html;
+}
+
+// Deep Audit subtab (S.M.A.R.T. full detail + DST report + benchmark) is fetched
+// lazily: it's the heaviest set of calls (GetSmartData, GetHardDiskSmartAttributes,
+// GetDeepDiskReport, GetHardDiskBenchmark) and most visits never open that subtab.
+// `loadedForSerial` remembers which disk's data is currently in the DOM so re-clicking
+// the tab, or coming back to a disk already fetched, doesn't re-hit the server.
+window.diskDeepDataState = { loadedForSerial: undefined };
+
+function showDeepAuditLoadingState() {
+    $('#diskSmartSummaryContainer').html(diskSkeletonCards(2, 18));
+    $('#diskDstResults').hide();
+    $('#diskDstPlaceholder').show().html(
+        '<i class="fas fa-circle-notch fa-spin" style="font-size:1.4rem;display:block;margin-bottom:8px;color:#8b5cf6;"></i>Loading deep audit results&hellip;'
+    );
+}
+
+// Call whenever the Deep Audit subtab becomes visible, whenever the audited disk
+// changes, or after a Quick/Deep audit completes. `force` re-fetches even if this
+// disk's data already appears to be loaded (used after a fresh audit finishes).
+function ensureDeepAuditDataLoaded(force) {
+    const serial = window.currentDiskSerial || null;
+    if (!force && window.diskDeepDataState.loadedForSerial === serial) return;
+    window.diskDeepDataState.loadedForSerial = serial;
+    showDeepAuditLoadingState();
+    loadSmartDataDetails();
+    loadDeepDiskReportDetails();
+}
+
+// Disk switched (or first audit gate open) — the previously loaded Deep Audit data,
+// if any, belongs to a different disk/state now, so mark it stale. It will be
+// re-fetched the next time the Deep Audit subtab is opened, not eagerly.
+function invalidateDeepAuditData() {
+    window.diskDeepDataState.loadedForSerial = undefined;
+}
+
 function loadHardDiskDetails() {
+    // Show a shimmering skeleton immediately so the tab never looks empty/frozen
+    // while the initial /HardDisk fetch is in flight.
+    $('#diskUsageContainer').html(diskSkeletonCards(1, 30));
+    $('#diskSpecsContainer').html(`<div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));">${diskSkeletonCards(6, 16)}</div>`);
+
     $.get(`/ComputerSummary/HardDisk?domain=${domaindata}`, function (disks) {
         if (!disks || !Array.isArray(disks) || disks.length === 0) {
             $('#diskHeroName').text('No disks found');
@@ -2760,10 +2910,11 @@ function loadHardDiskDetails() {
         if (hasRealData) {
             renderHardDiskDashboard(disks, false);
             loadHwPartitions();
-            loadSmartDataDetails();
-            loadDeepDiskReportDetails();
             loadHardDiskHistoryChart();
             loadDiskInfoDetails();
+            invalidateDeepAuditData();
+            // Deep Audit subtab (SMART full detail / DST / benchmark) loads lazily —
+            // see ensureDeepAuditDataLoaded(), triggered from the subtab click handler.
         } else {
             var d = disks[0];
             var model = d.Model || d.model || 'Unknown Disk';
@@ -2842,10 +2993,19 @@ function renderHardDiskDashboard(disks, openGate = true) {
             $('#diskHeroInterface').html('<i class="fas fa-plug"></i> ' + (clickedDisk.InterfaceType || clickedDisk.interfaceType || 'N/A'));
             $('#diskHeroPowerOn').html('<i class="fas fa-clock"></i> ' + Number(clickedDisk.PowerOnHours || clickedDisk.powerOnHours || 0).toLocaleString() + ' hrs powered');
             renderDiskPanels(clickedDisk);
+
+            // Switching disks means the deep-audit panels (SMART/DST/Benchmark/Disk-Info)
+            // need to be re-fetched scoped to THIS disk's serial — otherwise they keep
+            // showing whichever disk was audited most recently, regardless of which tab
+            // is open (the bug that made GEONIXGOLD256's tab show the WDC drive's data).
             window.currentDiskSerial = clickedDisk.SerialNumber || clickedDisk.serialNumber || null;
-            loadSmartDataDetails();
-            loadDeepDiskReportDetails();
             loadDiskInfoDetails();
+            invalidateDeepAuditData();
+            // Only re-fetch Deep Audit data immediately if that subtab is the one
+            // currently on screen; otherwise it loads lazily next time it's opened.
+            if ($('.disk-subtab-btn.active').data('subtab') === 'deep') {
+                ensureDeepAuditDataLoaded(true);
+            }
         });
     }
 
@@ -2961,7 +3121,7 @@ function renderDiskPanels(d) {
                 plugins: { legend: { display: false }, tooltip: { enabled: false } }
             }
         });
-        $('#diskHealthScoreLabel').text(healthScore.toFixed(0) + '%').css('color', healthScoreColor);
+        animateDiskCountUp($('#diskHealthScoreLabel').addClass('disk-count-val').css('color', healthScoreColor), healthScore, '%');
     }
 
     if (typeof window.diskUsageChartInstance !== 'undefined' && window.diskUsageChartInstance) window.diskUsageChartInstance.destroy();
@@ -2983,17 +3143,17 @@ function renderDiskPanels(d) {
                 plugins: { legend: { display: false }, tooltip: { enabled: false } }
             }
         });
-        $('#diskUsageScoreLabel').text(usedPct.toFixed(0) + '%').css('color', barColor);
+        animateDiskCountUp($('#diskUsageScoreLabel').addClass('disk-count-val').css('color', barColor), usedPct, '%');
     }
 
     const usageHtml = `
-        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px 18px;box-shadow:var(--shadow-sm);">
+        <div class="disk-modern-card disk-anim-in" style="padding:16px 18px;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
                 <span style="font-size:.82rem;font-weight:700;color:var(--slate-700);flex:1;min-width:0;word-break:break-word;">${d.Model || d.model || 'Disk'}</span>
                 <span style="font-size:.76rem;color:var(--slate-500);white-space:nowrap;">${usedGB.toFixed(2)} GB used of ${totalCap.toFixed(2)} GB</span>
             </div>
             <div style="height:12px;border-radius:6px;background:var(--slate-100);overflow:hidden;">
-                <div style="height:100%;width:${usedPct.toFixed(1)}%;background:${barColor};border-radius:6px;transition:width 1s ease;"></div>
+                <div style="height:100%;width:0%;background:${barColor};border-radius:6px;transition:width 1s cubic-bezier(.22,1,.36,1);" data-target-width="${usedPct.toFixed(1)}"></div>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:6px;">
                 <span style="font-size:.7rem;color:${barColor};font-weight:700;">${usedPct.toFixed(1)}% Used</span>
@@ -3001,23 +3161,30 @@ function renderDiskPanels(d) {
             </div>
         </div>`;
     $('#diskUsageContainer').html(usageHtml);
+    // Animate the bar filling in from 0 on the next frame (CSS transition needs the
+    // width change to happen after initial paint, not in the same synchronous .html() call).
+    requestAnimationFrame(() => {
+        $('#diskUsageContainer [data-target-width]').each(function () {
+            $(this).css('width', $(this).data('target-width') + '%');
+        });
+    });
 
     window.lastQuickDiskData = d;
     renderDiskRiskBanner(d, { wearVal: wear, tempVal: temp, predictFail, readErr, writeErr, reallocSectors: 0, pendingSectors: 0, uncorrSectors: 0 });
     const specsHtml = `
-        <div class="cs-info-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));">
-            <div class="cs-info-box"><div class="cs-info-box-label">Model</div><div class="cs-info-box-value accent" style="font-size:.8rem;">${d.Model || d.model || 'N/A'}</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Manufacturer</div><div class="cs-info-box-value">${d.Manufacturer || d.manufacturer || 'N/A'}</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Serial Number</div><div class="cs-info-box-value" style="font-family:var(--font-mono);font-size:.72rem;">${d.SerialNumber || d.serialNumber || 'N/A'}</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Firmware</div><div class="cs-info-box-value" style="font-family:var(--font-mono);font-size:.74rem;">${d.FirmwareVersion || d.firmwareVersion || 'N/A'}</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Interface</div><div class="cs-info-box-value">${d.InterfaceType || d.interfaceType || 'N/A'}</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Description</div><div class="cs-info-box-value" style="font-size:.75rem;font-weight:500;">${d.Description || d.description || 'N/A'}</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Total Capacity</div><div class="cs-info-box-value accent">${parseFloat(d.TotalCapacity || d.totalCapacity || 0).toFixed(2)} GB</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Used Space</div><div class="cs-info-box-value amber">${usedGB.toFixed(2)} GB</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Free Space</div><div class="cs-info-box-value green">${freeGB.toFixed(2)} GB</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Power-On Hours</div><div class="cs-info-box-value">${Number(d.PowerOnHours || d.powerOnHours || 0).toLocaleString()} hrs</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Health Status</div><div class="cs-info-box-value" style="color:${(d.HealthStatus || '').toUpperCase() === 'HEALTHY' ? '#22c55e' : '#f59e0b'};">${d.HealthStatus || d.healthStatus || 'N/A'}</div></div>
-            <div class="cs-info-box"><div class="cs-info-box-label">Predict Failure</div><div class="cs-info-box-value" style="color:${(d.PredictFailure || d.predictFailure) ? '#ef4444' : '#22c55e'};">${(d.PredictFailure || d.predictFailure) ? 'Yes <i class="fas fa-exclamation-triangle"></i>' : 'No'}</div></div>
+        <div class="cs-info-grid disk-anim-in" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));">
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Model</div><div class="cs-info-box-value accent" style="font-size:.8rem;">${d.Model || d.model || 'N/A'}</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Manufacturer</div><div class="cs-info-box-value">${d.Manufacturer || d.manufacturer || 'N/A'}</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Serial Number</div><div class="cs-info-box-value" style="font-family:var(--font-mono);font-size:.72rem;">${d.SerialNumber || d.serialNumber || 'N/A'}</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Firmware</div><div class="cs-info-box-value" style="font-family:var(--font-mono);font-size:.74rem;">${d.FirmwareVersion || d.firmwareVersion || 'N/A'}</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Interface</div><div class="cs-info-box-value">${d.InterfaceType || d.interfaceType || 'N/A'}</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Description</div><div class="cs-info-box-value" style="font-size:.75rem;font-weight:500;">${d.Description || d.description || 'N/A'}</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Total Capacity</div><div class="cs-info-box-value accent">${parseFloat(d.TotalCapacity || d.totalCapacity || 0).toFixed(2)} GB</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Used Space</div><div class="cs-info-box-value amber">${usedGB.toFixed(2)} GB</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Free Space</div><div class="cs-info-box-value green">${freeGB.toFixed(2)} GB</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Power-On Hours</div><div class="cs-info-box-value">${Number(d.PowerOnHours || d.powerOnHours || 0).toLocaleString()} hrs</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Health Status</div><div class="cs-info-box-value" style="color:${(d.HealthStatus || '').toUpperCase() === 'HEALTHY' ? '#22c55e' : '#f59e0b'};">${d.HealthStatus || d.healthStatus || 'N/A'}</div></div>
+            <div class="cs-info-box disk-modern-card"><div class="cs-info-box-label">Predict Failure</div><div class="cs-info-box-value" style="color:${(d.PredictFailure || d.predictFailure) ? '#ef4444' : '#22c55e'};">${(d.PredictFailure || d.predictFailure) ? 'Yes <i class="fas fa-exclamation-triangle"></i>' : 'No'}</div></div>
         </div>`;
     $('#diskSpecsContainer').html(specsHtml);
 
@@ -3109,6 +3276,27 @@ function loadSmartDataDetails() {
         if (!smart || smart.success === false) return;
         renderSmartDataPanel(smart);
     });
+    loadSmartAttributesTable();
+}
+
+// Raw SMART attribute rows, straight off SmartAttributeModel — same initTable +
+// flexRender pattern as the benchmark table, instead of a hand-built .html() block.
+function loadSmartAttributesTable() {
+    const serialParam = window.currentDiskSerial ? `&serial=${encodeURIComponent(window.currentDiskSerial)}` : '';
+    initTable('#diskSmartAttributesTable', `/ComputerSummary/GetHardDiskSmartAttributes?domain=${domaindata}${serialParam}`, [
+        { data: null, render: (row) => flexRender(row, 'Name') },
+        { data: null, render: (row) => flexRender(row, 'CurrentValue') },
+        { data: null, render: (row) => flexRender(row, 'WorstValue') },
+        { data: null, render: (row) => flexRender(row, 'Threshold') },
+        { data: null, render: (row) => flexRender(row, 'RawValue') },
+        {
+            data: null, render: (row) => {
+                const status = (row.Status || row.status || 'OK');
+                const ok = ['OK', 'GOOD', 'HEALTHY'].includes(String(status).toUpperCase());
+                return '<span style="font-weight:700;color:' + (ok ? '#22c55e' : '#ef4444') + ';">' + status + '</span>';
+            }
+        }
+    ]);
 }
 
 function renderSmartDataPanel(smart) {
@@ -3157,7 +3345,7 @@ function renderSmartDataPanel(smart) {
 
     const summaryHtml = `
         ${staleBanner}
-        <div class="disk-anim-in" style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+        <div class="disk-anim-in disk-modern-card" style="padding:16px;margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px;">
                 <div style="font-size:.82rem;font-weight:700;color:var(--slate-800);">
                     <i class="fas fa-heartbeat" style="color:var(--cyan);margin-right:6px;"></i>S.M.A.R.T. Summary <span style="font-weight:500;color:var(--slate-400);">(Deep Audit)</span>
@@ -3206,52 +3394,7 @@ function renderSmartDataPanel(smart) {
             </div>
         </div>`;
 
-    const attrs = smart.smartAttributes || smart.SmartAttributes;
-    let tableHtml = '';
-    if (attrs && Array.isArray(attrs) && attrs.length > 0) {
-        let rows = attrs.map(a => {
-            let stColor = '#22c55e';
-            let stText = a.status || a.Status || 'OK';
-            if (stText.toUpperCase() !== 'OK' && stText.toUpperCase() !== 'GOOD' && stText.toUpperCase() !== 'HEALTHY') {
-                stColor = '#ef4444';
-            }
-            return `<tr>
-                <td style="padding:6px 10px;font-weight:600;color:var(--slate-700);">${a.name || a.Name || 'N/A'}</td>
-                <td style="padding:6px 10px;text-align:center;">${a.currentValue ?? a.CurrentValue ?? '-'}</td>
-                <td style="padding:6px 10px;text-align:center;">${a.worstValue ?? a.WorstValue ?? '-'}</td>
-                <td style="padding:6px 10px;text-align:center;">${a.threshold ?? a.Threshold ?? '-'}</td>
-                <td style="padding:6px 10px;font-family:var(--font-mono);text-align:right;">${a.rawValue ?? a.RawValue ?? 0}</td>
-                <td style="padding:6px 10px;text-align:center;"><span style="color:${stColor};font-weight:700;">${stText}</span></td>
-            </tr>`;
-        }).join('');
-
-        tableHtml = `
-        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
-            <div style="font-size:.82rem;font-weight:700;color:var(--slate-800);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
-                <span><i class="fas fa-list-alt" style="color:var(--cyan);margin-right:6px;"></i>S.M.A.R.T. Raw Attributes (${attrs.length} Parameters)</span>
-                <span style="font-size:.7rem;color:var(--slate-400);">Status: ${smart.smartStatus || smart.SmartStatus || 'PASSED'}</span>
-            </div>
-            <div style="overflow-x:auto;">
-                <table style="width:100%;font-size:.76rem;border-collapse:collapse;">
-                    <thead>
-                        <tr style="background:var(--slate-50);border-bottom:1px solid var(--slate-200);color:var(--slate-500);text-align:left;">
-                            <th style="padding:6px 10px;">Attribute Name</th>
-                            <th style="padding:6px 10px;text-align:center;">Value</th>
-                            <th style="padding:6px 10px;text-align:center;">Worst</th>
-                            <th style="padding:6px 10px;text-align:center;">Thresh</th>
-                            <th style="padding:6px 10px;text-align:right;">Raw Value</th>
-                            <th style="padding:6px 10px;text-align:center;">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody style="divide-y divide-slate-100;">
-                        ${rows}
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
-    }
-
-    $('#diskSmartSummaryContainer').html(summaryHtml + tableHtml);
+    $('#diskSmartSummaryContainer').html(summaryHtml);
     setDiskTabDot('dotSmartFull', scanTime);
 }
 
@@ -3264,6 +3407,9 @@ function loadDeepDiskReportDetails() {
     loadBenchmarkTable();
 }
 
+// Benchmark results, straight off the DiskTestResult model — same DataTable
+// pattern used everywhere else on this page (initTable + flexRender), so it
+// no longer depends on the hand-built cards/chart matching field names correctly.
 function loadBenchmarkTable() {
     const serialParam = window.currentDiskSerial ? `&serial=${encodeURIComponent(window.currentDiskSerial)}` : '';
     initTable('#diskBenchmarkTable', `/ComputerSummary/GetHardDiskBenchmark?domain=${domaindata}${serialParam}`, [
@@ -3315,7 +3461,7 @@ function renderDeepDiskReportPanel(report) {
 
     const summaryHeaderHtml = `
         ${staleBanner}
-        <div class="disk-anim-in" style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+        <div class="disk-anim-in disk-modern-card" style="padding:16px;margin-bottom:16px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
                 <span style="font-size:.82rem;font-weight:700;color:var(--slate-800);"><i class="fas fa-clipboard-check" style="color:var(--primary);margin-right:6px;"></i>Deep Scan Summary</span>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -3370,7 +3516,7 @@ function renderDeepDiskReportPanel(report) {
             </div>`).join('');
 
         dstHtml = `
-            <div class="disk-anim-in" style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);">
+            <div class="disk-anim-in disk-modern-card" style="padding:16px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                     <span style="font-size:.82rem;font-weight:700;color:var(--slate-800);"><i class="fas fa-microscope" style="color:#8b5cf6;margin-right:6px;"></i>Drive Self-Test (DST) Report</span>
                     <span style="font-size:.74rem;font-weight:800;color:${stColor};">${isUnfinished ? '<i class="fas fa-circle-notch fa-spin"></i> ' : ''}${displayStatus}</span>
@@ -3422,7 +3568,7 @@ function _nvmeCard(nvme) {
     const isHealthy = (!critWarn || critWarn.toString().toUpperCase() === 'NONE' || critWarn === '0') && mediaErr === 0;
 
     return `
-        <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;">
+        <div class="disk-anim-in disk-modern-card" style="padding:16px;margin-bottom:16px;">
             <div style="font-size:.82rem;font-weight:700;color:var(--slate-800);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
                 <span><i class="fas fa-microchip" style="color:#8b5cf6;margin-right:6px;"></i>NVMe Health Report</span>
                 <span style="font-size:.72rem;font-weight:800;color:${isHealthy ? '#22c55e' : '#ef4444'};">${isHealthy ? 'Healthy' : 'Attention Needed'}</span>
@@ -3612,7 +3758,7 @@ function renderDiskInfoPanel(infoList) {
         const serial = g('serialNumber', 'SerialNumber', 'N/A');
 
         return `
-        <div class="disk-anim-in" style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:14px;">
+        <div class="disk-anim-in disk-modern-card" style="padding:16px;margin-bottom:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
                 <span style="font-size:.82rem;font-weight:700;color:var(--slate-800);"><i class="fas fa-hdd" style="color:var(--primary);margin-right:6px;"></i>${info.model || info.Model || ('Disk ' + (info.diskIndex ?? info.DiskIndex ?? ''))}</span>
                 <span style="font-size:.72rem;color:var(--slate-400);">${(info.capacityGB ?? info.CapacityGB ?? 0).toFixed(0)} GB &middot; ${info.mediaType || info.MediaType || 'N/A'}</span>
@@ -3805,9 +3951,16 @@ $(document).ready(function () {
                         if (disks && Array.isArray(disks) && disks.length > 0) {
                             renderHardDiskDashboard(disks);
                             loadHardDiskHistoryChart();
-                            loadSmartDataDetails();
-                            loadDeepDiskReportDetails();
                             loadDiskInfoDetails();
+                            // Quick Audit never touches SMART/Deep tables, so there's nothing new
+                            // to show there — but the fresh quick timestamp changes whether the
+                            // existing deep data now counts as "stale". Invalidate rather than
+                            // eagerly re-fetch; it'll recompute next time Deep Audit is opened,
+                            // and refresh immediately if that subtab happens to be the open one.
+                            invalidateDeepAuditData();
+                            if ($('.disk-subtab-btn.active').data('subtab') === 'deep') {
+                                ensureDeepAuditDataLoaded(true);
+                            }
                         } else {
                             $('#diskAuditLoading').hide();
                             $('#diskAuditPlaceholder').show();
@@ -3881,10 +4034,18 @@ $(document).ready(function () {
             if (isFreshAndFinished) {
                 sysAlert('Deep Audit (DST) completed! Loading fresh diagnostics...', 'success');
                 refreshQuickDiskSection();
-                loadSmartDataDetails();
-                loadDeepDiskReportDetails();
                 loadDiskInfoDetails();
                 loadHardDiskHistoryChart();
+                // The whole point of running Deep Audit was to see this data, so switch
+                // to that subtab now and load it — rather than fetching it into a panel
+                // the user may not currently be looking at.
+                invalidateDeepAuditData();
+                const $deepTabBtn = $('.disk-subtab-btn[data-subtab="deep"]');
+                if ($deepTabBtn.hasClass('active')) {
+                    ensureDeepAuditDataLoaded(true);
+                } else {
+                    $deepTabBtn.trigger('click'); // click handler calls ensureDeepAuditDataLoaded()
+                }
                 resetDeepAuditButton(btn, originalText);
                 return;
             }
@@ -3892,9 +4053,8 @@ $(document).ready(function () {
             if (attempt >= MAX_ATTEMPTS) {
                 sysAlert('Deep Audit is taking longer than expected and may still be running on the device. Showing the last completed results — refresh later to check again.', 'warning');
                 refreshQuickDiskSection();
-                loadSmartDataDetails();
-                loadDeepDiskReportDetails();
                 loadDiskInfoDetails();
+                invalidateDeepAuditData();
                 resetDeepAuditButton(btn, originalText);
                 return;
             }
@@ -3937,18 +4097,18 @@ $(document).ready(function () {
                     } else {
                         sysAlert(res.message || 'Failed to initiate Deep Audit.', 'error');
                         refreshQuickDiskSection();
-                        loadSmartDataDetails();
-                        loadDeepDiskReportDetails();
                         loadDiskInfoDetails();
+                        invalidateDeepAuditData();
+                        if ($('.disk-subtab-btn.active').data('subtab') === 'deep') ensureDeepAuditDataLoaded(true);
                         resetDeepAuditButton(btn, originalText);
                     }
                 },
                 error: function () {
                     sysAlert('Connection error while starting Deep Audit. Please try again.', 'error');
                     refreshQuickDiskSection();
-                    loadSmartDataDetails();
-                    loadDeepDiskReportDetails();
                     loadDiskInfoDetails();
+                    invalidateDeepAuditData();
+                    if ($('.disk-subtab-btn.active').data('subtab') === 'deep') ensureDeepAuditDataLoaded(true);
                     resetDeepAuditButton(btn, originalText);
                 }
             });

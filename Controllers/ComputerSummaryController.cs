@@ -2811,6 +2811,27 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> GetHardDiskSmartAttributes(string domain, string serial = null)
+        {
+            if (!await IsDeviceAuthorized(domain)) return Forbid();
+            try
+            {
+                string UCode = GetUCodeFromDomain(domain);
+                using var httpClient = GetClient();
+                var url = $"{_baseUrl}/api/HardDiskDetails/smart-attributes/{Uri.EscapeDataString(UCode)}";
+                if (!string.IsNullOrWhiteSpace(serial)) url += $"?serial={Uri.EscapeDataString(serial)}";
+                var response = await httpClient.GetAsync(url);
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return Content(content, "application/json");
+                }
+            }
+            catch (Exception) { }
+            return Json(new List<object>());
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetHardDiskBenchmark(string domain, string serial = null)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
