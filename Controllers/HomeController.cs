@@ -272,7 +272,8 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 var client = GetClient();
-                var response = await client.GetAsync($"{_baseUrl}/api/RamCpuDiskData/live-usage");
+                var qs = Request.QueryString.HasValue ? Request.QueryString.Value : "?limit=50";
+                var response = await client.GetAsync($"{_baseUrl}/api/RamCpuDiskData/live-usage{qs}");
 
                 if (response.IsSuccessStatusCode)
                 {

@@ -3283,7 +3283,7 @@ namespace ManageEngineWebApp.Controllers
         public async Task<IActionResult> Processors(string domain)
         {
             if (!await IsDeviceAuthorized(domain)) return Forbid();
-            var localDatalist = new List<ProcessorDetails>();
+            var localDatalist = new List<ProcessorInfo>();
             var empty = new { ProcessorSpeed = "N/A", Manufacturer = "N/A", Stepping = "N/A", Family = "N/A", NumberOfCores = 0, SocketDesignation = "N/A", Voltage = "N/A", Version = "N/A", DeviceStatus = "N/A", Description = "N/A", DateTime = DateTime.Now };
             try
             {
@@ -3298,28 +3298,15 @@ namespace ManageEngineWebApp.Controllers
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
-                var data = JsonConvert.DeserializeObject<List<ProcessorDetails>>(content);
+                var data = JsonConvert.DeserializeObject<List<ProcessorInfo>>(content);
                 if (data != null) localDatalist = data.Where(x => x.UserCode == UCode).ToList();
 
                 if (!localDatalist.Any())
                 {
                     return Json(empty);
                 }
-                var processerdata = new
-                {
-                    ProcessorSpeed = localDatalist[0].ProcessorSpeed,
-                    Manufacturer = localDatalist[0].Manufacturer,
-                    Stepping = localDatalist[0].stepping,
-                    Family = localDatalist[0].Family,
-                    NumberOfCores = localDatalist[0].NumberOfCores,
-                    SocketDesignation = localDatalist[0].SocketDesignation,
-                    Voltage = localDatalist[0].Voltage,
-                    Version = localDatalist[0].Version,
-                    DeviceStatus = localDatalist[0].DeviceStatus,
-                    Description = localDatalist[0].Description,
-                    DateTime = localDatalist[0].DateTime
-                };
-                return Json(processerdata);
+                
+                return Json(localDatalist[0]);
             }
             catch (Exception)
             {

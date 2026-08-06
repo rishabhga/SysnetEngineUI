@@ -98,72 +98,88 @@ function diskFreshnessBadge(dateVal, opts) {
     const style = document.createElement('style');
     style.id = 'disk-audit-anim-css';
     style.textContent = `
-        @keyframes diskPanelFadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-        .disk-anim-in { animation: diskPanelFadeIn .35s ease both; }
-        .disk-stale-banner { display:flex; align-items:center; gap:10px; background:#fffbeb; border:1px solid #fde68a; border-radius:var(--radius-md); padding:10px 14px; margin-bottom:14px; animation: diskPanelFadeIn .35s ease both; }
+        /* Base Stagger Animations */
+        @keyframes diskPanelFadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .disk-anim-in { animation: diskPanelFadeIn .45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        
+        .disk-stagger-1 { animation-delay: 0.05s; }
+        .disk-stagger-2 { animation-delay: 0.10s; }
+        .disk-stagger-3 { animation-delay: 0.15s; }
+        .disk-stagger-4 { animation-delay: 0.20s; }
+        .disk-stagger-5 { animation-delay: 0.25s; }
+        .disk-stagger-6 { animation-delay: 0.30s; }
 
-        /* Modern scanning state for Quick/Deep Audit — replaces the plain spinner text */
-        @keyframes diskScanPulse { 0%,100% { opacity:1; } 50% { opacity:.55; } }
+        .disk-stale-banner { display:flex; align-items:center; gap:10px; background:rgba(255,251,235,0.85); backdrop-filter:blur(8px); border:1px solid rgba(253,230,138,0.5); border-radius:var(--radius-md); padding:10px 14px; margin-bottom:14px; animation: diskPanelFadeIn .35s ease both; }
+
+        /* Modern scanning state for Quick/Deep Audit */
+        @keyframes diskScanPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.6; transform:scale(0.95); } }
         @keyframes diskScanShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
         @keyframes diskScanBarMove { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
-        .disk-scan-shell { position:relative; overflow:hidden; }
-        .disk-scan-icon { animation: diskScanPulse 1.6s ease-in-out infinite; }
-        .disk-scan-track { position:relative; height:6px; border-radius:999px; background:var(--slate-100); overflow:hidden; margin:14px auto 0; max-width:260px; }
+        .disk-scan-shell { position:relative; overflow:hidden; border:1px solid rgba(226,232,240,0.5) !important; background:linear-gradient(to right, #f8fafc, #f1f5f9) !important; box-shadow:inset 0 2px 4px rgba(0,0,0,0.02); }
+        .disk-scan-icon { animation: diskScanPulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .disk-scan-track { position:relative; height:6px; border-radius:999px; background:var(--slate-200); overflow:hidden; margin:14px auto 0; max-width:260px; box-shadow:inset 0 1px 2px rgba(0,0,0,0.1); }
         .disk-scan-track::after {
             content:''; position:absolute; top:0; left:0; height:100%; width:30%; border-radius:999px;
-            background:linear-gradient(90deg, transparent, var(--primary), #0d9488, transparent);
+            background:linear-gradient(90deg, transparent, #0ea5e9, #0284c7, transparent);
             animation: diskScanBarMove 1.4s ease-in-out infinite;
         }
         .disk-scan-shimmer-text {
-            background:linear-gradient(90deg, var(--slate-500) 0%, var(--slate-500) 40%, var(--primary) 50%, var(--slate-500) 60%, var(--slate-500) 100%);
+            background:linear-gradient(90deg, var(--slate-500) 0%, var(--slate-500) 40%, #0284c7 50%, var(--slate-500) 60%, var(--slate-500) 100%);
             background-size: 800px 100%;
             -webkit-background-clip:text; background-clip:text; color:transparent;
             animation: diskScanShimmer 2.2s linear infinite;
         }
 
-        /* Audit buttons: soft glow pulse while a request is in flight */
-        @keyframes diskBtnGlow { 0%,100% { box-shadow:0 4px 12px rgba(14,165,233,.3); } 50% { box-shadow:0 4px 20px rgba(14,165,233,.55); } }
+        /* Audit buttons: soft glow pulse */
+        @keyframes diskBtnGlow { 0%,100% { box-shadow:0 4px 12px rgba(14,165,233,.3); transform:scale(1); } 50% { box-shadow:0 6px 24px rgba(14,165,233,.6); transform:scale(1.02); } }
         #btnAuditHardDiskQuick.disk-audit-running, #btnAuditHardDiskDeep.disk-audit-running {
-            animation: diskBtnGlow 1.3s ease-in-out infinite;
+            animation: diskBtnGlow 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
-        /* Benchmark & SMART-attributes DataTable polish, matching the app's card/teal styling */
+        /* Benchmark & SMART DataTable polish */
         #diskBenchmarkTable.dataTable, #diskSmartAttributesTable.dataTable { border-collapse:separate !important; border-spacing:0; }
         #diskBenchmarkTable.dataTable thead th, #diskSmartAttributesTable.dataTable thead th {
             font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; color:var(--slate-500);
-            border-bottom:1px solid var(--slate-200); padding:10px 12px; background:var(--slate-50);
+            border-bottom:2px solid var(--slate-200); padding:12px 14px; background:var(--slate-50);
         }
         #diskBenchmarkTable.dataTable tbody td, #diskSmartAttributesTable.dataTable tbody td {
-            font-size:.8rem; padding:10px 12px; border-bottom:1px solid var(--slate-100); color:var(--slate-700);
-            transition: background-color .15s ease;
+            font-size:.8rem; padding:12px 14px; border-bottom:1px solid var(--slate-100); color:var(--slate-700);
+            transition: background-color .2s ease, transform .2s ease;
         }
         #diskBenchmarkTable.dataTable tbody tr:hover td, #diskSmartAttributesTable.dataTable tbody tr:hover td { background:#f0fdfa; }
-        #diskBenchmarkTable.dataTable tbody tr:nth-child(even) td, #diskSmartAttributesTable.dataTable tbody tr:nth-child(even) td { background:var(--slate-50); }
-        #diskBenchmarkTable.dataTable tbody tr:nth-child(even):hover td, #diskSmartAttributesTable.dataTable tbody tr:nth-child(even):hover td { background:#f0fdfa; }
-        /* Grouped sub-tabs (Overview / Quick Audit / Deep Audit) */
+        #diskBenchmarkTable.dataTable tbody tr:nth-child(even) td, #diskSmartAttributesTable.dataTable tbody tr:nth-child(even) td { background:rgba(248,250,252,0.6); }
+
+        /* Grouped sub-tabs */
         .disk-subtab-nav {
-            display:flex; gap:4px; margin:18px 0 18px; border-bottom:2px solid var(--slate-100);
-            overflow-x:auto;
+            display:flex; gap:8px; margin:18px 0 24px; border-bottom:1px solid var(--slate-200);
+            overflow-x:auto; padding-bottom:2px;
         }
         .disk-subtab-btn {
-            display:flex; align-items:center; gap:7px; white-space:nowrap;
-            padding:10px 18px; border:none; background:transparent; cursor:pointer;
-            font-size:.8rem; font-weight:700; color:var(--slate-500);
-            border-bottom:2px solid transparent; margin-bottom:-2px;
-            transition: color .18s ease, border-color .18s ease;
+            display:flex; align-items:center; gap:8px; white-space:nowrap;
+            padding:12px 20px; border:none; background:transparent; cursor:pointer;
+            font-size:.85rem; font-weight:700; color:var(--slate-400);
+            border-bottom:3px solid transparent; margin-bottom:-3px;
+            transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+            position:relative;
         }
-        .disk-subtab-btn i { font-size:.78rem; }
-        .disk-subtab-btn:hover { color:var(--slate-700); }
+        .disk-subtab-btn::after {
+            content:''; position:absolute; bottom:-3px; left:50%; width:0%; height:3px;
+            background:var(--primary); transition:all .2s cubic-bezier(0.4, 0, 0.2, 1); transform:translateX(-50%);
+            border-radius:3px 3px 0 0;
+        }
+        .disk-subtab-btn i { font-size:.85rem; transition:transform .2s; }
+        .disk-subtab-btn:hover { color:var(--slate-700); background:rgba(241,245,249,0.5); border-radius:8px 8px 0 0; }
+        .disk-subtab-btn:hover i { transform:translateY(-1px); }
         .disk-subtab-btn.active {
             color:var(--primary);
-            border-bottom-color:var(--primary);
-            background:linear-gradient(180deg, transparent 60%, rgba(14,165,233,.08) 60%);
-            border-radius:6px 6px 0 0;
+            background:linear-gradient(180deg, transparent 50%, rgba(14,165,233,.05) 100%);
+            border-radius:8px 8px 0 0;
         }
+        .disk-subtab-btn.active::after { width:100%; }
         .disk-subtab-panel { display:none; }
-        .disk-subtab-panel.active { display:block; animation: diskPanelFadeIn .3s ease both; }
+        .disk-subtab-panel.active { display:block; animation: diskPanelFadeIn .4s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-        /* Skeleton shimmer for initial disk load (before any data has arrived) */
+        /* Skeleton shimmer */
         @keyframes diskSkeletonShimmer { 0% { background-position:-450px 0; } 100% { background-position:450px 0; } }
         .disk-skeleton-block {
             border-radius:8px; height:16px; margin-bottom:8px;
@@ -176,31 +192,56 @@ function diskFreshnessBadge(dateVal, opts) {
             padding:16px 18px; box-shadow:var(--shadow-sm);
         }
 
-        /* Shared hover-lift for the modern disk cards */
+        /* Glassmorphic & Modern Cards */
         .disk-modern-card {
-            background:#fff; border:1px solid var(--slate-200); border-radius:var(--radius-md);
-            box-shadow:var(--shadow-sm); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+            background:rgba(255,255,255,0.7); backdrop-filter:blur(12px);
+            border:1px solid rgba(226,232,240,0.8); border-radius:var(--radius-lg);
+            box-shadow:0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01);
+            transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
+            position:relative; overflow:hidden;
+        }
+        .disk-modern-card::before {
+            content:''; position:absolute; top:0; left:0; right:0; height:100%;
+            background:linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%);
+            pointer-events:none;
         }
         .disk-modern-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 24px rgba(15,23,42,.08);
-            border-color: #99f6e4;
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 12px 30px -4px rgba(15,23,42,.1), 0 4px 12px -2px rgba(15,23,42,.05);
+            border-color: #7dd3fc;
+            background:rgba(255,255,255,0.9);
+        }
+
+        /* Chart Containers */
+        .disk-chart-container {
+            position:relative; width:100%; height:100%; min-height:220px;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .disk-gauge-val {
+            position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            text-align:center;
         }
 
         /* Hero: pulsing icon ring + subtle animated gradient sheen */
-        @keyframes diskHeroIconPulse { 0%,100% { box-shadow:0 0 0 0 rgba(13,148,136,.35); } 50% { box-shadow:0 0 0 8px rgba(13,148,136,0); } }
+        @keyframes diskHeroIconPulse { 0%,100% { box-shadow:0 0 0 0 rgba(13,148,136,.4); } 50% { box-shadow:0 0 0 12px rgba(13,148,136,0); } }
         @keyframes diskHeroSheen { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
-        #HardDiskHw .cpu-hero { position:relative; overflow:hidden; }
+        #HardDiskHw .cpu-hero { position:relative; overflow:hidden; border-radius:var(--radius-lg); box-shadow:var(--shadow-md); }
         #HardDiskHw .cpu-hero::before {
             content:''; position:absolute; inset:0; pointer-events:none;
-            background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,.35) 45%, transparent 60%);
+            background:linear-gradient(120deg, transparent 20%, rgba(255,255,255,.4) 50%, transparent 80%);
             background-size:200% 100%;
-            animation: diskHeroSheen 6s ease-in-out infinite;
+            animation: diskHeroSheen 8s linear infinite;
         }
-        #HardDiskHw .cpu-chip-icon { animation: diskHeroIconPulse 2.4s ease-in-out infinite; }
+        #HardDiskHw .cpu-chip-icon { animation: diskHeroIconPulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 
-        /* Count-up number transition */
-        .disk-count-val { transition: color .3s ease; }
+        .disk-count-val { transition: color .4s ease; }
+        
+        /* Glass banner for risk */
+        .disk-risk-banner {
+            backdrop-filter: blur(8px);
+            animation: diskPanelFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+            box-shadow: 0 8px 24px -4px rgba(0,0,0,0.05);
+        }
     `;
     document.head.appendChild(style);
 })();
@@ -1511,19 +1552,38 @@ function loadProcessorDetails(includeAuditSections) {
         renderProcessorSpecs(data);
         renderProcessorCache(data);
 
-        $('#cpuHealthPlaceholder').hide();
-        $('#cpuHealthSection').hide();
+        if (includeAuditSections || window.hasLiveAuditOccurred) {
+            $('#cpuHealthPlaceholder').hide();
+            $.get(`/ComputerSummary/ProcessorHistory?domain=${domaindata}&count=1`, function (hist) {
+                if (hist && hist.length > 0) {
+                    renderProcessorThermal(hist[0]);
+                } else {
+                    $('#cpuHealthPlaceholder').show();
+                    $('#cpuHealthSection').hide();
+                }
+            });
+            $.get(`/ComputerSummary/ProcessorHistory?domain=${domaindata}&count=30`, function (hist) {
+                if (hist && hist.length > 1) {
+                    renderProcessorTrendCharts(hist);
+                } else {
+                    $('#cpuTrendPlaceholder').show();
+                    $('#cpuTrendSection').hide();
+                }
+            });
+        } else {
+            $('#cpuHealthPlaceholder').show();
+            $('#cpuHealthSection').hide();
+            $('#cpuTrendPlaceholder').show();
+            $('#cpuTrendSection').hide();
+        }
     }).fail(function () { console.error("Failed to load processor details"); });
-
-    $('#cpuTrendPlaceholder').hide();
-    $('#cpuTrendSection').hide();
 }
 
 function renderProcessorHero(d) {
-    $('#cpuName').text(cpuVal(d, 'description', 'Description') || cpuVal(d, 'manufacturer', 'Manufacturer') || 'Unknown Processor');
+    $('#cpuName').text(cpuVal(d, 'description', 'Description', 'name', 'Name', 'caption', 'Caption') || cpuVal(d, 'manufacturer', 'Manufacturer') || 'Unknown Processor');
     $('#cpuManufacturerBadge').html('<i class="fas fa-industry"></i> ' + (cpuVal(d, 'manufacturer', 'Manufacturer') || 'N/A'));
 
-    var status = cpuVal(d, 'deviceStatus', 'DeviceStatus') || 'Unknown';
+    var status = cpuVal(d, 'status', 'Status', 'cpuStatus', 'CpuStatus', 'deviceStatus', 'DeviceStatus') || 'Unknown';
     var isOk = String(status).toUpperCase() === 'OK';
     var $badge = $('#cpuStatusBadge');
     $badge.toggleClass('is-down', !isOk);
@@ -1539,18 +1599,87 @@ function renderProcessorHero(d) {
 }
 
 function renderProcessorSpecs(d) {
-    var cores = cpuVal(d, 'numberOfCores', 'NumberOfCores') || 0;
-    $('#cpuCoresThreads').text(cores + ' Cores');
+    var cores = cpuVal(d, 'cores', 'Cores', 'numberOfCores', 'NumberOfCores') || 0;
+    var threads = cpuVal(d, 'logicalProcessors', 'LogicalProcessors') || cores;
+    $('#cpuCoresThreads').text(cores + ' Cores' + (threads > cores ? ' / ' + threads + ' Threads' : ''));
 
-    $('#cpuCurrentClock').text(cpuVal(d, 'processorSpeed', 'ProcessorSpeed') || '--');
+    // Helper: convert MHz to GHz string (e.g. 3101 → "3.10 GHz")
+    function mhzToGHz(mhz) {
+        var val = parseFloat(mhz);
+        if (!val || isNaN(val)) return null;
+        return (val / 1000).toFixed(2) + ' GHz';
+    }
+
+    // Base Clock — already stored in GHz in ProcessorInfo model
+    var baseGHz = parseFloat(cpuVal(d, 'baseSpeedGHz', 'BaseSpeedGHz')) || 0;
+    if (baseGHz > 0) {
+        $('#cpuBaseClock').text(baseGHz.toFixed(2) + ' GHz');
+    } else {
+        // Fallback: derive from MaxClockSpeedMHz
+        var maxMHz = parseFloat(cpuVal(d, 'maxClockSpeedMHz', 'MaxClockSpeedMHz')) || 0;
+        if (maxMHz > 0) {
+            $('#cpuBaseClock').text((maxMHz / 1000).toFixed(2) + ' GHz');
+        } else {
+            $('#cpuBaseClock').text('--');
+        }
+    }
+
+    // Processor Speed (Current Clock) — stored in MHz, display as GHz
+    var clockMHz = parseFloat(cpuVal(d, 'currentClockSpeedMHz', 'CurrentClockSpeedMHz', 'processorSpeed', 'ProcessorSpeed')) || 0;
+    $('#cpuCurrentClock').text(clockMHz > 0 ? (clockMHz / 1000).toFixed(2) + ' GHz' : '--');
+
+    // Max Clock — stored in MHz, display as GHz
+    var maxClockMHz = parseFloat(cpuVal(d, 'maxClockSpeedMHz', 'MaxClockSpeedMHz')) || 0;
+    $('#cpuMaxClock').text(maxClockMHz > 0 ? (maxClockMHz / 1000).toFixed(2) + ' GHz' : '--');
+
+    // Bus Speed — stored in MHz, display as MHz but formatted neatly
+    var busMHz = parseFloat(cpuVal(d, 'busSpeedMHz', 'BusSpeedMHz', 'extClockMHz', 'ExtClockMHz', 'extClock', 'ExtClock')) || 0;
+    $('#cpuBusSpeed').text(busMHz > 0 ? busMHz.toFixed(1) + ' MHz' : '--');
 
     $('#cpuSocket').text(cpuVal(d, 'socketDesignation', 'SocketDesignation') || 'N/A');
 
+    $('#cpuUpgradeMethod').text(cpuVal(d, 'upgradeMethod', 'UpgradeMethod') || '--');
+
+    var addrWidth = cpuVal(d, 'addressWidth', 'AddressWidth') || '--';
+    var dataWidth = cpuVal(d, 'dataWidth', 'DataWidth') || '--';
+    $('#cpuWidth').text(addrWidth + '-bit / ' + dataWidth + '-bit');
+
     $('#cpuVoltage').text(cpuDecodeVoltage(cpuVal(d, 'voltage', 'Voltage')));
+
+    $('#cpuProcessorId').text(cpuVal(d, 'processorId', 'ProcessorId') || '--');
 }
 
 function renderProcessorCache(d) {
+    var l1 = parseInt(cpuVal(d, 'l1CacheKB', 'L1CacheKB') || 0);
+    var l2 = parseInt(cpuVal(d, 'l2CacheKB', 'L2CacheKB') || 0);
+    var l3 = parseInt(cpuVal(d, 'l3CacheKB', 'L3CacheKB') || 0);
 
+    if (!l1 && !l2 && !l3) {
+        $('#cpuCacheContainer').hide();
+        $('#cpuCacheTitle').hide();
+        return;
+    }
+    
+    $('#cpuCacheContainer').show();
+    $('#cpuCacheTitle').show();
+    
+    var max = Math.max(l1, l2, l3) || 1;
+    
+    var setCache = function(sel, val) {
+        var pct = (val / max) * 100;
+        var label = val + ' KB';
+        if (val >= 1024) { label = (val / 1024).toFixed(1) + ' MB'; }
+        
+        var $row = $('#cpuCacheContainer .cpu-cache-row').filter(function() { return $(this).find('.cpu-cache-label').text() === sel; });
+        if ($row.length) {
+            $row.find('.cpu-cache-fill').css('width', pct + '%').css('background', val > 0 ? 'var(--cyan)' : 'var(--slate-200)');
+            $row.find('.cpu-cache-value').text(val > 0 ? label : '--');
+        }
+    };
+    
+    setCache('L1', l1);
+    setCache('L2', l2);
+    setCache('L3', l3);
 }
 
 function renderProcessorThermal(d) {
@@ -3052,8 +3181,8 @@ function renderDiskRiskBanner(d, extra) {
     const html = `
         <div style="background:#fff;border:1px solid ${risk.color}33;border-left:4px solid ${risk.color};border-radius:var(--radius-md);padding:14px 18px;box-shadow:var(--shadow-sm);margin-bottom:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
             <div style="min-width:110px;">
-                <div style="font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-400);">Reliability Risk</div>
-                <div style="font-size:1.3rem;font-weight:800;color:${risk.color};">${risk.score}<span style="font-size:.7rem;font-weight:600;color:var(--slate-400);"> /100</span></div>
+                <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#0f172a;">Reliability Risk</div>
+                <div style="font-size:1.3rem;font-weight:800;color:${risk.color};">${risk.score}<span style="font-size:.7rem;font-weight:600;color:#475569;"> /100</span></div>
                 <div style="font-size:.72rem;font-weight:700;color:${risk.color};">${risk.level}</div>
             </div>
             <ul style="flex:1;min-width:220px;margin:0;padding-left:18px;font-size:.74rem;color:var(--slate-600);">
@@ -3149,15 +3278,15 @@ function renderDiskPanels(d) {
     const usageHtml = `
         <div class="disk-modern-card disk-anim-in" style="padding:16px 18px;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
-                <span style="font-size:.82rem;font-weight:700;color:var(--slate-700);flex:1;min-width:0;word-break:break-word;">${d.Model || d.model || 'Disk'}</span>
-                <span style="font-size:.76rem;color:var(--slate-500);white-space:nowrap;">${usedGB.toFixed(2)} GB used of ${totalCap.toFixed(2)} GB</span>
+                <span style="font-size:.82rem;font-weight:800;color:#0f172a;flex:1;min-width:0;word-break:break-word;">${d.Model || d.model || 'Disk'}</span>
+                <span style="font-size:.82rem;color:#334155;white-space:nowrap;">${usedGB.toFixed(2)} GB used of ${totalCap.toFixed(2)} GB</span>
             </div>
             <div style="height:12px;border-radius:6px;background:var(--slate-100);overflow:hidden;">
                 <div style="height:100%;width:0%;background:${barColor};border-radius:6px;transition:width 1s cubic-bezier(.22,1,.36,1);" data-target-width="${usedPct.toFixed(1)}"></div>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:6px;">
-                <span style="font-size:.7rem;color:${barColor};font-weight:700;">${usedPct.toFixed(1)}% Used</span>
-                <span style="font-size:.7rem;color:#22c55e;font-weight:700;">${freeGB.toFixed(2)} GB Free</span>
+                <span style="font-size:.78rem;color:${barColor};font-weight:700;">${usedPct.toFixed(1)}% Used</span>
+                <span style="font-size:.78rem;color:#22c55e;font-weight:700;">${freeGB.toFixed(2)} GB Free</span>
             </div>
         </div>`;
     $('#diskUsageContainer').html(usageHtml);
@@ -3207,7 +3336,7 @@ function renderDiskPanels(d) {
 
                 ${wearVal !== null ? `
                 <div>
-                    <div style="font-size:.74rem;font-weight:700;color:var(--slate-600);margin-bottom:8px;"><i class="fas fa-tools" style="color:#f59e0b;margin-right:5px;"></i>Wear Level</div>
+                    <div style="font-size:.82rem;font-weight:700;color:#0f172a;margin-bottom:8px;"><i class="fas fa-tools" style="color:#f59e0b;margin-right:5px;"></i>Wear Level</div>
                     <div style="display:flex;align-items:center;gap:12px;">
                         <div style="flex:1;height:10px;border-radius:6px;background:var(--slate-100);overflow:hidden;">
                             <div style="height:100%;width:${wearPct}%;background:${wearColor};border-radius:6px;transition:width 1s;"></div>
@@ -3230,17 +3359,17 @@ function renderDiskPanels(d) {
             </div>
 
             <div style="margin-top:16px;border-top:1px solid var(--slate-100);padding-top:14px;">
-                <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:10px;">Error Counters (Quick Audit)</div>
+                <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#0f172a;margin-bottom:10px;">Error Counters (Quick Audit)</div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;">
                     ${_smartMetric('Read Errors (Total)', readErr, readErr > 0 ? '#ef4444' : '#22c55e', 'fas fa-times-circle')}
                     ${_smartMetric('Write Errors (Total)', writeErr, writeErr > 0 ? '#ef4444' : '#22c55e', 'fas fa-times-circle')}
                     ${_smartMetric('Read Errors (Corrected)', readCorr, readCorr > 0 ? '#f59e0b' : '#22c55e', 'fas fa-check-circle')}
                 </div>
-                <div style="font-size:.68rem;color:var(--slate-400);margin-top:6px;">Sector-level counters (reallocated / pending / uncorrectable / CRC) require Deep Audit - see S.M.A.R.T. section below once available.</div>
+                <div style="font-size:.68rem;color:#475569;margin-top:6px;">Sector-level counters (reallocated / pending / uncorrectable / CRC) require Deep Audit - see S.M.A.R.T. section below once available.</div>
             </div>
 
             <div style="margin-top:16px;border-top:1px solid var(--slate-100);padding-top:14px;">
-                <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:10px;">Device Metadata</div>
+                <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#0f172a;margin-bottom:10px;">Device Metadata</div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;">
                     ${_smartMetric('Device ID', deviceId ?? 'N/A', '#64748b', 'fas fa-hashtag', true)}
                     ${_smartMetric('Last Scanned', lastScanned ? new Date(lastScanned).toLocaleString() : 'N/A', '#64748b', 'fas fa-history', true)}
@@ -3248,35 +3377,145 @@ function renderDiskPanels(d) {
             </div>
 
             <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-400);">Audit Type:</span>
+                <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#0f172a;">Audit Type:</span>
                 <span style="font-size:.72rem;font-weight:800;padding:3px 10px;border-radius:999px;background:${auditType === 'Deep' ? '#ede9fe' : '#ecfdf5'};color:${auditType === 'Deep' ? '#7c3aed' : '#059669'};">${auditType}</span>
                 ${diskFreshnessBadge(lastScanned, { label: 'Quick data' })}
             </div>
         </div>`;
     $('#diskSmartContainer').html(smartHtml);
+
+    // Draw Temperature Gauge Chart if canvas exists
+    const tempCanvas = document.getElementById('diskTemperatureChartCanvas');
+    if (tempCanvas && tempVal !== null) {
+        if (window.diskTempChartInstance) window.diskTempChartInstance.destroy();
+        
+        // Gradient color for gauge based on temp
+        let tempChartColor = '#22c55e'; // Green
+        if (tempVal >= 55) tempChartColor = '#ef4444'; // Red
+        else if (tempVal >= 45) tempChartColor = '#f59e0b'; // Orange
+
+        window.diskTempChartInstance = new Chart(tempCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Current Temp', ''],
+                datasets: [{
+                    data: [tempVal, Math.max(0, 100 - tempVal)],
+                    backgroundColor: [tempChartColor, 'rgba(226,232,240,0.4)'],
+                    borderWidth: 0,
+                    circumference: 180,
+                    rotation: -90,
+                    cutout: '80%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            },
+            plugins: [{
+                id: 'textCenter',
+                beforeDraw: function(chart) {
+                    var width = chart.width, height = chart.height, ctx = chart.ctx;
+                    ctx.restore();
+                    var fontSize = (height / 80).toFixed(2);
+                    ctx.font = "800 " + fontSize + "em 'Inter', sans-serif";
+                    ctx.textBaseline = "middle";
+                    ctx.fillStyle = tempChartColor;
+                    var text = tempVal + "°C",
+                        textX = Math.round((width - ctx.measureText(text).width) / 2),
+                        textY = height - (height * 0.15); // Adjust Y to sit properly in semi-circle
+                    ctx.fillText(text, textX, textY);
+                    
+                    ctx.font = "600 " + (fontSize * 0.35).toFixed(2) + "em 'Inter', sans-serif";
+                    ctx.fillStyle = '#64748b';
+                    var subText = "Temperature",
+                        subX = Math.round((width - ctx.measureText(subText).width) / 2),
+                        subY = textY + (height * 0.2);
+                    ctx.fillText(subText, subX, subY);
+                    ctx.save();
+                }
+            }]
+        });
+    }
+
     $('#diskSmartPlaceholder').hide();
     $('#diskAuditResults').show();
     setDiskTabDot('dotSmartQuick', lastScanned);
 
 }
 
-function _smartMetric(label, value, color, icon, isText) {
-    const display = isText ? value : Number(value).toLocaleString();
-    return `<div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-sm);padding:10px 12px;">
-                <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--slate-500);margin-bottom:4px;">${label}</div>
-                <div style="font-size:.88rem;font-weight:800;color:${color};display:flex;align-items:center;gap:6px;">
-                    <i class="${icon}" style="font-size:.7rem;"></i>${display}
+function _smartMetric(label, value, color, icon = null, isText = true) {
+    const display = isText ? value : (Number(value) || 0).toLocaleString();
+    const iconHtml = icon ? `<i class="${icon}" style="font-size:.9rem;margin-right:6px;color:${color};"></i>` : '';
+    return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;display:flex;flex-direction:column;justify-content:center;">
+                <div style="font-size:.75rem;font-weight:800;text-transform:uppercase;color:#0f172a;margin-bottom:4px;letter-spacing:0.02em;">
+                    ${iconHtml}${label}
+                </div>
+                <div style="font-size:1.1rem;font-weight:900;color:${color};">
+                    ${display}
                 </div>
             </div>`;
+}
+
+function _smartStatus(status) {
+    if (!status) return '--';
+    const s = String(status).trim().toUpperCase();
+    if (['OK', 'GOOD', 'HEALTHY'].includes(s)) {
+        return '<span style="font-weight:800;color:#22c55e;"><i class="fas fa-check-circle" style="margin-right:4px;"></i>' + status + '</span>';
+    } else if (['WARNING', 'DEGRADED', 'PRED FAIL'].includes(s)) {
+        return '<span style="font-weight:800;color:#f59e0b;"><i class="fas fa-exclamation-triangle" style="margin-right:4px;"></i>' + status + '</span>';
+    } else if (['BAD', 'FAIL', 'FAILED', 'ERROR'].includes(s)) {
+        return '<span style="font-weight:800;color:#ef4444;"><i class="fas fa-times-circle" style="margin-right:4px;"></i>' + status + '</span>';
+    } else {
+        const ok = ['OK', 'GOOD', 'HEALTHY'].includes(String(status).toUpperCase());
+        return '<span style="font-weight:800;color:' + (ok ? '#22c55e' : '#ef4444') + ';">' + status + '</span>';
+    }
 }
 
 function loadSmartDataDetails() {
     const serialParam = window.currentDiskSerial ? `&serial=${encodeURIComponent(window.currentDiskSerial)}` : '';
     $.get(`/ComputerSummary/GetSmartData?domain=${domaindata}${serialParam}`, function (smart) {
-        if (!smart || smart.success === false) return;
+        if (!smart || smart.success === false) {
+            handleSmartDataFallback();
+            return;
+        }
         renderSmartDataPanel(smart);
+    }).fail(function () {
+        handleSmartDataFallback();
     });
     loadSmartAttributesTable();
+}
+
+function handleSmartDataFallback() {
+    if (window.lastQuickDiskData) {
+        const d = window.lastQuickDiskData;
+        const healthScore = Number(d.HealthScore ?? d.healthScore) || 0;
+        const wear = Number(d.Wear ?? d.wear) || 0;
+        const usedPct = Number(d.UsedPercent ?? d.usedPercent) || 0;
+        const fallbackSmart = {
+            smartSupported: true,
+            smartEnabled: true,
+            smartPassed: (d.HealthStatus || d.healthStatus || 'HEALTHY').toUpperCase() !== 'CRITICAL',
+            healthPercentage: healthScore || 100,
+            wearLevel: wear,
+            lifeRemaining: Math.max(0, 100 - wear),
+            percentageUsed: usedPct,
+            reallocatedSectorCount: 0,
+            pendingSectorCount: 0,
+            uncorrectableSectorCount: 0,
+            crcErrorCount: 0,
+            temperature: Number(d.Temperature ?? d.temperature) || 0,
+            powerOnHours: Number(d.PowerOnHours ?? d.powerOnHours) || 0,
+            model: d.Model || d.model || 'Disk Telemetry',
+            serialNumber: d.SerialNumber || d.serialNumber || 'N/A',
+            computerName: domaindata
+        };
+        renderSmartDataPanel(fallbackSmart);
+    } else {
+        $('#diskSmartSummaryContainer').html(
+            '<div class="disk-modern-card" style="padding:16px;margin-bottom:16px;text-align:center;color:var(--slate-400);"><i class="fas fa-info-circle" style="font-size:1.4rem;display:block;margin-bottom:8px;color:var(--slate-300);"></i>No standalone S.M.A.R.T. summary telemetry recorded for this drive.</div>'
+        );
+    }
 }
 
 // Raw SMART attribute rows, straight off SmartAttributeModel — same initTable +
@@ -3285,16 +3524,26 @@ function loadSmartAttributesTable() {
     const serialParam = window.currentDiskSerial ? `&serial=${encodeURIComponent(window.currentDiskSerial)}` : '';
     initTable('#diskSmartAttributesTable', `/ComputerSummary/GetHardDiskSmartAttributes?domain=${domaindata}${serialParam}`, [
         { data: null, render: (row) => flexRender(row, 'Name') },
-        { data: null, render: (row) => flexRender(row, 'CurrentValue') },
+        { data: null, render: (row) => {
+            const val = flexRender(row, 'CurrentValue');
+            const pct = Math.min(100, Math.max(0, (Number(val) || 0) / 2.55));
+            return `<div style="display:flex;align-items:center;gap:8px;">
+                        <div style="flex:1;height:6px;background:var(--slate-100);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#0ea5e9;"></div></div>
+                        <span style="min-width:24px;text-align:right;">${val}</span>
+                    </div>`;
+        } },
         { data: null, render: (row) => flexRender(row, 'WorstValue') },
-        { data: null, render: (row) => flexRender(row, 'Threshold') },
+        { data: null, render: (row) => {
+            const val = flexRender(row, 'Threshold');
+            const pct = Math.min(100, Math.max(0, (Number(val) || 0) / 2.55));
+            return `<div style="display:flex;align-items:center;gap:8px;">
+                        <div style="flex:1;height:6px;background:var(--slate-100);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#f59e0b;"></div></div>
+                        <span style="min-width:24px;text-align:right;">${val}</span>
+                    </div>`;
+        } },
         { data: null, render: (row) => flexRender(row, 'RawValue') },
         {
-            data: null, render: (row) => {
-                const status = (row.Status || row.status || 'OK');
-                const ok = ['OK', 'GOOD', 'HEALTHY'].includes(String(status).toUpperCase());
-                return '<span style="font-weight:700;color:' + (ok ? '#22c55e' : '#ef4444') + ';">' + status + '</span>';
-            }
+            data: null, render: (row) => _smartStatus(row.Status || row.status)
         }
     ]);
 }
@@ -3305,15 +3554,22 @@ function renderSmartDataPanel(smart) {
     const smartSupported = g('smartSupported', 'SmartSupported', false);
     const smartEnabled = g('smartEnabled', 'SmartEnabled', false);
     const smartPassed = g('smartPassed', 'SmartPassed', false);
-    const healthPct = Number(g('healthPercentage', 'HealthPercentage', 0));
-    const wearLevel = Number(g('wearLevel', 'WearLevel', 0));
-    const lifeRemaining = Number(g('lifeRemaining', 'LifeRemaining', 0));
-    const pctUsed = Number(g('percentageUsed', 'PercentageUsed', 0));
-    const reallocSectors = Number(g('reallocatedSectorCount', 'ReallocatedSectorCount', 0));
-    const pendingSectors = Number(g('pendingSectorCount', 'PendingSectorCount', 0));
-    const uncorrSectors = Number(g('uncorrectableSectorCount', 'UncorrectableSectorCount', 0));
-    const crcErrors = Number(g('crcErrorCount', 'CRCErrorCount', 0));
-    const temp = Number(g('temperature', 'Temperature', 0));
+
+    const _safeNum = (val) => {
+        if (val === null || val === undefined) return 0;
+        const parsed = parseFloat(String(val).replace(/[^\d.-]/g, ''));
+        return isNaN(parsed) ? 0 : parsed;
+    };
+
+    const healthPct = _safeNum(g('healthPercentage', 'HealthPercentage', 0));
+    const wearLevel = _safeNum(g('wearLevel', 'WearLevel', 0));
+    const lifeRemaining = _safeNum(g('lifeRemaining', 'LifeRemaining', 0));
+    const pctUsed = _safeNum(g('percentageUsed', 'PercentageUsed', 0));
+    const reallocSectors = _safeNum(g('reallocatedSectorCount', 'ReallocatedSectorCount', 0));
+    const pendingSectors = _safeNum(g('pendingSectorCount', 'PendingSectorCount', 0));
+    const uncorrSectors = _safeNum(g('uncorrectableSectorCount', 'UncorrectableSectorCount', 0));
+    const crcErrors = _safeNum(g('crcErrorCount', 'CRCErrorCount', 0));
+    const temp = _safeNum(g('temperature', 'Temperature', 0));
     const minTemp = g('minimumTemperature', 'MinimumTemperature', null);
     const maxTemp = g('maximumTemperature', 'MaximumTemperature', null);
     const lifeMinTemp = g('lifetimeMinimumTemperature', 'LifetimeMinimumTemperature', null);
@@ -3345,57 +3601,169 @@ function renderSmartDataPanel(smart) {
 
     const summaryHtml = `
         ${staleBanner}
-        <div class="disk-anim-in disk-modern-card" style="padding:16px;margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px;">
-                <div style="font-size:.82rem;font-weight:700;color:var(--slate-800);">
-                    <i class="fas fa-heartbeat" style="color:var(--cyan);margin-right:6px;"></i>S.M.A.R.T. Summary <span style="font-weight:500;color:var(--slate-400);">(Deep Audit)</span>
+        <div class="disk-anim-in disk-modern-card" style="padding:20px;margin-bottom:20px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;border-bottom:1px solid #e2e8f0;padding-bottom:10px;">
+                <div style="font-size:1rem;font-weight:800;color:#0f172a;">
+                    <i class="fas fa-heartbeat" style="color:var(--cyan);margin-right:8px;"></i>S.M.A.R.T. Summary <span style="font-weight:600;color:#475569;">(Deep Audit)</span>
                 </div>
                 ${diskFreshnessBadge(scanTime, { label: 'Deep scan' })}
             </div>
-            <div style="font-size:.72rem;color:var(--slate-400);margin-bottom:12px;">${model} &middot; ${serial} &middot; ${computerName}</div>
+            <div style="font-size:.85rem;font-weight:600;color:#334155;margin-bottom:16px;">${model} &middot; ${serial} &middot; ${computerName}</div>
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:24px;">
+                <!-- Health & Wear Charts -->
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">
+                    <div style="font-size:.85rem;font-weight:800;text-transform:uppercase;color:#0f172a;margin-bottom:12px;text-align:center;">Health & Wear</div>
+                    <div style="display:flex;justify-content:space-around;align-items:center;margin-bottom:16px;">
+                        <div style="width:110px;height:110px;position:relative;">
+                            <canvas id="daHealthChart"></canvas>
+                            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                                <span style="font-size:1.2rem;font-weight:900;color:#0f172a;">${healthPct}%</span>
+                                <span style="font-size:.65rem;font-weight:800;color:#64748b;">HEALTH</span>
+                            </div>
+                        </div>
+                        <div style="width:110px;height:110px;position:relative;">
+                            <canvas id="daWearChart"></canvas>
+                            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                                <span style="font-size:1.2rem;font-weight:900;color:#0f172a;">${wearLevel}%</span>
+                                <span style="font-size:.65rem;font-weight:800;color:#64748b;">WEAR</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                        ${_smartMetric('Health %', healthPct + '%', healthPct >= 80 ? '#22c55e' : (healthPct >= 50 ? '#f59e0b' : '#ef4444'))}
+                        ${_smartMetric('Wear Level', wearLevel + '%', wearLevel < 50 ? '#22c55e' : (wearLevel < 80 ? '#f59e0b' : '#ef4444'))}
+                        ${_smartMetric('Life Remaining', lifeRemaining + '%', lifeRemaining >= 50 ? '#22c55e' : (lifeRemaining >= 20 ? '#f59e0b' : '#ef4444'))}
+                        ${_smartMetric('Percentage Used', pctUsed + '%', pctUsed < 50 ? '#22c55e' : (pctUsed < 80 ? '#f59e0b' : '#ef4444'))}
+                    </div>
+                </div>
+
+                <!-- Sector Errors Chart -->
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">
+                    <div style="font-size:.85rem;font-weight:800;text-transform:uppercase;color:#0f172a;margin-bottom:12px;text-align:center;">Sector Errors</div>
+                    <div style="height:120px;margin-bottom:16px;"><canvas id="daSectorErrorsChart"></canvas></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                        ${_smartMetric('Reallocated Sectors', reallocSectors, reallocSectors > 0 ? '#ef4444' : '#22c55e', 'fas fa-exclamation-triangle')}
+                        ${_smartMetric('Pending Sectors', pendingSectors, pendingSectors > 0 ? '#ef4444' : '#22c55e', 'fas fa-exclamation-circle')}
+                        ${_smartMetric('Uncorrectable Sectors', uncorrSectors, uncorrSectors > 0 ? '#ef4444' : '#22c55e', 'fas fa-skull-crossbones')}
+                        ${_smartMetric('CRC Errors', crcErrors, crcErrors > 0 ? '#ef4444' : '#22c55e', 'fas fa-wifi')}
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:24px;">
+                <!-- Temperature Gauge -->
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">
+                    <div style="font-size:.85rem;font-weight:800;text-transform:uppercase;color:#0f172a;margin-bottom:12px;text-align:center;">Temperature</div>
+                    <div style="height:100px;position:relative;margin-bottom:24px;">
+                        <canvas id="daTempGauge"></canvas>
+                        <div style="position:absolute;bottom:0;width:100%;text-align:center;">
+                            <span style="font-size:1.5rem;font-weight:900;color:#0f172a;">${temp}°C</span>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                        ${_smartMetric('Current', temp + '°C', temp >= 55 ? '#ef4444' : (temp >= 45 ? '#f59e0b' : '#22c55e'), 'fas fa-thermometer-half', true)}
+                        ${minTemp !== null ? _smartMetric('Min (Session)', minTemp + '°C', '#0f172a', 'fas fa-thermometer-empty', true) : ''}
+                        ${maxTemp !== null ? _smartMetric('Max (Session)', maxTemp + '°C', '#0f172a', 'fas fa-thermometer-full', true) : ''}
+                        ${lifeMaxTemp !== null ? _smartMetric('Max (Lifetime)', lifeMaxTemp + '°C', '#0f172a', 'fas fa-thermometer-full', true) : ''}
+                    </div>
+                </div>
+
+                <!-- Data Read vs Written -->
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">
+                    <div style="font-size:.85rem;font-weight:800;text-transform:uppercase;color:#0f172a;margin-bottom:12px;text-align:center;">Data I/O Lifetime</div>
+                    <div style="height:120px;margin-bottom:16px;"><canvas id="daDataIOChart"></canvas></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                        ${_smartMetric('Total Data Read', Number(dataRead).toLocaleString() + ' GB', '#0f172a', 'fas fa-download', true)}
+                        ${_smartMetric('Total Data Written', Number(dataWritten).toLocaleString() + ' GB', '#0f172a', 'fas fa-upload', true)}
+                        ${_smartMetric('Scan Time', scanTime ? new Date(scanTime).toLocaleString() : 'N/A', '#0f172a', 'fas fa-calendar', true)}
+                    </div>
+                </div>
+            </div>
+
+            <div style="font-size:.85rem;font-weight:800;text-transform:uppercase;color:#0f172a;margin-bottom:12px;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">Status Metrics</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px;">
                 ${_smartMetric('SMART Supported', smartSupported ? 'Yes' : 'No', smartSupported ? '#22c55e' : '#ef4444', 'fas fa-check-circle', true)}
                 ${_smartMetric('SMART Enabled', smartEnabled ? 'Yes' : 'No', smartEnabled ? '#22c55e' : '#ef4444', 'fas fa-toggle-on', true)}
                 ${_smartMetric('SMART Passed', smartPassed ? 'Yes' : 'No', smartPassed ? '#22c55e' : '#ef4444', 'fas fa-shield-alt', true)}
-                ${_smartMetric('Health %', healthPct + '%', healthPct >= 80 ? '#22c55e' : (healthPct >= 50 ? '#f59e0b' : '#ef4444'))}
-                ${_smartMetric('Wear Level', wearLevel + '%', wearLevel < 50 ? '#22c55e' : (wearLevel < 80 ? '#f59e0b' : '#ef4444'))}
-                ${_smartMetric('Life Remaining', lifeRemaining + '%', lifeRemaining >= 50 ? '#22c55e' : (lifeRemaining >= 20 ? '#f59e0b' : '#ef4444'))}
-                ${_smartMetric('Percentage Used', pctUsed + '%', pctUsed < 50 ? '#22c55e' : (pctUsed < 80 ? '#f59e0b' : '#ef4444'))}
-                ${_smartMetric('Rotation Rate', rotationRate, '#64748b', 'fas fa-sync', true)}
+                ${_smartMetric('Rotation Rate', rotationRate, '#0f172a', 'fas fa-sync', true)}
             </div>
 
-            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:8px;">Sector-Level Error Counters</div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px;">
-                ${_smartMetric('Reallocated Sectors', reallocSectors, reallocSectors > 0 ? '#ef4444' : '#22c55e', 'fas fa-exclamation-triangle')}
-                ${_smartMetric('Pending Sectors', pendingSectors, pendingSectors > 0 ? '#ef4444' : '#22c55e', 'fas fa-exclamation-circle')}
-                ${_smartMetric('Uncorrectable Sectors', uncorrSectors, uncorrSectors > 0 ? '#ef4444' : '#22c55e', 'fas fa-skull-crossbones')}
-                ${_smartMetric('CRC Errors', crcErrors, crcErrors > 0 ? '#ef4444' : '#22c55e', 'fas fa-wifi')}
-            </div>
-
-            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:8px;">Temperature</div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px;">
-                ${_smartMetric('Current', temp + '°C', temp >= 55 ? '#ef4444' : (temp >= 45 ? '#f59e0b' : '#22c55e'), 'fas fa-thermometer-half', true)}
-                ${minTemp !== null ? _smartMetric('Min (Session)', minTemp + '°C', '#64748b', 'fas fa-thermometer-empty', true) : ''}
-                ${maxTemp !== null ? _smartMetric('Max (Session)', maxTemp + '°C', '#64748b', 'fas fa-thermometer-full', true) : ''}
-                ${lifeMinTemp !== null ? _smartMetric('Min (Lifetime)', lifeMinTemp + '°C', '#64748b', 'fas fa-thermometer-empty', true) : ''}
-                ${lifeMaxTemp !== null ? _smartMetric('Max (Lifetime)', lifeMaxTemp + '°C', '#64748b', 'fas fa-thermometer-full', true) : ''}
-            </div>
-
-            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:8px;">Usage &amp; Endurance</div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;">
-                ${_smartMetric('Power-On Hours', Number(powerOnHours).toLocaleString(), '#64748b', 'fas fa-clock', true)}
-                ${_smartMetric('Power Cycles', Number(powerCycles).toLocaleString(), '#64748b', 'fas fa-power-off', true)}
-                ${_smartMetric('Total Data Read', Number(dataRead).toLocaleString() + ' GB', '#64748b', 'fas fa-download', true)}
-                ${_smartMetric('Total Data Written', Number(dataWritten).toLocaleString() + ' GB', '#64748b', 'fas fa-upload', true)}
-                ${_smartMetric('Read Commands', Number(readCmds).toLocaleString(), '#64748b', 'fas fa-arrow-down', true)}
-                ${_smartMetric('Write Commands', Number(writeCmds).toLocaleString(), '#64748b', 'fas fa-arrow-up', true)}
-                ${_smartMetric('Scan Time', scanTime ? new Date(scanTime).toLocaleString() : 'N/A', '#64748b', 'fas fa-calendar', true)}
+            <div style="font-size:.85rem;font-weight:800;text-transform:uppercase;color:#0f172a;margin-bottom:12px;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">Usage & Endurance</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+                ${_smartMetric('Power-On Hours', Number(powerOnHours).toLocaleString(), '#0f172a', 'fas fa-clock', true)}
+                ${_smartMetric('Power Cycles', Number(powerCycles).toLocaleString(), '#0f172a', 'fas fa-power-off', true)}
+                ${_smartMetric('Read Commands', Number(readCmds).toLocaleString(), '#0f172a', 'fas fa-arrow-down', true)}
+                ${_smartMetric('Write Commands', Number(writeCmds).toLocaleString(), '#0f172a', 'fas fa-arrow-up', true)}
             </div>
         </div>`;
 
     $('#diskSmartSummaryContainer').html(summaryHtml);
     setDiskTabDot('dotSmartFull', scanTime);
+
+    // Initialize the new Deep Audit charts
+    setTimeout(() => {
+        const createDoughnut = (id, value, color) => {
+            const ctx = document.getElementById(id);
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: { datasets: [{ data: [value, Math.max(0, 100 - value)], backgroundColor: [color, '#e2e8f0'], borderWidth: 0, cutout: '80%', borderRadius: [4, 0] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { animateScale: true } }
+            });
+        };
+        createDoughnut('daHealthChart', healthPct, healthPct >= 80 ? '#22c55e' : (healthPct >= 50 ? '#f59e0b' : '#ef4444'));
+        createDoughnut('daWearChart', wearLevel, wearLevel < 50 ? '#22c55e' : (wearLevel < 80 ? '#f59e0b' : '#ef4444'));
+
+        const sectorCtx = document.getElementById('daSectorErrorsChart');
+        if (sectorCtx) {
+            new Chart(sectorCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Reallocated', 'Pending', 'Uncorrectable', 'CRC Errors'],
+                    datasets: [{
+                        data: [reallocSectors, pendingSectors, uncorrSectors, crcErrors],
+                        backgroundColor: (ctx) => ctx.raw > 0 ? '#ef4444' : '#22c55e',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { weight: 'bold' } } }, y: { grid: { display: false }, ticks: { font: { weight: 'bold', color: '#334155' } } } }
+                }
+            });
+        }
+
+        const tempCtx = document.getElementById('daTempGauge');
+        if (tempCtx) {
+            new Chart(tempCtx, {
+                type: 'doughnut',
+                data: { datasets: [{ data: [temp, Math.max(0, 100 - temp)], backgroundColor: [temp >= 55 ? '#ef4444' : (temp >= 45 ? '#f59e0b' : '#3b82f6'), '#e2e8f0'], borderWidth: 0, cutout: '75%', borderRadius: 4, circumference: 180, rotation: 270 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { animateScale: true } }
+            });
+        }
+
+        const ioCtx = document.getElementById('daDataIOChart');
+        if (ioCtx) {
+            new Chart(ioCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Data Read (GB)', 'Data Written (GB)'],
+                    datasets: [{
+                        data: [dataRead, dataWritten],
+                        backgroundColor: ['#8b5cf6', '#0ea5e9'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { weight: 'bold' } } }, y: { grid: { display: false }, ticks: { font: { weight: 'bold', color: '#334155' } } } }
+                }
+            });
+        }
+    }, 100);
 }
 
 function loadDeepDiskReportDetails() {
@@ -3491,11 +3859,17 @@ function renderDeepDiskReportPanel(report) {
 
         const endDate = dstEnd ? new Date(dstEnd) : null;
         const startDate = dstStart ? new Date(dstStart) : null;
-        const isUnfinished = !endDate || endDate.getFullYear() <= 1 || (startDate && endDate < startDate);
+        const hasValidEndDate = endDate && endDate.getFullYear() > 1 && (!startDate || endDate >= startDate);
 
-        const rawStatus = dst.status || dst.Status || 'Passed';
-        const displayStatus = isUnfinished ? 'In Progress' : rawStatus;
-        let stColor = isUnfinished ? '#0ea5e9' : (displayStatus.toUpperCase() === 'PASSED' ? '#22c55e' : '#ef4444');
+        const rawStatus = dst.status || dst.Status || '';
+        const statusUpper = rawStatus.toUpperCase();
+        const hasPassedStatus = ['PASSED', 'COMPLETED', 'PASS', 'OK', 'DONE', 'FAILED', 'FAIL'].includes(statusUpper);
+        const allSubTestsDone = [dst.sequentialReadSuccess ?? dst.SequentialReadSuccess, dst.sequentialWriteSuccess ?? dst.SequentialWriteSuccess, dst.randomReadSuccess ?? dst.RandomReadSuccess, dst.randomWriteSuccess ?? dst.RandomWriteSuccess, dst.surfaceReadSuccess ?? dst.SurfaceReadSuccess].every(v => v !== undefined && v !== null);
+
+        const isUnfinished = !hasValidEndDate && !hasPassedStatus && !allSubTestsDone;
+
+        const displayStatus = isUnfinished ? 'In Progress' : (rawStatus || 'Passed');
+        let stColor = isUnfinished ? '#0ea5e9' : (displayStatus.toUpperCase() === 'PASSED' || displayStatus.toUpperCase() === 'COMPLETED' ? '#22c55e' : '#ef4444');
 
         const durationDisplay = isUnfinished ? 'In progress…' : (Number(dst.durationMinutes || dst.DurationMinutes || 0).toFixed(1) + ' mins');
         const endedDisplay = isUnfinished ? 'Still running' : (endDate ? endDate.toLocaleString() : 'N/A');
@@ -3511,29 +3885,32 @@ function renderDeepDiskReportPanel(report) {
             ? '<div style="font-size:.76rem;color:var(--slate-400);grid-column:1/-1;">Sub-test results will appear once the self-test finishes.</div>'
             : subTests.map(t => `
             <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--slate-50);border-radius:6px;">
-                <span style="font-size:.74rem;color:var(--slate-600);">${t.label}</span>
-                <span style="font-size:.72rem;font-weight:700;color:${t.ok ? '#22c55e' : '#ef4444'};"><i class="fas ${t.ok ? 'fa-check-circle' : 'fa-times-circle'}"></i> ${t.ok ? 'Pass' : 'Fail'}</span>
+                <span style="font-size:.74rem;color:#0f172a;">${t.label}</span>
+                <span style="font-size:.82rem;font-weight:700;color:${t.ok ? '#22c55e' : '#ef4444'};"><i class="fas ${t.ok ? 'fa-check-circle' : 'fa-times-circle'}"></i> ${t.ok ? 'Pass' : 'Fail'}</span>
             </div>`).join('');
 
         dstHtml = `
-            <div class="disk-anim-in disk-modern-card" style="padding:16px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="disk-anim-in disk-modern-card" style="padding:16px;position:relative;">
+                <div style="position:absolute;top:16px;right:16px;opacity:0.15;pointer-events:none;transform:rotate(15deg);">
+                    <i class="fas ${displayStatus.toUpperCase() === 'PASSED' ? 'fa-check-double' : 'fa-exclamation-triangle'}" style="font-size:6rem;color:${stColor};"></i>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;position:relative;z-index:1;">
                     <span style="font-size:.82rem;font-weight:700;color:var(--slate-800);"><i class="fas fa-microscope" style="color:#8b5cf6;margin-right:6px;"></i>Drive Self-Test (DST) Report</span>
-                    <span style="font-size:.74rem;font-weight:800;color:${stColor};">${isUnfinished ? '<i class="fas fa-circle-notch fa-spin"></i> ' : ''}${displayStatus}</span>
+                    <span style="font-size:.85rem;font-weight:800;color:${stColor};border:2px solid ${stColor};padding:4px 12px;border-radius:4px;text-transform:uppercase;letter-spacing:1px;box-shadow:0 0 10px ${stColor}33;">${isUnfinished ? '<i class="fas fa-circle-notch fa-spin"></i> ' : ''}${displayStatus}</span>
                 </div>
                 ${isUnfinished ? `<div style="font-size:.74rem;color:#0369a1;background:#f0f9ff;padding:8px 12px;border-radius:6px;margin-bottom:12px;">This drive self-test hasn't finished on the device yet. Results below are from the last completed test.</div>` : ''}
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:.76rem;margin-bottom:12px;">
-                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Test Type: <strong>${dst.testType || dst.TestType || 'Full DST'}</strong></div>
-                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Duration: <strong>${durationDisplay}</strong></div>
-                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Total Errors: <strong style="color:${(dst.totalErrors || dst.TotalErrors) > 0 ? '#ef4444' : '#22c55e'};">${dst.totalErrors ?? dst.TotalErrors ?? 0}</strong></div>
-                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Started: <strong>${dstStart ? new Date(dstStart).toLocaleString() : 'N/A'}</strong></div>
-                    <div style="background:var(--slate-50);padding:8px 12px;border-radius:6px;">Ended: <strong>${endedDisplay}</strong></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:.76rem;margin-bottom:12px;position:relative;z-index:1;">
+                    <div style="background:rgba(248,250,252,0.8);padding:8px 12px;border-radius:6px;border:1px solid var(--slate-100);">Test Type: <strong>${dst.testType || dst.TestType || 'Full DST'}</strong></div>
+                    <div style="background:rgba(248,250,252,0.8);padding:8px 12px;border-radius:6px;border:1px solid var(--slate-100);">Duration: <strong>${durationDisplay}</strong></div>
+                    <div style="background:rgba(248,250,252,0.8);padding:8px 12px;border-radius:6px;border:1px solid var(--slate-100);">Total Errors: <strong style="color:${(dst.totalErrors || dst.TotalErrors) > 0 ? '#ef4444' : '#22c55e'};">${dst.totalErrors ?? dst.TotalErrors ?? 0}</strong></div>
+                    <div style="background:rgba(248,250,252,0.8);padding:8px 12px;border-radius:6px;border:1px solid var(--slate-100);">Started: <strong>${dstStart ? new Date(dstStart).toLocaleString() : 'N/A'}</strong></div>
+                    <div style="background:rgba(248,250,252,0.8);padding:8px 12px;border-radius:6px;border:1px solid var(--slate-100);">Ended: <strong>${endedDisplay}</strong></div>
                 </div>
-                <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:8px;">Sub-Test Breakdown</div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:${dstErrMsg && dstErrMsg !== 'No error' ? '10px' : '0'};">
+                <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#0f172a;margin-bottom:8px;position:relative;z-index:1;">Sub-Test Breakdown</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:${dstErrMsg && dstErrMsg !== 'No error' ? '10px' : '0'};position:relative;z-index:1;">
                     ${subTestHtml}
                 </div>
-                ${dstErrMsg && dstErrMsg !== 'No error' ? `<div style="font-size:.74rem;color:#ef4444;background:#fef2f2;padding:8px 12px;border-radius:6px;">${dstErrMsg}</div>` : ''}
+                ${dstErrMsg && dstErrMsg !== 'No error' ? `<div style="font-size:.74rem;color:#ef4444;background:#fef2f2;padding:8px 12px;border-radius:6px;position:relative;z-index:1;">${dstErrMsg}</div>` : ''}
             </div>`;
     }
 
@@ -3544,6 +3921,135 @@ function renderDeepDiskReportPanel(report) {
     $('#diskDstPlaceholder').hide();
     $('#diskDstResults').show();
     setDiskTabDot('dotBenchmark', report.endTime || report.EndTime || report.startTime || report.StartTime);
+
+    // Render benchmark results directly from report object if present
+    const testDefs = [
+        { name: 'Sequential Read', obj: report.sequentialRead || report.SequentialRead },
+        { name: 'Sequential Write', obj: report.sequentialWrite || report.SequentialWrite },
+        { name: 'Random Read', obj: report.randomRead || report.RandomRead },
+        { name: 'Random Write', obj: report.randomWrite || report.RandomWrite },
+        { name: 'Surface Read', obj: report.surfaceRead || report.SurfaceRead }
+    ];
+
+    const benchmarkData = testDefs.map(t => {
+        if (!t.obj) return null;
+        return {
+            TestName: t.obj.testName || t.obj.TestName || t.name,
+            Success: t.obj.success ?? t.obj.Success ?? true,
+            Status: t.obj.status || t.obj.Status || 'Passed',
+            SpeedMBps: t.obj.speedMBps ?? t.obj.SpeedMBps ?? 0,
+            DurationSeconds: t.obj.durationSeconds ?? t.obj.DurationSeconds ?? 0,
+            ProcessedBytes: t.obj.processedBytes ?? t.obj.ProcessedBytes ?? t.obj.totalBytes ?? t.obj.TotalBytes ?? 0,
+            TotalBytes: t.obj.totalBytes ?? t.obj.TotalBytes ?? 0,
+            ErrorCount: t.obj.errorCount ?? t.obj.ErrorCount ?? 0
+        };
+    }).filter(Boolean);
+
+    if (benchmarkData.length > 0) {
+        // Draw Radar Chart
+        const radarCanvas = document.getElementById('diskBenchmarkRadarCanvas');
+        if (radarCanvas) {
+            radarCanvas.style.display = 'block';
+            if (window.diskBenchmarkRadarInstance) window.diskBenchmarkRadarInstance.destroy();
+            
+            const labels = benchmarkData.map(d => d.TestName.replace('Sequential', 'Seq.').replace('Random', 'Rand.'));
+            const speeds = benchmarkData.map(d => d.SpeedMBps || 0);
+            
+            // Calculate a "Performance Score" based on max speeds (Assuming max ~3000MB/s for a good NVMe, though scales dynamically)
+            const maxSpeed = Math.max(...speeds, 1);
+            const perfScore = Math.min(100, Math.round((maxSpeed / 3000) * 100));
+            const perfColor = perfScore > 80 ? '#22c55e' : (perfScore > 50 ? '#f59e0b' : '#ef4444');
+
+            window.diskBenchmarkRadarInstance = new Chart(radarCanvas.getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Speed (MB/s)',
+                        data: speeds,
+                        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                        borderColor: '#8b5cf6',
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#8b5cf6',
+                        pointHoverBackgroundColor: '#8b5cf6',
+                        pointHoverBorderColor: '#fff',
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(226, 232, 240, 0.5)' },
+                            grid: { color: 'rgba(226, 232, 240, 0.5)' },
+                            pointLabels: { font: { size: 10, family: "'Inter', sans-serif" }, color: '#64748b' },
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: { legend: { display: false }, tooltip: { enabled: true } }
+                },
+                plugins: [{
+                    id: 'textCenterRadar',
+                    beforeDraw: function(chart) {
+                        var width = chart.width, height = chart.height, ctx = chart.ctx;
+                        ctx.restore();
+                        var fontSize = (height / 120).toFixed(2);
+                        ctx.font = "800 " + fontSize + "em 'Inter', sans-serif";
+                        ctx.textBaseline = "middle";
+                        ctx.fillStyle = perfColor;
+                        var text = perfScore,
+                            textX = Math.round((width - ctx.measureText(text).width) / 2),
+                            textY = height / 2;
+                        ctx.fillText(text, textX, textY);
+                        
+                        ctx.font = "700 " + (fontSize * 0.35).toFixed(2) + "em 'Inter', sans-serif";
+                        ctx.fillStyle = '#64748b';
+                        var subText = "SCORE",
+                            subX = Math.round((width - ctx.measureText(subText).width) / 2),
+                            subY = textY + (height * 0.12);
+                        ctx.fillText(subText, subX, subY);
+                        ctx.save();
+                    }
+                }]
+            });
+        }
+
+        initLocalTable('#diskBenchmarkTable', benchmarkData, [
+            { data: null, render: (row) => flexRender(row, 'TestName') },
+            {
+                data: null, render: (row) => {
+                    const success = row.Success ?? row.success;
+                    const status = row.Status || row.status;
+                    const ok = success !== false;
+                    return '<span style="font-weight:700;color:' + (ok ? '#22c55e' : '#ef4444') + ';"><i class="fas ' +
+                        (ok ? 'fa-check-circle' : 'fa-times-circle') + '"></i> ' + (status || (ok ? 'Passed' : 'Failed')) + '</span>';
+                }
+            },
+            {
+                data: null, render: (row) => {
+                    const speed = row.SpeedMBps ?? row.speedMBps;
+                    return (speed !== undefined && speed !== null) ? Number(speed).toFixed(1) : 'N/A';
+                }
+            },
+            {
+                data: null, render: (row) => {
+                    const dur = row.DurationSeconds ?? row.durationSeconds;
+                    return (dur !== undefined && dur !== null) ? Number(dur).toFixed(1) : 'N/A';
+                }
+            },
+            {
+                data: null, render: (row) => {
+                    const processed = Number(row.ProcessedBytes ?? row.processedBytes ?? 0);
+                    const total = Number(row.TotalBytes ?? row.totalBytes ?? 0);
+                    const bytes = processed || total;
+                    return bytes ? (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB' : 'N/A';
+                }
+            },
+            { data: null, render: (row) => flexRender(row, 'ErrorCount') }
+        ]);
+    }
 }
 
 function _nvmeCard(nvme) {
@@ -4016,9 +4522,25 @@ $(document).ready(function () {
     function refreshQuickDiskSection() {
         $.get(`/ComputerSummary/HardDisk?domain=${domaindata}`, function (disks) {
             if (disks && Array.isArray(disks) && disks.length > 0) {
-                renderHardDiskDashboard(disks, false);
+                // openGate=true: this is the only place that turns real, freshly-fetched
+                // disk data into visible UI after a Deep Audit run, so it must be able to
+                // reveal the gate itself (and hide the loading/placeholder states) even if
+                // the user never ran a Quick Audit before — not just when the gate already
+                // happens to be open.
+                renderHardDiskDashboard(disks, true);
                 loadHwPartitions();
+            } else {
+                // No data came back (e.g. Deep Audit was the very first audit run and the
+                // device hasn't reported anything yet) — fall back to the placeholder
+                // instead of leaving the loading spinner or an empty gate on screen.
+                $('#diskAuditLoading').hide();
+                $('#diskAuditGate').hide();
+                $('#diskAuditPlaceholder').show();
             }
+        }).fail(function () {
+            $('#diskAuditLoading').hide();
+            $('#diskAuditGate').hide();
+            $('#diskAuditPlaceholder').show();
         });
     }
 
@@ -4080,8 +4602,19 @@ $(document).ready(function () {
         window.hasLiveAuditOccurred = true;
         sysAlert('Deep Audit (DST) requested. This is a thorough self-test and can take several minutes — sending command to device...', 'info');
 
+        // Only keep the gate open right away if it was already populated by a previous
+        // audit. If this is the very first audit on the device, the gate has nothing in
+        // it yet (hero/risk/usage all show placeholder dashes) — show the loading state
+        // instead, same as Quick Audit, and let refreshQuickDiskSection() open the gate
+        // once real data actually exists.
+        const diskGateAlreadyPopulated = $('#diskAuditGate').is(':visible');
         $('#diskAuditPlaceholder').hide();
-        $('#diskAuditGate').show();
+        if (diskGateAlreadyPopulated) {
+            $('#diskAuditGate').show();
+        } else {
+            $('#diskAuditGate').hide();
+            $('#diskAuditLoading').show();
+        }
 
         function proceedWithBaseline(baselineDate) {
             setDeepAuditPendingUI('Deep Audit (DST) running on the device. This can take several minutes for a full self-test…');

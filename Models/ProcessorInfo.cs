@@ -1,4 +1,7 @@
-﻿namespace ManageEngineWebApp.Models
+using System;
+using System.Collections.Generic;
+
+namespace ManageEngineWebApp.Models
 {
     public class ProcessorInfo
     {
@@ -56,5 +59,9 @@
         public string CpuStatus { get; set; }
 
         public DateTime DateTime { get; set; }
+
+        public int? HealthScore { get; set; }
+        public string HealthLevel { get; set; }
+        public List<string> Issues { get; set; } = new List<string>();
     }
 }
