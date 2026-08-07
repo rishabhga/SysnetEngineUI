@@ -1818,12 +1818,12 @@ namespace ManageEngineWebApp.Controllers
             domain = ResolveDomain(domain, q);
             using (var httpClient = GetClient())
             {
-                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/Command/SendScanStatus?domain={domain}");
+                httpClient.BaseAddress = new Uri($"{_baseUrl}/api/RemoteAccess/CheckStatus?domain={domain}");
                 var response = await httpClient.GetAsync("");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    var data = JsonConvert.DeserializeObject<MSGRequest>(content);
+                    var data = JsonConvert.DeserializeObject<dynamic>(content);
                     return Json(data);
                 }
                 return Json(new { status = "failed" });
@@ -1982,7 +1982,7 @@ namespace ManageEngineWebApp.Controllers
             try
             {
                 using var client = GetClient();
-                string url = $"{_baseUrl}/api/RemoteAccess/StopRemopte/{domain}";
+                string url = $"{_baseUrl}/api/RemoteAccess/StopRemote/{domain}";
                 var content = new StringContent($"\"StopRemote\"", Encoding.UTF8, "application/json");
                 HttpResponseMessage response = await client.PostAsync(url, content);
                 return Json(new { success = response.IsSuccessStatusCode });
