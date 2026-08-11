@@ -1,4 +1,4 @@
-@model ManageEngineWebApp.Dtos.RegisterDto
+﻿@model ManageEngineWebApp.Dtos.RegisterDto
 
 @{
     ViewData["Title"] = "Register - SYSNET";
@@ -21,11 +21,15 @@
         body, html {
             margin: 0;
             padding: 0;
+            height: 100%;
+            width: 100%;
             font-family: 'DM Sans', ui-sans-serif, system-ui;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
-        /* Same background as Login / ForgotPassword */
         .bg-page {
+            position: relative; 
             background-color: #020617;
             background-image: url('/images/sysnet-trinetra.webp');
             background-size: cover;
@@ -33,22 +37,19 @@
             background-repeat: no-repeat;
             background-attachment: fixed;
             min-height: 100vh;
-            /* Card sits at the bottom, same as Login */
+            min-height: 100dvh;
             display: flex;
             align-items: flex-end;
             justify-content: center;
             padding: 0 1rem 1.5rem 1rem;
         }
+
         @@media (max-width: 1024px) {
-            .bg-page
-
-        {
-            background-attachment: scroll;
+            .bg-page {
+                background-attachment: scroll;
+            }
         }
 
-        }
-
-        /* Overlay � same gradient as Login */
         .bg-page::before {
             content: '';
             position: absolute;
@@ -57,7 +58,6 @@
             pointer-events: none;
         }
 
-        /* Glass card � identical spec to Login */
         .glass-card {
             background: rgba(15, 23, 42, 0.90) !important;
             backdrop-filter: blur(40px) saturate(180%) !important;
@@ -66,7 +66,6 @@
             box-shadow: 0 10px 40px -5px rgba(0,0,0,0.45) !important;
         }
 
-        /* Input glass � identical to Login */
         .input-glass {
             background: rgba(255,255,255,0.05) !important;
             border: 1px solid rgba(255,255,255,0.18) !important;
@@ -86,7 +85,6 @@
                 outline: none;
             }
 
-        /* Autofill override */
         input:-webkit-autofill,
         input:-webkit-autofill:hover,
         input:-webkit-autofill:focus {
@@ -113,7 +111,6 @@
             color: white;
         }
 
-        /* Glow button � identical to Login */
         .glow-button {
             background: linear-gradient(135deg, rgba(6,182,212,0.55) 0%, rgba(2,132,199,0.55) 100%) !important;
             backdrop-filter: blur(12px) !important;
@@ -128,7 +125,6 @@
                 transform: translateY(-2px);
             }
 
-        /* Card container animation */
         .login-container {
             position: relative;
             z-index: 10;
@@ -136,6 +132,23 @@
             max-width: 340px;
             animation: fadeInUp 0.55s ease-out forwards;
         }
+
+        .glass-card {
+            max-height: calc(100vh - clamp(14.5rem, 38vh, 16rem) - 1.5rem);
+            max-height: calc(100dvh - clamp(14.5rem, 38vh, 16rem) - 1.5rem);
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(6,182,212,0.5) transparent;
+        }
+
+            .glass-card::-webkit-scrollbar {
+                width: 5px;
+            }
+
+            .glass-card::-webkit-scrollbar-thumb {
+                background: rgba(6,182,212,0.5);
+                border-radius: 4px;
+            }
 
         @@keyframes fadeInUp {
             from {
@@ -149,18 +162,50 @@
             }
         }
 
-        /* Text legibility over BG */
         h2, p, label, span, a {
             text-shadow: 0 2px 8px rgba(0,0,0,0.75);
         }
 
+        .step-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.25s ease;
+        }
+
+        .step-dot-active {
+            color: #020617;
+            background: linear-gradient(135deg, #22d3ee, #0284c7);
+            border-color: transparent;
+            box-shadow: 0 0 12px rgba(6,182,212,0.6);
+        }
+
+        .step-line {
+            width: 28px;
+            height: 1px;
+            background: rgba(255,255,255,0.2);
+        }
+
         @@media (max-width: 640px) {
             .bg-page {
-                padding: 0 0.5rem 0.75rem;
+                padding: 0 0.5rem 1rem 0.5rem;
             }
 
             .login-container {
                 max-width: 100%;
+            }
+
+            .glass-card {
+                max-height: calc(100vh - clamp(12rem, 36vh, 13.5rem) - 1rem);
+                max-height: calc(100dvh - clamp(12rem, 36vh, 13.5rem) - 1rem);
             }
         }
     </style>
@@ -170,14 +215,12 @@
     <div class="login-container">
         <div class="glass-card rounded-xl px-4 py-4">
 
-            <!-- Header -->
-            <div class="text-center mb-3">
-                <img src="~/images/footer-logo.png" alt="SYSNET" class="h-8 w-auto mx-auto mb-2 drop-shadow-lg" />
+            <div class="text-center mb-2.5">
+                <img src="~/images/footer-logo.png" alt="SYSNET" class="h-7 w-auto mx-auto mb-1.5 drop-shadow-lg" />
                 <h2 class="text-sm font-bold text-white">Create your account</h2>
                 <p class="text-[10px] text-white/70 mt-0.5">Fill in the details below to get started</p>
             </div>
 
-            <!-- Error message -->
             @if (TempData["msg"] != null)
             {
                 <div class="mb-3 px-3 py-2 rounded-lg bg-red-500/15 border border-red-400/30 text-[11px] text-red-200 flex items-center gap-2">
@@ -189,129 +232,184 @@
                 </div>
             }
 
-            <form asp-action="Register" method="post" class="space-y-2.5">
+            <form asp-action="Register" method="post" novalidate>
 
-                <!-- Username -->
-                <div>
-                    <label asp-for="Username" class="block text-[11px] font-semibold text-white/80 mb-1">
-                        <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        Username
-                    </label>
-                    <input asp-for="Username" type="text" placeholder="Choose a username"
-                           class="input-glass w-full rounded-lg px-3 py-2 text-sm focus:outline-none" />
-                    <span asp-validation-for="Username" class="text-[10px] text-red-300 mt-0.5 block"></span>
+                <div class="flex items-center justify-center gap-1.5 mb-3" id="stepDots">
+                    <div class="flex items-center gap-1">
+                        <span class="step-dot step-dot-active" data-dot="1">1</span>
+                        <span class="text-[10px] font-semibold text-white/90" id="dot1Label">Account</span>
+                    </div>
+                    <span class="step-line"></span>
+                    <div class="flex items-center gap-1">
+                        <span class="step-dot" data-dot="2">2</span>
+                        <span class="text-[10px] font-semibold text-white/50" id="dot2Label">Security</span>
+                    </div>
+                    <span class="step-line"></span>
+                    <div class="flex items-center gap-1">
+                        <span class="step-dot" data-dot="3">3</span>
+                        <span class="text-[10px] font-semibold text-white/50" id="dot3Label">Company</span>
+                    </div>
                 </div>
 
-                <!-- Email -->
-                <div>
-                    <label asp-for="Email" class="block text-[11px] font-semibold text-white/80 mb-1">
-                        <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <div id="regStep1" class="space-y-1.5">
+
+                    <div>
+                        <label asp-for="Username" class="block text-[11px] font-semibold text-white/80 mb-0.5">
+                            <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Username
+                        </label>
+                        <input asp-for="Username" type="text" placeholder="Choose a username"
+                               class="input-glass w-full rounded-lg px-3 py-1.5 text-sm focus:outline-none" />
+                        <span asp-validation-for="Username" class="text-[10px] text-red-300 mt-0.5 block"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="Email" class="block text-[11px] font-semibold text-white/80 mb-0.5">
+                            <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            Email
+                        </label>
+                        <input asp-for="Email" type="email" placeholder="your@email.com"
+                               class="input-glass w-full rounded-lg px-3 py-1.5 text-sm focus:outline-none" />
+                        <span asp-validation-for="Email" class="text-[10px] text-red-300 mt-0.5 block"></span>
+                    </div>
+
+                    <div id="step1Error" class="hidden text-[10px] text-red-300 bg-red-500/10 border border-red-400/25 rounded-lg px-3 py-1.5"></div>
+
+                    <button type="button" id="btnNext1"
+                            class="glow-button w-full rounded-lg text-white text-sm font-bold py-1.5
+                                   flex items-center justify-center gap-2">
+                        Next
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
-                        Email
-                    </label>
-                    <input asp-for="Email" type="email" placeholder="your@email.com"
-                           class="input-glass w-full rounded-lg px-3 py-2 text-sm focus:outline-none" />
-                    <span asp-validation-for="Email" class="text-[10px] text-red-300 mt-0.5 block"></span>
+                    </button>
+
+                    <p class="text-center text-[11px] text-white/70">
+                        Already have an account?
+                        <a asp-controller="Auth" asp-action="Login" class="text-cyan-300 hover:text-cyan-200 font-semibold transition-colors">
+                            Sign In
+                        </a>
+                    </p>
                 </div>
 
-                <!-- Password -->
-                <div>
-                    <label asp-for="Password" class="block text-[11px] font-semibold text-white/80 mb-1">
-                        <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        Password
-                    </label>
-                    <div class="relative">
-                        <input asp-for="Password" type="password" id="regPwd" placeholder="Create a strong password"
-                               class="input-glass w-full rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none" />
-                        <button type="button" onclick="toggleReg('regPwd',this)"
-                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-300 transition-colors">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div id="regStep2" class="space-y-2 hidden">
+
+                    <div>
+                        <label asp-for="Password" class="block text-[11px] font-semibold text-white/80 mb-1">
+                            <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            Password
+                        </label>
+                        <div class="relative">
+                            <input asp-for="Password" type="password" id="regPwd" placeholder="Create a strong password"
+                                   class="input-glass w-full rounded-lg px-3 py-1.5 pr-9 text-sm focus:outline-none" />
+                            <button type="button" onclick="toggleReg('regPwd',this)"
+                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-300 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Password" class="text-[10px] text-red-300 mt-0.5 block"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="ConfirmPassword" class="block text-[11px] font-semibold text-white/80 mb-1">
+                            <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Confirm Password
+                        </label>
+                        <div class="relative">
+                            <input asp-for="ConfirmPassword" type="password" id="regConfirm" placeholder="Confirm your password"
+                                   class="input-glass w-full rounded-lg px-3 py-1.5 pr-9 text-sm focus:outline-none" />
+                            <button type="button" onclick="toggleReg('regConfirm',this)"
+                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-300 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="text-[10px] text-red-300 mt-0.5 block"></span>
+                    </div>
+
+                    <div id="step2Error" class="hidden text-[10px] text-red-300 bg-red-500/10 border border-red-400/25 rounded-lg px-3 py-2"></div>
+                    <div class="flex gap-2 mt-1">
+                        <button type="button" id="btnBack2"
+                                class="w-1/3 rounded-lg text-white/90 text-sm font-semibold py-2 border border-white/20
+                                       bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Back
+                        </button>
+                        <button type="button" id="btnNext2"
+                                class="glow-button w-2/3 rounded-lg text-white text-sm font-bold py-2
+                                       flex items-center justify-center gap-2">
+                            Next
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>
                         </button>
                     </div>
-                    <span asp-validation-for="Password" class="text-[10px] text-red-300 mt-0.5 block"></span>
                 </div>
-
-                <!-- Confirm Password -->
-                <div>
-                    <label asp-for="ConfirmPassword" class="block text-[11px] font-semibold text-white/80 mb-1">
-                        <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Confirm Password
-                    </label>
-                    <div class="relative">
-                        <input asp-for="ConfirmPassword" type="password" id="regConfirm" placeholder="Confirm your password"
-                               class="input-glass w-full rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none" />
-                        <button type="button" onclick="toggleReg('regConfirm',this)"
-                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-300 transition-colors">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div id="regStep3" class="space-y-2 hidden">
+                    <div>
+                        <label asp-for="CompanyId" class="block text-[11px] font-semibold text-white/80 mb-1">
+                            <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
+                            Company
+                        </label>
+                        <select asp-for="CompanyId" id="companySelect"
+                                class="input-glass w-full rounded-lg px-3 py-2 text-sm focus:outline-none appearance-none cursor-pointer">
+                            <option value="">Loading companies...</option>
+                        </select>
+                        <span asp-validation-for="CompanyId" class="text-[10px] text-red-300 mt-0.5 block"></span>
+                    </div>
+
+                    <p class="text-[10px] text-cyan-300/70 bg-cyan-500/8 border border-cyan-500/15 rounded-lg px-3 py-2 leading-relaxed">
+                        Your account will be activated after an admin assigns your role.
+                    </p>
+
+                    <div class="flex gap-2 mt-1">
+                        <button type="button" id="btnBack3"
+                                class="w-1/3 rounded-lg text-white/90 text-sm font-semibold py-2.5 border border-white/20
+                                       bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Back
+                        </button>
+                        <button type="submit"
+                                class="glow-button w-2/3 rounded-lg text-white text-sm font-bold py-2.5
+                                       flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            </svg>
+                            Create Account
                         </button>
                     </div>
-                    <span asp-validation-for="ConfirmPassword" class="text-[10px] text-red-300 mt-0.5 block"></span>
                 </div>
-
-                <!-- Company -->
-                <div>
-                    <label asp-for="CompanyId" class="block text-[11px] font-semibold text-white/80 mb-1">
-                        <svg class="w-3 h-3 inline text-cyan-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        Company
-                    </label>
-                    <select asp-for="CompanyId" id="companySelect"
-                            class="input-glass w-full rounded-lg px-3 py-2 text-sm focus:outline-none appearance-none cursor-pointer">
-                        <option value="">Loading companies...</option>
-                    </select>
-                    <span asp-validation-for="CompanyId" class="text-[10px] text-red-300 mt-0.5 block"></span>
-                </div>
-
-                <!-- Info note -->
-                <p class="text-[10px] text-cyan-300/70 bg-cyan-500/8 border border-cyan-500/15 rounded-lg px-3 py-2 leading-relaxed">
-                    Your account will be activated after an admin assigns your role.
-                </p>
-
-                <!-- Submit -->
-                <button type="submit"
-                        class="glow-button w-full rounded-lg text-white text-sm font-bold py-2.5
-                               flex items-center justify-center gap-2 mt-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                    Create Account
-                </button>
-
-                <!-- Sign in link -->
-                <p class="text-center text-[11px] text-white/70 pt-1">
-                    Already have an account?
-                    <a asp-controller="Auth" asp-action="Login"
-                       class="text-cyan-300 hover:text-cyan-200 font-semibold transition-colors">
-                        Sign In
-                    </a>
-                </p>
             </form>
         </div>
 
-        <!-- Back to home -->
         <div class="mt-3 text-center text-[10px] text-white/70">
             <a asp-controller="Home" asp-action="Index"
                class="inline-flex items-center gap-1 hover:text-white transition-colors">
@@ -325,21 +423,108 @@
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
     <script>
-        // Toggle password visibility
         function toggleReg(id, btn) {
             const inp = document.getElementById(id);
             inp.type = inp.type === 'password' ? 'text' : 'password';
             btn.style.opacity = inp.type === 'text' ? '0.5' : '1';
         }
+        var step1 = document.getElementById('regStep1');
+        var step2 = document.getElementById('regStep2');
+        var step3 = document.getElementById('regStep3');
+        var dot1 = document.querySelector('[data-dot="1"]');
+        var dot2 = document.querySelector('[data-dot="2"]');
+        var dot3 = document.querySelector('[data-dot="3"]');
+        var dot1Label = document.getElementById('dot1Label');
+        var dot2Label = document.getElementById('dot2Label');
+        var dot3Label = document.getElementById('dot3Label');
+        var step1Error = document.getElementById('step1Error');
+        var step2Error = document.getElementById('step2Error');
 
-        // Load companies via AJAX
+        var steps = { 1: step1, 2: step2, 3: step3 };
+        var dots = { 1: dot1, 2: dot2, 3: dot3 };
+        var labels = { 1: dot1Label, 2: dot2Label, 3: dot3Label };
+
+        function goToStep(n) {
+            [1, 2, 3].forEach(function (i) {
+                if (i === n) {
+                    steps[i].classList.remove('hidden');
+                    dots[i].classList.add('step-dot-active');
+                    labels[i].classList.remove('text-white/50');
+                    labels[i].classList.add('text-white/90');
+                } else {
+                    steps[i].classList.add('hidden');
+                    dots[i].classList.remove('step-dot-active');
+                    labels[i].classList.remove('text-white/90');
+                    labels[i].classList.add('text-white/50');
+                }
+            });
+        }
+
+        document.getElementById('btnNext1')?.addEventListener('click', function () {
+            var username = document.getElementById('Username') || document.querySelector('[name="Username"]');
+            var email = document.querySelector('[name="Email"]');
+
+            step1Error.classList.add('hidden');
+            step1Error.textContent = '';
+
+            var missing = [];
+            [username, email].forEach(function (el) {
+                if (el && !el.value.trim()) missing.push(el);
+            });
+
+            if (missing.length) {
+                step1Error.textContent = 'Please fill in all fields before continuing.';
+                step1Error.classList.remove('hidden');
+                missing[0].focus();
+                return;
+            }
+
+            goToStep(2);
+        });
+
+        document.getElementById('btnBack2')?.addEventListener('click', function () {
+            goToStep(1);
+        });
+
+        document.getElementById('btnNext2')?.addEventListener('click', function () {
+            var pwd = document.getElementById('regPwd');
+            var confirm = document.getElementById('regConfirm');
+
+            step2Error.classList.add('hidden');
+            step2Error.textContent = '';
+
+            var missing = [];
+            [pwd, confirm].forEach(function (el) {
+                if (el && !el.value.trim()) missing.push(el);
+            });
+
+            if (missing.length) {
+                step2Error.textContent = 'Please fill in all fields before continuing.';
+                step2Error.classList.remove('hidden');
+                missing[0].focus();
+                return;
+            }
+
+            if (pwd && confirm && pwd.value !== confirm.value) {
+                step2Error.textContent = 'Password and Confirm Password do not match.';
+                step2Error.classList.remove('hidden');
+                confirm.focus();
+                return;
+            }
+
+            goToStep(3);
+        });
+
+        document.getElementById('btnBack3')?.addEventListener('click', function () {
+            goToStep(2);
+        });
+
         $(document).ready(function () {
             $.ajax({
                 url: '/Auth/GetCompaniesForRegister',
                 type: 'GET',
                 success: function (data) {
                     var opts = '<option value="">Select Company</option>';
-                    // Check if it's an error object or an empty array
                     if (data && data.error) {
                         opts = '<option value="">Error: ' + data.message + '</option>';
                     } else if (Array.isArray(data) && data.length > 0) {
