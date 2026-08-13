@@ -3048,8 +3048,9 @@ namespace ManageEngineWebApp.Controllers
             if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
+                string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
-                var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/latest/{Uri.EscapeDataString(domain)}");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/latest/{Uri.EscapeDataString(UCode)}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -3070,8 +3071,9 @@ namespace ManageEngineWebApp.Controllers
             if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
+                string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
-                var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/health/history/{Uri.EscapeDataString(domain)}?take={take}");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/health/history/{Uri.EscapeDataString(UCode)}?take={take}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
@@ -3092,8 +3094,9 @@ namespace ManageEngineWebApp.Controllers
             if (!await IsDeviceAuthorized(domain)) return Forbid();
             try
             {
+                string UCode = GetUCodeFromDomain(domain);
                 using var httpClient = GetClient();
-                var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/audit/{Uri.EscapeDataString(domain)}");
+                var response = await httpClient.GetAsync($"{_baseUrl}/api/MotherboardDetails/audit/{Uri.EscapeDataString(UCode)}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
