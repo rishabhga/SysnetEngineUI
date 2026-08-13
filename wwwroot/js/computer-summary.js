@@ -334,6 +334,7 @@ function lazyLoadTabData(tabId) {
             loadNetworkAdapters();
             loadKeyboardDetails();
             loadMotherboardDetails();
+            loadMotherboardHealthLatest();
             loadMotherboardHealthHistory();
             loadMemoryDetails();
             loadHardDiskDetails();
@@ -1659,24 +1660,24 @@ function renderProcessorCache(d) {
         $('#cpuCacheTitle').hide();
         return;
     }
-    
+
     $('#cpuCacheContainer').show();
     $('#cpuCacheTitle').show();
-    
+
     var max = Math.max(l1, l2, l3) || 1;
-    
-    var setCache = function(sel, val) {
+
+    var setCache = function (sel, val) {
         var pct = (val / max) * 100;
         var label = val + ' KB';
         if (val >= 1024) { label = (val / 1024).toFixed(1) + ' MB'; }
-        
-        var $row = $('#cpuCacheContainer .cpu-cache-row').filter(function() { return $(this).find('.cpu-cache-label').text() === sel; });
+
+        var $row = $('#cpuCacheContainer .cpu-cache-row').filter(function () { return $(this).find('.cpu-cache-label').text() === sel; });
         if ($row.length) {
             $row.find('.cpu-cache-fill').css('width', pct + '%').css('background', val > 0 ? 'var(--cyan)' : 'var(--slate-200)');
             $row.find('.cpu-cache-value').text(val > 0 ? label : '--');
         }
     };
-    
+
     setCache('L1', l1);
     setCache('L2', l2);
     setCache('L3', l3);
@@ -3388,7 +3389,7 @@ function renderDiskPanels(d) {
     const tempCanvas = document.getElementById('diskTemperatureChartCanvas');
     if (tempCanvas && tempVal !== null) {
         if (window.diskTempChartInstance) window.diskTempChartInstance.destroy();
-        
+
         // Gradient color for gauge based on temp
         let tempChartColor = '#22c55e'; // Green
         if (tempVal >= 55) tempChartColor = '#ef4444'; // Red
@@ -3414,7 +3415,7 @@ function renderDiskPanels(d) {
             },
             plugins: [{
                 id: 'textCenter',
-                beforeDraw: function(chart) {
+                beforeDraw: function (chart) {
                     var width = chart.width, height = chart.height, ctx = chart.ctx;
                     ctx.restore();
                     var fontSize = (height / 80).toFixed(2);
@@ -3425,7 +3426,7 @@ function renderDiskPanels(d) {
                         textX = Math.round((width - ctx.measureText(text).width) / 2),
                         textY = height - (height * 0.15); // Adjust Y to sit properly in semi-circle
                     ctx.fillText(text, textX, textY);
-                    
+
                     ctx.font = "600 " + (fontSize * 0.35).toFixed(2) + "em 'Inter', sans-serif";
                     ctx.fillStyle = '#64748b';
                     var subText = "Temperature",
@@ -3524,23 +3525,27 @@ function loadSmartAttributesTable() {
     const serialParam = window.currentDiskSerial ? `&serial=${encodeURIComponent(window.currentDiskSerial)}` : '';
     initTable('#diskSmartAttributesTable', `/ComputerSummary/GetHardDiskSmartAttributes?domain=${domaindata}${serialParam}`, [
         { data: null, render: (row) => flexRender(row, 'Name') },
-        { data: null, render: (row) => {
-            const val = flexRender(row, 'CurrentValue');
-            const pct = Math.min(100, Math.max(0, (Number(val) || 0) / 2.55));
-            return `<div style="display:flex;align-items:center;gap:8px;">
+        {
+            data: null, render: (row) => {
+                const val = flexRender(row, 'CurrentValue');
+                const pct = Math.min(100, Math.max(0, (Number(val) || 0) / 2.55));
+                return `<div style="display:flex;align-items:center;gap:8px;">
                         <div style="flex:1;height:6px;background:var(--slate-100);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#0ea5e9;"></div></div>
                         <span style="min-width:24px;text-align:right;">${val}</span>
                     </div>`;
-        } },
+            }
+        },
         { data: null, render: (row) => flexRender(row, 'WorstValue') },
-        { data: null, render: (row) => {
-            const val = flexRender(row, 'Threshold');
-            const pct = Math.min(100, Math.max(0, (Number(val) || 0) / 2.55));
-            return `<div style="display:flex;align-items:center;gap:8px;">
+        {
+            data: null, render: (row) => {
+                const val = flexRender(row, 'Threshold');
+                const pct = Math.min(100, Math.max(0, (Number(val) || 0) / 2.55));
+                return `<div style="display:flex;align-items:center;gap:8px;">
                         <div style="flex:1;height:6px;background:var(--slate-100);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#f59e0b;"></div></div>
                         <span style="min-width:24px;text-align:right;">${val}</span>
                     </div>`;
-        } },
+            }
+        },
         { data: null, render: (row) => flexRender(row, 'RawValue') },
         {
             data: null, render: (row) => _smartStatus(row.Status || row.status)
@@ -3951,10 +3956,10 @@ function renderDeepDiskReportPanel(report) {
         if (radarCanvas) {
             radarCanvas.style.display = 'block';
             if (window.diskBenchmarkRadarInstance) window.diskBenchmarkRadarInstance.destroy();
-            
+
             const labels = benchmarkData.map(d => d.TestName.replace('Sequential', 'Seq.').replace('Random', 'Rand.'));
             const speeds = benchmarkData.map(d => d.SpeedMBps || 0);
-            
+
             // Calculate a "Performance Score" based on max speeds (Assuming max ~3000MB/s for a good NVMe, though scales dynamically)
             const maxSpeed = Math.max(...speeds, 1);
             const perfScore = Math.min(100, Math.round((maxSpeed / 3000) * 100));
@@ -3992,7 +3997,7 @@ function renderDeepDiskReportPanel(report) {
                 },
                 plugins: [{
                     id: 'textCenterRadar',
-                    beforeDraw: function(chart) {
+                    beforeDraw: function (chart) {
                         var width = chart.width, height = chart.height, ctx = chart.ctx;
                         ctx.restore();
                         var fontSize = (height / 120).toFixed(2);
@@ -4003,7 +4008,7 @@ function renderDeepDiskReportPanel(report) {
                             textX = Math.round((width - ctx.measureText(text).width) / 2),
                             textY = height / 2;
                         ctx.fillText(text, textX, textY);
-                        
+
                         ctx.font = "700 " + (fontSize * 0.35).toFixed(2) + "em 'Inter', sans-serif";
                         ctx.fillStyle = '#64748b';
                         var subText = "SCORE",
