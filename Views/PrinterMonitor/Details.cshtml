@@ -1,0 +1,515 @@
+﻿@model ManageEngineWebApp.Models.PrinterInformation
+@{
+    ViewData["Title"] = "Printer Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var pr = ViewBag.Printer as ManageEngineWebApp.Models.PrinterConfiguration;
+    var history = ViewBag.History as List<ManageEngineWebApp.Models.PrinterInformation> ?? new();
+    var consumables = ViewBag.Consumables as List<ManageEngineWebApp.Models.PrinterConsumable> ?? new();
+    int autoScanMinutes = ViewBag.AutoScanIntervalMinutes as int? ?? 15;
+
+    bool hasScanned = Model?.PrinterStatus != "Not scanned yet" && Model?.ScanDate > DateTime.MinValue;
+    bool isUp = Model?.IsOnline == true;
+    bool hasWarning = Model != null && (Model.TonerLow || Model.InkLow || Model.PaperJam || Model.PaperOut || Model.CoverOpen);
+
+    var _q = Context.Request.Query;
+    int? scopeComId = ViewBag.ComId as int? ?? (_q.ContainsKey("comId") && int.TryParse(_q["comId"], out var _c) ? (int?)_c : null);
+    int? scopeGroupId = ViewBag.GroupId as int? ?? (_q.ContainsKey("groupId") && int.TryParse(_q["groupId"], out var _g) ? (int?)_g : null);
+    int? scopeLocationId = ViewBag.LocationId as int? ?? (_q.ContainsKey("locationId") && int.TryParse(_q["locationId"], out var _l) ? (int?)_l : null);
+    string scopeComName = ViewBag.CompanyName as string ?? _q["companyName"].ToString();
+    string scopeGroupName = ViewBag.GroupName as string ?? _q["groupName"].ToString();
+    string scopeLocName = ViewBag.LocationName as string ?? _q["locationName"].ToString();
+
+    var chrono = history.AsEnumerable().Reverse().ToList();
+    var trendLabels = chrono.Select(h => h.ScanDate.ToString("MMM d HH:mm")).ToList();
+    var pagesData = chrono.Select(h => h.TotalPagesPrinted).ToList();
+    var uptimeData = chrono.Select(h => h.IsOnline ? 1 : 0).ToList();
+
+    int onlinePercent = history.Count > 0 ? (int)Math.Round(history.Count(h => h.IsOnline) * 100.0 / history.Count) : 0;
+
+    string trendLabelsJson = System.Text.Json.JsonSerializer.Serialize(trendLabels);
+    string pagesDataJson = System.Text.Json.JsonSerializer.Serialize(pagesData);
+    string uptimeDataJson = System.Text.Json.JsonSerializer.Serialize(uptimeData);
+}
+
+<form id="antiForgeryForm" class="hidden">@Html.AntiForgeryToken()</form>
+
+<style>
+    :root {
+        --brand: #00BCEB;
+        --brand-dark: #0086BE;
+        --brand-mid: #0096BE;
+        --brand-bg: rgba(0,188,235,.07);
+        --brand-border: rgba(0,188,235,.18);
+    }
+
+    .pulse {
+        animation: dp 2s ease-in-out infinite;
+    }
+
+    @@keyframes dp {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: .4;
+        }
+    }
+
+    .thin-scroll::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    .thin-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .thin-scroll::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 7px 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 11px;
+    }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+    .info-label {
+        color: #9ca3af;
+        font-weight: 600;
+    }
+
+    .info-value {
+        color: #1f2937;
+        font-weight: 600;
+        text-align: right;
+        word-break: break-word;
+    }
+
+    .hist-row:hover {
+        background: #f8fcfe;
+    }
+
+    .card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        box-shadow: 0 1px 2px rgba(0,0,0,.03);
+    }
+
+    .card-title {
+        font-size: 11px;
+        font-weight: 800;
+        color: #374151;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .kpi {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: #f9fafb;
+        border: 1px solid #f0f1f3;
+        min-width: 108px;
+    }
+
+        .kpi .kpi-val {
+            font-size: 18px;
+            font-weight: 800;
+            color: #111827;
+            line-height: 1.1;
+        }
+
+        .kpi .kpi-lbl {
+            font-size: 9px;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+
+    .gauge {
+        --pct: 0;
+        --gauge-color: var(--brand);
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        background: conic-gradient(var(--gauge-color) calc(var(--pct) * 1%), #eef1f4 0);
+        transition: background 1s cubic-bezier(.4,0,.2,1);
+        position: relative;
+    }
+
+        .gauge::before {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            background: #fff;
+        }
+
+        .gauge span {
+            position: relative;
+            font-size: 12px;
+            font-weight: 800;
+            color: #1f2937;
+        }
+
+    .auto-scan-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #6b7280;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        padding: 3px 9px;
+    }
+
+        .auto-scan-pill i {
+            color: var(--brand);
+            font-size: 8px;
+        }
+</style>
+
+<div class="px-4 py-3 max-w-7xl mx-auto">
+
+    <div class="flex items-center gap-3 mb-4 flex-wrap">
+        @{
+            var backParams = new Dictionary<string, object>();
+            if (scopeComId != null) backParams["comId"] = scopeComId;
+            if (scopeGroupId != null) backParams["groupId"] = scopeGroupId;
+            if (scopeLocationId != null) backParams["locationId"] = scopeLocationId;
+            if (!string.IsNullOrEmpty(scopeComName)) backParams["companyName"] = scopeComName;
+            if (!string.IsNullOrEmpty(scopeGroupName)) backParams["groupName"] = scopeGroupName;
+            if (!string.IsNullOrEmpty(scopeLocName)) backParams["locationName"] = scopeLocName;
+        }
+        <a href="@Url.Action("Index", backParams)" title="Back to Printer Monitor"
+           class="w-7 h-7 flex-shrink-0 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center shadow-sm transition">
+            <i class="fas fa-arrow-left text-gray-500 text-[11px]"></i>
+        </a>
+
+        <div class="w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center relative"
+             style="background:linear-gradient(135deg,var(--brand),var(--brand-dark))">
+            <i class="fas fa-print text-white text-sm"></i>
+            @if (isUp)
+            {
+                <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white pulse"></span>
+            }
+        </div>
+
+        <div class="min-w-0">
+            <h1 class="text-sm font-bold text-gray-900 leading-tight truncate">
+                @(string.IsNullOrWhiteSpace(pr?.PrinterName) ? pr?.IPAddress : pr?.PrinterName)
+            </h1>
+            <p class="text-[10px] text-gray-400 leading-none mt-1 font-mono">@pr?.IPAddress · Port @pr?.Port · @pr?.SNMPVersion</p>
+        </div>
+
+        <div class="ml-auto flex items-center gap-2 flex-wrap justify-end">
+            @if (isUp)
+            {
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse"></span> Online
+                </span>
+            }
+            else if (hasScanned)
+            {
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-50 text-red-600 border border-red-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Offline
+                </span>
+            }
+            else
+            {
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Not scanned yet
+                </span>
+            }
+            @if (hasWarning)
+            {
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200">
+                    <i class="fas fa-exclamation-triangle text-[10px]"></i> Attention needed
+                </span>
+            }
+            @if (pr != null)
+            {
+                <div class="flex flex-col items-end gap-1">
+                    <button onclick="scanNow(@pr.Id)" id="scanNowBtn"
+                            class="h-8 px-4 text-white rounded-lg text-xs font-semibold shadow transition flex items-center gap-1.5"
+                            style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))">
+                        <i class="fas fa-sync-alt text-[10px]" id="scanNowIcon"></i> Scan Now
+                    </button>
+                    <span class="auto-scan-pill" title="This printer is also re-scanned automatically in the background">
+                        <i class="fas fa-circle"></i> Auto-scans every @autoScanMinutes min
+                    </span>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (!hasScanned)
+    {
+        <div class="card border-dashed py-14 text-center">
+            <i class="fas fa-satellite-dish text-3xl text-gray-200 mb-3"></i>
+            <p class="font-semibold text-gray-600 text-sm">This printer hasn't been scanned yet</p>
+            <p class="text-gray-400 text-xs mt-1">Click "Scan Now" to pull live SNMP data from the device</p>
+        </div>
+    }
+    else
+    {
+        <div class="flex items-center gap-2.5 mb-4 flex-wrap">
+            <div class="kpi">
+                <span class="kpi-val">@Model.TotalPagesPrinted.ToString("N0")</span>
+                <span class="kpi-lbl">Pages Printed</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-val">@(string.IsNullOrWhiteSpace(Model.Uptime) ? "—" : Model.Uptime)</span>
+                <span class="kpi-lbl">Device Uptime</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-val" style="color:@(onlinePercent >= 90 ? "#10b981" : onlinePercent >= 60 ? "#f59e0b" : "#ef4444")">@onlinePercent%</span>
+                <span class="kpi-lbl">Online (recent scans)</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-val">@history.Count</span>
+                <span class="kpi-lbl">Scans on Record</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi-val" style="font-size:13px">@Model.ScanDate.ToString("MMM d, HH:mm")</span>
+                <span class="kpi-lbl">Last Scanned</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+
+            <div class="card p-4">
+                <h3 class="card-title mb-2"><i class="fas fa-info-circle" style="color:var(--brand)"></i> Printer Info</h3>
+                <div class="info-row"><span class="info-label">Manufacturer</span><span class="info-value">@Model.Manufacturer</span></div>
+                <div class="info-row"><span class="info-label">Model</span><span class="info-value">@Model.Model</span></div>
+                <div class="info-row"><span class="info-label">Serial Number</span><span class="info-value font-mono">@Model.SerialNumber</span></div>
+                <div class="info-row"><span class="info-label">Firmware</span><span class="info-value font-mono">@Model.FirmwareVersion</span></div>
+                <div class="info-row"><span class="info-label">Hostname</span><span class="info-value">@Model.HostName</span></div>
+            </div>
+
+            <div class="card p-4">
+                <h3 class="card-title mb-2"><i class="fas fa-network-wired" style="color:var(--brand)"></i> Network</h3>
+                <div class="info-row"><span class="info-label">IP Address</span><span class="info-value font-mono">@Model.IPAddress</span></div>
+                <div class="info-row"><span class="info-label">MAC Address</span><span class="info-value font-mono">@Model.MacAddress</span></div>
+                <div class="info-row"><span class="info-label">Interface Status</span><span class="info-value">@Model.InterfaceStatus</span></div>
+                <div class="info-row"><span class="info-label">Link Speed</span><span class="info-value">@Model.LinkSpeed</span></div>
+                <div class="info-row"><span class="info-label">Color / Mono Pages</span><span class="info-value">@Model.ColorPagesPrinted.ToString("N0") / @Model.MonoPagesPrinted.ToString("N0")</span></div>
+            </div>
+
+            <div class="card p-4">
+                <h3 class="card-title mb-2"><i class="fas fa-exclamation-triangle" style="color:var(--brand)"></i> Status & Problems</h3>
+                <div class="info-row"><span class="info-label">Printer Status</span><span class="info-value">@Model.PrinterStatus</span></div>
+                <div class="info-row"><span class="info-label">Error Status</span><span class="info-value">@Model.ErrorStatus</span></div>
+                @if (!string.IsNullOrWhiteSpace(Model.WarningStatus) && Model.WarningStatus != "No warning")
+                {
+                    <div class="info-row"><span class="info-label">Warnings</span><span class="info-value text-amber-600">@Model.WarningStatus</span></div>
+                }
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    @{
+                        (string label, bool active)[] flags = {
+                            ("Paper Jam", Model.PaperJam), ("Paper Out", Model.PaperOut),
+                            ("Cover Open", Model.CoverOpen), ("Toner Low", Model.TonerLow), ("Ink Low", Model.InkLow)
+                        };
+                    }
+                    @foreach (var (label, active) in flags)
+                    {
+                        <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-[10px] font-semibold @(active ? "bg-red-50 border-red-200 text-red-600" : "bg-gray-50 border-gray-200 text-gray-400")">
+                            <i class="fas @(active ? "fa-times-circle" : "fa-check-circle")"></i> @label
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-4 mb-4">
+            <h3 class="card-title mb-3"><i class="fas fa-tint" style="color:var(--brand)"></i> Consumables</h3>
+            @if (consumables.Any())
+            {
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    @foreach (var c in consumables)
+                    {
+                        string gaugeColor = c.Percentage <= 10 ? "#ef4444" : c.Percentage <= 25 ? "#f59e0b" : "#00BCEB";
+                        <div class="border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+                            <div class="gauge" style="--pct:@c.Percentage; --gauge-color:@gaugeColor">
+                                <span>@c.Percentage%</span>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-gray-700 truncate">@c.Name</p>
+                                <p class="text-[10px] text-gray-400 mt-0.5">@c.CurrentLevel / @c.MaximumLevel · @c.Type</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-xs text-gray-400">No consumable data reported by this device.</p>
+            }
+        </div>
+
+        @if (chrono.Count > 1)
+        {
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <div class="card p-4">
+                    <h3 class="card-title mb-2"><i class="fas fa-chart-line" style="color:var(--brand)"></i> Pages Printed Trend</h3>
+                    <div class="relative h-44"><canvas id="chartPages"></canvas></div>
+                </div>
+                <div class="card p-4">
+                    <h3 class="card-title mb-2"><i class="fas fa-signal" style="color:var(--brand)"></i> Uptime by Scan</h3>
+                    <div class="relative h-44"><canvas id="chartUptime"></canvas></div>
+                </div>
+            </div>
+        }
+
+        <div class="card p-4">
+            <h3 class="card-title mb-3"><i class="fas fa-history" style="color:var(--brand)"></i> Scan History</h3>
+            @if (history.Any())
+            {
+                <div class="overflow-x-auto thin-scroll">
+                    <table class="min-w-full text-xs">
+                        <thead>
+                            <tr class="text-gray-400 border-b border-gray-100">
+                                <th class="text-left font-semibold py-2 pr-3">Date</th>
+                                <th class="text-left font-semibold py-2 pr-3">Status</th>
+                                <th class="text-left font-semibold py-2 pr-3">Error</th>
+                                <th class="text-left font-semibold py-2 pr-3">Pages</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var h in history)
+                            {
+                                <tr class="hist-row border-b border-gray-50 transition">
+                                    <td class="py-2 pr-3 font-mono text-gray-600">@h.ScanDate.ToString("MMM d, HH:mm:ss")</td>
+                                    <td class="py-2 pr-3">
+                                        @if (h.IsOnline)
+                                        {
+                                            <span class="text-emerald-600 font-semibold">Online</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-red-500 font-semibold">Offline</span>
+                                        }
+                                    </td>
+                                    <td class="py-2 pr-3 text-gray-500">@h.ErrorStatus</td>
+                                    <td class="py-2 pr-3 text-gray-600">@h.TotalPagesPrinted.ToString("N0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p class="text-xs text-gray-400">No scan history yet.</p>
+            }
+        </div>
+    }
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+    (function() {
+        const trendLabels = @Html.Raw(trendLabelsJson);
+        const pagesData = @Html.Raw(pagesDataJson);
+        const uptimeData = @Html.Raw(uptimeDataJson);
+
+        const pagesEl = document.getElementById('chartPages');
+        if (pagesEl) {
+            new Chart(pagesEl, {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        data: pagesData,
+                        borderColor: '#00BCEB',
+                        backgroundColor: 'rgba(0,188,235,.12)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                        pointBackgroundColor: '#00BCEB'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { font: { size: 8 }, maxTicksLimit: 6 } },
+                        y: { beginAtZero: true, ticks: { font: { size: 9 } } }
+                    },
+                    plugins: { legend: { display: false } },
+                    animation: { duration: 800 }
+                }
+            });
+        }
+
+        const upEl = document.getElementById('chartUptime');
+        if (upEl) {
+            new Chart(upEl, {
+                type: 'bar',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        data: uptimeData,
+                        backgroundColor: uptimeData.map(v => v === 1 ? '#10b981' : '#ef4444'),
+                        borderRadius: 3,
+                        maxBarThickness: 18
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { font: { size: 8 }, maxTicksLimit: 6 } },
+                        y: { min: 0, max: 1, ticks: { stepSize: 1, callback: v => v === 1 ? 'Up' : 'Down', font: { size: 9 } } }
+                    },
+                    plugins: { legend: { display: false } },
+                    animation: { duration: 800 }
+                }
+            });
+        }
+    })();
+
+    function csrfToken() {
+        return document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]')?.value || '';
+    }
+
+    function scanNow(id) {
+        const btn = document.getElementById('scanNowBtn');
+        const icon = document.getElementById('scanNowIcon');
+        icon.className = 'fas fa-sync-alt fa-spin text-[10px]';
+        btn.disabled = true;
+        fetch('/PrinterMonitor/ScanPrinter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(csrfToken())
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { window.location.reload(); }
+                else { window.sysAlert?.(data.message || 'Scan failed', 'error'); icon.className = 'fas fa-sync-alt text-[10px]'; btn.disabled = false; }
+            })
+            .catch(err => { window.sysAlert?.('Network error: ' + err.message, 'error'); icon.className = 'fas fa-sync-alt text-[10px]'; btn.disabled = false; });
+    }
+</script>

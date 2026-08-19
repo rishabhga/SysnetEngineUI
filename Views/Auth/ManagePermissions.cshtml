@@ -497,6 +497,33 @@
                 </div>
             </div>
 
+            <div class="p-3 bg-blue-50 rounded-xl border border-blue-200 space-y-2">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-blue-800">Visibility Page (where to show this menu check)</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Visibility Controller</label>
+                        <input type="text" id="visibilityController" class="w-full px-2.5 py-1.5 text-xs border border-blue-200 rounded-lg bg-white" placeholder="e.g. Dashboard">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Visibility Action</label>
+                        <input type="text" id="visibilityAction" class="w-full px-2.5 py-1.5 text-xs border border-blue-200 rounded-lg bg-white" placeholder="e.g. Index">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Sort Order</label>
+                    <input type="number" id="menuSortOrder" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500" value="0" min="0">
+                </div>
+                <div class="flex items-end">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="menuIsActive" checked class="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500">
+                        <span class="text-xs font-bold text-slate-700">Active</span>
+                    </label>
+                </div>
+            </div>
+
             <div>
                 <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Required Permission</label>
                 <select id="menuRequiredPermission" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-amber-500"><option value="">None</option></select>
@@ -1058,7 +1085,10 @@
                 moduleId: parseInt($('#menuModuleSelect').val() || '0'),
                 parentId: $('#menuParentId').val() ? parseInt($('#menuParentId').val()) : null,
                 requiredPermissionCode: $('#menuRequiredPermission').val(),
-                isActive: true
+                isActive: $('#menuIsActive').is(':checked'),
+                sortOrder: parseInt($('#menuSortOrder').val() || '0'),
+                visibilityController: $('#visibilityController').val() || null,
+                visibilityAction: $('#visibilityAction').val() || null
             };
             $.ajax({
                 url: '@Url.Action("SaveMenu", "Auth")',

@@ -13,5 +13,6 @@ namespace ManageEngineWebApp.Dtos
         public int ModuleId { get; set; }
         public string? VisibilityController { get; set; }
         public string? VisibilityAction { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }

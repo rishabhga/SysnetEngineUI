@@ -1,0 +1,846 @@
+﻿@model List<ManageEngineWebApp.Models.PrinterConfiguration>
+@{
+    ViewData["Title"] = "Printer Monitor";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var statuses = ViewBag.Statuses as Dictionary<string, ManageEngineWebApp.Models.PrinterInformation>;
+
+    int totalOnline = statuses?.Values.Count(s => s.IsOnline) ?? 0;
+    int totalOffline = Model.Count - totalOnline;
+    int totalWarning = statuses?.Values.Count(s => s.TonerLow || s.InkLow || s.PaperJam || s.PaperOut || s.CoverOpen) ?? 0;
+
+    bool hasScope = ViewBag.CompanyId != null || ViewBag.GroupId != null || ViewBag.LocationId != null;
+    bool isSingleLocUser = ViewBag.SingleLocationUser as bool? ?? false;
+    string locName = ViewBag.LocationName as string ?? "";
+    string grpName = ViewBag.GroupName as string ?? "";
+    string comName = ViewBag.CompanyName as string ?? "";
+
+    string headerTitle = "Printer Monitor";
+    if (!string.IsNullOrEmpty(locName)) headerTitle = locName;
+    else if (!string.IsNullOrEmpty(grpName)) headerTitle = grpName;
+    else if (!string.IsNullOrEmpty(comName)) headerTitle = comName;
+
+    var bParts = new List<string>();
+    if (!string.IsNullOrEmpty(comName)) bParts.Add(comName);
+    if (!string.IsNullOrEmpty(grpName)) bParts.Add(grpName);
+    if (!string.IsNullOrEmpty(locName)) bParts.Add(locName);
+    string breadcrumb = string.Join(" › ", bParts);
+
+    var grouped = Model.GroupBy(p => p.LocationId).OrderBy(g => g.Key).ToList();
+    bool showLocHeaders = grouped.Count > 1 || !hasScope;
+
+    int warningOnline = statuses?.Values.Count(s => s.IsOnline && (s.TonerLow || s.InkLow || s.PaperJam || s.PaperOut || s.CoverOpen)) ?? 0;
+    int okOnline = totalOnline - warningOnline;
+
+    var consumableBars = (statuses?.Values ?? Enumerable.Empty<ManageEngineWebApp.Models.PrinterInformation>())
+        .Where(s => s.Consumables != null && s.Consumables.Any())
+        .Select(s => new
+        {
+            Name = Model.FirstOrDefault(p => string.Equals(p.IPAddress, s.IPAddress, StringComparison.OrdinalIgnoreCase))?.PrinterName ?? s.IPAddress,
+            Pct = s.Consumables.OrderBy(c => c.Percentage).First().Percentage
+        })
+        .OrderBy(x => x.Pct)
+        .Take(20)
+        .ToList();
+
+    var scanBuckets = new int[24];
+    var nowLocal = DateTime.Now;
+    if (statuses != null)
+    {
+        foreach (var s in statuses.Values)
+        {
+            var age = nowLocal - s.ScanDate;
+            if (age.TotalHours >= 0 && age.TotalHours < 24)
+            {
+                int bucket = 23 - (int)age.TotalHours;
+                if (bucket >= 0 && bucket < 24) scanBuckets[bucket]++;
+            }
+        }
+    }
+    var scanLabels = Enumerable.Range(0, 24).Select(i => nowLocal.AddHours(-(23 - i)).ToString("HH:00")).ToList();
+
+    string donutJson = System.Text.Json.JsonSerializer.Serialize(new { labels = new[] { "Online", "Warning", "Offline" }, data = new[] { okOnline, warningOnline, totalOffline } });
+    string barLabelsJson = System.Text.Json.JsonSerializer.Serialize(consumableBars.Select(x => x.Name).ToList());
+    string barDataJson = System.Text.Json.JsonSerializer.Serialize(consumableBars.Select(x => x.Pct).ToList());
+    string trendLabelsJson = System.Text.Json.JsonSerializer.Serialize(scanLabels);
+    string trendDataJson = System.Text.Json.JsonSerializer.Serialize(scanBuckets);
+}
+
+<style>
+    :root {
+        --brand: #00BCEB;
+        --brand-dark: #0086BE;
+        --brand-mid: #0096BE;
+        --brand-bg: rgba(0,188,235,.07);
+        --brand-border: rgba(0,188,235,.18);
+    }
+
+    .pulse {
+        animation: dot-pulse 2s ease-in-out infinite;
+    }
+
+    @@keyframes dot-pulse {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: .45;
+            transform: scale(.8);
+        }
+    }
+
+    .spin {
+        animation: rot 1s linear infinite;
+    }
+
+    @@keyframes rot {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .level-fill {
+        transition: width .5s cubic-bezier(.4,0,.2,1);
+    }
+
+    .pr-row {
+        transition: background .12s;
+    }
+
+        .pr-row:hover {
+            background: #f8fcfe;
+        }
+
+    .loc-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px 3px 7px;
+        background: var(--brand-bg);
+        border: 1px solid var(--brand-border);
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #0086BE;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+    }
+
+    .stat-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 18px;
+        border-radius: 10px;
+        min-width: 80px;
+        text-align: center;
+    }
+
+    .modal-bg {
+        backdrop-filter: blur(3px);
+    }
+
+    .toggle-track {
+        position: relative;
+        width: 34px;
+        height: 18px;
+        border-radius: 9px;
+        background: #d1d5db;
+        cursor: pointer;
+        transition: background .2s;
+    }
+
+        .toggle-track.on {
+            background: var(--brand);
+        }
+
+    .toggle-thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,.2);
+        transition: transform .2s;
+    }
+
+    .toggle-track.on .toggle-thumb {
+        transform: translateX(16px);
+    }
+
+    .thin-scroll::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    .thin-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .thin-scroll::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+</style>
+
+<div class="px-4 py-3 max-w-full">
+    <form id="antiForgeryForm" class="hidden">@Html.AntiForgeryToken()</form>
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div class="flex items-center gap-3 min-w-0">
+            @if (hasScope && !isSingleLocUser)
+            {
+                string backUrl = "/Companies/Companies";
+                string backTitle = "Back";
+
+                if (ViewBag.LocationId != null && (int)ViewBag.LocationId > 0)
+                {
+                    var ctx = new ManageEngineWebApp.Controllers.HomeController.NavigationContext
+                    {
+                        CompanyId = ViewBag.CompanyId,
+                        CompanyName = ViewBag.CompanyName,
+                        GroupId = ViewBag.GroupId,
+                        GroupName = ViewBag.GroupName,
+                        LocationId = ViewBag.LocationId,
+                        LocationName = ViewBag.LocationName
+                    };
+                    string json = Newtonsoft.Json.JsonConvert.SerializeObject(ctx);
+                    string token = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(json);
+                    backUrl = $"/ComputerSummary/Deshboad?token={Uri.EscapeDataString(token)}";
+                    backTitle = "Back to Dashboard";
+                }
+                else if (ViewBag.GroupId != null && (int)ViewBag.GroupId > 0)
+                {
+                    backUrl = $"/Companies/GroupsDetails?id={ViewBag.CompanyId}&companyName={Uri.EscapeDataString(comName)}";
+                    backTitle = "Back to Groups";
+                }
+
+                <a href="@backUrl" title="@backTitle"
+                   class="w-7 h-7 flex-shrink-0 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center shadow-sm transition">
+                    <i class="fas fa-arrow-left text-gray-500 text-[11px]"></i>
+                </a>
+            }
+
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center"
+                     style="background:linear-gradient(135deg,var(--brand),var(--brand-dark))">
+                    <i class="fas fa-print text-white text-xs"></i>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-sm font-bold text-gray-900 leading-tight truncate">@headerTitle</h1>
+                    @if (hasScope && bParts.Count > 0 && !isSingleLocUser)
+                    {
+                        <p class="text-[10px] text-gray-400 leading-none mt-0.5 truncate">@breadcrumb</p>
+                    }
+                    else
+                    {
+                        <p class="text-[10px] text-gray-400 uppercase tracking-widest leading-none mt-0.5 font-semibold">SNMP Printer Fleet</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-2 flex-wrap">
+            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "PrinterMonitor.Create"))
+            {
+                <button onclick="openAddPrinterModal()"
+                        class="h-7 px-3 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-sm hover:shadow"
+                        style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))">
+                    <i class="fas fa-plus text-[9px]"></i> Add Printer
+                </button>
+            }
+            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "PrinterMonitor.Action"))
+            {
+                <form asp-action="TriggerScan" method="post" id="scanForm" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="q" value="@Context.Request.Query["q"]" />
+                    <input type="hidden" name="comId" value="@ViewBag.CompanyId" />
+                    <input type="hidden" name="groupId" value="@ViewBag.GroupId" />
+                    <input type="hidden" name="locationId" value="@ViewBag.LocationId" />
+                    <input type="hidden" name="companyName" value="@ViewBag.CompanyName" />
+                    <input type="hidden" name="groupName" value="@ViewBag.GroupName" />
+                    <input type="hidden" name="locationName" value="@ViewBag.LocationName" />
+                    <button type="submit" id="scanBtn"
+                            class="h-7 px-3 bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-sm">
+                        <i class="fas fa-sync-alt text-[10px] text-[#00BCEB]" id="scanIcon"></i>
+                        <span id="scanText">Scan Now</span>
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="mb-3 px-3 py-2 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center gap-2 text-xs">
+            <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i> @TempData["Message"]
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="mb-3 px-3 py-2 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center gap-2 text-xs">
+            <i class="fas fa-exclamation-circle text-red-500 flex-shrink-0"></i> @TempData["Error"]
+        </div>
+    }
+
+    @if (Model.Any())
+    {
+        <div class="flex items-center gap-2.5 mb-5 flex-wrap">
+            <div class="stat-card bg-white border border-gray-200 shadow-sm">
+                <i class="fas fa-print text-gray-300 text-xs mb-1"></i>
+                <span class="text-xl font-bold text-gray-800 leading-none">@Model.Count</span>
+                <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Total</span>
+            </div>
+            <div class="stat-card bg-emerald-50 border border-emerald-200 shadow-sm">
+                <i class="fas fa-circle-check text-emerald-300 text-xs mb-1"></i>
+                <span class="text-xl font-bold text-emerald-600 leading-none">@totalOnline</span>
+                <span class="text-[9px] text-emerald-500 font-bold uppercase tracking-wider mt-0.5">Online</span>
+            </div>
+            <div class="stat-card bg-red-50 border border-red-200 shadow-sm">
+                <i class="fas fa-plug-circle-xmark text-red-300 text-xs mb-1"></i>
+                <span class="text-xl font-bold text-red-500 leading-none">@totalOffline</span>
+                <span class="text-[9px] text-red-400 font-bold uppercase tracking-wider mt-0.5">Offline</span>
+            </div>
+            @if (totalWarning > 0)
+            {
+                <div class="stat-card bg-amber-50 border border-amber-200 shadow-sm">
+                    <i class="fas fa-triangle-exclamation text-amber-300 text-xs mb-1"></i>
+                    <span class="text-xl font-bold text-amber-500 leading-none">@totalWarning</span>
+                    <span class="text-[9px] text-amber-500 font-bold uppercase tracking-wider mt-0.5">Warnings</span>
+                </div>
+            }
+
+            <div class="ml-auto relative">
+                <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
+                <input type="text" id="tableSearch" placeholder="Search printers…"
+                       oninput="filterTable(this.value)"
+                       class="h-7 pl-7 pr-3 border border-gray-200 rounded-lg text-xs bg-white outline-none focus:ring-1 w-44 transition" />
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-3.5">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Fleet Status</p>
+                <div class="relative h-40"><canvas id="chartStatus"></canvas></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-3.5">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Lowest Consumable Levels</p>
+                <div class="relative h-40"><canvas id="chartConsumables"></canvas></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-3.5">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Scan Activity (last 24h)</p>
+                <div class="relative h-40"><canvas id="chartTrend"></canvas></div>
+            </div>
+        </div>
+
+        @foreach (var locGroup in grouped)
+        {
+            string groupLocName = locGroup.First().LocationName ?? (!string.IsNullOrEmpty(locName) ? locName : $"Location #{locGroup.Key}");
+            int locOnline = locGroup.Count(p => statuses != null && !string.IsNullOrEmpty(p.IPAddress) && statuses.ContainsKey(p.IPAddress) && statuses[p.IPAddress].IsOnline);
+            int locTotal = locGroup.Count();
+
+            <div class="mb-6">
+                @if (showLocHeaders)
+                {
+                    <div class="flex items-center gap-2 mb-2.5">
+                        <span class="loc-pill"><i class="fas fa-map-marker-alt text-[9px]"></i> @groupLocName</span>
+                        <span class="text-[10px] text-gray-400">@locTotal printer@(locTotal != 1 ? "s" : "")</span>
+                        <span class="text-[10px] text-emerald-500 font-semibold">@locOnline online</span>
+                    </div>
+                }
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                    <div class="overflow-x-auto thin-scroll">
+                        <table class="min-w-full text-xs" id="printerTable_@locGroup.Key">
+                            <thead>
+                                <tr style="background:linear-gradient(135deg,var(--brand),var(--brand-dark))">
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap"><i class="fas fa-print mr-1 text-white/60"></i> Printer</th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap"><i class="fas fa-network-wired mr-1 text-white/60"></i> IP Address</th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap hidden md:table-cell"><i class="fas fa-industry mr-1 text-white/60"></i> Manufacturer</th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap"><i class="fas fa-circle mr-1 text-white/60"></i> Status</th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap hidden lg:table-cell"><i class="fas fa-tint mr-1 text-white/60"></i> Toner/Ink</th>
+                                    <th class="px-3 py-2.5 text-left font-semibold text-white/90 whitespace-nowrap hidden lg:table-cell"><i class="fas fa-clock mr-1 text-white/60"></i> Last Scan</th>
+                                    <th class="px-3 py-2.5 text-right font-semibold text-white/90 whitespace-nowrap">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var pr in locGroup)
+                                {
+                                    ManageEngineWebApp.Models.PrinterInformation st = null;
+                                    if (statuses != null && !string.IsNullOrEmpty(pr.IPAddress))
+                                        statuses.TryGetValue(pr.IPAddress, out st);
+                                    bool isUp = st?.IsOnline == true;
+                                    bool hasWarning = st != null && (st.TonerLow || st.InkLow || st.PaperJam || st.PaperOut || st.CoverOpen);
+                                    var consumable = st?.Consumables?.OrderBy(c => c.Percentage).FirstOrDefault();
+                                    int pct = consumable?.Percentage ?? -1;
+                                    string lastScan = pr.LastScanTime.HasValue ? pr.LastScanTime.Value.ToString("MMM d, HH:mm") : "Never";
+
+                                    <tr class="pr-row border-t border-gray-100"
+                                        data-name="@((pr.PrinterName ?? "").ToLower())" data-ip="@pr.IPAddress">
+                                        <td class="px-3 py-3">
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center @(isUp ? "bg-emerald-50" : "bg-gray-100")">
+                                                    <i class="fas fa-print text-[10px] @(isUp ? "text-emerald-500" : "text-gray-400")"></i>
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <div class="font-semibold text-gray-800 truncate">@(string.IsNullOrWhiteSpace(pr.PrinterName) ? pr.IPAddress : pr.PrinterName)</div>
+                                                    <div class="text-[10px] text-gray-400">Port @pr.Port · @pr.SNMPVersion</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-3 py-2.5 font-mono text-gray-600">@pr.IPAddress</td>
+                                        <td class="px-3 py-2.5 hidden md:table-cell text-gray-600">@(st?.Manufacturer ?? "—")</td>
+                                        <td class="px-3 py-2.5">
+                                            @if (isUp)
+                                            {
+                                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse flex-shrink-0"></span> Online
+                                                </span>
+                                            }
+                                            else if (st != null)
+                                            {
+                                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span> Offline
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0"></span> Not scanned
+                                                </span>
+                                            }
+                                            @if (hasWarning)
+                                            {
+                                                <span class="ml-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-50 text-amber-600 border border-amber-200" title="Toner/ink low or a mechanical issue reported">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="px-3 py-2.5 hidden lg:table-cell">
+                                            @if (pct >= 0)
+                                            {
+                                                <div class="w-24">
+                                                    <div class="flex justify-between text-[9px] text-gray-500 mb-0.5"><span>@consumable!.Name</span><span>@pct%</span></div>
+                                                    <div class="w-full bg-gray-100 rounded-full h-1">
+                                                        <div class="level-fill h-1 rounded-full"
+                                                             style="width:@pct%;background:@(pct <= 10 ? "linear-gradient(90deg,#f87171,#ef4444)" : "linear-gradient(90deg,#34d399,#10b981)")"></div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-gray-300">—</span>
+                                            }
+                                        </td>
+                                        <td class="px-3 py-2.5 hidden lg:table-cell">
+                                            <span class="font-mono text-gray-500 text-[10px]">@lastScan</span>
+                                        </td>
+                                        <td class="px-3 py-2.5">
+                                            <div class="flex items-center justify-end gap-1">
+                                                <a href="@Url.Action("Details", new
+                                                   {
+                                                       id = pr.Id,
+                                                       comId = ViewBag.CompanyId,
+                                                       groupId = ViewBag.GroupId,
+                                                       locationId = ViewBag.LocationId,
+                                                       companyName = ViewBag.CompanyName,
+                                                       groupName = ViewBag.GroupName,
+                                                       locationName = ViewBag.LocationName
+                                                   })"
+                                                   class="h-6 px-2 rounded-md text-[10px] font-semibold text-white flex items-center gap-1 transition hover:opacity-85"
+                                                   style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))" title="View Details">
+                                                    <i class="fas fa-eye text-[9px]"></i> <span class="hidden sm:inline">Details</span>
+                                                </a>
+                                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "PrinterMonitor.Action"))
+                                                {
+                                                    <button onclick="scanOne(@pr.Id, this)"
+                                                            class="h-6 w-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 hover:text-[#00BCEB] flex items-center justify-center transition"
+                                                            title="Scan Now">
+                                                        <i class="fas fa-sync-alt text-[9px]"></i>
+                                                    </button>
+                                                }
+                                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "PrinterMonitor.Edit"))
+                                                {
+                                                    <button onclick="editPrinter(@pr.Id)"
+                                                            class="h-6 w-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 hover:text-[#00BCEB] flex items-center justify-center transition"
+                                                            title="Edit">
+                                                        <i class="fas fa-edit text-[9px]"></i>
+                                                    </button>
+                                                }
+                                                @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "PrinterMonitor.Delete"))
+                                                {
+                                                    <button onclick="deletePrinter(@pr.Id, '@Html.Raw((pr.PrinterName ?? pr.IPAddress).Replace("'", "\\'"))')"
+                                                            class="h-6 w-6 rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 hover:text-red-500 flex items-center justify-center transition"
+                                                            title="Delete">
+                                                        <i class="fas fa-trash-alt text-[9px]"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="mt-4 py-16 bg-white rounded-xl border border-dashed border-gray-200 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-print text-3xl text-gray-200"></i>
+            </div>
+            <p class="font-semibold text-gray-600 text-sm">No printers configured yet</p>
+            <p class="text-gray-400 text-xs mt-1">Add a printer to start monitoring</p>
+            @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "PrinterMonitor.Create"))
+            {
+                <button onclick="openAddPrinterModal()"
+                        class="mt-4 h-8 px-5 text-white rounded-lg text-xs font-semibold shadow transition hover:shadow-md"
+                        style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))">
+                    <i class="fas fa-plus mr-1.5"></i> Add First Printer
+                </button>
+            }
+        </div>
+    }
+</div>
+
+<div id="printerModal" class="modal-bg fixed inset-0 bg-black/50 items-center justify-center z-50 hidden"
+     onclick="if(event.target===this)closePrinterModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4" onclick="event.stopPropagation()">
+        <div class="px-4 py-2.5 rounded-t-2xl flex justify-between items-center" style="background:linear-gradient(135deg,var(--brand),var(--brand-dark))">
+            <h3 id="modalTitle" class="text-sm font-bold text-white flex items-center gap-2"><i class="fas fa-print text-white/70"></i> Add Printer</h3>
+            <button onclick="closePrinterModal()" class="w-6 h-6 rounded-md hover:bg-white/10 text-white/60 hover:text-white flex items-center justify-center transition">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+        <div class="p-4">
+            <div id="modalBody">
+                <div class="flex flex-col items-center justify-center py-8 gap-2">
+                    <i class="fas fa-spinner spin text-2xl" style="color:var(--brand)"></i>
+                    <p class="text-xs text-gray-400">Loading…</p>
+                </div>
+            </div>
+            <div id="modalFooter" class="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
+                <button type="button" onclick="closePrinterModal()" class="h-8 px-4 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 text-xs font-medium transition">Cancel</button>
+                <button type="button" id="modalSaveBtn"
+                        class="h-8 px-5 text-white rounded-lg text-xs font-semibold shadow transition flex items-center gap-1.5"
+                        style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="deleteModal" class="modal-bg fixed inset-0 bg-black/50 items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4">
+        <div class="p-6 text-center">
+            <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-3 border border-red-100">
+                <i class="fas fa-trash-alt text-red-500"></i>
+            </div>
+            <h3 class="font-bold text-gray-900 text-sm">Delete Printer</h3>
+            <p class="text-gray-500 text-xs mt-2 leading-relaxed">
+                Permanently delete <strong id="deletePrinterName" class="text-gray-800"></strong>?
+                This action cannot be undone.
+            </p>
+            <div class="flex gap-2 mt-5 justify-center">
+                <button onclick="closeDeleteModal()" class="h-8 px-4 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 text-xs font-medium transition">Cancel</button>
+                <button id="confirmDeleteBtn" class="h-8 px-5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-semibold transition">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+    (function () {
+        const donut = @Html.Raw(donutJson);
+        const barLabels = @Html.Raw(barLabelsJson);
+        const barData = @Html.Raw(barDataJson);
+        const trendLabels = @Html.Raw(trendLabelsJson);
+        const trendData = @Html.Raw(trendDataJson);
+
+        const statusEl = document.getElementById('chartStatus');
+        if (statusEl) {
+            new Chart(statusEl, {
+                type: 'doughnut',
+                data: {
+                    labels: donut.labels,
+                    datasets: [{
+                        data: donut.data,
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, padding: 10, font: { size: 10 } } } },
+                    animation: { animateRotate: true, duration: 900 }
+                }
+            });
+        }
+
+        const consEl = document.getElementById('chartConsumables');
+        if (consEl) {
+            if (!barLabels.length) {
+                consEl.closest('.relative').innerHTML = '<p class="text-[11px] text-gray-400 flex items-center justify-center h-full">No consumable data yet</p>';
+            } else {
+                new Chart(consEl, {
+                    type: 'bar',
+                    data: {
+                        labels: barLabels,
+                        datasets: [{
+                            data: barData,
+                            backgroundColor: barData.map(v => v <= 10 ? '#ef4444' : v <= 25 ? '#f59e0b' : '#00BCEB'),
+                            borderRadius: 4,
+                            maxBarThickness: 22
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { min: 0, max: 100, ticks: { font: { size: 9 } } },
+                            y: { ticks: { font: { size: 9 } } }
+                        },
+                        plugins: { legend: { display: false } },
+                        animation: { duration: 800 }
+                    }
+                });
+            }
+        }
+
+        const trendEl = document.getElementById('chartTrend');
+        if (trendEl) {
+            new Chart(trendEl, {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        data: trendData,
+                        borderColor: '#00BCEB',
+                        backgroundColor: 'rgba(0,188,235,.12)',
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { font: { size: 8 }, maxTicksLimit: 6 } },
+                        y: { beginAtZero: true, ticks: { font: { size: 9 }, precision: 0 } }
+                    },
+                    plugins: { legend: { display: false } },
+                    animation: { duration: 800 }
+                }
+            });
+        }
+    })();
+</script>
+
+<script>
+    let currentPrinterId = 0;
+    let pendingDeleteId = 0;
+    function csrfToken() {
+        return document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]')?.value || '';
+    }
+
+    function showToast(message, type) {
+        if (!message) return;
+        if (typeof window.sysAlert === 'function') window.sysAlert(message, type);
+        else alert(message);
+    }
+    function queueToastAcrossReload(message, type) {
+        if (!message) return;
+        sessionStorage.setItem('pendingToast', JSON.stringify({ message, type }));
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const pending = sessionStorage.getItem('pendingToast');
+        if (!pending) return;
+        sessionStorage.removeItem('pendingToast');
+        try { const t = JSON.parse(pending); showToast(t.message, t.type); } catch {}
+    });
+
+    /* ── Search ── */
+    function filterTable(q) {
+        q = q.toLowerCase();
+        document.querySelectorAll('.pr-row').forEach(row => {
+            const match = row.dataset.name.includes(q) || row.dataset.ip.includes(q);
+            row.style.display = match ? '' : 'none';
+        });
+    }
+
+    /* ── Scope URL ── */
+    function navigateToScopeUrl() {
+        const payload = {
+            comId: '@ViewBag.CompanyId',
+            groupId: '@ViewBag.GroupId',
+            locationId: '@ViewBag.LocationId',
+            companyName: '@Html.Raw((ViewBag.CompanyName as string ?? "").Replace("'", "\\'"))',
+            groupName: '@Html.Raw((ViewBag.GroupName as string ?? "").Replace("'", "\\'"))',
+            locationName: '@Html.Raw((ViewBag.LocationName as string ?? "").Replace("'", "\\'"))'
+        };
+        fetch('@Url.Action("EncryptDict", "Home")', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        })
+            .then(r => r.json())
+            .then(data => { window.location.href = data.success ? '/PrinterMonitor/Index?q=' + data.encrypted : '/PrinterMonitor/Index'; })
+            .catch(() => { window.location.href = '/PrinterMonitor/Index'; });
+    }
+
+    /* ── Scan-all spinner ── */
+    const scanFormEl = document.getElementById('scanForm');
+    if (scanFormEl) {
+        scanFormEl.addEventListener('submit', function() {
+            document.getElementById('scanIcon').className = 'fas fa-sync-alt spin text-[10px] text-[#00BCEB]';
+            document.getElementById('scanText').textContent = 'Scanning…';
+            document.getElementById('scanBtn').disabled = true;
+        });
+    }
+
+    /* ── Scan one printer inline ── */
+    function scanOne(id, btn) {
+        const icon = btn.querySelector('i');
+        icon.className = 'fas fa-sync-alt spin text-[9px]';
+        btn.disabled = true;
+        fetch('/PrinterMonitor/ScanPrinter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id=' + id + '&__RequestVerificationToken=' + encodeURIComponent(csrfToken())
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { queueToastAcrossReload(data.message || 'Scan complete.', data.scanned === false ? 'warning' : 'success'); navigateToScopeUrl(); }
+                else { showToast(data.message || 'Scan failed', 'error'); icon.className = 'fas fa-sync-alt text-[9px]'; btn.disabled = false; }
+            })
+            .catch(err => { showToast('Network error: ' + err.message, 'error'); icon.className = 'fas fa-sync-alt text-[9px]'; btn.disabled = false; });
+    }
+
+    /* ── Modal helpers ── */
+    function openModal(id) { const el = document.getElementById(id); el.classList.remove('hidden'); el.classList.add('flex'); }
+    function closeModal(id) { const el = document.getElementById(id); el.classList.add('hidden'); el.classList.remove('flex'); }
+    function closePrinterModal() { closeModal('printerModal'); }
+    function closeDeleteModal() { closeModal('deleteModal'); }
+
+    /* ── Add Printer ── */
+    function openAddPrinterModal() {
+        currentPrinterId = 0;
+        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus text-[#00BCEB]"></i> Add Printer';
+        document.getElementById('modalBody').innerHTML =
+            '<div class="flex flex-col items-center justify-center py-10 gap-2"><i class="fas fa-spinner spin text-xl" style="color:var(--brand)"></i><p class="text-xs text-gray-400">Loading…</p></div>';
+        openModal('printerModal');
+        fetch('/Home/EncryptDict', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comId: '@ViewBag.CompanyId', groupId: '@ViewBag.GroupId', locationId: '@ViewBag.LocationId' })
+        })
+            .then(r => r.json())
+            .then(d => fetch('/PrinterMonitor/Create?q=' + encodeURIComponent(d.q)))
+            .then(r => { if (!r.ok) throw new Error('Form load failed'); return r.text(); })
+            .then(html => { document.getElementById('modalBody').innerHTML = html; })
+            .catch(err => {
+                document.getElementById('modalBody').innerHTML =
+                    `<p class="text-red-500 text-xs p-2"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;
+            });
+    }
+
+    /* ── Edit Printer ── */
+    function editPrinter(id) {
+        currentPrinterId = id;
+        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit text-[#00BCEB]"></i> Edit Printer';
+        document.getElementById('modalBody').innerHTML =
+            '<div class="flex flex-col items-center justify-center py-10 gap-2"><i class="fas fa-spinner spin text-xl" style="color:var(--brand)"></i><p class="text-xs text-gray-400">Loading…</p></div>';
+        openModal('printerModal');
+        fetch('/Home/EncryptDict', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id.toString(), comId: '@ViewBag.CompanyId', groupId: '@ViewBag.GroupId', locationId: '@ViewBag.LocationId' })
+        })
+            .then(r => r.json())
+            .then(d => fetch('/PrinterMonitor/Edit?q=' + encodeURIComponent(d.q)))
+            .then(r => { if (!r.ok) throw new Error('Form load failed'); return r.text(); })
+            .then(html => { document.getElementById('modalBody').innerHTML = html; })
+            .catch(err => {
+                document.getElementById('modalBody').innerHTML =
+                    `<p class="text-red-500 text-xs p-2"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;
+            });
+    }
+
+    /* ── Save (Create / Edit) ── */
+    document.getElementById('modalSaveBtn').addEventListener('click', function() {
+        const btn = this;
+        const formData = {};
+        const seen = new Set();
+        document.querySelectorAll('#modalBody input, #modalBody select').forEach(el => {
+            if (!el.name) return;
+            if (el.type === 'checkbox') { formData[el.name] = el.checked; seen.add(el.name); }
+            else if (!seen.has(el.name)) { formData[el.name] = el.value; seen.add(el.name); }
+        });
+        if (formData['Id'] !== undefined) formData['Id'] = parseInt(formData['Id']) || 0;
+        if (formData['Port'] !== undefined) formData['Port'] = parseInt(formData['Port']) || 161;
+        if (formData['LocationId']) formData['LocationId'] = parseInt(formData['LocationId']);
+        if (formData['CompanyId'] !== undefined) formData['CompanyId'] = parseInt(formData['CompanyId']) || 0;
+        if (formData['GroupId'] !== undefined) formData['GroupId'] = parseInt(formData['GroupId']) || 0;
+        if (!formData['IPAddress']?.trim()) { showModalError('IP Address is required.'); return; }
+        if (!formData['LocationId']) { showModalError('Location is required.'); return; }
+
+        const url = currentPrinterId === 0 ? '/PrinterMonitor/Create' : `/PrinterMonitor/Edit/${currentPrinterId}`;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner spin"></i> Saving &amp; scanning…';
+        const body = new URLSearchParams();
+        Object.entries(formData).forEach(([k, v]) => body.append(k, v));
+        body.append('__RequestVerificationToken', csrfToken());
+
+        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    closePrinterModal();
+                    queueToastAcrossReload(data.message || 'Saved.', data.scanned === false ? 'warning' : 'success');
+                    navigateToScopeUrl();
+                }
+                else { showModalError(data.message || 'Operation failed'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; }
+            })
+            .catch(err => { showModalError('Network error: ' + err.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; });
+    });
+
+    function showModalError(msg) {
+        let el = document.getElementById('modalError');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'modalError';
+            el.className = 'mt-3 px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-1.5';
+            document.getElementById('modalFooter').insertAdjacentElement('beforebegin', el);
+        }
+        el.innerHTML = `<i class="fas fa-exclamation-circle flex-shrink-0"></i> ${msg}`;
+    }
+
+    /* ── Delete ── */
+    function deletePrinter(id, name) {
+        pendingDeleteId = id;
+        document.getElementById('deletePrinterName').textContent = name;
+        openModal('deleteModal');
+    }
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        const btn = this;
+        btn.disabled = true; btn.textContent = 'Deleting…';
+        fetch(`/PrinterMonitor/Delete/${pendingDeleteId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: '__RequestVerificationToken=' + encodeURIComponent(csrfToken())
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { queueToastAcrossReload('Printer deleted.', 'success'); navigateToScopeUrl(); }
+                else { showToast(data.message || 'Delete failed', 'error'); closeDeleteModal(); btn.disabled = false; btn.textContent = 'Delete'; }
+            })
+            .catch(err => { window.sysAlert?.('Network error: ' + err.message, 'error'); closeDeleteModal(); btn.disabled = false; btn.textContent = 'Delete'; });
+    });
+</script>
