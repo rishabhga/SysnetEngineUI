@@ -69,14 +69,24 @@ namespace ManageEngineWebApp.Controllers
             }
             ViewBag.SingleLocationUser = !isTopAdmin && userLocationIds.Count == 1;
 
-            if (locationId.HasValue && string.IsNullOrEmpty(locationName))
+            if (locationId.HasValue && locationId.Value > 0 && string.IsNullOrEmpty(locationName))
             {
                 var loc = allLocations.FirstOrDefault(l => l.Id == locationId.Value);
                 if (loc != null)
                 {
                     locationName = loc.LocationName;
-                    if (!groupId.HasValue) groupId = loc.GroupsID;
-                    if (!comId.HasValue) comId = loc.CompanyID;
+                    if (!groupId.HasValue || groupId.Value == 0) groupId = loc.GroupsID;
+                    if (!comId.HasValue || comId.Value == 0) comId = loc.CompanyID;
+                }
+            }
+            else if ((!locationId.HasValue || locationId.Value == 0) && !string.IsNullOrEmpty(locationName))
+            {
+                var loc = allLocations.FirstOrDefault(l => string.Equals(l.LocationName, locationName, StringComparison.OrdinalIgnoreCase));
+                if (loc != null)
+                {
+                    locationId = loc.Id;
+                    if (!groupId.HasValue || groupId.Value == 0) groupId = loc.GroupsID;
+                    if (!comId.HasValue || comId.Value == 0) comId = loc.CompanyID;
                 }
             }
 
@@ -150,7 +160,11 @@ namespace ManageEngineWebApp.Controllers
             try { printer = await client.GetFromJsonAsync<PrinterConfiguration>($"{_baseUrl}/api/Printer/{id}"); }
             catch { }
 
-            if (printer == null) return NotFound();
+            if (printer == null)
+            {
+                TempData["Error"] = $"Printer with ID {id} could not be found (it may have been deleted).";
+                return RedirectToAction("Index", new { comId, groupId, locationId, companyName, groupName, locationName });
+            }
 
             PrinterInformation? latest = null;
             var history = new List<PrinterInformation>();
@@ -212,6 +226,23 @@ namespace ManageEngineWebApp.Controllers
                 if (p.TryGetValue("comId", out var cid) && int.TryParse(cid, out var c)) comId = c;
                 if (p.TryGetValue("groupId", out var gid) && int.TryParse(gid, out var g)) groupId = g;
                 if (p.TryGetValue("locationId", out var lid) && int.TryParse(lid, out var l)) locationId = l;
+            }
+
+            // FIX: previously locationId was ONLY ever set from the URL/query string.
+            // If "Add Printer" was opened from an unscoped/unfiltered view (no location
+            // in the URL), locationId stayed null here even for a user who only has one
+            // assigned location — so the form fell back to showing every location they
+            // have permission to see instead of locking to "the location I'm inside".
+            // Mirror the same single-location auto-default that Index() already applies,
+            // so the form behaves consistently no matter how it was opened.
+            if (!locationId.HasValue)
+            {
+                bool isTopAdmin = RoleHelper.IsTopLevelAdmin(HttpContext);
+                var userLocationIds = RoleHelper.GetLocationIds(HttpContext);
+                if (!isTopAdmin && userLocationIds.Count == 1)
+                {
+                    locationId = userLocationIds[0];
+                }
             }
 
             await LoadLocationsToViewBagAsync(comId, groupId, locationId);

@@ -1,4 +1,4 @@
-﻿@model List<ManageEngineWebApp.Models.PrinterConfiguration>
+@model List<ManageEngineWebApp.Models.PrinterConfiguration>
 @{
     ViewData["Title"] = "Printer Monitor";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -199,18 +199,16 @@
 
                 if (ViewBag.LocationId != null && (int)ViewBag.LocationId > 0)
                 {
-                    var ctx = new ManageEngineWebApp.Controllers.HomeController.NavigationContext
+                    string qToken = ManageEngineWebApp.Helpers.EncryptionHelper.EncryptParams(new Dictionary<string, string>
                     {
-                        CompanyId = ViewBag.CompanyId,
-                        CompanyName = ViewBag.CompanyName,
-                        GroupId = ViewBag.GroupId,
-                        GroupName = ViewBag.GroupName,
-                        LocationId = ViewBag.LocationId,
-                        LocationName = ViewBag.LocationName
-                    };
-                    string json = Newtonsoft.Json.JsonConvert.SerializeObject(ctx);
-                    string token = ManageEngineWebApp.Helpers.EncryptionHelper.Encrypt(json);
-                    backUrl = $"/ComputerSummary/Deshboad?token={Uri.EscapeDataString(token)}";
+                        {"comId", ViewBag.CompanyId?.ToString() ?? "0"},
+                        {"companyName", ViewBag.CompanyName?.ToString() ?? ""},
+                        {"groupId", ViewBag.GroupId?.ToString() ?? "0"},
+                        {"groupName", ViewBag.GroupName?.ToString() ?? ""},
+                        {"locationId", ViewBag.LocationId?.ToString() ?? "0"},
+                        {"locationName", ViewBag.LocationName?.ToString() ?? ""}
+                    });
+                    backUrl = $"/ComputerSummary/Deshboad?q={Uri.EscapeDataString(qToken)}";
                     backTitle = "Back to Dashboard";
                 }
                 else if (ViewBag.GroupId != null && (int)ViewBag.GroupId > 0)
@@ -693,7 +691,7 @@
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         })
             .then(r => r.json())
-            .then(data => { window.location.href = data.success ? '/PrinterMonitor/Index?q=' + data.encrypted : '/PrinterMonitor/Index'; })
+            .then(data => { window.location.href = data.success && data.q ? '/PrinterMonitor/Index?q=' + encodeURIComponent(data.q) : '/PrinterMonitor/Index'; })
             .catch(() => { window.location.href = '/PrinterMonitor/Index'; });
     }
 

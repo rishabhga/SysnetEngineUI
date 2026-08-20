@@ -334,8 +334,6 @@ function lazyLoadTabData(tabId) {
             loadNetworkAdapters();
             loadKeyboardDetails();
             loadMotherboardDetails();
-            loadMotherboardHealthLatest();
-            loadMotherboardHealthHistory();
             loadMemoryDetails();
             loadHardDiskDetails();
             break;

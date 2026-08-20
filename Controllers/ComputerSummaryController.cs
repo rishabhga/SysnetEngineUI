@@ -204,7 +204,7 @@ namespace ManageEngineWebApp.Controllers
         }
         [AuthFilter]
         [DynamicPermission("ComputerSummary.VIP", "View VIP Clients")]
-        public IActionResult VIPClient(string? q = null, int comId = 0, int? groupId = null, int? locationId = null, string companyName = null)
+        public IActionResult VIPClient(string? q = null, int comId = 0, int? groupId = null, int? locationId = null, string? companyName = null, string? groupName = null, string? locationName = null)
         {
             if (!string.IsNullOrEmpty(q))
             {
@@ -213,11 +213,15 @@ namespace ManageEngineWebApp.Controllers
                 if (p.TryGetValue("groupId", out var gid) && int.TryParse(gid, out var g)) groupId = g;
                 if (p.TryGetValue("locationId", out var lid) && int.TryParse(lid, out var l)) locationId = l;
                 if (p.TryGetValue("companyName", out var cn)) companyName = cn;
+                if (p.TryGetValue("groupName", out var gn)) groupName = gn;
+                if (p.TryGetValue("locationName", out var ln)) locationName = ln;
             }
             ViewBag.CompanyId = comId;
             ViewBag.GroupId = groupId;
             ViewBag.LocationId = locationId;
             ViewBag.CompanyName = companyName ?? "Unknown Company";
+            ViewBag.GroupName = groupName;
+            ViewBag.LocationName = locationName;
 
             return View();
         }

@@ -1,13 +1,18 @@
-﻿@model ManageEngineWebApp.Models.PrinterConfiguration
+@model ManageEngineWebApp.Models.PrinterConfiguration
 @{
     var formLocations = ViewBag.Locations as List<ManageEngineWebApp.Models.Locations> ?? new List<ManageEngineWebApp.Models.Locations>();
 
-    bool locationLocked = Model.LocationId.HasValue
-        && formLocations.Count == 1
-        && formLocations.Any(l => l.Id == Model.LocationId.Value);
+    // FIX: locking used to depend on formLocations.Count == 1 — an incidental result
+    // of how the location list happened to get filtered, not on whether we actually
+    // know which location this printer belongs to. That made the field lock the first
+    // time (when the list filtered down to one row) and pop open into a full dropdown
+    // the next time (when it didn't), even though the intent is always the same: lock
+    // to the current/active location whenever we have one.
+    bool locationLocked = Model.LocationId.HasValue && Model.LocationId.Value > 0;
 
     var lockedLocationName = locationLocked
-        ? formLocations.First(l => l.Id == Model.LocationId.Value).LocationName
+        ? (formLocations.FirstOrDefault(l => l.Id == Model.LocationId.Value)?.LocationName
+            ?? $"Location #{Model.LocationId}")
         : "";
 }
 
@@ -179,17 +184,17 @@
         }
         else
         {
-            <select asp-for="LocationId" id="LocationId" class="form-select" required>
+            <select asp-for="LocationId" id="LocationId" class="form-select" required onchange="updateCompanyAndGroup()">
                 <option value="">— Select —</option>
                 @foreach (var loc in formLocations)
                 {
                     if (Model.LocationId == loc.Id)
                     {
-                        <option value="@loc.Id" selected>@loc.LocationName</option>
+                        <option value="@loc.Id" data-company-id="@loc.CompanyID" data-group-id="@loc.GroupsID" selected>@loc.LocationName</option>
                     }
                     else
                     {
-                        <option value="@loc.Id">@loc.LocationName</option>
+                        <option value="@loc.Id" data-company-id="@loc.CompanyID" data-group-id="@loc.GroupsID">@loc.LocationName</option>
                     }
                 }
             </select>
@@ -214,5 +219,14 @@
         const track = document.getElementById('togTrack');
         cb.checked = !cb.checked;
         if (cb.checked) track.classList.add('on'); else track.classList.remove('on');
+    }
+
+    function updateCompanyAndGroup() {
+        const select = document.getElementById('LocationId');
+        const selectedOption = select.options[select.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            document.getElementById('CompanyId').value = selectedOption.getAttribute('data-company-id') || 0;
+            document.getElementById('GroupId').value = selectedOption.getAttribute('data-group-id') || 0;
+        }
     }
 </script>
