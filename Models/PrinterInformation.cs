@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ManageEngineWebApp.Models
@@ -40,5 +40,6 @@ namespace ManageEngineWebApp.Models
         public DateTime ScanDate { get; set; }
 
         public List<PrinterConsumable> Consumables { get; set; } = new List<PrinterConsumable>();
+        public List<PrinterMetricResult> Metrics { get; set; } = new List<PrinterMetricResult>();
     }
 }

@@ -1,4 +1,4 @@
-﻿@model ManageEngineWebApp.Models.PrinterInformation
+@model ManageEngineWebApp.Models.PrinterInformation
 @{
     ViewData["Title"] = "Printer Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -370,6 +370,44 @@
                 <p class="text-xs text-gray-400">No consumable data reported by this device.</p>
             }
         </div>
+
+        @if (Model.Metrics != null && Model.Metrics.Any())
+        {
+            <div class="card p-4 mb-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="card-title"><i class="fas fa-layer-group" style="color:var(--brand)"></i> Template Monitoring Metrics</h3>
+                    <span class="text-[10px] font-semibold text-gray-400">@Model.Metrics.Count(m => m.Success) of @Model.Metrics.Count OIDs responding</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    @foreach (var metric in Model.Metrics)
+                    {
+                        <div class="border border-gray-100 rounded-xl p-3 flex flex-col justify-between bg-gray-50/50">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 truncate" title="@metric.ItemName">@metric.ItemName</span>
+                                @if (metric.Success)
+                                {
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-600">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-gray-100 text-gray-400">N/A</span>
+                                }
+                            </div>
+                            <div class="font-mono text-xs font-semibold text-gray-800 break-all mb-1">
+                                @(metric.Success ? metric.Value : "--")
+                                @if (!string.IsNullOrWhiteSpace(metric.Unit) && metric.Success)
+                                {
+                                    <span class="text-[10px] text-gray-400 font-sans font-normal ml-0.5">@metric.Unit</span>
+                                }
+                            </div>
+                            <div class="text-[9px] font-mono text-gray-400 truncate" title="@metric.OID">
+                                OID: @metric.OID
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
 
         @if (chrono.Count > 1)
         {

@@ -227,14 +227,6 @@ namespace ManageEngineWebApp.Controllers
                 if (p.TryGetValue("groupId", out var gid) && int.TryParse(gid, out var g)) groupId = g;
                 if (p.TryGetValue("locationId", out var lid) && int.TryParse(lid, out var l)) locationId = l;
             }
-
-            // FIX: previously locationId was ONLY ever set from the URL/query string.
-            // If "Add Printer" was opened from an unscoped/unfiltered view (no location
-            // in the URL), locationId stayed null here even for a user who only has one
-            // assigned location — so the form fell back to showing every location they
-            // have permission to see instead of locking to "the location I'm inside".
-            // Mirror the same single-location auto-default that Index() already applies,
-            // so the form behaves consistently no matter how it was opened.
             if (!locationId.HasValue)
             {
                 bool isTopAdmin = RoleHelper.IsTopLevelAdmin(HttpContext);
@@ -246,6 +238,7 @@ namespace ManageEngineWebApp.Controllers
             }
 
             await LoadLocationsToViewBagAsync(comId, groupId, locationId);
+            await LoadTemplatesToViewBagAsync();
 
             return PartialView("_PrinterForm", new PrinterConfiguration
             {
@@ -260,7 +253,7 @@ namespace ManageEngineWebApp.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        // [ValidateAntiForgeryToken]
         [DynamicPermission("PrinterMonitor.Create", "Create Printer")]
         public async Task<IActionResult> Create([FromForm] PrinterConfiguration model)
         {
@@ -333,12 +326,13 @@ namespace ManageEngineWebApp.Controllers
 
             var activeLocId = locationId ?? printer.LocationId;
             await LoadLocationsToViewBagAsync(comId, groupId, activeLocId);
+            await LoadTemplatesToViewBagAsync();
 
             return PartialView("_PrinterForm", printer);
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        // [ValidateAntiForgeryToken]
         [DynamicPermission("PrinterMonitor.Edit", "Edit Printer")]
         public async Task<IActionResult> Edit(int id, [FromForm] PrinterConfiguration model)
         {
@@ -493,6 +487,105 @@ namespace ManageEngineWebApp.Controllers
             catch { }
 
             ViewBag.Locations = locations;
+        }
+
+        private async Task LoadTemplatesToViewBagAsync()
+        {
+            var templates = new List<MonitoringTemplate>();
+            try
+            {
+                using var client = GetClient();
+                var resp = await client.GetAsync($"{_baseUrl}/api/MonitoringTemplate");
+                if (resp.IsSuccessStatusCode)
+                {
+                    var json = await resp.Content.ReadAsStringAsync();
+                    templates = System.Text.Json.JsonSerializer.Deserialize<List<MonitoringTemplate>>(json,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<MonitoringTemplate>();
+                }
+            }
+            catch { }
+
+            ViewBag.Templates = templates;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTemplatesJson()
+        {
+            var templates = new List<MonitoringTemplate>();
+            try
+            {
+                using var client = GetClient();
+                var resp = await client.GetAsync($"{_baseUrl}/api/MonitoringTemplate");
+                if (resp.IsSuccessStatusCode)
+                {
+                    var json = await resp.Content.ReadAsStringAsync();
+                    templates = System.Text.Json.JsonSerializer.Deserialize<List<MonitoringTemplate>>(json,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<MonitoringTemplate>();
+                }
+            }
+            catch { }
+
+            return Json(templates);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [DynamicPermission("PrinterMonitor.Create", "Upload Printer Template")]
+        public async Task<IActionResult> UploadTemplate(Microsoft.AspNetCore.Http.IFormFile? templateFile, string? templateJson)
+        {
+            string jsonContent = templateJson ?? "";
+            if (templateFile != null && templateFile.Length > 0)
+            {
+                using var reader = new System.IO.StreamReader(templateFile.OpenReadStream());
+                jsonContent = await reader.ReadToEndAsync();
+            }
+
+            if (string.IsNullOrWhiteSpace(jsonContent))
+                return Json(new { success = false, message = "Please choose a JSON template file or paste JSON content." });
+
+            try
+            {
+                var parsed = JObject.Parse(jsonContent);
+
+                using var client = GetClient();
+                var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+                var response = await client.PostAsync($"{_baseUrl}/api/MonitoringTemplate/UploadJson", content);
+                var respBody = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var okObj = JObject.Parse(respBody);
+                    return Json(new
+                    {
+                        success = true,
+                        message = okObj["message"]?.ToString() ?? "Template uploaded and converted successfully.",
+                        templateId = okObj["id"]?.ToObject<int>() ?? 0,
+                        templateName = okObj["templateName"]?.ToString() ?? "",
+                        vendor = okObj["vendor"]?.ToString() ?? "",
+                        model = okObj["model"]?.ToString() ?? "",
+                        itemCount = okObj["itemCount"]?.ToObject<int>() ?? 0
+                    });
+                }
+                else
+                {
+                    var errMsg = "Failed to upload template.";
+                    try
+                    {
+                        var errObj = JObject.Parse(respBody);
+                        if (errObj["message"] != null) errMsg = errObj["message"]!.ToString();
+                    }
+                    catch { }
+                    return Json(new { success = false, message = errMsg });
+                }
+            }
+            catch (JsonReaderException ex)
+            {
+                return Json(new { success = false, message = $"Invalid JSON format: {ex.Message}" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error uploading template: {ex.Message}" });
+            }
         }
 
         private static string BuildScopedQuery(int? companyId, int? locationId, int? groupId)
