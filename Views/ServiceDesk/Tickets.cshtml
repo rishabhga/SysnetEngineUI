@@ -45,25 +45,56 @@
             </div>
         </div>
 
-        <!-- Filters -->
-        <div class="bg-white rounded border border-gray-200 p-3 mb-4">
+        <!-- Filters & Quick Scope Bar -->
+        <div class="bg-white rounded border border-gray-200 p-3 mb-4 space-y-2.5">
             <div class="flex flex-wrap items-center gap-3">
                 <div class="flex-1 min-w-[200px]">
                     <div class="relative">
                         <i class="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-                        <input type="text" id="searchInput" placeholder="Search by ID or Subject..."
+                        <input type="text" id="searchInput" placeholder="Search by ID, Subject or Requester..."
                                class="w-full h-8 pl-8 pr-3 text-sm border border-gray-300 rounded outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'">
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <select id="statusFilter" class="h-8 text-sm border border-gray-300 rounded px-2 bg-white text-gray-700 min-w-[120px]">
+                    <select id="statusFilter" class="h-8 text-sm border border-gray-300 rounded px-2 bg-white text-gray-700 min-w-[130px]" onchange="syncFilterDropdown(this.value)">
                         <option value="all">All Statuses</option>
+                        <option value="my_tickets">Assigned to Me</option>
                         <option value="triage">Needs Triage</option>
                     </select>
                     <div class="text-sm text-gray-500">
                         <span id="ticketCount" class="font-medium text-gray-800">--</span> tickets
                     </div>
                 </div>
+            </div>
+
+            <!-- Role-Optimized Quick Filter Pills (Especially for Engineers) -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pt-2 border-t border-slate-100 text-xs">
+                <span class="text-[10px] font-bold uppercase text-slate-400 mr-1 flex-shrink-0"><i class="fas fa-filter text-[9px] mr-1"></i>View:</span>
+                <button type="button" onclick="setQuickFilter('all')" id="qf-all"
+                        class="qf-btn px-2.5 py-1 rounded-md font-semibold transition-all text-white shadow-sm flex items-center gap-1"
+                        style="background:linear-gradient(135deg,#00BCEB,#0096BE);">
+                    All Tickets
+                </button>
+                <button type="button" onclick="setQuickFilter('my_tickets')" id="qf-my_tickets"
+                        class="qf-btn px-2.5 py-1 rounded-md font-semibold transition-all text-slate-600 bg-slate-100 hover:bg-slate-200 flex items-center gap-1.5">
+                    <i class="fas fa-user-check text-cyan-600 text-[10px]"></i> Assigned to Me
+                    <span id="myTicketsBadge" class="px-1.5 py-0.2 bg-white text-cyan-800 rounded-full text-[10px] font-extrabold shadow-sm border border-slate-200">0</span>
+                </button>
+                @if (canApprove || canBypassWorkflow)
+                {
+                    <button type="button" onclick="setQuickFilter('triage')" id="qf-triage"
+                            class="qf-btn px-2.5 py-1 rounded-md font-semibold transition-all text-slate-600 bg-slate-100 hover:bg-slate-200 flex items-center gap-1">
+                        <i class="fas fa-exclamation-triangle text-amber-500 text-[10px]"></i> Needs Triage
+                    </button>
+                }
+                <button type="button" onclick="setQuickFilter('in_progress')" id="qf-in_progress"
+                        class="qf-btn px-2.5 py-1 rounded-md font-semibold transition-all text-slate-600 bg-slate-100 hover:bg-slate-200 flex items-center gap-1">
+                    <i class="fas fa-spinner text-teal-600 text-[10px]"></i> In Progress
+                </button>
+                <button type="button" onclick="setQuickFilter('resolved')" id="qf-resolved"
+                        class="qf-btn px-2.5 py-1 rounded-md font-semibold transition-all text-slate-600 bg-slate-100 hover:bg-slate-200 flex items-center gap-1">
+                    <i class="fas fa-check-circle text-emerald-600 text-[10px]"></i> Resolved / Closed
+                </button>
             </div>
         </div>
 
@@ -421,6 +452,7 @@
         let statusColorMap = {};   // statusCode -> colorCode from DB
         let priorityColorMap = {}; // priorityName -> colorCode from DB
         let currentView = localStorage.getItem('ticketsViewMode') || 'grid'; // 'list' | 'grid'
+        let hasAutoSelectedMyTickets = false;
 
         // Avatar background colors, cycled by name so each requester gets a consistent color
         const avatarPalette = ['#0096BE', '#7C3AED', '#DB2777', '#059669', '#D97706', '#DC2626', '#4F46E5'];
@@ -530,6 +562,7 @@
                 allTickets = tickets;
 
                 displayTickets(tickets);
+                updateBadgeCounts(tickets);
 
                 if (response.totalPages) {
                     renderPagination(response.totalPages, response.currentPage);
@@ -537,11 +570,12 @@
                     $('#paginationControls').empty();
                 }
 
-                // Keep the UI filtering in sync if a status was supplied
-                if(status) {
-                    // Local filtering for UX speed, since GetTickets pagination might not filter server-side
-                    // Note: Ideally, GetTickets would accept 'status' server-side as well.
-                    // But to adhere to your existing setup, we apply filterTickets().
+                // If user is an Engineer (cannot approve or bypass), auto-select 'my_tickets' on initial load
+                const isEngineer = !canApprove && !canBypassWorkflow;
+                if (isEngineer && !status && !hasAutoSelectedMyTickets) {
+                    hasAutoSelectedMyTickets = true;
+                    setQuickFilter('my_tickets');
+                } else if (status) {
                     setTimeout(filterTickets, 50);
                 }
 
@@ -895,49 +929,127 @@
                 return buttons;
             }
 
-            // Professional workflow: show only the NEXT logical action based on SystemAction
-            const sysAction = (systemActions[status] || '').toUpperCase();
+            let sysAction = '';
+            for (const key in systemActions) {
+                if (key.replace(/_/g, '').replace(/ /g, '').toUpperCase() === status) {
+                    sysAction = (systemActions[key] || '').toUpperCase();
+                    break;
+                }
+            }
             
-            if (sysAction === 'OPEN' && canApprove) {
-                buttons += `<button onclick="openApproveModal(${id})" class="p-1.5 text-green-500 hover:text-green-700 hover:bg-green-50 rounded" title="Approve"><i class="fas fa-check text-xs"></i></button>`;
-            } else if (sysAction === 'APPROVE' && canAssign) {
-                buttons += `<button onclick="openAssignModal(${id}, '${ticket.ticketNo || id}')" class="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded" title="Assign Engineer"><i class="fas fa-user-tag text-xs"></i></button>`;
-            } else if (sysAction === 'ASSIGN') {
-                buttons += `<button onclick="startWork(${id})" class="p-1.5 text-cyan-500 hover:text-cyan-700 hover:bg-cyan-50 rounded" title="Start Work"><i class="fas fa-play text-xs"></i></button>`;
-            } else if (sysAction === 'STARTWORK') {
-                buttons += `<button onclick="openResolveModal(${id})" class="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded" title="Resolve"><i class="fas fa-check-circle text-xs"></i></button>`;
-            } else if (sysAction === 'REJECT' && (canApprove || canBypassWorkflow)) {
+            // 1. Open -> Approve & Reject
+            if ((status === 'OPEN' || sysAction === 'OPEN') && (canApprove || canBypassWorkflow)) {
+                buttons += `<button onclick="openApproveModal(${id})" class="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded" title="Approve Ticket"><i class="fas fa-check text-xs"></i></button>`;
+                buttons += `<button onclick="openRejectModal(${id})" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded" title="Reject Ticket"><i class="fas fa-times text-xs"></i></button>`;
+            } 
+            // 2. Approved (or unassigned non-open) -> Assign Engineer
+            else if ((status === 'APPROVED' || sysAction === 'APPROVE' || (!ticket.assignedToId && !isClosed && status !== 'OPEN')) && (canAssign || canBypassWorkflow)) {
+                buttons += `<button onclick="openAssignModal(${id}, '${ticket.ticketNo || id}')" class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded" title="Assign Engineer"><i class="fas fa-user-plus text-xs"></i></button>`;
+            } 
+            // 3. Assigned -> Start Work or Reassign
+            if (status === 'ASSIGNED' || sysAction === 'ASSIGN') {
+                buttons += `<button onclick="startWork(${id})" class="p-1.5 text-teal-600 hover:text-teal-800 hover:bg-teal-50 rounded" title="Start Work"><i class="fas fa-play text-xs"></i></button>`;
+                if (canAssign || canBypassWorkflow) {
+                    buttons += `<button onclick="openAssignModal(${id}, '${ticket.ticketNo || id}')" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded" title="Reassign Engineer"><i class="fas fa-user-edit text-xs"></i></button>`;
+                }
+            } 
+            // 4. In Progress -> Resolve
+            else if (status === 'INPROGRESS' || status === 'IN PROGRESS' || sysAction === 'STARTWORK') {
+                buttons += `<button onclick="openResolveModal(${id})" class="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded" title="Resolve Ticket"><i class="fas fa-check-circle text-xs"></i></button>`;
+            } 
+            // 5. Rejected -> Re-Approve
+            else if (status === 'REJECTED' || sysAction === 'REJECT') {
                 buttons += `<button onclick="openApproveModal(${id})" class="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded" title="Re-Approve"><i class="fas fa-undo text-xs"></i></button>`;
             }
 
-            // Admin override: Update status manually
-            if (canBypassWorkflow) {
-                buttons += `<button onclick="openStatusModal(${id}, '${ticket.status || 'Open'}')" class="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded" title="Update Status"><i class="fas fa-exchange-alt text-xs"></i></button>`;
-            }
+            // Always allow Update Status modal
+            buttons += `<button onclick="openStatusModal(${id}, '${ticket.status || 'Open'}')" class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded" title="Change Status"><i class="fas fa-exchange-alt text-xs"></i></button>`;
 
             if (canDelete) {
-                buttons += `<button onclick="deleteTicket(${id}, '${ticket.ticketNo || id}')" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Delete"><i class="fas fa-trash text-xs"></i></button>`;
+                buttons += `<button onclick="deleteTicket(${id}, '${ticket.ticketNo || id}')" class="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded" title="Delete Ticket"><i class="fas fa-trash text-xs"></i></button>`;
             }
 
             return buttons;
         }
 
-        // ==================== FILTER ====================
+        // ==================== FILTER & SCOPE HELPERS ====================
+        let currentFilteredTickets = null;
+
+        function setQuickFilter(mode) {
+            $('.qf-btn')
+                .removeClass('text-white shadow-sm')
+                .addClass('text-slate-600 bg-slate-100 hover:bg-slate-200')
+                .removeAttr('style');
+
+            $(`#qf-${mode}`)
+                .removeClass('text-slate-600 bg-slate-100 hover:bg-slate-200')
+                .addClass('text-white shadow-sm')
+                .attr('style', 'background:linear-gradient(135deg,#00BCEB,#0096BE);');
+
+            $('#statusFilter').val(mode);
+            filterTickets();
+        }
+
+        function syncFilterDropdown(val) {
+            $('.qf-btn')
+                .removeClass('text-white shadow-sm')
+                .addClass('text-slate-600 bg-slate-100 hover:bg-slate-200')
+                .removeAttr('style');
+
+            if ($(`#qf-${val}`).length) {
+                $(`#qf-${val}`)
+                    .removeClass('text-slate-600 bg-slate-100 hover:bg-slate-200')
+                    .addClass('text-white shadow-sm')
+                    .attr('style', 'background:linear-gradient(135deg,#00BCEB,#0096BE);');
+            }
+            filterTickets();
+        }
+
+        function updateBadgeCounts(tickets) {
+            if (!tickets) return;
+            const uIdStr = (userId || '').toString().trim().toLowerCase();
+            const uNameStr = (username || '').toString().trim().toLowerCase();
+            const myCount = tickets.filter(t => {
+                const aId = (t.assignedToId || '').toString().trim().toLowerCase();
+                const aName = (t.assignedToName || '').toString().trim().toLowerCase();
+                return (aId && (aId === uIdStr || aId === uNameStr)) ||
+                       (aName && (aName === uNameStr || (uNameStr && aName.includes(uNameStr))));
+            }).length;
+            $('#myTicketsBadge').text(myCount);
+        }
+
         function filterTickets() {
-            const term = ($('#searchInput').val() || '').toLowerCase();
+            const term = ($('#searchInput').val() || '').toLowerCase().trim();
             const status = $('#statusFilter').val();
+
+            const uIdStr = (userId || '').toString().trim().toLowerCase();
+            const uNameStr = (username || '').toString().trim().toLowerCase();
+
+            updateBadgeCounts(allTickets);
 
             const filtered = allTickets.filter(t => {
                 const matchesTerm = !term ||
                                     (t.ticketNo && t.ticketNo.toLowerCase().includes(term)) ||
                                     (t.subject && t.subject.toLowerCase().includes(term)) ||
+                                    (t.remark && t.remark.toLowerCase().includes(term)) ||
                                     (t.requesterName && t.requesterName.toLowerCase().includes(term));
 
                 let matchesStatus = false;
-                if (status === 'all') {
+                if (!status || status === 'all') {
                     matchesStatus = true;
                 } else if (status === 'triage') {
                     matchesStatus = (!t.priority || !t.category);
+                } else if (status === 'my_tickets') {
+                    const aId = (t.assignedToId || '').toString().trim().toLowerCase();
+                    const aName = (t.assignedToName || '').toString().trim().toLowerCase();
+                    matchesStatus = (aId && (aId === uIdStr || aId === uNameStr)) ||
+                                    (aName && (aName === uNameStr || (uNameStr && aName.includes(uNameStr))));
+                } else if (status === 'in_progress') {
+                    const st = (t.status || '').toUpperCase().replace(/_/g, '').replace(/ /g, '');
+                    matchesStatus = (st === 'INPROGRESS' || st === 'ASSIGNED');
+                } else if (status === 'resolved') {
+                    const st = (t.status || '').toUpperCase().replace(/_/g, '').replace(/ /g, '');
+                    matchesStatus = closedStatuses.some(s => s.replace(/_/g, '').replace(/ /g, '') === st) || st === 'RESOLVED' || st === 'CLOSED';
                 } else {
                     // Case-insensitive status comparison
                     matchesStatus = ((t.status || '').toLowerCase() === status.toLowerCase());
@@ -946,6 +1058,7 @@
                 return matchesTerm && matchesStatus;
             });
 
+            currentFilteredTickets = filtered;
             renderTickets(filtered);
         }
 

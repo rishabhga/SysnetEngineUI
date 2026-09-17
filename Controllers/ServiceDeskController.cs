@@ -294,6 +294,18 @@ namespace ManageEngineWebApp.Controllers
             catch (Exception ex) { return Json(new { success = false, message = "An internal server error occurred." }); }
         }
 
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetValidTransitions(string currentStatus)
+        {
+            try
+            {
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Tickets/ValidTransitions?currentStatus={Uri.EscapeDataString(currentStatus ?? "")}");
+                return Content(await response.Content.ReadAsStringAsync(), "application/json");
+            }
+            catch (Exception) { return Json(new { success = false, message = "Error fetching transitions", transitions = new string[0] }); }
+        }
+
         [HttpPost]
         [AuthFilter]
         [DynamicPermission("ServiceDesk.Edit", "Update Ticket Status")]
@@ -1202,6 +1214,21 @@ namespace ManageEngineWebApp.Controllers
             var query = BuildScopedQuery(null, null, null);
             var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Reports/EngineerPerformance{query}");
             return Content(response, "application/json");
+        }
+
+        [HttpGet]
+        [AuthFilter]
+        public async Task<IActionResult> GetTicketReportData(string ticketNo)
+        {
+            try
+            {
+                var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Reports/TicketDetailsReport?ticketNo={Uri.EscapeDataString(ticketNo ?? "")}");
+                return Content(response, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Failed to fetch ticket report data." });
+            }
         }
 
     }

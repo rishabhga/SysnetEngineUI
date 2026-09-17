@@ -14,6 +14,8 @@ namespace ManageEngineWebApp.Models
         public string? Status { get; set; } 
         public string? Priority { get; set; }
         public string? Category { get; set; }
+        public string? Subcategory { get; set; }
+        public string? Item { get; set; }
         public string? AssignedToId { get; set; }
         public string? AssignedToName { get; set; } 
         public int? CompanyId { get; set; }

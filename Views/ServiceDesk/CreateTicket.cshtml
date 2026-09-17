@@ -247,7 +247,7 @@
 
     <div class="min-h-screen py-6 px-4 sm:px-6 lg:px-8" style="background: linear-gradient(145deg, #F1F5F9 0%, #EFF3F8 100%);">
         <div class="max-w-6xl mx-auto">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                 <div>
                     <nav class="flex items-center gap-2 text-xs font-medium text-slate-500 mb-2">
                         <a href="@Url.Action("Index")" class="hover:text-[#00BCEB] transition-colors flex items-center gap-1"><i class="fas fa-home text-[10px]"></i> Dashboard</a>
@@ -265,23 +265,23 @@
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold shadow-sm bg-white border border-[#b3edfb]"
                      style="background: linear-gradient(115deg, #EFFAFE, white); color:#007a9c;">
                     <i class="fas fa-ticket-alt text-[#00BCEB] text-sm"></i>
-                    <span class="tracking-wide">NEW TICKET · DRAFT</span>
+                    <span class="tracking-wide">NEW TICKET &bull; DRAFT</span>
                 </div>
             </div>
 
-            <form id="createTicketForm" class="flex flex-col lg:flex-row gap-6 items-start">
-                <div class="flex-1 w-full space-y-5">
+            <form id="createTicketForm" class="flex flex-col lg:flex-row gap-3 items-start">
+                <div class="flex-1 w-full space-y-3">
                     <div class="section-card">
                         <div class="absolute top-0 left-0 w-1.5 h-full rounded-l-2xl" style="background:linear-gradient(180deg,#00BCEB,#1D4ED8);"></div>
-                        <div class="p-5 pl-6">
-                            <div class="flex items-center gap-3 mb-4">
+                        <div class="p-4 pl-5">
+                            <div class="flex items-center gap-3 mb-3">
                                 <div class="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm" style="background:#E0F7FD; color:#0096BE;">
                                     <i class="fas fa-user-astronaut text-sm"></i>
                                 </div>
                                 <h2 class="text-base font-extrabold text-slate-800">Requester Information</h2>
                                 <span class="text-[10px] font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Auto-filled</span>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div class="space-y-1">
                                     <label class="form-label">Full Name <span class="required-star">*</span></label>
                                     <div class="field-icon-wrap">
@@ -302,8 +302,8 @@
 
                     <div class="section-card">
                         <div class="absolute top-0 left-0 w-1.5 h-full rounded-l-2xl" style="background:linear-gradient(180deg,#B4D334,#7C9C1F);"></div>
-                        <div class="p-5 pl-6">
-                            <div class="flex items-center justify-between mb-4">
+                        <div class="p-4 pl-5">
+                            <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:#F0F6E6; color:#6E9917;">
                                         <i class="fas fa-diagram-project text-sm"></i>
@@ -312,7 +312,7 @@
                                 </div>
                                 <span class="text-[9px] font-mono bg-slate-100 text-slate-500 px-2 py-1 rounded-md"><i class="fas fa-sitemap mr-1"></i> dynamic routing</span>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                 <div class="space-y-1">
                                     <label class="form-label">Company <span class="required-star">*</span></label>
                                     <div class="field-icon-wrap">
@@ -355,8 +355,8 @@
 
                     <div class="section-card">
                         <div class="absolute top-0 left-0 w-1.5 h-full rounded-l-2xl" style="background:linear-gradient(180deg,#F97316,#C2410C);"></div>
-                        <div class="p-5 pl-6">
-                            <div class="flex items-center gap-3 mb-4">
+                        <div class="p-4 pl-5">
+                            <div class="flex items-center gap-3 mb-3">
                                 <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:#FFF3E6; color:#EA580C;">
                                     <i class="fas fa-clipboard-list text-sm"></i>
                                 </div>
@@ -370,13 +370,31 @@
                                         <input type="text" name="subject" required maxlength="100" placeholder="Brief and descriptive title..." class="t-input font-medium">
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div class="space-y-1">
                                         <label class="form-label">Category <span class="required-star">*</span></label>
                                         <div class="field-icon-wrap">
                                             <i class="fas fa-tag"></i>
                                             <select name="category" id="ticketCategory" required class="t-input">
                                                 <option value="">Select category</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="form-label">Subcategory</label>
+                                        <div class="field-icon-wrap">
+                                            <i class="fas fa-tags"></i>
+                                            <select name="subcategory" id="ticketSubcategory" class="t-input" disabled>
+                                                <option value="">Select category first</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="form-label">Item</label>
+                                        <div class="field-icon-wrap">
+                                            <i class="fas fa-cube"></i>
+                                            <select name="item" id="ticketItem" class="t-input" disabled>
+                                                <option value="">Select subcategory first</option>
                                             </select>
                                         </div>
                                     </div>
@@ -404,14 +422,14 @@
                     </div>
                 </div>
 
-                <div class="w-full lg:w-72 flex-shrink-0 space-y-5 lg:sticky lg:top-6">
+                <div class="w-full lg:w-72 flex-shrink-0 space-y-3 lg:sticky lg:top-6">
                     <div class="section-card overflow-hidden shadow-lg">
                         <div class="p-5 border-b border-slate-100" style="background: linear-gradient(115deg, #FAFDFF, #ffffff);">
                             <div class="flex items-center gap-2 mb-1">
                                 <i class="fas fa-rocket text-[#00BCEB] text-sm"></i>
                                 <p class="text-sm font-black text-slate-800">Ready to submit?</p>
                             </div>
-                            <p class="text-[11px] text-slate-500 mb-4">Review hierarchy & issue details before creating ticket.</p>
+                            <p class="text-[11px] text-slate-500 mb-3">Review hierarchy & issue details before creating ticket.</p>
 
                             <button type="submit" id="submitBtn"
                                     class="btn-submit w-full h-11 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 mb-3 shadow-md transition-all">
@@ -455,11 +473,11 @@
             <div class="relative">
                 <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#00BCEB] to-[#0096BE]"></div>
                 <div class="p-6 text-center">
-                    <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[#E0F7FD] to-[#CCF0FA] border-4 border-white shadow-lg">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 bg-gradient-to-br from-[#E0F7FD] to-[#CCF0FA] border-4 border-white shadow-lg">
                         <i class="fas fa-check-circle text-2xl" style="color:#00BCEB;"></i>
                     </div>
-                    <h3 class="font-black text-xl text-slate-800 mb-1">Ticket created 🎉</h3>
-                    <p class="text-slate-500 text-xs mb-4">Your request has been successfully submitted and routed.</p>
+                    <h3 class="font-black text-xl text-slate-800 mb-1">Ticket Created Successfully!</h3>
+                    <p class="text-slate-500 text-xs mb-3">Your request has been successfully submitted and routed.</p>
                     <div class="bg-slate-50 rounded-2xl p-3 mb-5 border border-slate-100 shadow-sm">
                         <div class="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider mb-1">Reference ID</div>
                         <div class="font-mono text-xl font-black text-slate-800 tracking-wide">#<span id="successTicketNo"></span></div>
@@ -505,6 +523,44 @@
                     const userName = $("#userSelect option:selected").text();
                     if (userName && !userName.includes("Select") && !userName.includes("Loading") && !userName.includes("No users")) {
                         $('input[name="requesterName"]').val(userName);
+                    }
+                });
+
+                $('#ticketCategory').on('change', function() {
+                    const selectedCat = $(this).val();
+                    const subSelect = $('#ticketSubcategory');
+                    const itemSelect = $('#ticketItem');
+                    resetSelect('#ticketItem', 'Select subcategory first...');
+                    if (!selectedCat) {
+                        resetSelect('#ticketSubcategory', 'Select category first...');
+                        return;
+                    }
+                    subSelect.prop('disabled', false).html('<option value="">Select Subcategory...</option>');
+                    if (window.allCategories) {
+                        const subs = window.allCategories.filter(c => c.parentCategory === selectedCat);
+                        if (subs.length > 0) {
+                            subs.forEach(c => subSelect.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
+                        } else {
+                            subSelect.html('<option value="">No subcategories</option>');
+                        }
+                    }
+                });
+
+                $('#ticketSubcategory').on('change', function() {
+                    const selectedSub = $(this).val();
+                    const itemSelect = $('#ticketItem');
+                    if (!selectedSub) {
+                        resetSelect('#ticketItem', 'Select subcategory first...');
+                        return;
+                    }
+                    itemSelect.prop('disabled', false).html('<option value="">Select Item...</option>');
+                    if (window.allCategories) {
+                        const items = window.allCategories.filter(c => c.parentCategory === selectedSub);
+                        if (items.length > 0) {
+                            items.forEach(c => itemSelect.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
+                        } else {
+                            itemSelect.html('<option value="">No items</option>');
+                        }
                     }
                 });
 
@@ -564,9 +620,12 @@
                     }
                 });
                 $.get('@Url.Action("GetCategories", "ServiceDesk")', categories => {
+                    window.allCategories = categories;
                     const select = $('#ticketCategory');
                     select.html('<option value="">Select Category...</option>');
-                    if (categories && categories.length > 0) categories.forEach(c => select.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
+                    if (categories && categories.length > 0) {
+                        categories.filter(c => !c.parentCategory).forEach(c => select.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
+                    }
                 });
                 $.when($.get('@Url.Action("GetPriorities", "ServiceDesk")'), $.get('@Url.Action("GetSLAConfigs", "ServiceDesk")')).done((prioritiesRes, slaRes) => {
                     const priorities = prioritiesRes[0], slas = slaRes[0];
@@ -651,9 +710,13 @@
                 const btn = $('#submitBtn'), icon = $('#btnIcon'), text = $('#btnText');
                 btn.prop('disabled', true); text.text('Creating...'); icon.removeClass('fa-paper-plane').addClass('fa-circle-notch fa-spin');
                 $('input, select, textarea').prop('disabled', true);
+                
                 const payload = {
                     requesterName: $('input[name="requesterName"]').val(), requesterEmail: $('input[name="requesterEmail"]').val(),
-                    subject: $('input[name="subject"]').val(), category: $('select[name="category"]').val(),
+                    subject: $('input[name="subject"]').val(), 
+                    category: $('select[name="category"]').val(),
+                    subcategory: $('select[name="subcategory"]').val(),
+                    item: $('select[name="item"]').val(),
                     priority: $('select[name="priority"]').val(), companyId: parseInt($('select[name="companyId"]').val()) || null,
                     groupId: parseInt($('select[name="groupId"]').val()) || null, locationId: parseInt($('select[name="locationId"]').val()) || null,
                     clientId: $('select[name="userId"]').val(), remark: $('textarea[name="description"]').val()

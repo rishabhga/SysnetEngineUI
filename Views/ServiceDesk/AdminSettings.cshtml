@@ -131,6 +131,7 @@
                             <tr class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                                 <th class="px-4 py-2.5">Code</th>
                                 <th class="px-4 py-2.5">Name</th>
+                                <th class="px-4 py-2.5">System Action</th>
                                 <th class="px-4 py-2.5">Color</th>
                                 <th class="px-4 py-2.5">Closed?</th>
                                 <th class="px-4 py-2.5">Order</th>
@@ -195,26 +196,120 @@
 
         function loadCategories() {
             $.get('@Url.Action("GetAllCategories", "ServiceDesk")', data => {
+                window.allCategories = data || [];
                 var tb = $('#categoriesTable tbody').empty();
-                if (!data || !data.length) {
+                if (!window.allCategories.length) {
                     tb.append('<tr><td colspan="5" class="px-4 py-6 text-center text-slate-400 text-sm">No categories. Click "Add Category" to create one.</td></tr>');
                     return;
                 }
-                data.forEach(c => tb.append(`
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-2.5 font-medium text-slate-800">${c.categoryName}</td>
-                        <td class="px-4 py-2.5 text-slate-500">${c.parentCategory || '�'}</td>
-                        <td class="px-4 py-2.5 text-slate-500">${c.sortOrder}</td>
-                        <td class="px-4 py-2.5">
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${c.isActive ? 'bg-[#B4D334]/20 text-[#5a7a00]' : 'bg-slate-100 text-slate-500'}">
-                                ${c.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                        </td>
-                        <td class="px-4 py-2.5 text-right">
-                            <button class="p-1.5 text-[#0096BE] hover:bg-[#00BCEB]/10 rounded-lg transition-colors" onclick='editCategory(${JSON.stringify(c)})'><i class="fas fa-edit text-xs"></i></button>
-                            <button class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" onclick="deleteItem('category',${c.id})"><i class="fas fa-trash text-xs"></i></button>
-                        </td>
-                    </tr>`));
+
+                // Build a map for easy lookup
+                const catMap = {};
+                window.allCategories.forEach(c => { catMap[c.categoryName] = c; c.children = []; });
+
+                // Build hierarchy
+                const roots = [];
+                window.allCategories.forEach(c => {
+                    if (c.parentCategory && catMap[c.parentCategory]) {
+                        catMap[c.parentCategory].children.push(c);
+                    } else {
+                        roots.push(c);
+                    }
+                });
+
+                // Function to render rows recursively
+                function renderRow(c, level, parentId) {
+                    const indent = level * 36; // Much larger indent for clear visual hierarchy
+                    const hasChildren = c.children && c.children.length > 0;
+                    
+                    // Chevron icon container (fixed width to align perfectly)
+                    const chevron = hasChildren 
+                        ? `<i class="fas fa-chevron-down text-slate-400 hover:text-slate-700 cursor-pointer transition-transform toggle-cat" data-id="${c.id}" title="Expand/Collapse"></i>` 
+                        : ``;
+                        
+                    // Type icon (Folder for parents, File for leaf nodes)
+                    const typeIcon = (hasChildren || level === 0)
+                        ? `<i class="far fa-folder-open text-[#0096BE]/80"></i>`
+                        : `<i class="far fa-file-alt text-slate-300"></i>`;
+                        
+                    // Text styling based on depth
+                    let textStyle = "text-slate-600";
+                    if (level === 0) textStyle = "font-bold text-slate-800";
+                    else if (level === 1) textStyle = "font-semibold text-slate-700";
+                    
+                    // Clean object for edit button
+                    const cleanC = { id: c.id, categoryName: c.categoryName, parentCategory: c.parentCategory, sortOrder: c.sortOrder, isActive: c.isActive };
+                    
+                    const parentClass = parentId ? `child-of-${parentId}` : 'root-cat';
+                    
+                    // Root rows get a slightly different background to group families together
+                    const rowBg = level === 0 ? 'bg-slate-50/50 border-t border-slate-200' : 'bg-white border-t border-slate-50';
+                    
+                    tb.append(`
+                        <tr id="cat-row-${c.id}" class="hover:bg-slate-50 transition-colors ${rowBg} ${parentClass}" data-level="${level}" data-id="${c.id}">
+                            <td class="px-4 py-3">
+                                <div class="flex items-center" style="padding-left: ${indent}px">
+                                    <div class="w-6 flex-shrink-0 text-center">${chevron}</div>
+                                    <div class="w-6 flex-shrink-0 text-center mr-2">${typeIcon}</div>
+                                    <span class="${textStyle}">${c.categoryName}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-500 text-sm">${c.parentCategory || '-'}</td>
+                            <td class="px-4 py-3 text-slate-500 text-sm">${c.sortOrder}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${c.isActive ? 'bg-[#B4D334]/20 text-[#5a7a00]' : 'bg-slate-100 text-slate-500'}">
+                                    ${c.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <button class="p-1.5 text-[#0096BE] hover:bg-[#00BCEB]/10 rounded-lg transition-colors" onclick='editCategory(${JSON.stringify(cleanC)})'><i class="fas fa-edit text-xs"></i></button>
+                                <button class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" onclick="deleteItem('category',${c.id})"><i class="fas fa-trash text-xs"></i></button>
+                            </td>
+                        </tr>`);
+                    
+                    if (hasChildren) {
+                        c.children.sort((a,b) => a.sortOrder - b.sortOrder).forEach(child => renderRow(child, level + 1, c.id));
+                    }
+                }
+
+                // Render all roots
+                roots.sort((a,b) => a.sortOrder - b.sortOrder).forEach(root => renderRow(root, 0, null));
+                
+                // Add event listener for expand/collapse (using off() to prevent multiple bindings if loaded twice)
+                $('#categoriesTable').off('click', '.toggle-cat').on('click', '.toggle-cat', function() {
+                    const id = $(this).data('id');
+                    const isExpanded = !$(this).hasClass('-rotate-90'); // If not rotated, it is expanded (pointing down)
+                    
+                    if (isExpanded) {
+                        // Collapse
+                        $(this).addClass('-rotate-90');
+                        collapseChildren(id);
+                    } else {
+                        // Expand
+                        $(this).removeClass('-rotate-90');
+                        expandChildren(id);
+                    }
+                });
+                
+                function collapseChildren(parentId) {
+                    $(`.child-of-${parentId}`).each(function() {
+                        $(this).hide();
+                        const childId = $(this).data('id');
+                        collapseChildren(childId); // recursively hide descendants
+                    });
+                }
+                
+                function expandChildren(parentId) {
+                    $(`.child-of-${parentId}`).each(function() {
+                        $(this).show();
+                        // Only expand children if their own toggle is not closed
+                        const childId = $(this).data('id');
+                        const chevron = $(this).find('.toggle-cat');
+                        if (chevron.length && !chevron.hasClass('-rotate-90')) {
+                            expandChildren(childId);
+                        }
+                    });
+                }
             });
         }
 
@@ -231,7 +326,7 @@
                         <td class="px-4 py-2.5">
                             <div class="flex items-center gap-2">
                                 <span class="w-5 h-5 rounded-md border border-slate-200 flex-shrink-0" style="background:${p.colorCode||'#ccc'}"></span>
-                                <span class="text-slate-400 text-xs font-mono">${p.colorCode||'�'}</span>
+                                <span class="text-slate-400 text-xs font-mono">${p.colorCode||'Ã¢â‚¬â€'}</span>
                             </div>
                         </td>
                         <td class="px-4 py-2.5 text-slate-500">${p.sortOrder}</td>
@@ -252,17 +347,23 @@
             $.get('@Url.Action("GetAllStatuses", "ServiceDesk")', data => {
                 var tb = $('#statusesTable tbody').empty();
                 if (!data || !data.length) {
-                    tb.append('<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400 text-sm">No statuses. Click "Add Status" to create one.</td></tr>');
+                    tb.append('<tr><td colspan="8" class="px-4 py-6 text-center text-slate-400 text-sm">No statuses. Click "Add Status" to create one.</td></tr>');
                     return;
                 }
-                data.forEach(s => tb.append(`
+                data.forEach(s => {
+                    const actionBadge = s.systemAction && s.systemAction !== 'None'
+                        ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200"><i class="fas fa-bolt text-[8px] mr-1"></i>${s.systemAction}</span>`
+                        : `<span class="text-slate-400 text-xs italic">None</span>`;
+
+                    tb.append(`
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="px-4 py-2.5 font-mono text-slate-600 text-xs">${s.statusCode}</td>
                         <td class="px-4 py-2.5 font-medium text-slate-800">${s.statusName}</td>
+                        <td class="px-4 py-2.5">${actionBadge}</td>
                         <td class="px-4 py-2.5">
                             <div class="flex items-center gap-2">
                                 <span class="w-5 h-5 rounded-md border border-slate-200 flex-shrink-0" style="background:${s.colorCode||'#ccc'}"></span>
-                                <span class="text-slate-400 text-xs font-mono">${s.colorCode||'�'}</span>
+                                <span class="text-slate-400 text-xs font-mono">${s.colorCode||'—'}</span>
                             </div>
                         </td>
                         <td class="px-4 py-2.5">
@@ -280,7 +381,8 @@
                             <button class="p-1.5 text-[#0096BE] hover:bg-[#00BCEB]/10 rounded-lg transition-colors" onclick='editStatus(${JSON.stringify(s)})'><i class="fas fa-edit text-xs"></i></button>
                             <button class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" onclick="deleteItem('status',${s.id})"><i class="fas fa-trash text-xs"></i></button>
                         </td>
-                    </tr>`));
+                    </tr>`);
+                });
             });
         }
 
@@ -289,9 +391,15 @@
             var f = $('#formFields').empty();
             if (type === 'category') {
                 $('#modalTitle').text('Add Category');
+                let parentOpts = '<option value="">None (Top Level)</option>';
+                if (window.allCategories) {
+                    window.allCategories.forEach(c => {
+                        parentOpts += `<option value="${c.categoryName}">${c.parentCategory ? c.parentCategory + " > " : ""}${c.categoryName}</option>`;
+                    });
+                }
                 f.html(`
                     <div><label class="${lbl}">Category Name <span class="text-red-500">*</span></label><input id="f_name" required class="${inp}"></div>
-                    <div><label class="${lbl}">Parent Category</label><input id="f_parent" class="${inp}"></div>
+                    <div><label class="${lbl}">Parent Category</label><select id="f_parent" class="${sInp}">${parentOpts}</select></div>
                     <div class="grid grid-cols-2 gap-3">
                         <div><label class="${lbl}">Sort Order</label><input id="f_order" type="number" value="0" class="${inp}"></div>
                         <div><label class="${lbl}">Active</label><select id="f_active" class="${sInp}"><option value="true">Yes</option><option value="false">No</option></select></div>
@@ -309,8 +417,22 @@
                 $('#modalTitle').text('Add Status');
                 f.html(`
                     <div class="grid grid-cols-2 gap-3">
-                        <div><label class="${lbl}">Status Code <span class="text-red-500">*</span></label><input id="f_code" required class="${inp}"></div>
-                        <div><label class="${lbl}">Status Name <span class="text-red-500">*</span></label><input id="f_name" required class="${inp}"></div>
+                        <div><label class="${lbl}">Status Code <span class="text-red-500">*</span></label><input id="f_code" required class="${inp}" placeholder="e.g. APPROVED"></div>
+                        <div><label class="${lbl}">Status Name <span class="text-red-500">*</span></label><input id="f_name" required class="${inp}" placeholder="e.g. Approved"></div>
+                    </div>
+                    <div>
+                        <label class="${lbl}">System Action (Workflow Role)</label>
+                        <select id="f_action" class="${sInp}">
+                            <option value="">None (Custom / Intermediate Status)</option>
+                            <option value="Open">Open (Initial Creation)</option>
+                            <option value="Approve">Approve (Ticket Approved)</option>
+                            <option value="Reject">Reject (Ticket Rejected)</option>
+                            <option value="Assign">Assign (Ticket Assigned to Engineer)</option>
+                            <option value="StartWork">StartWork (Work in Progress)</option>
+                            <option value="Resolve">Resolve (Ticket Resolved)</option>
+                            <option value="Close">Close (Ticket Closed)</option>
+                        </select>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Dynamically maps this status to system buttons like Approve, Assign, Resolve, etc.</p>
                     </div>
                     <div class="grid grid-cols-3 gap-3">
                         <div><label class="${lbl}">Color</label><input id="f_color" type="color" value="#00BCEB" class="w-full h-9 border border-slate-300 rounded-lg px-1 cursor-pointer"></div>
@@ -324,7 +446,7 @@
 
         function editCategory(c) { showAddModal('category'); $('#editId').val(c.id); $('#modalTitle').text('Edit Category'); $('#f_name').val(c.categoryName); $('#f_parent').val(c.parentCategory); $('#f_order').val(c.sortOrder); $('#f_active').val(String(c.isActive)); }
         function editPriority(p) { showAddModal('priority'); $('#editId').val(p.id); $('#modalTitle').text('Edit Priority'); $('#f_name').val(p.priorityName); $('#f_color').val(p.colorCode||'#00BCEB'); $('#f_order').val(p.sortOrder); $('#f_active').val(String(p.isActive)); }
-        function editStatus(s)   { showAddModal('status');   $('#editId').val(s.id); $('#modalTitle').text('Edit Status');   $('#f_code').val(s.statusCode); $('#f_name').val(s.statusName); $('#f_color').val(s.colorCode||'#00BCEB'); $('#f_closed').val(String(s.isClosedState)); $('#f_order').val(s.sortOrder); $('#f_active').val(String(s.isActive)); }
+        function editStatus(s)   { showAddModal('status');   $('#editId').val(s.id); $('#modalTitle').text('Edit Status');   $('#f_code').val(s.statusCode); $('#f_name').val(s.statusName); $('#f_action').val(s.systemAction || ''); $('#f_color').val(s.colorCode||'#00BCEB'); $('#f_closed').val(String(s.isClosedState)); $('#f_order').val(s.sortOrder); $('#f_active').val(String(s.isActive)); }
 
         $('#adminForm').submit(function(e) {
             e.preventDefault();
@@ -337,7 +459,16 @@
                 payload = { id, priorityName: $('#f_name').val(), colorCode: $('#f_color').val(), sortOrder: parseInt($('#f_order').val())||0, isActive: $('#f_active').val()==='true' };
                 url = isEdit ? '@Url.Action("UpdatePriority", "ServiceDesk")' : '@Url.Action("CreatePriority", "ServiceDesk")';
             } else {
-                payload = { id, statusCode: $('#f_code').val(), statusName: $('#f_name').val(), colorCode: $('#f_color').val(), isClosedState: $('#f_closed').val()==='true', sortOrder: parseInt($('#f_order').val())||0, isActive: $('#f_active').val()==='true' };
+                payload = { 
+                    id, 
+                    statusCode: $('#f_code').val(), 
+                    statusName: $('#f_name').val(), 
+                    systemAction: $('#f_action').val() || null, 
+                    colorCode: $('#f_color').val(), 
+                    isClosedState: $('#f_closed').val()==='true', 
+                    sortOrder: parseInt($('#f_order').val())||0, 
+                    isActive: $('#f_active').val()==='true' 
+                };
                 url = isEdit ? '@Url.Action("UpdateTicketStatus", "ServiceDesk")' : '@Url.Action("CreateTicketStatus", "ServiceDesk")';
             }
             $.ajax({ url, type: 'POST', contentType: 'application/json', data: JSON.stringify(payload),
