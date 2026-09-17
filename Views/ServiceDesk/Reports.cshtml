@@ -216,7 +216,7 @@
                     <div class="flex items-center gap-2 w-full sm:w-auto">
                         <div class="relative flex-1 sm:w-64">
                             <i class="fas fa-ticket-alt absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                            <input type="text" id="reportTicketNoInput" placeholder="Enter Ticket Number or ID..."
+                            <input type="text" id="reportTicketNoInput" placeholder="Enter Ticket Number or ID (e.g. SR-000006, 6)..."
                                    class="w-full h-9 pl-8 pr-3 text-xs border border-slate-200 rounded-lg outline-none font-semibold text-slate-800 uppercase focus:border-cyan-500"
                                    onkeydown="if(event.key==='Enter') searchTicketReport();" />
                         </div>
@@ -332,7 +332,8 @@
             var urlParams = new URLSearchParams(window.location.search);
             var queryTicketNo = urlParams.get('ticketNo');
             if (queryTicketNo) {
-                $('#reportTicketNoInput').val(queryTicketNo.trim());
+                queryTicketNo = queryTicketNo.replace(/^[#\s]+/, '').trim();
+                $('#reportTicketNoInput').val(queryTicketNo);
                 switchReportTab('ticketReport');
                 searchTicketReport();
             } else {
@@ -374,7 +375,8 @@
         }
 
         function searchTicketReport() {
-            var ticketNo = $('#reportTicketNoInput').val().trim();
+            var rawInput = $('#reportTicketNoInput').val() || '';
+            var ticketNo = rawInput.replace(/^[#\s]+/, '').trim();
             if (!ticketNo) {
                 alert('Please enter a Ticket Number or Reference ID.');
                 $('#reportTicketNoInput').focus();

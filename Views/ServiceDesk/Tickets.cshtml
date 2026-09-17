@@ -8,13 +8,13 @@
     var canBypassWorkflow = ViewBag.CanBypassWorkflow ?? false;
 }
 
-<div class="min-h-screen p-4" style="background:#F0F4F8;">
+<div class="min-h-screen p-3 sm:p-4 lg:p-6" style="background:#F0F4F8;">
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
-        <div class="mb-5">
-            <div class="flex justify-between items-start mb-3">
+        <div class="mb-3">
+            <div class="flex justify-between items-start mb-2.5">
                 <div>
-                    <h1 class="text-xl font-bold text-gray-900">Support Requests</h1>
+                    <h1 class="text-lg font-bold text-gray-900">Support Requests</h1>
                     <p class="text-gray-600 text-sm mt-0.5">Manage all service tickets</p>
                 </div>
                 <div class="flex items-center gap-2">
@@ -36,7 +36,7 @@
                     @if (canCreate)
                     {
                         <a href="@Url.Action("CreateTicket", "ServiceDesk")"
-                           class="px-4 py-1.5 text-white text-sm font-medium rounded-lg flex items-center shadow-sm transition-transform hover:-translate-y-0.5" style="background:linear-gradient(135deg,#00BCEB,#0096BE);" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+                           class="px-3 py-1.5 text-white text-sm font-medium rounded-lg flex items-center shadow-sm transition-transform hover:-translate-y-0.5" style="background:linear-gradient(135deg,#00BCEB,#0096BE);" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
                             <i class="fas fa-plus mr-1.5 text-xs"></i>
                             New Ticket
                         </a>
@@ -46,7 +46,7 @@
         </div>
 
         <!-- Filters & Quick Scope Bar -->
-        <div class="bg-white rounded border border-gray-200 p-3 mb-4 space-y-2.5">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3 space-y-2.5">
             <div class="flex flex-wrap items-center gap-3">
                 <div class="flex-1 min-w-[200px]">
                     <div class="relative">
@@ -99,7 +99,7 @@
         </div>
 
         <!-- Tickets: List view -->
-        <div id="listViewWrapper" class="bg-white rounded border border-gray-200">
+        <div id="listViewWrapper" class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="overflow-x-auto">
                 <table class="w-full text-left min-w-[720px]">
                     <thead>
@@ -116,7 +116,7 @@
                     </thead>
                     <tbody id="ticketsTableBody" class="text-sm">
                         <tr>
-                            <td colspan="8" class="px-3 py-4 text-center text-gray-500">
+                            <td colspan="8" class="px-3 py-3 text-center text-gray-500">
                                 <i class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i>
                                 Loading tickets...
                             </td>
@@ -155,16 +155,16 @@
 
     .tickets-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 10px;
     }
 
     .ticket-card {
         position: relative;
         background: #fff;
-        border-radius: 12px;
+        border-radius: 10px;
         border: 1px solid #e9edf2;
-        padding: 14px 14px 12px 16px;
+        padding: 12px 12px 10px 14px;
         box-shadow: 0 1px 2px rgba(16,24,40,.04);
         transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
         overflow: hidden;
@@ -212,37 +212,63 @@
 </style>
 
 <!-- Approve Modal -->
-<div id="approveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-xs">
-        <div class="p-3 border-b border-gray-200 flex items-center">
-            <i class="fas fa-check-circle text-green-500 mr-2 text-sm"></i>
-            <h3 class="font-medium text-gray-800 text-sm">Approve Ticket</h3>
-            <button onclick="closeModal('approveModal')" class="ml-auto text-gray-400 hover:text-gray-600">
+<div id="approveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="p-3.5 border-b border-gray-100 flex items-center" style="background:#F0FDF4;">
+            <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center mr-2.5 text-emerald-600">
+                <i class="fas fa-check-circle text-base"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-gray-800 text-sm">Approve & Triage Ticket</h3>
+                <span id="approveTicketNoBadge" class="text-[11px] font-semibold text-emerald-700"></span>
+            </div>
+            <button onclick="closeModal('approveModal')" class="ml-auto text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
                 <i class="fas fa-times text-sm"></i>
             </button>
         </div>
-        <div class="p-3">
+        <div class="p-4">
             <input type="hidden" id="approveTicketId">
-            <div id="approveTriageFields" class="grid grid-cols-2 gap-2 mb-2">
-                <div>
-                    <label class="block text-xs text-gray-700 mb-1">Set Priority <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
-                    <select id="approvePriority" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'">
-                        <option value="">-- Keep Current --</option>
-                    </select>
+            <div id="approveTriageFields" class="space-y-3 mb-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Category <span class="text-rose-500">*</span></label>
+                        <select id="approveCategory" class="w-full text-xs border border-gray-300 rounded-lg p-2 outline-none font-medium bg-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" onchange="onApproveCategoryChange()">
+                            <option value="">-- Select Category --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Subcategory <span class="text-rose-500">*</span></label>
+                        <select id="approveSubcategory" class="w-full text-xs border border-gray-300 rounded-lg p-2 outline-none font-medium bg-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" disabled onchange="onApproveSubcategoryChange()">
+                            <option value="">-- Select Category First --</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs text-gray-700 mb-1">Set Category <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
-                    <select id="approveCategory" class="w-full text-sm border border-gray-300 rounded p-1.5 outline-none" style="border:1px solid #d1d5db;" onfocus="this.style.borderColor='#00BCEB'" onblur="this.style.borderColor='#d1d5db'">
-                        <option value="">-- Keep Current --</option>
-                    </select>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Item <span class="text-rose-500">*</span></label>
+                        <select id="approveItem" class="w-full text-xs border border-gray-300 rounded-lg p-2 outline-none font-medium bg-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" disabled>
+                            <option value="">-- Select Subcategory First --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Priority <span class="text-rose-500">*</span></label>
+                        <select id="approvePriority" class="w-full text-xs border border-gray-300 rounded-lg p-2 outline-none font-medium bg-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500">
+                            <option value="">-- Select Priority --</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <label class="block text-xs text-gray-700 mb-1">Remarks <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
-            <textarea id="approveRemarks" class="w-full text-sm border border-gray-300 rounded p-2 mb-3" rows="2" placeholder="Any remarks..."></textarea>
+
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Remarks <span class="text-[10px] text-gray-400 font-normal">(Optional)</span></label>
+                <textarea id="approveRemarks" class="w-full text-xs border border-gray-300 rounded-lg p-2 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" rows="2" placeholder="Approval comments or triage remarks..."></textarea>
+            </div>
+
             <div class="flex gap-2">
-                <button onclick="closeModal('approveModal')" class="flex-1 py-1.5 text-sm text-gray-600 font-medium">Cancel</button>
-                <button onclick="submitApprove()" class="flex-1 py-1.5 text-white text-sm font-medium rounded" style="background:linear-gradient(135deg,#B4D334,#8FB829);">
-                    <i class="fas fa-check mr-1 text-xs"></i> Approve
+                <button onclick="closeModal('approveModal')" class="flex-1 py-2 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Cancel</button>
+                <button onclick="submitApprove()" class="flex-1 py-2 text-xs font-bold text-white rounded-lg shadow-sm transition-all hover:opacity-90" style="background:linear-gradient(135deg,#B4D334,#8FB829);">
+                    <i class="fas fa-check mr-1 text-xs"></i> Approve & Triage
                 </button>
             </div>
         </div>
@@ -250,8 +276,8 @@
 </div>
 
 <!-- Reject Modal -->
-<div id="rejectModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-xs">
+<div id="rejectModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-xs">
         <div class="p-3 border-b border-red-100 bg-red-50 flex items-center">
             <i class="fas fa-times-circle text-red-500 mr-2 text-sm"></i>
             <h3 class="font-medium text-red-800 text-sm">Reject Ticket</h3>
@@ -274,8 +300,8 @@
 </div>
 
 <!-- Assign Modal -->
-<div id="assignModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-xs">
+<div id="assignModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-xs">
         <div class="p-3 border-b flex items-center" style="background:#E0F7FD; border-color:#b3edfb;">
             <i class="fas fa-user-tag text-blue-500 mr-2 text-sm"></i>
             <h3 class="font-medium text-blue-800 text-sm">Assign Engineer</h3>
@@ -305,8 +331,8 @@
 </div>
 
 <!-- Parts Modal -->
-<div id="partsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-sm max-h-[80vh] overflow-hidden flex flex-col">
+<div id="partsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm max-h-[80vh] overflow-hidden flex flex-col">
         <div class="p-3 border-b border-gray-200 flex items-center">
             <i class="fas fa-cogs text-purple-500 mr-2 text-sm"></i>
             <h3 class="font-medium text-gray-800 text-sm">Manage Parts - <span id="partsTicketNo"></span></h3>
@@ -364,8 +390,8 @@
 </div>
 
 <!-- Status Modal -->
-<div id="statusModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-sm shadow-xl">
+<div id="statusModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm">
         <div class="p-3 border-b border-gray-200 flex items-center">
             <i class="fas fa-exchange-alt text-amber-500 mr-2 text-sm"></i>
             <h3 class="font-medium text-gray-800 text-sm">Update Status & Triage</h3>
@@ -411,8 +437,8 @@
 </div>
 
 <!-- Resolve Modal -->
-<div id="resolveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded w-full max-w-sm">
+<div id="resolveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm">
         <div class="p-3 border-b border-gray-200 flex items-center">
             <i class="fas fa-check-circle text-emerald-500 mr-2 text-sm"></i>
             <h3 class="font-medium text-gray-800 text-sm">Resolve Ticket</h3>
@@ -437,8 +463,8 @@
 </div>
 
 <!-- Loading Overlay -->
-<div id="loadingOverlay" class="fixed inset-0 bg-black/50 z-[100] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded p-4 text-center">
+<div id="loadingOverlay" class="fixed inset-0 bg-black/50 z-[100] hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded p-3 text-center">
         <i class="fas fa-circle-notch fa-spin text-blue-500 text-lg mb-2"></i>
         <p class="text-gray-600 text-sm">Processing...</p>
     </div>
@@ -488,7 +514,7 @@
         }
 
         // ==================== INITIALIZATION ====================
-        $(document).ready(function () {
+        $(document).ready(function() {
             setView(currentView);
 
             // Auto-seed ServiceDesk permissions (ensures engineers appear in assign dropdown)
@@ -557,7 +583,7 @@
 
             let url = `@Url.Action("GetTickets", "ServiceDesk")?pageNumber=${pageNumber}&pageSize=50`;
 
-            $.get(url, function (response) {
+            $.get(url, function(response) {
                 const tickets = response.items || response; // support both paginated and legacy arrays
                 allTickets = tickets;
 
@@ -579,7 +605,7 @@
                     setTimeout(filterTickets, 50);
                 }
 
-            }).fail(function () {
+            }).fail(function() {
                 $('#ticketsTableBody').html('<tr><td colspan="8" class="text-center py-8 text-red-500"><i class="fas fa-exclamation-triangle mb-2 text-xl"></i><br/>Failed to load tickets</td></tr>');
                 $('#ticketsGrid').html('<div class="col-span-full text-center py-10 text-red-500 text-sm"><i class="fas fa-exclamation-triangle mb-2 text-xl block"></i>Failed to load tickets</div>');
                 $('#paginationControls').empty();
@@ -595,8 +621,8 @@
             $('#ticketCount').text(tickets ? tickets.length : 0);
 
             if (!tickets || tickets.length === 0) {
-                tbody.html('<tr><td colspan="8" class="px-3 py-4 text-center text-gray-500 text-sm">No tickets found</td></tr>');
-                grid.html('<div class="col-span-full flex flex-col items-center justify-center py-14 text-gray-400"><i class="fas fa-inbox text-3xl mb-2"></i><span class="text-sm">No tickets found</span></div>');
+                tbody.html('<tr><td colspan="8" class="px-3 py-3 text-center text-gray-500 text-sm">No tickets found</td></tr>');
+                grid.html('<div class="col-span-full flex flex-col items-center justify-center py-14 text-gray-400"><i class="fas fa-inbox text-2xl mb-2"></i><span class="text-sm">No tickets found</span></div>');
                 return;
             }
 
@@ -613,63 +639,63 @@
             const ticketStatus = t.status || 'Open';
 
             return `
-                <tr class="border-b border-gray-50 hover:bg-gray-50 ${isOverdue ? 'bg-red-50/30' : ''}">
-                    <td class="px-3 py-2 font-medium text-gray-700 text-sm">
-                        <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;" class="hover:text-[#0096BE]">
-                            #${t.ticketNo || t.id}
-                        </a>
-                    </td>
-                    <td class="px-3 py-2">
-                        <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;" class="text-gray-800 hover:text-[#0096BE] font-medium text-sm block">
-                            ${escapeHtml(t.subject || 'No Subject')}
-                        </a>
-                        <div class="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">${escapeHtml(t.category || 'General')}</div>
-                    </td>
-                    <td class="px-3 py-2">
-                        <div class="flex items-center">
-                            <div class="w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-bold mr-1.5" style="background:${avatarColor(t.requesterName)}">
-                                ${(t.requesterName || 'U').charAt(0).toUpperCase()}
-                            </div>
-                            <span class="text-gray-700 text-sm truncate max-w-[120px]" title="${t.requesterName || 'Unknown'}">${t.requesterName || 'Unknown'}</span>
-                        </div>
-                    </td>
-                    <td class="px-3 py-2 text-gray-600 text-sm">
-                        ${t.assignedToName ?
-                            `<span class="flex items-center text-xs bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
-                                <i class="fas fa-user-tag mr-1 text-gray-400 text-[10px]"></i>
-                                ${escapeHtml(t.assignedToName)}
-                            </span>`
-                            : '<span class="text-gray-400 text-xs italic">Unassigned</span>'}
-                    </td>
-                    <td class="px-3 py-2">
-                        ${!t.priority || !t.category ?
-                            `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
-                                <i class="fas fa-exclamation-triangle mr-1 text-[9px]"></i> NEEDS TRIAGE
-                            </span>` :
-                            `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
-                                  style="color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}; border-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}80; background-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}10">
-                                ${t.priority || 'Medium'}
-                            </span>`
-                        }
-                    </td>
-                    <td class="px-3 py-2">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
-                              style="color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}; border-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}80; background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}10">
-                            <span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}"></span>
-                            ${ticketStatus}
-                        </span>
-                    </td>
-                    <td class="px-3 py-2 text-gray-500 text-xs">
-                        <div>${createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                        <div class="text-gray-400">${createdDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                    </td>
-                    <td class="px-3 py-2 text-right">
-                        <div class="flex justify-end gap-1">
-                            ${getActionButtons(t)}
-                        </div>
-                    </td>
-                </tr>
-            `;
+                        <tr class="border-b border-gray-50 hover:bg-gray-50 ${isOverdue ? 'bg-red-50/30' : ''}">
+                            <td class="px-3 py-2 font-medium text-gray-700 text-sm">
+                                <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;" class="hover:text-[#0096BE]">
+                                    #${t.ticketNo || t.id}
+                                </a>
+                            </td>
+                            <td class="px-3 py-2">
+                                <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;" class="text-gray-800 hover:text-[#0096BE] font-medium text-sm block">
+                                    ${escapeHtml(t.subject || 'No Subject')}
+                                </a>
+                                <div class="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">${escapeHtml(t.category || 'General')}</div>
+                            </td>
+                            <td class="px-3 py-2">
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-bold mr-1.5" style="background:${avatarColor(t.requesterName)}">
+                                        ${(t.requesterName || 'U').charAt(0).toUpperCase()}
+                                    </div>
+                                    <span class="text-gray-700 text-sm truncate max-w-[120px]" title="${t.requesterName || 'Unknown'}">${t.requesterName || 'Unknown'}</span>
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 text-gray-600 text-sm">
+                                ${t.assignedToName ?
+                    `<span class="flex items-center text-xs bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                                        <i class="fas fa-user-tag mr-1 text-gray-400 text-[10px]"></i>
+                                        ${escapeHtml(t.assignedToName)}
+                                    </span>`
+                    : '<span class="text-gray-400 text-xs italic">Unassigned</span>'}
+                            </td>
+                            <td class="px-3 py-2">
+                                ${!t.priority || !t.category ?
+                    `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                        <i class="fas fa-exclamation-triangle mr-1 text-[9px]"></i> NEEDS TRIAGE
+                                    </span>` :
+                    `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                                          style="color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}; border-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}80; background-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}10">
+                                        ${t.priority || 'Medium'}
+                                    </span>`
+                }
+                            </td>
+                            <td class="px-3 py-2">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                                      style="color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}; border-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}80; background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}10">
+                                    <span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}"></span>
+                                    ${ticketStatus}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2 text-gray-500 text-xs">
+                                <div>${createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                                <div class="text-gray-400">${createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            </td>
+                            <td class="px-3 py-2 text-right">
+                                <div class="flex justify-end gap-1">
+                                    ${getActionButtons(t)}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
         }
 
         function buildTicketCard(t) {
@@ -681,56 +707,56 @@
             const avatarBg = avatarColor(t.requesterName);
 
             return `
-                <div class="ticket-card ${isOverdue ? 'is-breached' : ''}" style="--accent:${accent}">
-                    <div class="flex items-start justify-between mb-2">
-                        <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;"
-                           class="text-xs font-semibold text-gray-400 hover:text-[#0096BE] tracking-wide">#${t.ticketNo || t.id}</a>
-                        ${isOverdue ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded"><i class="fas fa-bolt text-[9px]"></i> SLA BREACH</span>` : ''}
-                    </div>
+                        <div class="ticket-card ${isOverdue ? 'is-breached' : ''}" style="--accent:${accent}">
+                            <div class="flex items-start justify-between mb-2">
+                                <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;"
+                                   class="text-xs font-semibold text-gray-400 hover:text-[#0096BE] tracking-wide">#${t.ticketNo || t.id}</a>
+                                ${isOverdue ? `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded"><i class="fas fa-bolt text-[9px]"></i> SLA BREACH</span>` : ''}
+                            </div>
 
-                    <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;"
-                       class="block text-sm font-semibold text-gray-800 hover:text-[#0096BE] leading-snug mb-1 line-clamp-2">
-                        ${escapeHtml(t.subject || 'No Subject')}
-                    </a>
-                    <div class="text-xs text-gray-400 mb-3 truncate">${escapeHtml(t.category || 'General')}</div>
+                            <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${t.id}'}); return false;"
+                               class="block text-sm font-semibold text-gray-800 hover:text-[#0096BE] leading-snug mb-1 line-clamp-2">
+                                ${escapeHtml(t.subject || 'No Subject')}
+                            </a>
+                            <div class="text-xs text-gray-400 mb-2 truncate">${escapeHtml(t.category || 'General')}</div>
 
-                    <div class="flex items-center gap-2 mb-3">
-                        <div class="card-avatar" style="background:${avatarBg}">${(t.requesterName || 'U').charAt(0).toUpperCase()}</div>
-                        <div class="min-w-0">
-                            <div class="text-xs font-medium text-gray-700 truncate" title="${t.requesterName || 'Unknown'}">${t.requesterName || 'Unknown'}</div>
-                            <div class="text-[11px] text-gray-400 truncate">
-                                ${t.assignedToName ? `<i class="fas fa-user-tag mr-1"></i>${escapeHtml(t.assignedToName)}` : '<span class="italic">Unassigned</span>'}
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="card-avatar" style="background:${avatarBg}">${(t.requesterName || 'U').charAt(0).toUpperCase()}</div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-medium text-gray-700 truncate" title="${t.requesterName || 'Unknown'}">${t.requesterName || 'Unknown'}</div>
+                                    <div class="text-[11px] text-gray-400 truncate">
+                                        ${t.assignedToName ? `<i class="fas fa-user-tag mr-1"></i>${escapeHtml(t.assignedToName)}` : '<span class="italic">Unassigned</span>'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center flex-wrap gap-1.5 mb-2">
+                                ${needsTriage ?
+                    `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                        <i class="fas fa-exclamation-triangle mr-1 text-[9px]"></i> NEEDS TRIAGE
+                                    </span>` :
+                    `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                                          style="color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}; border-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}80; background-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}10">
+                                        ${t.priority || 'Medium'}
+                                    </span>`
+                }
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
+                                      style="color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}; border-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}80; background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}10">
+                                    <span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}"></span>
+                                    ${ticketStatus}
+                                </span>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+                                <span class="text-[11px] text-gray-400">
+                                    <i class="far fa-clock mr-1"></i>${createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <div class="flex gap-0.5">
+                                    ${getActionButtons(t)}
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="flex items-center flex-wrap gap-1.5 mb-3">
-                        ${needsTriage ?
-                            `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
-                                <i class="fas fa-exclamation-triangle mr-1 text-[9px]"></i> NEEDS TRIAGE
-                            </span>` :
-                            `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
-                                  style="color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}; border-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}80; background-color: ${priorityColorMap[(t.priority || '').toLowerCase()] || '#6b7280'}10">
-                                ${t.priority || 'Medium'}
-                            </span>`
-                        }
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border"
-                              style="color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}; border-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}80; background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}10">
-                            <span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: ${statusColorMap[ticketStatus.toLowerCase()] || '#6b7280'}"></span>
-                            ${ticketStatus}
-                        </span>
-                    </div>
-
-                    <div class="flex items-center justify-between pt-2 border-t border-gray-100">
-                        <span class="text-[11px] text-gray-400">
-                            <i class="far fa-clock mr-1"></i>${createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${createdDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        </span>
-                        <div class="flex gap-0.5">
-                            ${getActionButtons(t)}
-                        </div>
-                    </div>
-                </div>
-            `;
+                    `;
         }
 
         function renderPagination(totalPages, currentPage) {
@@ -740,19 +766,19 @@
                 return;
             }
 
-            let html = `<div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4 rounded-xl shadow-sm">
-                <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                    <div>
-                        <p class="text-sm text-gray-700">Page <span class="font-medium">${currentPage}</span> of <span class="font-medium">${totalPages}</span></p>
-                    </div>
-                    <div>
-                        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">`;
+            let html = `<div class="flex items-center justify-between border-t border-gray-200 bg-white px-3 py-3 sm:px-3 mt-4 rounded-lg shadow-sm">
+                        <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">Page <span class="font-medium">${currentPage}</span> of <span class="font-medium">${totalPages}</span></p>
+                            </div>
+                            <div>
+                                <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">`;
 
             if (currentPage > 1) {
                 html += `<button onclick="loadTickets(currentStatusFilter, ${currentPage - 1})" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
-                            <span class="sr-only">Previous</span>
-                            <i class="fas fa-chevron-left h-5 w-5 text-sm"></i>
-                        </button>`;
+                                    <span class="sr-only">Previous</span>
+                                    <i class="fas fa-chevron-left h-5 w-5 text-sm"></i>
+                                </button>`;
             }
 
             let startPage = Math.max(1, currentPage - 2);
@@ -760,23 +786,23 @@
 
             for (let i = startPage; i <= endPage; i++) {
                 if (i === currentPage) {
-                    html += `<button aria-current="page" class="relative z-10 inline-flex items-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">${i}</button>`;
+                    html += `<button aria-current="page" class="relative z-10 inline-flex items-center bg-blue-600 px-3 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">${i}</button>`;
                 } else {
-                    html += `<button onclick="loadTickets(currentStatusFilter, ${i})" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">${i}</button>`;
+                    html += `<button onclick="loadTickets(currentStatusFilter, ${i})" class="relative inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">${i}</button>`;
                 }
             }
 
             if (currentPage < totalPages) {
                 html += `<button onclick="loadTickets(currentStatusFilter, ${currentPage + 1})" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
-                            <span class="sr-only">Next</span>
-                            <i class="fas fa-chevron-right h-5 w-5 text-sm"></i>
-                        </button>`;
+                                    <span class="sr-only">Next</span>
+                                    <i class="fas fa-chevron-right h-5 w-5 text-sm"></i>
+                                </button>`;
             }
 
             html += `       </nav>
-                    </div>
-                </div>
-            </div>`;
+                            </div>
+                        </div>
+                    </div>`;
 
             container.html(html);
         }
@@ -793,7 +819,7 @@
             $.ajax({
                 url: '@Url.Action("GetDetailedEngineers", "ServiceDesk")',
                 type: 'GET',
-                success: function (data) {
+                success: function(data) {
                     container.empty();
                     if (!data || data.length === 0) {
                         container.append('<div class="text-center text-xs text-gray-500 py-3">No engineers found with ServiceDesk.HandleTickets permission</div>');
@@ -801,28 +827,28 @@
                     }
                     data.forEach((e, idx) => {
                         let badgeClass = 'bg-green-100 text-green-700';
-                        if(e.currentStatus === 'Busy') badgeClass = 'bg-yellow-100 text-yellow-700';
-                        if(e.currentStatus === 'Overloaded') badgeClass = 'bg-red-100 text-red-700';
+                        if (e.currentStatus === 'Busy') badgeClass = 'bg-yellow-100 text-yellow-700';
+                        if (e.currentStatus === 'Overloaded') badgeClass = 'bg-red-100 text-red-700';
 
                         let suggestedBadge = idx === 0 ? '<span class="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px] ml-2 font-bold uppercase tracking-wider">Suggested</span>' : '';
 
                         let card = `
-                        <div class="eng-card border border-gray-200 rounded p-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
-                             data-id="${e.id}" data-name="${e.name}" onclick="selectEngineer(this, '${e.id}', '${e.name}')">
-                            <div class="flex justify-between items-start mb-1">
-                                <div class="font-medium text-sm text-gray-800">${e.name} ${suggestedBadge}</div>
-                                <div class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${badgeClass}">${e.currentStatus}</div>
-                            </div>
-                            <div class="flex justify-between text-xs text-gray-500">
-                                <div>Role: <span class="text-gray-700">${e.role}</span></div>
-                                <div>Active: <span class="font-bold text-gray-800">${e.activeTicketCount}</span></div>
-                            </div>
-                            <div class="flex gap-2 mt-1 text-[10px]">
-                                <span class="text-red-500" title="High/Urgent Priority"><i class="fas fa-exclamation-circle text-[9px]"></i> ${e.highPriorityCount}</span>
-                                <span class="text-blue-500" title="Avg Resolution Time"><i class="fas fa-clock text-[9px]"></i> ${e.avgResolutionHours}h</span>
-                                <span class="text-emerald-500" title="Total Resolved"><i class="fas fa-check text-[9px]"></i> ${e.totalResolved}</span>
-                            </div>
-                        </div>`;
+                                <div class="eng-card border border-gray-200 rounded p-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                                     data-id="${e.id}" data-name="${e.name}" onclick="selectEngineer(this, '${e.id}', '${e.name}')">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <div class="font-medium text-sm text-gray-800">${e.name} ${suggestedBadge}</div>
+                                        <div class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${badgeClass}">${e.currentStatus}</div>
+                                    </div>
+                                    <div class="flex justify-between text-xs text-gray-500">
+                                        <div>Role: <span class="text-gray-700">${e.role}</span></div>
+                                        <div>Active: <span class="font-bold text-gray-800">${e.activeTicketCount}</span></div>
+                                    </div>
+                                    <div class="flex gap-2 mt-1 text-[10px]">
+                                        <span class="text-red-500" title="High/Urgent Priority"><i class="fas fa-exclamation-circle text-[9px]"></i> ${e.highPriorityCount}</span>
+                                        <span class="text-blue-500" title="Avg Resolution Time"><i class="fas fa-clock text-[9px]"></i> ${e.avgResolutionHours}h</span>
+                                        <span class="text-emerald-500" title="Total Resolved"><i class="fas fa-check text-[9px]"></i> ${e.totalResolved}</span>
+                                    </div>
+                                </div>`;
 
                         container.append(card);
                     });
@@ -861,7 +887,7 @@
             $.ajax({
                 url: '@Url.Action("GetStatuses", "ServiceDesk")',
                 type: 'GET',
-                success: function (data) {
+                success: function(data) {
                     const filterSelect = $('#statusFilter');
                     const modalSelect = $('#newStatusSelect');
 
@@ -882,7 +908,7 @@
             $.ajax({
                 url: '@Url.Action("GetPriorities", "ServiceDesk")',
                 type: 'GET',
-                success: function (data) {
+                success: function(data) {
                     const selects = $('#approvePriority, #statusPriority');
                     if (data && data.length > 0) {
                         data.forEach(p => {
@@ -898,17 +924,79 @@
         function loadCategoriesForApprove() {
             $.ajax({
                 url: '@Url.Action("GetCategories", "ServiceDesk")',
-               type: 'GET',
-                success: function (data) {
-                    const selects = $('#approveCategory, #statusCategory');
-                    if (data && data.length > 0) {
-                        data.forEach(c => {
-                            const name = c.categoryName || c.CategoryName || c;
-                            selects.append(`<option value="${name}">${name}</option>`);
+                type: 'GET',
+                success: function(data) {
+                    window.allTicketCategories = data || [];
+                    populateApproveRootCategories();
+
+                    const statusCat = $('#statusCategory');
+                    if (statusCat.length && data && data.length > 0) {
+                        data.filter(c => !c.parentCategory).forEach(c => {
+                            statusCat.append(`<option value="${c.categoryName}">${c.categoryName}</option>`);
                         });
                     }
                 }
             });
+        }
+
+        function populateApproveRootCategories() {
+            const catSelect = $('#approveCategory');
+            catSelect.html('<option value="">-- Select Category --</option>');
+            if (window.allTicketCategories && window.allTicketCategories.length > 0) {
+                window.allTicketCategories
+                    .filter(c => !c.parentCategory)
+                    .forEach(c => {
+                        catSelect.append(`<option value="${c.categoryName}">${c.categoryName}</option>`);
+                    });
+            }
+        }
+
+        function onApproveCategoryChange() {
+            const selectedCat = $('#approveCategory').val();
+            const subSelect = $('#approveSubcategory');
+            const itemSelect = $('#approveItem');
+
+            itemSelect.prop('disabled', true).html('<option value="">-- Select Subcategory First --</option>');
+
+            if (!selectedCat) {
+                subSelect.prop('disabled', true).html('<option value="">-- Select Category First --</option>');
+                return;
+            }
+
+            if (window.allTicketCategories) {
+                const subs = window.allTicketCategories.filter(c => c.parentCategory === selectedCat);
+                if (subs.length > 0) {
+                    subSelect.prop('disabled', false).html('<option value="">-- Select Subcategory --</option>');
+                    subs.forEach(c => subSelect.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
+                } else {
+                    subSelect.prop('disabled', false).html('<option value="General">General</option>');
+                    itemSelect.prop('disabled', false).html('<option value="General">General</option>');
+                }
+            }
+        }
+
+        function onApproveSubcategoryChange() {
+            const selectedSub = $('#approveSubcategory').val();
+            const itemSelect = $('#approveItem');
+
+            if (!selectedSub || selectedSub === 'General') {
+                if (selectedSub === 'General') {
+                    itemSelect.prop('disabled', false).html('<option value="General">General</option>');
+                } else {
+                    itemSelect.prop('disabled', true).html('<option value="">-- Select Subcategory First --</option>');
+                }
+                return;
+            }
+
+            if (window.allTicketCategories) {
+                const items = window.allTicketCategories.filter(c => c.parentCategory === selectedSub);
+                if (items.length > 0) {
+                    itemSelect.prop('disabled', false).html('<option value="">-- Select Item --</option>');
+                    items.forEach(c => itemSelect.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
+                } else {
+                    itemSelect.prop('disabled', false).html('<option value="General">General</option>');
+                }
+            }
         }
 
         function getActionButtons(ticket) {
@@ -918,9 +1006,9 @@
 
             // View Details — always available
             let buttons = `
-                <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${id}'}); return false;" class="p-1.5 text-gray-400 hover:text-[#0096BE] hover:bg-blue-50 rounded" title="View Details">
-                    <i class="fas fa-eye text-xs"></i>
-                </a>`;
+                        <a href="#" onclick="navigateToEncrypted('/ServiceDesk/Details', {id: '${id}'}); return false;" class="p-1.5 text-gray-400 hover:text-[#0096BE] hover:bg-blue-50 rounded" title="View Details">
+                            <i class="fas fa-eye text-xs"></i>
+                        </a>`;
 
             if (isClosed) {
                 if (canDelete) {
@@ -936,27 +1024,27 @@
                     break;
                 }
             }
-            
+
             // 1. Open -> Approve & Reject
             if ((status === 'OPEN' || sysAction === 'OPEN') && (canApprove || canBypassWorkflow)) {
                 buttons += `<button onclick="openApproveModal(${id})" class="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded" title="Approve Ticket"><i class="fas fa-check text-xs"></i></button>`;
                 buttons += `<button onclick="openRejectModal(${id})" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded" title="Reject Ticket"><i class="fas fa-times text-xs"></i></button>`;
-            } 
+            }
             // 2. Approved (or unassigned non-open) -> Assign Engineer
             else if ((status === 'APPROVED' || sysAction === 'APPROVE' || (!ticket.assignedToId && !isClosed && status !== 'OPEN')) && (canAssign || canBypassWorkflow)) {
                 buttons += `<button onclick="openAssignModal(${id}, '${ticket.ticketNo || id}')" class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded" title="Assign Engineer"><i class="fas fa-user-plus text-xs"></i></button>`;
-            } 
+            }
             // 3. Assigned -> Start Work or Reassign
             if (status === 'ASSIGNED' || sysAction === 'ASSIGN') {
                 buttons += `<button onclick="startWork(${id})" class="p-1.5 text-teal-600 hover:text-teal-800 hover:bg-teal-50 rounded" title="Start Work"><i class="fas fa-play text-xs"></i></button>`;
                 if (canAssign || canBypassWorkflow) {
                     buttons += `<button onclick="openAssignModal(${id}, '${ticket.ticketNo || id}')" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded" title="Reassign Engineer"><i class="fas fa-user-edit text-xs"></i></button>`;
                 }
-            } 
+            }
             // 4. In Progress -> Resolve
             else if (status === 'INPROGRESS' || status === 'IN PROGRESS' || sysAction === 'STARTWORK') {
                 buttons += `<button onclick="openResolveModal(${id})" class="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded" title="Resolve Ticket"><i class="fas fa-check-circle text-xs"></i></button>`;
-            } 
+            }
             // 5. Rejected -> Re-Approve
             else if (status === 'REJECTED' || sysAction === 'REJECT') {
                 buttons += `<button onclick="openApproveModal(${id})" class="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded" title="Re-Approve"><i class="fas fa-undo text-xs"></i></button>`;
@@ -1013,7 +1101,7 @@
                 const aId = (t.assignedToId || '').toString().trim().toLowerCase();
                 const aName = (t.assignedToName || '').toString().trim().toLowerCase();
                 return (aId && (aId === uIdStr || aId === uNameStr)) ||
-                       (aName && (aName === uNameStr || (uNameStr && aName.includes(uNameStr))));
+                    (aName && (aName === uNameStr || (uNameStr && aName.includes(uNameStr))));
             }).length;
             $('#myTicketsBadge').text(myCount);
         }
@@ -1029,10 +1117,10 @@
 
             const filtered = allTickets.filter(t => {
                 const matchesTerm = !term ||
-                                    (t.ticketNo && t.ticketNo.toLowerCase().includes(term)) ||
-                                    (t.subject && t.subject.toLowerCase().includes(term)) ||
-                                    (t.remark && t.remark.toLowerCase().includes(term)) ||
-                                    (t.requesterName && t.requesterName.toLowerCase().includes(term));
+                    (t.ticketNo && t.ticketNo.toLowerCase().includes(term)) ||
+                    (t.subject && t.subject.toLowerCase().includes(term)) ||
+                    (t.remark && t.remark.toLowerCase().includes(term)) ||
+                    (t.requesterName && t.requesterName.toLowerCase().includes(term));
 
                 let matchesStatus = false;
                 if (!status || status === 'all') {
@@ -1043,7 +1131,7 @@
                     const aId = (t.assignedToId || '').toString().trim().toLowerCase();
                     const aName = (t.assignedToName || '').toString().trim().toLowerCase();
                     matchesStatus = (aId && (aId === uIdStr || aId === uNameStr)) ||
-                                    (aName && (aName === uNameStr || (uNameStr && aName.includes(uNameStr))));
+                        (aName && (aName === uNameStr || (uNameStr && aName.includes(uNameStr))));
                 } else if (status === 'in_progress') {
                     const st = (t.status || '').toUpperCase().replace(/_/g, '').replace(/ /g, '');
                     matchesStatus = (st === 'INPROGRESS' || st === 'ASSIGNED');
@@ -1067,8 +1155,8 @@
         function renderTickets(tickets) {
             if (!tickets || tickets.length === 0) {
                 $('#ticketCount').text(0);
-                $('#ticketsTableBody').html('<tr><td colspan="8" class="px-3 py-4 text-center text-gray-500 text-sm">No tickets match the current filter</td></tr>');
-                $('#ticketsGrid').html('<div class="col-span-full flex flex-col items-center justify-center py-14 text-gray-400"><i class="fas fa-filter-circle-xmark text-3xl mb-2"></i><span class="text-sm">No tickets match the current filter</span></div>');
+                $('#ticketsTableBody').html('<tr><td colspan="8" class="px-3 py-3 text-center text-gray-500 text-sm">No tickets match the current filter</td></tr>');
+                $('#ticketsGrid').html('<div class="col-span-full flex flex-col items-center justify-center py-14 text-gray-400"><i class="fas fa-filter-circle-xmark text-2xl mb-2"></i><span class="text-sm">No tickets match the current filter</span></div>');
                 return;
             }
             displayTickets(tickets);
@@ -1109,25 +1197,65 @@
         function openApproveModal(ticketId) {
             $('#approveTicketId').val(ticketId);
             $('#approveRemarks').val('');
-            $('#approvePriority').val('');
-            $('#approveCategory').val('');
 
-            // Conditional Triaging: Show fields only if they are missing
             const ticket = allTickets.find(t => t.id === ticketId);
-            if (ticket && (ticket.priority && ticket.category)) {
-                $('#approveTriageFields').hide();
+            $('#approveTicketNoBadge').text(ticket ? ('#' + (ticket.ticketNo || ticket.id)) : '');
+
+            populateApproveRootCategories();
+
+            // Pre-select or default Priority
+            const curPriority = ticket && ticket.priority && ticket.priority.toUpperCase() !== 'NEEDS TRIAGE' ? ticket.priority : 'Medium';
+            $('#approvePriority').val(curPriority);
+
+            // Pre-select Category, Subcategory, Item if existing
+            if (ticket && ticket.category) {
+                $('#approveCategory').val(ticket.category);
+                onApproveCategoryChange();
+                if (ticket.subcategory) {
+                    $('#approveSubcategory').val(ticket.subcategory);
+                    onApproveSubcategoryChange();
+                    if (ticket.item) {
+                        $('#approveItem').val(ticket.item);
+                    }
+                }
             } else {
-                $('#approveTriageFields').show();
+                $('#approveCategory').val('');
+                $('#approveSubcategory').prop('disabled', true).html('<option value="">-- Select Category First --</option>');
+                $('#approveItem').prop('disabled', true).html('<option value="">-- Select Subcategory First --</option>');
             }
 
+            $('#approveTriageFields').show();
             openModal('approveModal');
         }
 
         function submitApprove() {
             const ticketId = parseInt($('#approveTicketId').val());
             const remarks = $('#approveRemarks').val().trim() || 'Approved';
-            const priority = $('#approvePriority').val();
             const category = $('#approveCategory').val();
+            const subcategory = $('#approveSubcategory').val();
+            const item = $('#approveItem').val();
+            const priority = $('#approvePriority').val();
+
+            if (!category) {
+                sysAlert('Please select a Category.', 'warning');
+                $('#approveCategory').focus();
+                return;
+            }
+            if ($('#approveSubcategory option').length > 1 && !subcategory) {
+                sysAlert('Please select a Subcategory.', 'warning');
+                $('#approveSubcategory').focus();
+                return;
+            }
+            if ($('#approveItem option').length > 1 && !item) {
+                sysAlert('Please select an Item.', 'warning');
+                $('#approveItem').focus();
+                return;
+            }
+            if (!priority) {
+                sysAlert('Please select a Priority.', 'warning');
+                $('#approvePriority').focus();
+                return;
+            }
 
             showLoading();
             closeModal('approveModal');
@@ -1142,20 +1270,22 @@
                     username: username,
                     priority: priority,
                     category: category,
+                    subcategory: subcategory,
+                    item: item,
                     bypass: canBypassWorkflow
                 }),
-                success: function (res) {
+                success: function(res) {
                     hideLoading();
                     if (res && res.success) {
-                        sysAlert('Ticket approved', 'success');
+                        sysAlert('Ticket approved and triaged successfully', 'success');
                         loadTickets();
                     } else {
                         sysAlert('Failed: ' + (res.message || 'Error'), 'error');
                     }
                 },
-                error: function () {
+                error: function() {
                     hideLoading();
-                    sysAlert('Failed to approve', 'error');
+                    sysAlert('Failed to approve ticket', 'error');
                 }
             });
         }
@@ -1188,7 +1318,7 @@
                     remarks: reason,
                     username: username
                 }),
-                success: function (res) {
+                success: function(res) {
                     hideLoading();
                     if (res && res.success) {
                         sysAlert('Ticket rejected', 'success');
@@ -1197,7 +1327,7 @@
                         sysAlert('Failed: ' + (res.message || 'Error'), 'error');
                     }
                 },
-                error: function () {
+                error: function() {
                     hideLoading();
                     sysAlert('Failed to reject', 'error');
                 }
@@ -1238,7 +1368,7 @@
                     notes: notes,
                     bypass: canBypassWorkflow
                 }),
-                success: function (res) {
+                success: function(res) {
                     hideLoading();
                     if (res && res.success) {
                         sysAlert('Ticket assigned', 'success');
@@ -1247,7 +1377,7 @@
                         sysAlert('Failed: ' + (res.message || 'Error'), 'error');
                     }
                 },
-                error: function () {
+                error: function() {
                     hideLoading();
                     sysAlert('Failed to assign', 'error');
                 }
@@ -1262,7 +1392,7 @@
 
             // Try to find the ticket in allTickets to pre-select priority/category
             const ticket = allTickets.find(t => t.id === ticketId);
-            if(ticket) {
+            if (ticket) {
                 $('#statusPriority').val(ticket.priority || '');
                 $('#statusCategory').val(ticket.category || '');
             } else {
@@ -1297,7 +1427,7 @@
                     category: category,
                     bypass: canBypassWorkflow
                 }),
-                success: function (res) {
+                success: function(res) {
                     hideLoading();
                     if (res && res.success) {
                         sysAlert('Ticket updated successfully', 'success');
@@ -1306,7 +1436,7 @@
                         sysAlert('Failed: ' + (res.message || 'Error'), 'error');
                     }
                 },
-                error: function () {
+                error: function() {
                     hideLoading();
                     sysAlert('Failed to update', 'error');
                 }
@@ -1327,7 +1457,7 @@
                         username: username,
                         bypass: canBypassWorkflow
                     }),
-                    success: function (res) {
+                    success: function(res) {
                         hideLoading();
                         if (res && res.success) {
                             sysAlert('Ticket re-opened', 'success');
@@ -1336,7 +1466,7 @@
                             sysAlert('Failed: ' + (res.message || 'Error'), 'error');
                         }
                     },
-                    error: function () {
+                    error: function() {
                         hideLoading();
                         sysAlert('Failed to re-open', 'error');
                     }
@@ -1363,7 +1493,7 @@
                 url: '@Url.Action("GetParts", "ServiceDesk")',
                 type: 'GET',
                 data: { ticketId: ticketId },
-                success: function (parts) {
+                success: function(parts) {
                     if (!parts || parts.length === 0) {
                         $('#partsContainer').html('<div class="text-center py-3 text-gray-400 text-sm">No parts added</div>');
                         return;
@@ -1371,22 +1501,22 @@
                     let html = '<div class="space-y-1.5">';
                     parts.forEach(p => {
                         html += `
-                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-100">
-                                <div>
-                                    <span class="font-medium text-gray-800 text-sm">${escapeHtml(p.partName)}</span>
-                                    <span class="text-gray-400 text-xs ml-1">${escapeHtml(p.partNumber || '')}</span>
-                                    <div class="text-xs text-gray-500 mt-0.5">Qty: ${p.quantity} | Cost: ₹${(p.totalCost || 0).toFixed(2)}</div>
-                                </div>
-                                <button onclick="deletePart(${p.id})" class="text-red-400 hover:text-red-600 p-1" title="Delete">
-                                    <i class="fas fa-trash text-xs"></i>
-                                </button>
-                            </div>
-                        `;
+                                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-100">
+                                        <div>
+                                            <span class="font-medium text-gray-800 text-sm">${escapeHtml(p.partName)}</span>
+                                            <span class="text-gray-400 text-xs ml-1">${escapeHtml(p.partNumber || '')}</span>
+                                            <div class="text-xs text-gray-500 mt-0.5">Qty: ${p.quantity} | Cost: ₹${(p.totalCost || 0).toFixed(2)}</div>
+                                        </div>
+                                        <button onclick="deletePart(${p.id})" class="text-red-400 hover:text-red-600 p-1" title="Delete">
+                                            <i class="fas fa-trash text-xs"></i>
+                                        </button>
+                                    </div>
+                                `;
                     });
                     html += '</div>';
                     $('#partsContainer').html(html);
                 },
-                error: function () {
+                error: function() {
                     $('#partsContainer').html('<div class="text-center py-3 text-red-400 text-sm">Failed to load</div>');
                 }
             });
@@ -1417,7 +1547,7 @@
                     addedById: userId,
                     addedByName: username
                 }),
-                success: function (res) {
+                success: function(res) {
                     if (res && res.success) {
                         sysAlert('Part added successfully', 'success');
                         loadParts(ticketId);
@@ -1430,7 +1560,7 @@
                         sysAlert('Failed to add: ' + (res.message || 'Unknown error'), 'error');
                     }
                 },
-                error: function () {
+                error: function() {
                     sysAlert('Failed to connect to server', 'error');
                 }
             });
@@ -1443,7 +1573,7 @@
                     url: '@Url.Action("DeletePart", "ServiceDesk")',
                     type: 'POST',
                     data: { id: partId },
-                    success: function (res) {
+                    success: function(res) {
                         if (res && res.success) {
                             sysAlert('Part deleted', 'success');
                             loadParts(ticketId);
@@ -1451,11 +1581,11 @@
                             sysAlert('Failed to delete', 'error');
                         }
                     },
-                    error: function () {
+                    error: function() {
                         sysAlert('Failed to delete', 'error');
                     }
                 });
-            }, {type:'danger'});
+            }, { type: 'danger' });
         }
 
         // ==================== START WORK ====================
@@ -1470,7 +1600,7 @@
                         username: username,
                         remarks: 'Started working on ticket'
                     }),
-                    success: function (res) {
+                    success: function(res) {
                         if (res && res.success) {
                             sysAlert('Work started', 'success');
                             loadTickets();
@@ -1478,7 +1608,7 @@
                             sysAlert(res.message || 'Failed to start work', 'error');
                         }
                     },
-                    error: function () {
+                    error: function() {
                         sysAlert('Failed to start work', 'error');
                     }
                 });
@@ -1491,7 +1621,7 @@
                 $.ajax({
                     url: '@Url.Action("DeleteTicket", "ServiceDesk")' + '?id=' + ticketId,
                     type: 'POST',
-                    success: function (res) {
+                    success: function(res) {
                         if (res && res.success) {
                             sysAlert('Ticket deleted', 'success');
                             loadTickets();
@@ -1499,11 +1629,11 @@
                             sysAlert(res.message || 'Failed to delete ticket', 'error');
                         }
                     },
-                    error: function () {
+                    error: function() {
                         sysAlert('Failed to delete ticket', 'error');
                     }
                 });
-            }, {type:'danger'});
+            }, { type: 'danger' });
         }
 
         // ==================== RESOLVE TICKET ====================
@@ -1527,7 +1657,7 @@
                     username: username,
                     resolutionNotes: notes
                 }),
-                success: function (res) {
+                success: function(res) {
                     if (res && res.success) {
                         sysAlert('Ticket resolved', 'success');
                         closeModal('resolveModal');
@@ -1536,7 +1666,7 @@
                         sysAlert(res.message || 'Failed to resolve', 'error');
                     }
                 },
-                error: function () {
+                error: function() {
                     sysAlert('Failed to resolve ticket', 'error');
                 }
             });

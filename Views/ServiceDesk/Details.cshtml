@@ -163,12 +163,13 @@
     .eng-card.selected{ border-color: #00BCEB; background: #E0F7FD; }
 </style>
 
-<div class="dtl-bg px-3 pb-8 pt-3 sm:px-4 lg:px-6">
+<div class="dtl-bg px-3 pb-5 pt-3 sm:px-4 lg:px-6">
     <!-- Compact Top Bar with Action Buttons -->
-    <div class="max-w-7xl mx-auto mb-3">
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <div class="max-w-7xl mx-auto mb-2.5">
+        <div class="bg-white rounded-lg border border-slate-200 shadow-sm px-3 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-3 relative overflow-hidden">
+            <span id="headerAccentBar" class="absolute top-0 left-0 w-full h-[3px] bg-cyan-500"></span>
             <div class="flex items-center gap-3 min-w-0">
-                <a href="@Url.Action("Tickets","ServiceDesk")" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 text-xs transition-colors flex-shrink-0" title="Back to All Tickets">
+                <a href="@Url.Action("Tickets","ServiceDesk")" onclick="window.sysnetGoBackToTickets(event)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 text-xs transition-colors flex-shrink-0" title="Back to All Tickets">
                     <i class="fas fa-arrow-left"></i>
                 </a>
                 <div class="min-w-0">
@@ -191,33 +192,33 @@
 
     <!-- Main Content Area -->
     <div class="max-w-7xl mx-auto">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5">
             
             <!-- LEFT COLUMN: Ticket Information & Activity (8 cols) -->
-            <div class="lg:col-span-8 space-y-3.5">
+            <div class="lg:col-span-8 space-y-2.5">
                 
                 <!-- Ticket Description Card: Ultra-compact -->
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-3.5 py-2">
-                    <div class="flex items-center justify-between mb-0.5">
+                <div class="bg-white rounded-lg border border-slate-200 shadow-sm px-3 py-1.5">
+                    <div class="flex items-center gap-1 mb-0.5">
                         <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                             <i class="fas fa-align-left text-cyan-600 text-[8px]"></i> Description
                         </span>
                     </div>
-                    <div class="text-xs text-slate-700 whitespace-pre-wrap leading-tight max-h-14 overflow-y-auto pr-1">
+                    <div class="text-xs text-slate-700 whitespace-pre-wrap leading-tight max-h-12 overflow-y-auto pr-1">
                         @(string.IsNullOrEmpty(Model.Remark) ? "No description provided." : Model.Remark)
                     </div>
                 </div>
 
                 <!-- Activity & Conversation Card: Compact 165px container -->
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                     <div class="flex border-b border-slate-100 bg-slate-50 px-2">
-                        <button onclick="switchTab('comments')" class="px-3.5 py-1.5 text-xs font-bold text-slate-600 border-b-2 border-cyan-500 active-tab transition-colors" id="dtl-tab-comments" data-target="comments">
+                        <button onclick="switchTab('comments')" class="px-3 py-1.5 text-xs font-bold text-slate-600 border-b-2 border-cyan-500 active-tab transition-colors" id="dtl-tab-comments" data-target="comments">
                             <i class="far fa-comments mr-1 text-cyan-600"></i> Comments / Chat
                         </button>
-                        <button onclick="switchTab('activity')" class="px-3.5 py-1.5 text-xs font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-800 transition-colors" id="dtl-tab-activity" data-target="activity">
+                        <button onclick="switchTab('activity')" class="px-3 py-1.5 text-xs font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-800 transition-colors" id="dtl-tab-activity" data-target="activity">
                             <i class="fas fa-history mr-1"></i> History Log
                         </button>
-                        <button onclick="switchTab('files')" class="px-3.5 py-1.5 text-xs font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-800 transition-colors" id="dtl-tab-files" data-target="files">
+                        <button onclick="switchTab('files')" class="px-3 py-1.5 text-xs font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-800 transition-colors" id="dtl-tab-files" data-target="files">
                             <i class="fas fa-paperclip mr-1"></i> Attachments
                         </button>
                     </div>
@@ -253,8 +254,8 @@
                 <!-- Inventory Parts Used -->
                 @if (canManageParts)
                 {
-                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div class="px-3.5 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-3 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                             <span class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
                                 <i class="fas fa-box-open text-amber-500"></i> Parts Used
                             </span>
@@ -288,87 +289,80 @@
 
             </div>
 
-            <!-- RIGHT COLUMN: SLA, People, Properties (4 cols) -->
-            <div class="lg:col-span-4 space-y-3.5">
-                
-                <!-- SLA Timeline -->
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5">
-                    <div class="flex items-center justify-between mb-1.5">
-                        <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fas fa-stopwatch text-cyan-600"></i> SLA Timeline
-                        </span>
-                        <span id="slaPercentText" class="text-xs font-black text-cyan-600">--</span>
-                    </div>
-                    <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
-                        <div id="slaProgressBar" class="h-full bg-cyan-500 rounded-full transition-all duration-300" style="width:0%;"></div>
-                    </div>
-                    <div class="flex justify-between text-[10px] text-slate-500 font-medium">
-                        <span><i class="fas fa-clock mr-0.5 text-slate-400"></i> @Model.CreatedOn?.ToString("dd MMM HH:mm")</span>
-                        <span><i class="fas fa-flag-checkered mr-0.5 text-slate-400"></i> @(Model.DueDate?.ToString("dd MMM HH:mm") ?? "No SLA")</span>
-                    </div>
-                </div>
+            <!-- RIGHT COLUMN: SLA, People, Properties (4 cols) — one unified panel -->
+            <div class="lg:col-span-4">
+                <div class="bg-white rounded-lg border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
 
-                <!-- Assignment & People -->
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5 space-y-3">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                        <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider">People</span>
+                    <!-- SLA Timeline -->
+                    <div class="p-3">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fas fa-stopwatch text-cyan-600"></i> SLA Timeline
+                            </span>
+                            <span id="slaPercentText" class="text-xs font-black text-cyan-600">--</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1.5">
+                            <div id="slaProgressBar" class="h-full bg-cyan-500 rounded-full transition-all duration-300" style="width:0%;"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-500 font-medium">
+                            <span><i class="fas fa-clock mr-0.5 text-slate-400"></i> @Model.CreatedOn?.ToString("dd MMM HH:mm")</span>
+                            <span><i class="fas fa-flag-checkered mr-0.5 text-slate-400"></i> @(Model.DueDate?.ToString("dd MMM HH:mm") ?? "No SLA")</span>
+                        </div>
                     </div>
 
-                    <!-- Assigned Engineer -->
-                    <div>
-                        <div class="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase mb-1">
-                            <span>Assigned Engineer</span>
-                            <button onclick="openAssignModalDirect()" class="text-cyan-600 hover:text-cyan-700 font-bold text-[11px]">
-                                @(string.IsNullOrEmpty(Model.AssignedToName) ? "+ Assign" : "Change")
+                    <!-- People -->
+                    <div class="p-3 grid grid-cols-2 gap-3">
+                        <!-- Assigned Engineer -->
+                        <div class="min-w-0">
+                            <div class="flex items-center justify-between text-[9px] font-bold text-slate-400 uppercase mb-1">
+                                <span>Engineer</span>
+                                <button onclick="openAssignModalDirect()" class="text-cyan-600 hover:text-cyan-700 font-bold text-[10px] normal-case">
+                                    @(string.IsNullOrEmpty(Model.AssignedToName) ? "+ Assign" : "Change")
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <div class="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 text-[10px] font-bold flex-shrink-0">
+                                    @(string.IsNullOrEmpty(Model.AssignedToName) ? "?" : Model.AssignedToName.Substring(0,1).ToUpper())
+                                </div>
+                                <div class="text-xs font-bold text-slate-800 truncate">
+                                    @(string.IsNullOrEmpty(Model.AssignedToName) ? "Unassigned" : Model.AssignedToName)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Requester -->
+                        <div class="min-w-0">
+                            <div class="text-[9px] font-bold text-slate-400 uppercase mb-1">Requester</div>
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <div class="w-6 h-6 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                                    @(Model.RequesterName?.Substring(0,1).ToUpper() ?? "U")
+                                </div>
+                                <div class="flex flex-col min-w-0">
+                                    <span class="text-xs font-bold text-slate-800 truncate" title="@Model.RequesterName">@Model.RequesterName</span>
+                                    <span class="text-[9px] text-slate-400 truncate" title="@Model.RequesterEmail">@Model.RequesterEmail</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Classification -->
+                    <div class="p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Classification</span>
+                            <button onclick="openTriageModal()" class="text-cyan-600 hover:text-cyan-700 text-[10px] font-bold">
+                                <i class="fas fa-pencil-alt mr-0.5"></i> Edit
                             </button>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold flex-shrink-0">
-                                @(string.IsNullOrEmpty(Model.AssignedToName) ? "?" : Model.AssignedToName.Substring(0,1).ToUpper())
-                            </div>
-                            <div class="text-xs font-bold text-slate-800 truncate">
-                                @(string.IsNullOrEmpty(Model.AssignedToName) ? "Unassigned" : Model.AssignedToName)
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Requester -->
-                    <div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Requester</div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-7 h-7 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                @(Model.RequesterName?.Substring(0,1).ToUpper() ?? "U")
-                            </div>
-                            <div class="flex flex-col min-w-0">
-                                <span class="text-xs font-bold text-slate-800 truncate">@Model.RequesterName</span>
-                                <span class="text-[10px] text-slate-400 truncate">@Model.RequesterEmail</span>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Priority</span>
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                                <span class="w-2 h-2 rounded-full" id="priorityDot"></span>
+                                <span id="priorityTextDisplay">@Model.Priority</span>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Classification & Properties -->
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5 space-y-3">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                        <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Classification</span>
-                        <button onclick="openTriageModal()" class="text-cyan-600 hover:text-cyan-700 text-[10px] font-bold">
-                            <i class="fas fa-pencil-alt mr-0.5"></i> Edit
-                        </button>
-                    </div>
-
-                    <!-- Priority -->
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase">Priority</span>
-                        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                            <span class="w-2 h-2 rounded-full" id="priorityDot"></span>
-                            <span id="priorityTextDisplay">@Model.Priority</span>
-                        </div>
-                    </div>
-
-                    <!-- Category -->
-                    <div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Category</div>
-                        <div class="text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100" id="categoryTextDisplay">
+                        <div class="text-xs font-semibold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate" id="categoryTextDisplay">
                             @(Model.Category ?? "-")
                             @if (!string.IsNullOrEmpty(Model.Subcategory)) { <span class="text-slate-400 mx-0.5">&gt;</span> @Model.Subcategory }
                             @if (!string.IsNullOrEmpty(Model.Item)) { <span class="text-slate-400 mx-0.5">&gt;</span> @Model.Item }
@@ -376,65 +370,88 @@
                     </div>
 
                     <!-- Dates -->
-                    <div class="pt-2 border-t border-slate-100 space-y-1 text-[10px] text-slate-500">
+                    <div class="p-3 space-y-1 text-[10px] text-slate-500">
                         <div class="flex justify-between">
-                            <span>Created:</span>
+                            <span>Created</span>
                             <span class="font-semibold text-slate-700">@Model.CreatedOn?.ToString("dd MMM yyyy, HH:mm")</span>
                         </div>
                         @if (Model.DueDate.HasValue) {
                         <div class="flex justify-between">
-                            <span>Due Target:</span>
+                            <span>Due Target</span>
                             <span class="font-semibold text-slate-700">@Model.DueDate?.ToString("dd MMM yyyy, HH:mm")</span>
                         </div>
                         }
                         @if (Model.ResolvedDate.HasValue) {
                         <div class="flex justify-between">
-                            <span>Resolved:</span>
+                            <span>Resolved</span>
                             <span class="font-semibold text-emerald-600">@Model.ResolvedDate?.ToString("dd MMM yyyy, HH:mm")</span>
                         </div>
                         }
                     </div>
 
                 </div>
-
             </div>
         </div>
     </div>
 </div>
 <!-- Approve -->
-<div id="approveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-        <div class="modal-hd-cyan px-5 py-3.5 flex items-center gap-2.5">
+<div id="approveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div class="modal-hd-cyan px-3 py-2.5 flex items-center gap-2.5">
             <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></div>
-            <h3 class="font-bold text-white text-sm">Approve Ticket</h3>
+            <h3 class="font-bold text-white text-sm">Approve & Triage Ticket</h3>
             <button onclick="closeModal('approveModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-5">
-            <div id="approveTriageFields" class="grid grid-cols-2 gap-3 mb-3">
-                <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Set Priority</label>
-                    <select id="approvePriority" class="inp-brand"><option value="">-- Keep Current --</option></select></div>
-                <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Set Category</label>
-                    <select id="approveCategory" class="inp-brand"><option value="">-- Keep Current --</option></select></div>
+        <div class="p-4">
+            <div id="approveTriageFields" class="space-y-3 mb-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Category <span class="text-rose-500">*</span></label>
+                        <select id="approveCategory" class="inp-brand text-xs" onchange="onApproveCategoryChange()">
+                            <option value="">-- Select Category --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Subcategory <span class="text-rose-500">*</span></label>
+                        <select id="approveSubcategory" class="inp-brand text-xs" disabled onchange="onApproveSubcategoryChange()">
+                            <option value="">-- Select Category First --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Item <span class="text-rose-500">*</span></label>
+                        <select id="approveItem" class="inp-brand text-xs" disabled>
+                            <option value="">-- Select Subcategory First --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Priority <span class="text-rose-500">*</span></label>
+                        <select id="approvePriority" class="inp-brand text-xs">
+                            <option value="">-- Select Priority --</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Remarks</label>
-            <textarea id="approveRemarks" class="inp-brand mb-4" rows="2" placeholder="Any comments..."></textarea>
+            <textarea id="approveRemarks" class="inp-brand mb-4 text-xs" rows="2" placeholder="Any comments..."></textarea>
             <div class="flex gap-2">
                 <button onclick="closeModal('approveModal')" class="flex-1 py-2 text-sm font-semibold btn-ghost rounded-lg">Cancel</button>
-                <button onclick="submitApprove()" class="flex-1 py-2 text-sm font-bold btn-lime rounded-lg">Confirm Approve</button>
+                <button onclick="submitApprove()" class="flex-1 py-2 text-sm font-bold btn-lime rounded-lg">Approve & Triage</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Status Update -->
-<div id="statusModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-        <div class="modal-hd-cyan px-5 py-3.5 flex items-center gap-2.5">
+<div id="statusModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg w-full max-w-sm shadow-2xl overflow-hidden">
+        <div class="modal-hd-cyan px-3 py-2.5 flex items-center gap-2.5">
             <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-sync text-white text-xs"></i></div>
             <h3 class="font-bold text-white text-sm">Update Status &amp; Triage</h3>
             <button onclick="closeModal('statusModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-5">
+        <div class="p-3">
             <div class="mb-3">
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">New Status <span class="text-red-500">*</span></label>
                 <select id="newStatusSelect" class="inp-brand font-semibold text-slate-800">
@@ -458,14 +475,14 @@
 </div>
 
 <!-- Quick Triage -->
-<div id="triageModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden">
-        <div class="modal-hd-cyan px-5 py-3.5 flex items-center gap-2.5">
+<div id="triageModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg w-full max-w-xs shadow-2xl overflow-hidden">
+        <div class="modal-hd-cyan px-3 py-2.5 flex items-center gap-2.5">
             <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-tags text-white text-xs"></i></div>
             <h3 class="font-bold text-white text-sm">Edit Triage</h3>
             <button onclick="closeModal('triageModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-5 space-y-3">
+        <div class="p-3 space-y-3">
             <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Priority</label>
                 <select id="quickPriority" class="inp-brand"></select></div>
             <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Category</label>
@@ -479,14 +496,14 @@
 </div>
 
 <!-- Reject -->
-<div id="rejectModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden">
-        <div class="modal-hd-red px-5 py-3.5 flex items-center gap-2.5">
+<div id="rejectModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg w-full max-w-xs shadow-2xl overflow-hidden">
+        <div class="modal-hd-red px-3 py-2.5 flex items-center gap-2.5">
             <i class="fas fa-times-circle text-red-500 text-sm"></i>
             <h3 class="font-bold text-red-800 text-sm">Reject Ticket</h3>
             <button onclick="closeModal('rejectModal')" class="ml-auto text-gray-400 hover:text-red-400"><i class="fas fa-times text-sm"></i></button>
         </div>
-        <div class="p-5">
+        <div class="p-3">
             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Reason</label>
             <textarea id="rejectRemarks" class="inp-brand mb-4" rows="3" placeholder="Explain why..."></textarea>
             <div class="flex gap-2">
@@ -498,14 +515,14 @@
 </div>
 
 <!-- Assign -->
-<div id="assignModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-        <div class="modal-hd-cyan px-5 py-3.5 flex items-center gap-2.5">
+<div id="assignModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg w-full max-w-sm shadow-2xl overflow-hidden">
+        <div class="modal-hd-cyan px-3 py-2.5 flex items-center gap-2.5">
             <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-user-tag text-white text-xs"></i></div>
             <h3 class="font-bold text-white text-sm">Assign Engineer</h3>
             <button onclick="closeModal('assignModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-5">
+        <div class="p-3">
             <input type="hidden" id="selectedEngineerId">
             <input type="hidden" id="selectedEngineerName">
             <div id="engineerList" class="max-h-52 overflow-y-auto space-y-2 mb-3"></div>
@@ -520,14 +537,14 @@
 </div>
 
 <!-- Add Part -->
-<div id="partModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden">
-        <div class="modal-hd-orange px-5 py-3.5 flex items-center gap-2.5">
+<div id="partModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg w-full max-w-xs shadow-2xl overflow-hidden">
+        <div class="modal-hd-orange px-3 py-2.5 flex items-center gap-2.5">
             <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-microchip text-white text-xs"></i></div>
             <h3 class="font-bold text-white text-sm">Add Spare Part</h3>
             <button onclick="closeModal('partModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-5 space-y-3">
+        <div class="p-3 space-y-3">
             <div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Part Name</label>
                 <input type="text" id="partName" list="inventoryPartsList" class="inp-brand" autocomplete="off" onchange="onPartSelect(this)">
@@ -547,14 +564,14 @@
 </div>
 
 <!-- Resolve -->
-<div id="resolveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-        <div class="modal-hd-lime px-5 py-3.5 flex items-center gap-2.5">
+<div id="resolveModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-white rounded-lg w-full max-w-sm shadow-2xl overflow-hidden">
+        <div class="modal-hd-lime px-3 py-2.5 flex items-center gap-2.5">
             <div class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center"><i class="fas fa-check-circle text-white text-xs"></i></div>
             <h3 class="font-bold text-white text-sm">Resolve Ticket</h3>
             <button onclick="closeModal('resolveModal')" class="ml-auto w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"><i class="fas fa-times text-white text-xs"></i></button>
         </div>
-        <div class="p-5">
+        <div class="p-3">
             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Resolution Notes</label>
             <textarea id="resolveNotes" class="inp-brand mb-4" rows="4" placeholder="Describe what was done to resolve this ticket..."></textarea>
             <div class="flex gap-2">
@@ -646,7 +663,7 @@
             if (err.toString().includes("Failed to fetch")) {
                 const apiBase = '@ViewBag.ApiBaseUrl';
                 if (!document.getElementById('sslBypassAlert')) {
-                    $('body').append(`<div id="sslBypassAlert" class="fixed bottom-20 left-4 bg-red-600 text-white px-4 py-3 rounded-xl shadow-2xl text-sm z-50 max-w-sm border border-red-500">
+                    $('body').append(`<div id="sslBypassAlert" class="fixed bottom-20 left-4 bg-red-600 text-white px-3 py-3 rounded-lg shadow-2xl text-sm z-50 max-w-sm border border-red-500">
                         <div class="flex items-start gap-3">
                             <i class="fas fa-shield-alt text-xl mt-0.5"></i>
                             <div>
@@ -707,6 +724,7 @@
         else if (p==='medium') { pColor='#F59E0B'; pStripe='linear-gradient(90deg,#F59E0B,#D97706)'; }
         else if (p==='low')    { pColor='#B4D334'; pStripe='linear-gradient(90deg,#B4D334,#8FB829)'; }
         $('#priorityStripe').css('background', pStripe);
+        $('#headerAccentBar').css('background', pStripe);
         $('#priorityDot').css('background', pColor);
 
         let dotColor='#9ca3af';
@@ -731,6 +749,19 @@
         $('#approveRemarks').val('');
         loadPrioritiesForApprove();
         loadCategoriesForApprove();
+
+        const curPriority = currentPriority && currentPriority.toUpperCase() !== 'NEEDS TRIAGE' ? currentPriority : 'Medium';
+        $('#approvePriority').val(curPriority);
+
+        if (currentCategory) {
+            $('#approveCategory').val(currentCategory);
+            onApproveCategoryChange();
+        } else {
+            $('#approveCategory').val('');
+            $('#approveSubcategory').prop('disabled', true).html('<option value="">-- Select Category First --</option>');
+            $('#approveItem').prop('disabled', true).html('<option value="">-- Select Subcategory First --</option>');
+        }
+
         $('#approveTriageFields').show();
         openModal('approveModal');
     }
@@ -752,32 +783,32 @@
 
         // 1. Primary Action Buttons based on Status
         if ((st === 'OPEN' || sysAction === 'OPEN') && (canApprove || canBypassWorkflow)) {
-            container.append(`<button onclick="openApproveModal()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-check text-[10px]"></i> Approve</button>`);
-            container.append(`<button onclick="openModal('rejectModal')" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-times text-[10px]"></i> Reject</button>`);
+            container.append(`<button onclick="openApproveModal()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-check text-[10px]"></i> Approve</button>`);
+            container.append(`<button onclick="openModal('rejectModal')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-times text-[10px]"></i> Reject</button>`);
         } 
         else if ((st === 'APPROVED' || sysAction === 'APPROVE' || (!isClosed && (st.includes('APPROV') || (!assigneeId && st !== 'RESOLVED' && st !== 'CLOSED')))) && (canAssign || canBypassWorkflow)) {
             // PROMINENT ASSIGN ENGINEER BUTTON
-            container.append(`<button onclick="openAssignModalDirect()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-user-plus text-[10px]"></i> Assign Engineer</button>`);
+            container.append(`<button onclick="openAssignModalDirect()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-user-plus text-[10px]"></i> Assign Engineer</button>`);
         }
         
         if (st === 'ASSIGNED' || sysAction === 'ASSIGN') {
-            container.append(`<button onclick="startWork()" class="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-play text-[10px]"></i> Start Work</button>`);
+            container.append(`<button onclick="startWork()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-play text-[10px]"></i> Start Work</button>`);
             if (canAssign || canBypassWorkflow) {
                 container.append(`<button onclick="openAssignModalDirect()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-slate-300 transition-all"><i class="fas fa-user-edit text-[10px]"></i> Reassign</button>`);
             }
         } 
         else if (st === 'IN PROGRESS' || st === 'INPROGRESS' || sysAction === 'STARTWORK') {
-            container.append(`<button onclick="openModal('resolveModal')" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-check-circle text-[10px]"></i> Resolve Ticket</button>`);
+            container.append(`<button onclick="openModal('resolveModal')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-check-circle text-[10px]"></i> Resolve Ticket</button>`);
             if (canAssign || canBypassWorkflow) {
                 container.append(`<button onclick="openAssignModalDirect()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-slate-300 transition-all"><i class="fas fa-user-edit text-[10px]"></i> Reassign</button>`);
             }
         } 
         else if (st === 'RESOLVED' || sysAction === 'RESOLVE') {
-            container.append(`<button onclick="doStatusUpdate('Closed', 'Ticket closed')" class="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-lock text-[10px]"></i> Close Ticket</button>`);
-            container.append(`<button onclick="doStatusUpdate('In Progress', 'Ticket reopened by user')" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-slate-300 transition-all"><i class="fas fa-undo text-[10px]"></i> Reopen</button>`);
+            container.append(`<button onclick="doStatusUpdate('Closed', 'Ticket closed')" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm transition-all"><i class="fas fa-lock text-[10px]"></i> Close Ticket</button>`);
+            container.append(`<button onclick="doStatusUpdate('In Progress', 'Ticket reopened by user')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-slate-300 transition-all"><i class="fas fa-undo text-[10px]"></i> Reopen</button>`);
         }
         else if (isClosed) {
-            container.append(`<button onclick="doStatusUpdate('Open', 'Ticket reopened by admin')" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-slate-300 transition-all"><i class="fas fa-undo text-[10px]"></i> Reopen</button>`);
+            container.append(`<button onclick="doStatusUpdate('Open', 'Ticket reopened by admin')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1.5 border border-slate-300 transition-all"><i class="fas fa-undo text-[10px]"></i> Reopen</button>`);
         }
 
         // 2. Custom transitions from DB mapping
@@ -857,10 +888,51 @@
     }
 
     function submitApprove() {
+        const category = $('#approveCategory').val();
+        const subcategory = $('#approveSubcategory').val();
+        const item = $('#approveItem').val();
+        const priority = $('#approvePriority').val();
+
+        if (!category) {
+            sysAlert('Please select a Category.', 'warning');
+            $('#approveCategory').focus();
+            return;
+        }
+        if ($('#approveSubcategory option').length > 1 && !subcategory) {
+            sysAlert('Please select a Subcategory.', 'warning');
+            $('#approveSubcategory').focus();
+            return;
+        }
+        if ($('#approveItem option').length > 1 && !item) {
+            sysAlert('Please select an Item.', 'warning');
+            $('#approveItem').focus();
+            return;
+        }
+        if (!priority) {
+            sysAlert('Please select a Priority.', 'warning');
+            $('#approvePriority').focus();
+            return;
+        }
+
         closeModal('approveModal');
-        $.ajax({ url:'@Url.Action("ApproveTicket","ServiceDesk")', type:'POST', contentType:'application/json',
-            data: JSON.stringify({ ticketId, remarks:$('#approveRemarks').val()||'Approved', username:currentUser, priority:$('#approvePriority').val(), category:$('#approveCategory').val(), bypass:canBypassWorkflow }),
-            success: function(res){ if(res.success) location.reload(); else sysAlert(res.message,'error'); }
+        $.ajax({ 
+            url: '@Url.Action("ApproveTicket","ServiceDesk")', 
+            type: 'POST', 
+            contentType: 'application/json',
+            data: JSON.stringify({ 
+                ticketId, 
+                remarks: $('#approveRemarks').val() || 'Approved', 
+                username: currentUser, 
+                priority: priority, 
+                category: category, 
+                subcategory: subcategory, 
+                item: item, 
+                bypass: canBypassWorkflow 
+            }),
+            success: function(res) { 
+                if (res.success) location.reload(); 
+                else sysAlert(res.message, 'error'); 
+            }
         });
     }
 
@@ -902,16 +974,73 @@
 
     function loadCategoriesForApprove() {
         $.get('@Url.Action("GetCategories","ServiceDesk")', function(data) {
-            const selects = $('#approveCategory, #statusCategory, #quickCategory');
-            selects.html('<option value="">-- Keep Current --</option>');
+            window.allTicketCategories = data || [];
+
+            const catSelect = $('#approveCategory');
+            catSelect.html('<option value="">-- Select Category --</option>');
+
+            const otherSelects = $('#statusCategory, #quickCategory');
+            otherSelects.html('<option value="">-- Keep Current --</option>');
+
             if (data && data.length > 0) {
+                data.filter(c => !c.parentCategory).forEach(c => {
+                    catSelect.append(`<option value="${c.categoryName}">${c.categoryName}</option>`);
+                });
                 data.forEach(c => { 
                     const name = c.categoryName || c.CategoryName || c; 
-                    selects.append(`<option value="${name}">${name}</option>`); 
+                    otherSelects.append(`<option value="${name}">${name}</option>`); 
                 });
                 $('#quickCategory').val("@Html.Raw(Model.Category)");
             }
         });
+    }
+
+    function onApproveCategoryChange() {
+        const selectedCat = $('#approveCategory').val();
+        const subSelect = $('#approveSubcategory');
+        const itemSelect = $('#approveItem');
+
+        itemSelect.prop('disabled', true).html('<option value="">-- Select Subcategory First --</option>');
+
+        if (!selectedCat) {
+            subSelect.prop('disabled', true).html('<option value="">-- Select Category First --</option>');
+            return;
+        }
+
+        if (window.allTicketCategories) {
+            const subs = window.allTicketCategories.filter(c => c.parentCategory === selectedCat);
+            if (subs.length > 0) {
+                subSelect.prop('disabled', false).html('<option value="">-- Select Subcategory --</option>');
+                subs.forEach(c => subSelect.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
+            } else {
+                subSelect.prop('disabled', false).html('<option value="General">General</option>');
+                itemSelect.prop('disabled', false).html('<option value="General">General</option>');
+            }
+        }
+    }
+
+    function onApproveSubcategoryChange() {
+        const selectedSub = $('#approveSubcategory').val();
+        const itemSelect = $('#approveItem');
+
+        if (!selectedSub || selectedSub === 'General') {
+            if (selectedSub === 'General') {
+                itemSelect.prop('disabled', false).html('<option value="General">General</option>');
+            } else {
+                itemSelect.prop('disabled', true).html('<option value="">-- Select Subcategory First --</option>');
+            }
+            return;
+        }
+
+        if (window.allTicketCategories) {
+            const items = window.allTicketCategories.filter(c => c.parentCategory === selectedSub);
+            if (items.length > 0) {
+                itemSelect.prop('disabled', false).html('<option value="">-- Select Item --</option>');
+                items.forEach(c => itemSelect.append(`<option value="${c.categoryName}">${c.categoryName}</option>`));
+            } else {
+                itemSelect.prop('disabled', false).html('<option value="General">General</option>');
+            }
+        }
     }
 
     function loadPrioritiesForApprove() {
@@ -931,7 +1060,7 @@
     function loadEngineers() {
         $.get('@Url.Action("GetDetailedEngineers","ServiceDesk")', function(data) {
             const container = $('#engineerList').empty();
-            if (!data||data.length===0) { container.append('<div class="text-center text-xs text-slate-400 py-4">No engineers found</div>'); return; }
+            if (!data||data.length===0) { container.append('<div class="text-center text-xs text-slate-400 py-3">No engineers found</div>'); return; }
             data.forEach((e, idx) => {
                 let badgeColor='#B4D334', badgeBg='#F1F8E9';
                 if (e.currentStatus==='Busy')       { badgeColor='#F97316'; badgeBg='#FFF7ED'; }
@@ -1047,7 +1176,7 @@
                 const fileIcon = getFileIcon(f.fileName);
                 const sizeStr = f.fileSize>1048576 ? (f.fileSize/1048576).toFixed(1)+' MB' : (f.fileSize/1024).toFixed(1)+' KB';
                 const downloadUrl = `@Url.Action("DownloadAttachment","ServiceDesk")?path=${encodeURIComponent(f.filePath)}&name=${encodeURIComponent(f.fileName)}`;
-                list.append(`<div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                list.append(`<div class="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
                     <div class="flex items-center gap-2.5">
                         <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#F1F5F9;">
                             <i class="fas ${fileIcon} text-sm"></i>
@@ -1109,7 +1238,7 @@
             const tbody = document.getElementById('partsTableBody');
             if (!tbody) return;
             if (!parts||parts.length===0) {
-                tbody.innerHTML='<tr><td colspan="5" class="py-4 text-center text-slate-400 text-sm"><i class="fas fa-box-open mr-1"></i>No parts added</td></tr>';
+                tbody.innerHTML='<tr><td colspan="5" class="py-3 text-center text-slate-400 text-sm"><i class="fas fa-box-open mr-1"></i>No parts added</td></tr>';
                 const gt = document.getElementById('grandTotal');
                 if (gt) gt.innerText='₹0.00';
                 return;

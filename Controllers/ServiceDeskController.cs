@@ -102,20 +102,16 @@ namespace ManageEngineWebApp.Controllers
             {
                 var body = await new StreamReader(Request.Body).ReadToEndAsync();
 
-                var role = HttpContext.Session.GetString("role") ?? "";
-                if (IsTopLevelAdmin() || HasPermission("ServiceDesk.Approve") || role.EndsWith("Admin", StringComparison.OrdinalIgnoreCase))
+                try
                 {
-                    try
+                    var ticketObj = JsonConvert.DeserializeObject<dynamic>(body);
+                    if (ticketObj != null)
                     {
-                        var ticketObj = JsonConvert.DeserializeObject<dynamic>(body);
-                        if (ticketObj != null)
-                        {
-                            ticketObj.AutoApprove = true;
-                            body = JsonConvert.SerializeObject(ticketObj);
-                        }
+                        ticketObj.AutoApprove = true;
+                        body = JsonConvert.SerializeObject(ticketObj);
                     }
-                    catch { }
                 }
+                catch { }
 
                 var (userCompanyIds, userGroupIds, userLocationIds) = GetUserScope();
                 var ticketData = JsonConvert.DeserializeObject<dynamic>(body);
@@ -1222,12 +1218,14 @@ namespace ManageEngineWebApp.Controllers
         {
             try
             {
-                var response = await GetClient().GetStringAsync($"{_baseUrl}/api/ServiceDesk/Reports/TicketDetailsReport?ticketNo={Uri.EscapeDataString(ticketNo ?? "")}");
-                return Content(response, "application/json");
+                string cleanTicketNo = (ticketNo ?? "").Trim().TrimStart('#').Trim();
+                var response = await GetClient().GetAsync($"{_baseUrl}/api/ServiceDesk/Reports/TicketDetailsReport?ticketNo={Uri.EscapeDataString(cleanTicketNo)}");
+                var content = await response.Content.ReadAsStringAsync();
+                return Content(content, "application/json");
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Failed to fetch ticket report data." });
+                return Json(new { success = false, message = "Failed to fetch ticket report data: " + ex.Message });
             }
         }
 

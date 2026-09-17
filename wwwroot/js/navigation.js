@@ -86,23 +86,86 @@
         }
     }
 
+    window.sysnetGoBackToTickets = function (e) {
+        if (e) {
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
+        }
+        var ref = (document.referrer || "").toLowerCase();
+        if (window.history.length > 1 && ref && ref.indexOf("/servicedesk/tickets") !== -1) {
+            window.history.back();
+            return false;
+        }
+        window.location.replace("/ServiceDesk/Tickets");
+        return false;
+    };
+
+    window.sysnetGoBack = function (fallbackUrl) {
+        var path = (window.location.pathname || "").toLowerCase();
+        var ref = (document.referrer || "").toLowerCase();
+
+        // 1. Details or CreateTicket: return to Tickets cleanly
+        if (path.indexOf("/servicedesk/details") !== -1 || path.indexOf("/servicedesk/createticket") !== -1) {
+            window.sysnetGoBackToTickets();
+            return;
+        }
+
+        // 2. Tickets page: Back means Dashboard / Service Desk parent, never loop into child
+        if (path.indexOf("/servicedesk/tickets") !== -1) {
+            if (ref && (ref.indexOf("/servicedesk/details") !== -1 || ref.indexOf("/servicedesk/createticket") !== -1)) {
+                // Referrer was child view! History.back() would take us right back into child!
+                window.location.href = "/ServiceDesk";
+                return;
+            }
+            if (window.history.length > 1 && ref && ref.indexOf(window.location.host.toLowerCase()) !== -1) {
+                window.history.back();
+                return;
+            }
+            window.location.href = "/ServiceDesk";
+            return;
+        }
+
+        // 3. Other Service Desk subpages (Reports, SLA, Parts, Settings)
+        if (path.indexOf("/servicedesk") !== -1 && path !== "/servicedesk" && path !== "/servicedesk/index" && path !== "/servicedesk/dashboard") {
+            if (window.history.length > 1 && ref && ref.indexOf(window.location.host.toLowerCase()) !== -1 && ref.indexOf(path) === -1) {
+                window.history.back();
+                return;
+            }
+            window.location.href = "/ServiceDesk";
+            return;
+        }
+
+        if (fallbackUrl) {
+            window.location.href = fallbackUrl;
+            return;
+        }
+
+        // 4. General fallback
+        if (window.history.length > 1 && ref && ref.indexOf(window.location.host.toLowerCase()) !== -1) {
+            window.history.back();
+        } else {
+            window.location.href = "/";
+        }
+    };
+
     function initBreadcrumbs() {
         var breadcrumbs = document.getElementById("breadcrumbs");
         if (!breadcrumbs) return;
 
         var html = "";
+        var currentPath = (window.location.pathname || "").toLowerCase();
 
-        if (window.history.length > 1) {
-            html += '<button class="breadcrumb-back-btn" onclick="window.history.back()" title="Go back">';
+        // Show back button on all non-root pages or when history exists
+        if (window.history.length > 1 || (currentPath !== "/" && currentPath !== "/home" && currentPath !== "/home/index")) {
+            html += '<button type="button" class="breadcrumb-back-btn" onclick="window.sysnetGoBack()" title="Go back">';
             html += '<i class="fas fa-arrow-left"></i>';
             html += '</button>';
         }
 
-        html += '<a href="/" class="breadcrumb-link">Home</a>';
+        html += '<a href="/" class="breadcrumb-link"><i class="fas fa-home text-[11px] mr-1"></i>Home</a>';
 
-        var path = window.location.pathname.toLowerCase();
-        
-        if (path.indexOf("computersummary/deshboad") !== -1) {
+        // Context check for computersummary/deshboad
+        if (currentPath.indexOf("computersummary/deshboad") !== -1) {
             var ctx = window.SYSNET_CONTEXT || {};
             if (ctx.company) {
                 html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
@@ -116,18 +179,72 @@
             return;
         }
 
-        var segments = window.location.pathname.split("/").filter(Boolean);
-        if (segments.length > 0) {
-            var lastSegment = segments[segments.length - 1];
-            if (lastSegment.toLowerCase() === "index") {
-                lastSegment = segments[segments.length - 2] || "Home";
-            }
-            
-            var label = decodeURIComponent(lastSegment).split("-").join(" ").split("_").join(" ");
-            var capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
+        // Special dedicated handling for Service Desk module
+        if (currentPath.indexOf("/servicedesk") !== -1) {
+            var isRoot = currentPath === "/servicedesk" || currentPath === "/servicedesk/" || currentPath === "/servicedesk/index" || currentPath === "/servicedesk/dashboard";
             
             html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
-            html += '<span class="breadcrumb-current">' + capitalizedLabel + '</span>';
+            if (isRoot) {
+                html += '<span class="breadcrumb-current"><i class="fas fa-headset text-[11px] mr-1 text-cyan-600"></i>Service Desk</span>';
+            } else {
+                html += '<a href="/ServiceDesk" class="breadcrumb-link"><i class="fas fa-headset text-[11px] mr-1"></i>Service Desk</a>';
+            }
+
+            if (currentPath.indexOf("/servicedesk/tickets") !== -1) {
+                html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
+                html += '<span class="breadcrumb-current"><i class="fas fa-ticket-alt text-[10px] mr-1"></i>All Tickets</span>';
+            } else if (currentPath.indexOf("/servicedesk/createticket") !== -1) {
+                html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
+                html += '<a href="/ServiceDesk/Tickets" onclick="window.sysnetGoBackToTickets(event)" class="breadcrumb-link">Tickets</a>';
+                html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
+                html += '<span class="breadcrumb-current">New Request</span>';
+            } else if (currentPath.indexOf("/servicedesk/details") !== -1) {
+                html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
+                html += '<a href="/ServiceDesk/Tickets" onclick="window.sysnetGoBackToTickets(event)" class="breadcrumb-link">Tickets</a>';
+                html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
+                
+                var ticketNoEl = document.querySelector("#headerStatusBadge")?.previousElementSibling;
+                var ticketNo = ticketNoEl ? ticketNoEl.textContent.trim() : "";
+                html += '<span class="breadcrumb-current">' + (ticketNo ? ('Ticket ' + ticketNo) : 'Ticket Details') + '</span>';
+            } else if (currentPath.indexOf("/servicedesk/reports") !== -1) {
+                html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
+                html += '<span class="breadcrumb-current">Reports & Analytics</span>';
+            } else if (currentPath.indexOf("/servicedesk/slamanagement") !== -1) {
+                html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
+                html += '<span class="breadcrumb-current">SLA Policies</span>';
+            } else if (currentPath.indexOf("/servicedesk/partsinventory") !== -1) {
+                html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
+                html += '<span class="breadcrumb-current">Parts Inventory</span>';
+            } else if (currentPath.indexOf("/servicedesk/adminsettings") !== -1) {
+                html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
+                html += '<span class="breadcrumb-current">Admin Settings</span>';
+            }
+            breadcrumbs.innerHTML = html;
+            return;
+        }
+
+        // Generic fallback for all other modules with camelCase spacing
+        var segments = window.location.pathname.split("/").filter(Boolean);
+        if (segments.length > 0) {
+            for (var i = 0; i < segments.length; i++) {
+                var seg = segments[i];
+                if (seg.toLowerCase() === "index" && i > 0) continue;
+
+                var clean = decodeURIComponent(seg)
+                    .replace(/([a-z])([A-Z])/g, '$1 $2')
+                    .replace(/[-_]+/g, ' ')
+                    .trim();
+                var label = clean.charAt(0).toUpperCase() + clean.slice(1);
+
+                html += ' <i class="fas fa-chevron-right breadcrumb-separator"></i> ';
+                if (i === segments.length - 1 || (i === segments.length - 2 && segments[segments.length - 1].toLowerCase() === "index")) {
+                    html += '<span class="breadcrumb-current">' + label + '</span>';
+                    break;
+                } else {
+                    var segPath = "/" + segments.slice(0, i + 1).join("/");
+                    html += '<a href="' + segPath + '" class="breadcrumb-link">' + label + '</a>';
+                }
+            }
         }
 
         breadcrumbs.innerHTML = html;
