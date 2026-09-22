@@ -1,7 +1,7 @@
-@* Compact switch form � Add / Edit modal *@
-@model ManageEngineWebApp.Models.SwitchMaster
+﻿@model ManageEngineWebApp.Models.SwitchMaster
 @{
     var formLocations = ViewBag.Locations as List<ManageEngineWebApp.Models.Locations> ?? new List<ManageEngineWebApp.Models.Locations>();
+    var formTemplates = ViewBag.Templates as List<ManageEngineWebApp.Models.SwitchMoniterModels.SwitchTemplate> ?? new List<ManageEngineWebApp.Models.SwitchMoniterModels.SwitchTemplate>();
 
     bool locationLocked = Model.LocationId.HasValue
         && formLocations.Count == 1
@@ -118,12 +118,45 @@
     .tog-track.on .tog-thumb {
         transform: translateX(16px);
     }
+
+    .upload-zone {
+        border: 1.5px dashed #cbd5e1;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+        background: #f8fafc;
+    }
+
+    .oid-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        background: #fff;
+        font-size: 10px;
+    }
+
+        .oid-row + .oid-row {
+            margin-top: 4px;
+        }
+
+    .oid-badge {
+        font-size: 8px;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: #eef2ff;
+        color: #4338ca;
+        white-space: nowrap;
+    }
 </style>
 
-<div class="space-y-3">
+<div class="space-y-2.5">
+    @Html.AntiForgeryToken()
     <input type="hidden" asp-for="Id" />
     <input type="hidden" asp-for="PollingMode" value="SNMP" />
-
     <!-- Device Name -->
     <div>
         <label class="form-label">Device Name <span class="text-red-500 normal-case">*</span></label>
@@ -140,6 +173,7 @@
         <div>
             <label class="form-label">IP Address <span class="text-red-500 normal-case">*</span></label>
             <input asp-for="IpAddress"
+                   id="IpAddress"
                    placeholder="192.168.1.1"
                    autocomplete="off"
                    class="form-input font-mono"
@@ -148,9 +182,48 @@
         <div>
             <label class="form-label">SNMP Community</label>
             <input asp-for="Community"
+                   id="Community"
                    placeholder="public"
                    class="form-input font-mono" />
         </div>
+    </div>
+
+    <!-- Switch template — assign an existing, reusable template. Building new
+         templates happens on a separate page (Manage Templates), decoupled
+         from any one device, so it's clear a template is never tied to an IP. -->
+    <div>
+        <div class="flex items-center justify-between mb-1">
+            <label class="form-label mb-0">Switch Template</label>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="refreshTemplateList()" title="Refresh list" class="text-gray-400 hover:text-[var(--brand)] text-[10px]">
+                    <i class="fas fa-sync-alt" id="refreshTplIcon"></i>
+                </button>
+                <a href="/SwitchMonitor/Templates" class="text-[10px] font-semibold text-[var(--brand)] hover:underline flex items-center gap-1">
+                    <i class="fas fa-external-link-alt"></i> Manage Templates
+                </a>
+            </div>
+        </div>
+
+        <select asp-for="TemplateId" id="TemplateIdSelect" class="form-select font-medium">
+            <option value="">— No template (basic polling only) —</option>
+            @foreach (var t in formTemplates)
+            {
+                if (Model.TemplateId == t.Id)
+                {
+                    <option value="@t.Id" data-name="@t.Name" selected>@t.Name (@t.ItemCount items)</option>
+                }
+                else
+                {
+                    <option value="@t.Id" data-name="@t.Name">@t.Name (@t.ItemCount items)</option>
+                }
+            }
+        </select>
+        <p class="form-hint" id="templateHint">
+            Optional. One template can be assigned to any number of switches of the same model — it's not tied to
+            this device's IP. Don't see the model you need? Build it once under
+            <a href="/SwitchMonitor/Templates" class="text-[var(--brand)] hover:underline">Manage Templates</a>,
+            then hit refresh here.
+        </p>
     </div>
 
     <!-- Location + Device Type -->
@@ -168,7 +241,7 @@
             else
             {
                 <select asp-for="LocationId" id="LocationId" class="form-select" required>
-                    <option value="">� Select �</option>
+                    <option value="">— Select —</option>
                     @foreach (var loc in formLocations)
                     {
                         if (Model.LocationId == loc.Id)
@@ -201,17 +274,61 @@
             <div class="tog-thumb"></div>
         </div>
         <div>
-            <label for="IsActiveToggle" class="text-xs font-semibold text-gray-700 cursor-pointer" onclick="toggleActive()">Active Polling</label>
+            <label class="text-xs font-semibold text-gray-700 cursor-pointer" onclick="toggleActive()">Active Polling</label>
             <p class="form-hint">Enable SNMP polling for this device</p>
         </div>
     </div>
 </div>
 
 <script>
-    function toggleActive() {
-        const cb    = document.getElementById('IsActiveToggle');
-        const track = document.getElementById('togTrack');
-        cb.checked = !cb.checked;
-        if (cb.checked) track.classList.add('on'); else track.classList.remove('on');
-    }
+    /*  NOTE: this partial is injected into the modal with innerHTML and the host
+        page re-executes this block via setModalBody(). It therefore must be safe
+        to run MORE THAN ONCE — hence the IIFE, window-scoped state and
+        window-scoped functions (no top-level `let`/`function` redeclarations).  */
+    (function () {
+
+        /* ───────── Active Polling toggle ───────── */
+        window.toggleActive = function () {
+            const cb = document.getElementById('IsActiveToggle');
+            const track = document.getElementById('togTrack');
+            if (!cb || !track) return;
+            cb.checked = !cb.checked;
+            track.classList.toggle('on', cb.checked);
+        };
+
+        /* ───────── Refresh the template dropdown after creating one on the
+           standalone Manage Templates page (opened in a new tab) ───────── */
+        window.refreshTemplateList = function () {
+            const icon = document.getElementById('refreshTplIcon');
+            icon?.classList.add('fa-spin');
+
+            fetch('/SwitchMonitor/GetTemplatesJson')
+                .then(r => r.json())
+                .then(templates => {
+                    if (!Array.isArray(templates)) return;
+                    const select = document.getElementById('TemplateIdSelect');
+                    const currentValue = select.value;
+
+                    select.innerHTML = '<option value="">— No template (basic polling only) —</option>';
+                    templates.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.text = `${t.name} (${t.itemCount} items)`;
+                        opt.setAttribute('data-name', t.name);
+                        select.appendChild(opt);
+                    });
+
+                    if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
+                        select.value = currentValue;
+                    }
+                })
+                .catch(() => {})
+                .finally(() => icon?.classList.remove('fa-spin'));
+        };
+
+        /* Sync the toggle pill with the model value on (re)load */
+        const activeCb = document.getElementById('IsActiveToggle');
+        if (activeCb) document.getElementById('togTrack').classList.toggle('on', activeCb.checked);
+
+    })();
 </script>

@@ -157,6 +157,10 @@
                         style="background:linear-gradient(135deg,var(--brand),var(--brand-mid))">
                     <i class="fas fa-plus text-[9px]"></i> Add Switch
                 </button>
+                <a href="/SwitchMonitor/Templates"
+                   class="h-7 px-3 bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-sm">
+                    <i class="fas fa-layer-group text-[10px] text-[#00BCEB]"></i> Templates
+                </a>
             }
             @if (ManageEngineWebApp.Datacontext.RoleHelper.HasPermission(Context, "SwitchMonitor.Poll"))
             {
@@ -650,6 +654,23 @@
     function closeSwitchModal() { closeModal('switchModal'); }
     function closeDeleteModal() { closeModal('deleteModal'); }
 
+    /*  Inject HTML into the modal AND execute any script tags it contains.
+        Scripts added via innerHTML are NEVER run by the browser, which is why the
+        _SwitchForm handlers (toggleTemplateCreatePanel, runDiscovery, toggleActive,
+        saveNewTemplate) used to be undefined and clicking did nothing.  */
+    function setModalBody(html) {
+        const body = document.getElementById('modalBody');
+        body.innerHTML = html;
+        body.querySelectorAll('script').forEach(old => {
+            const s = document.createElement('script');
+            for (const a of old.attributes) s.setAttribute(a.name, a.value);
+            if (old.src) s.src = old.src; else s.textContent = old.textContent;
+            document.body.appendChild(s);   // executes on append
+            s.remove();
+            old.remove();
+        });
+    }
+
     /* ── Add Switch ── */
     function openAddSwitchModal() {
         currentSwitchId = 0;
@@ -665,7 +686,7 @@
         .then(r => r.json())
         .then(d => fetch('/SwitchMonitor/Create?q=' + encodeURIComponent(d.q)))
         .then(r => { if (!r.ok) throw new Error('Form load failed'); return r.text(); })
-        .then(html => { document.getElementById('modalBody').innerHTML = html; })
+        .then(html => setModalBody(html))
         .catch(err => {
             document.getElementById('modalBody').innerHTML =
                 `<p class="text-red-500 text-xs p-2"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;
@@ -687,7 +708,7 @@
         .then(r => r.json())
         .then(d => fetch('/SwitchMonitor/Edit?q=' + encodeURIComponent(d.q)))
         .then(r => { if (!r.ok) throw new Error('Form load failed'); return r.text(); })
-        .then(html => { document.getElementById('modalBody').innerHTML = html; })
+        .then(html => setModalBody(html))
         .catch(err => {
             document.getElementById('modalBody').innerHTML =
                 `<p class="text-red-500 text-xs p-2"><i class="fas fa-exclamation-circle mr-1"></i>${err.message}</p>`;

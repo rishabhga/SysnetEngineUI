@@ -1,19 +1,27 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using ManageEngineWebApp.Attributes;
 using ManageEngineWebApp.Datacontext;
 using ManageEngineWebApp.Models;
-using ManageEngineWebApp.Attributes;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-using System.Linq;
 using System;
+using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace ManageEngineWebApp.Controllers
 {
+    using ManageEngineWebApp.Models.SwitchMoniterModels;
+    using ManageEngineWebApp.Requests;
     using Newtonsoft.Json.Linq;
 
     [AuthFilter]
@@ -26,10 +34,10 @@ namespace ManageEngineWebApp.Controllers
 
         [DynamicPermission("SwitchMonitor.View", "View Switch Monitor")]
         public async Task<IActionResult> Index(
-            string? q = null,
-            int? comId = null, int? groupId = null, int? locationId = null,
-            string? companyName = null, string? groupName = null, string? locationName = null,
-            int? companyid = null, int? groupid = null, int? locationid = null)
+           string? q = null,
+           int? comId = null, int? groupId = null, int? locationId = null,
+           string? companyName = null, string? groupName = null, string? locationName = null,
+           int? companyid = null, int? groupid = null, int? locationid = null)
         {
             if (!string.IsNullOrEmpty(q))
             {
@@ -151,9 +159,9 @@ namespace ManageEngineWebApp.Controllers
 
         [DynamicPermission("SwitchMonitor.View", "View Switch Details")]
         public async Task<IActionResult> Details(
-            int id,
-            int? comId = null, int? groupId = null, int? locationId = null,
-            string? companyName = null, string? groupName = null, string? locationName = null)
+           int id,
+           int? comId = null, int? groupId = null, int? locationId = null,
+           string? companyName = null, string? groupName = null, string? locationName = null)
         {
             using var client = GetClient();
 
@@ -220,7 +228,7 @@ namespace ManageEngineWebApp.Controllers
 
         [DynamicPermission("SwitchMonitor.Create", "Create Switch")]
         public async Task<IActionResult> Create(
-            int? comId = null, int? groupId = null, int? locationId = null, string? q = null)
+           int? comId = null, int? groupId = null, int? locationId = null, string? q = null)
         {
             if (!string.IsNullOrEmpty(q))
             {
@@ -231,6 +239,7 @@ namespace ManageEngineWebApp.Controllers
             }
 
             await LoadLocationsToViewBagAsync(comId, groupId, locationId);
+            await LoadTemplatesToViewBagAsync();
 
             return PartialView("_SwitchForm", new SwitchMaster
             {
@@ -278,8 +287,8 @@ namespace ManageEngineWebApp.Controllers
 
         [DynamicPermission("SwitchMonitor.Edit", "Edit Switch")]
         public async Task<IActionResult> Edit(
-            int id = 0, int? comId = null, int? groupId = null,
-            int? locationId = null, string? q = null)
+           int id = 0, int? comId = null, int? groupId = null,
+           int? locationId = null, string? q = null)
         {
             if (!string.IsNullOrEmpty(q))
             {
@@ -299,6 +308,7 @@ namespace ManageEngineWebApp.Controllers
 
             var activeLocId = locationId ?? sw.LocationId;
             await LoadLocationsToViewBagAsync(comId, groupId, activeLocId);
+            await LoadTemplatesToViewBagAsync();
 
             return PartialView("_SwitchForm", sw);
         }
@@ -350,9 +360,9 @@ namespace ManageEngineWebApp.Controllers
         [ValidateAntiForgeryToken]
         [DynamicPermission("SwitchMonitor.Action", "Trigger Poll")]
         public async Task<IActionResult> TriggerPoll(
-            string? q = null,
-            int? comId = null, int? groupId = null, int? locationId = null,
-            string? companyName = null, string? groupName = null, string? locationName = null)
+           string? q = null,
+           int? comId = null, int? groupId = null, int? locationId = null,
+           string? companyName = null, string? groupName = null, string? locationName = null)
         {
             using var client = GetClient();
             try
@@ -408,6 +418,152 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.Locations = locations;
         }
 
+        private async Task LoadTemplatesToViewBagAsync()
+        {
+            var templates = new List<SwitchTemplate>();
+            using var client = GetClient();
+
+            try
+            {
+                var response = await client.GetAsync($"{_baseUrl}/api/Switch/switchtemplate");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    templates = System.Text.Json.JsonSerializer.Deserialize<List<SwitchTemplate>>(json,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                        ?? new List<SwitchTemplate>();
+                }
+            }
+            catch { }
+
+            ViewBag.Templates = templates;
+        }
+
+
+
+        [HttpGet]
+        [DynamicPermission("SwitchMonitor.View", "View Switch Monitor")]
+        public async Task<IActionResult> Templates()
+        {
+            await LoadTemplatesToViewBagAsync();
+            return View("_SwitchTemplates");
+        }
+
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        [DynamicPermission("SwitchMonitor.Delete", "Delete Switch")]
+        public async Task<IActionResult> DeleteSwitchTemplate(int id)
+        {
+            using var client = GetClient();
+            try
+            {
+                var response = await client.DeleteAsync($"{_baseUrl}/api/Switch/switchtemplate/{id}");
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var msg = $"API error: {response.StatusCode}";
+                    try
+                    {
+                        var errorObj = JObject.Parse(body);
+                        if (errorObj["message"] != null) msg = errorObj["message"]!.ToString();
+                    }
+                    catch { }
+                    return Json(new { success = false, message = msg });
+                }
+
+                return Content(body, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Connection error: {ex.Message}" });
+            }
+        }
+
+        [HttpGet]
+        [DynamicPermission("SwitchMonitor.View", "View Switch Monitor")]
+        public async Task<IActionResult> GetTemplatesJson()
+        {
+            using var client = GetClient();
+            try
+            {
+                var response = await client.GetAsync($"{_baseUrl}/api/Switch/switchtemplate");
+                var body = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode) return Json(new List<object>());
+                return Content(body, "application/json");
+            }
+            catch
+            {
+                return Json(new List<object>());
+            }
+        }
+
+        [HttpGet]
+        [DynamicPermission("SwitchMonitor.Create", "Create Switch")]
+        public async Task<IActionResult> DiscoverSwitch(string ip, string community = "public")
+        {
+            using var client = GetClient();
+            try
+            {
+                var url = $"{_baseUrl}/api/Switch/discoverswitch?ip={Uri.EscapeDataString(ip ?? string.Empty)}&community={Uri.EscapeDataString(string.IsNullOrWhiteSpace(community) ? "public" : community)}";
+                var response = await client.GetAsync(url);
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+
+                    var msg = $"API error: {response.StatusCode}";
+                    try
+                    {
+                        var errorObj = JObject.Parse(body);
+                        if (errorObj["message"] != null) msg = errorObj["message"]!.ToString();
+                    }
+                    catch { }
+                    return Json(new { success = false, message = msg });
+                }
+
+                return Content(body, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Connection error: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        [DynamicPermission("SwitchMonitor.Create", "Create Switch")]
+        public async Task<IActionResult> SaveSwitchTemplate([FromBody] SaveSwitchTemplateRequest req)
+        {
+            if (req == null)
+                return Json(new { success = false, message = "Invalid data." });
+
+            using var client = GetClient();
+
+            try
+            {
+                var response = await client.PostAsJsonAsync($"{_baseUrl}/api/Switch/switchtemplate", req);
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var apiErrorMsg = $"API error: {response.StatusCode}";
+                    try
+                    {
+                        var errorObj = JObject.Parse(body);
+                        if (errorObj["message"] != null) apiErrorMsg += " - " + errorObj["message"]!.ToString();
+                    }
+                    catch { }
+                    return Json(new { success = false, message = apiErrorMsg });
+                }
+
+                return Content(body, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Connection error: {ex.Message}" });
+            }
+        }
 
         private static string BuildScopedQuery(int? companyId, int? locationId, int? groupId)
         {

@@ -1,8 +1,9 @@
+using ManageEngineWebApp.Models.SwitchMoniterModels;
+
 namespace ManageEngineWebApp.Models
 {
     public class SwitchMaster
     {
-
         public int Id { get; set; }
 
         public string DeviceName { get; set; }
@@ -13,5 +14,8 @@ namespace ManageEngineWebApp.Models
         public string DeviceType { get; set; }
         public string PollingMode { get; set; }
         public int? LocationId { get; set; }
+        public int? TemplateId { get; set; }
+        public string? TemplateName { get; set; }
+        public SwitchTemplate? Template { get; set; }
     }
 }

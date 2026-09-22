@@ -1,4 +1,6 @@
-﻿namespace ManageEngineWebApp.Models
+﻿using ManageEngineWebApp.Models.SwitchMoniterModels;
+
+namespace ManageEngineWebApp.Models
 {
     public class DeviceStatus
     {
