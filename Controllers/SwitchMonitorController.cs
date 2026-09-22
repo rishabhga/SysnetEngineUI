@@ -62,6 +62,12 @@ namespace ManageEngineWebApp.Controllers
             bool isTopAdmin = RoleHelper.IsTopLevelAdmin(HttpContext);
             var userLocationIds = RoleHelper.GetLocationIds(HttpContext);
 
+            bool isSingleLocationUser = !isTopAdmin && userLocationIds.Count == 1;
+            if (!activeComId.HasValue && !activeGroupId.HasValue && !activeLocationId.HasValue && isSingleLocationUser)
+            {
+                activeLocationId = userLocationIds.Single();
+            }
+
             var allLocations = new List<Locations>();
             try
             {
@@ -150,6 +156,7 @@ namespace ManageEngineWebApp.Controllers
             ViewBag.CompanyId = activeComId;
             ViewBag.GroupId = activeGroupId;
             ViewBag.LocationId = activeLocationId;
+            ViewBag.SingleLocationUser = isSingleLocationUser;
             ViewBag.CompanyName = companyName;
             ViewBag.GroupName = groupName;
             ViewBag.LocationName = locationName;
@@ -236,6 +243,15 @@ namespace ManageEngineWebApp.Controllers
                 if (p.TryGetValue("comId", out var cid) && int.TryParse(cid, out var c)) comId = c;
                 if (p.TryGetValue("groupId", out var gid) && int.TryParse(gid, out var g)) groupId = g;
                 if (p.TryGetValue("locationId", out var lid) && int.TryParse(lid, out var l)) locationId = l;
+            }
+            if (!locationId.HasValue)
+            {
+                bool isTopAdmin = RoleHelper.IsTopLevelAdmin(HttpContext);
+                var userLocationIds = RoleHelper.GetLocationIds(HttpContext);
+                if (!isTopAdmin && userLocationIds.Count == 1)
+                {
+                    locationId = userLocationIds[0];
+                }
             }
 
             await LoadLocationsToViewBagAsync(comId, groupId, locationId);

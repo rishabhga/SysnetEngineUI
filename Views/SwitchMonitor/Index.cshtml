@@ -9,6 +9,7 @@
     int totalUnk  = Model.Count - totalUp - totalDown;
 
     bool hasScope  = ViewBag.CompanyId != null || ViewBag.GroupId != null || ViewBag.LocationId != null;
+    bool isSingleLocUser = ViewBag.SingleLocationUser as bool? ?? false;
     string locName = ViewBag.LocationName as string ?? "";
     string grpName = ViewBag.GroupName   as string ?? "";
     string comName = ViewBag.CompanyName as string ?? "";
@@ -96,7 +97,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
 
         <div class="flex items-center gap-3 min-w-0">
-            @if (hasScope)
+            @if (hasScope && !isSingleLocUser)
             {
                 string backUrl = "/Companies/Companies";
                 string backTitle = "Back";
@@ -136,7 +137,7 @@
                 </div>
                 <div class="min-w-0">
                     <h1 class="text-sm font-bold text-gray-900 leading-tight truncate">@headerTitle</h1>
-                    @if (hasScope && bParts.Count > 0)
+                    @if (hasScope && bParts.Count > 0 && !isSingleLocUser)
                     {
                         <p class="text-[10px] text-gray-400 leading-none mt-0.5 truncate">@breadcrumb</p>
                     }
