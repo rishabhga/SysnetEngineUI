@@ -633,11 +633,41 @@ namespace ManageEngineWebApp.Controllers
 
                         if (deviceConnection != null)
                         {
+                            if (deviceConnection.IsConnected)
+                            {
+                                var onlineSpan = DateTime.Now - deviceConnection.ConnectedAt;
+                                if (onlineSpan < TimeSpan.Zero) onlineSpan = TimeSpan.Zero;
+
+                                return Json(new
+                                {
+                                    success = true,
+                                    isConnected = true,
+                                    userCode = deviceConnection.UserCode,
+                                    onlineSince = deviceConnection.ConnectedAt,
+                                    onlineSinceFormatted = deviceConnection.ConnectedAt.ToString("MM/dd/yyyy, hh:mm tt"),
+                                    onlineDurationFormatted = FormatDuration(onlineSpan)
+                                });
+                            }
+
+                            var lastSeen = deviceConnection.LastConnectedTime > DateTime.MinValue
+                                ? deviceConnection.LastConnectedTime
+                                : deviceConnection.ConnectedAt;
+
+
+                            string lastSessionDuration = null;
+                            if (deviceConnection.LastConnectedTime > deviceConnection.ConnectedAt)
+                            {
+                                lastSessionDuration = FormatDuration(deviceConnection.LastConnectedTime - deviceConnection.ConnectedAt);
+                            }
+
                             return Json(new
                             {
                                 success = true,
-                                lastSeen = deviceConnection.ConnectedAt,
-                                lastSeenFormatted = deviceConnection.ConnectedAt.ToString("MM/dd/yyyy, hh:mm tt")
+                                isConnected = false,
+                                userCode = deviceConnection.UserCode,
+                                lastSeen = lastSeen,
+                                lastSeenFormatted = lastSeen.ToString("MM/dd/yyyy, hh:mm tt"),
+                                lastSessionDurationFormatted = lastSessionDuration
                             });
                         }
                     }
@@ -652,6 +682,17 @@ namespace ManageEngineWebApp.Controllers
                 Console.WriteLine($"GetLastSeenTime Error: {ex.Message}");
                 return Json(new { success = false, error = ex.Message });
             }
+        }
+        private static string FormatDuration(TimeSpan span)
+        {
+            if (span < TimeSpan.Zero) span = TimeSpan.Zero;
+
+            if (span.TotalDays >= 1)
+                return $"{(int)span.TotalDays}d {span.Hours}h";
+            if (span.TotalHours >= 1)
+                return $"{(int)span.TotalHours}h {span.Minutes}m";
+
+            return $"{Math.Max(span.Minutes, 0)}m";
         }
 
         [HttpGet]
