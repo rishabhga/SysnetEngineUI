@@ -187,7 +187,7 @@
 
         try {
             const apiBase = window.SYSNET_CONTEXT.apiBaseUrl || '';
-            const hubUrl = `${apiBase}/scanHub?clientId=LiveView&computerName=WebPortal`;
+            const hubUrl = `${apiBase}/scanHub?clientId=LiveView&computerName=WebPortal&clientType=web`;
 
             if (!liveConnection) {
                 liveConnection = new signalR.HubConnectionBuilder()

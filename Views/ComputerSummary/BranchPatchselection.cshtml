@@ -370,7 +370,7 @@
         async function initHub() {
             const apiBase = (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.apiBaseUrl) || '';
             hubConnection = new signalR.HubConnectionBuilder()
-                .withUrl(`${apiBase}/scanHub?clientId=BranchPatchTP&computerName=WebPortal`)
+                .withUrl(`${apiBase}/scanHub?clientId=BranchPatchTP&computerName=WebPortal&clientType=web`)
                 .withAutomaticReconnect()
                 .build();
 

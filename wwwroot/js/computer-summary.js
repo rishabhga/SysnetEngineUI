@@ -22,6 +22,14 @@ const flexRender = (row, ...fields) => {
             }
         } catch (e) { }
     }
+
+    if (val === 0 || val === '0' || val === '0°C' || val === '0%') {
+        const fieldStr = fields.join('').toLowerCase();
+        if (fieldStr.includes('error') || fieldStr.includes('temp') || fieldStr.includes('shutdown') || fieldStr.includes('wear') || fieldStr.includes('critical')) {
+            return 'Normal';
+        }
+    }
+
     return val;
 };
 
@@ -3351,7 +3359,7 @@ function renderDiskPanels(d) {
                         <div style="flex:1;height:10px;border-radius:6px;background:var(--slate-100);overflow:hidden;">
                             <div style="height:100%;width:${tempNorm.toFixed(1)}%;background:${tempColor};border-radius:6px;transition:width 1s;"></div>
                         </div>
-                        <span style="font-size:.8rem;font-weight:800;color:${tempColor};min-width:40px;text-align:right;">${tempVal}°C</span>
+                        <span style="font-size:.8rem;font-weight:800;color:${tempColor};min-width:40px;text-align:right;">${tempVal === 0 ? 'Normal' : tempVal + '°C'}</span>
                     </div>
                 </div>` : ''}
 
@@ -3444,7 +3452,13 @@ function renderDiskPanels(d) {
 }
 
 function _smartMetric(label, value, color, icon = null, isText = true) {
-    const display = isText ? value : (Number(value) || 0).toLocaleString();
+    let display = isText ? value : (Number(value) || 0).toLocaleString();
+
+    // Replace 0 values with 'Normal' as requested by user
+    if (display === '0' || display === '0°C' || display === '0%' || display === 0) {
+        display = 'Normal';
+    }
+
     const iconHtml = icon ? `<i class="${icon}" style="font-size:.9rem;margin-right:6px;color:${color};"></i>` : '';
     return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;display:flex;flex-direction:column;justify-content:center;">
                 <div style="font-size:.75rem;font-weight:800;text-transform:uppercase;color:#0f172a;margin-bottom:4px;letter-spacing:0.02em;">
@@ -3661,7 +3675,7 @@ function renderSmartDataPanel(smart) {
                     <div style="height:100px;position:relative;margin-bottom:24px;">
                         <canvas id="daTempGauge"></canvas>
                         <div style="position:absolute;bottom:0;width:100%;text-align:center;">
-                            <span style="font-size:1.5rem;font-weight:900;color:#0f172a;">${temp}°C</span>
+                            <span style="font-size:1.5rem;font-weight:900;color:#0f172a;">${temp === 0 ? 'Normal' : temp + '°C'}</span>
                         </div>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">

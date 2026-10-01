@@ -526,7 +526,7 @@
 
         function startPatchHubConnection() {
             const apiBase = (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.apiBaseUrl) || '';
-            const hubUrl  = `${apiBase}/scanHub?clientId=PatchPage&computerName=WebPortal`;
+            const hubUrl  = `${apiBase}/scanHub?clientId=PatchPage&computerName=WebPortal&clientType=web`;
 
             patchHubConnection = new signalR.HubConnectionBuilder()
                 .withUrl(hubUrl, {

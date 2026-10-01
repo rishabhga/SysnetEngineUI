@@ -154,25 +154,6 @@
             margin-top: 3px;
         }
 
-        .cs-online-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #22c55e;
-            box-shadow: 0 0 6px #22c55e;
-            animation: pulse-dot 2s infinite;
-        }
-
-        @@keyframes pulse-dot {
-            0%, 100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: .4;
-            }
-        }
-
         .cs-device-sub span {
             font-size: .75rem;
             color: var(--slate-300);
@@ -1034,7 +1015,6 @@
                 @(!string.IsNullOrEmpty(ViewBag.LastLogUser) && ViewBag.LastLogUser != "N/A" ? ViewBag.LastLogUser : "Unknown Device")
             </div>
             <div class="cs-device-sub">
-                <div class="cs-online-dot"></div>
                 <span>@ViewBag.windowdetails</span>
             </div>
         </div>

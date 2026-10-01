@@ -1025,7 +1025,7 @@
 
         function startDashboardHub() {
             const apiBase = (window.SYSNET_CONTEXT && window.SYSNET_CONTEXT.apiBaseUrl) || '';
-            const hubUrl = `${apiBase}/scanHub?clientId=Dashboard&computerName=WebPortal`;
+            const hubUrl = `${apiBase}/scanHub?clientId=Dashboard&computerName=WebPortal&clientType=web`;
 
             dashHubConnection = new signalR.HubConnectionBuilder()
                 .withUrl(hubUrl, {

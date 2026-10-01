@@ -1234,7 +1234,7 @@
                 if (chatConnection && chatConnection.state === signalR.HubConnectionState.Connected) return;
                 try {
                     const apiBase = window.SYSNET_CONTEXT.apiBaseUrl || '';
-                    const hubUrl = `${apiBase}/scanHub?clientId=Dashboard&computerName=WebPortal`;
+                    const hubUrl = `${apiBase}/scanHub?clientId=Dashboard&computerName=WebPortal&clientType=web`;
                     if (!chatConnection) {
                         chatConnection = new signalR.HubConnectionBuilder()
                             .withUrl(hubUrl, { transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling, skipNegotiation: false })
@@ -1279,12 +1279,11 @@
             };
 
             window.showChatToast = function(clientId, message) {
-                // Strictly isolate chat messages: ONLY show toast if the device is currently rendered on the screen.
-                // This prevents messages from showing up on the Companies page, Groups page, or other locations.
+
                 var lCid = (clientId || '').toLowerCase();
                 var isRendered = $('.device-card').filter(function(){ return ($(this).attr('data-domain')||'').toLowerCase()===lCid; }).length > 0;
                 if (!isRendered) {
-                    return; // Suppress toast! Device is not in the current view.
+                    return; 
                 }
 
                 try { var a=new(window.AudioContext||window.webkitAudioContext)(); var o=a.createOscillator(); var g=a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value=880; o.type='sine'; g.gain.setValueAtTime(.08,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.25); o.start(a.currentTime); o.stop(a.currentTime+.25); } catch(e){}
